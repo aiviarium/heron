@@ -5,7 +5,7 @@ at the end.
 
 The spec is the sealed package `heron/` of
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs), imported
-here at 0.1.0 and pinned in `heron.lock`: what the code must do is stated
+here at 0.2.0 and pinned in `heron.lock`: what the code must do is stated
 there, by domain (`language/`, `cli/`, `tools/`, `product/`). How this
 repository realizes it is the project tree's (`project/`): the components,
 the proofs that link each requirement to its tests, the status of the rest,

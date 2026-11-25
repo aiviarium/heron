@@ -157,4 +157,77 @@ language_markup: section {
   proves(heron.language.markup.prose_view.providers_in_pipeline) {
     verify("internal/core/lint/prose_test.go", test = "TestProseAllow")
   }
+
+  proves(heron.language.markup.authored_pages.pages.authored_are_pages) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.language.markup.authored_pages.pages.steps_numbered) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestAuthoredPagesRender")
+  }
+
+  proves(heron.language.markup.authored_pages.pages.step_anchors) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestAuthoredPagesRender")
+  }
+
+  proves(heron.language.markup.authored_pages.pages.step_resolves_in_tasks) {
+    verify("internal/core/lens/lens_test.go", test = "TestStepResolvesByParent")
+  }
+
+  proves(heron.language.markup.authored_pages.pages.steps_only_in_tasks) {
+    verify("internal/core/lens/lens_test.go", test = "TestStepOnlyInTasks")
+  }
+
+  proves(heron.language.markup.authored_pages.pages.unmarked_in_every_lens) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.language.markup.authored_pages.checked_examples.examples_checked) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredExamplesCheck")
+  }
+
+  proves(heron.language.markup.authored_pages.checked_examples.example_errors) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredExamplesCheck")
+  }
+
+  proves(heron.language.markup.authored_pages.checked_examples.other_blocks_shown) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredPageChecks")
+  }
+
+  proves(heron.language.markup.authored_pages.diagnostics.example_fails) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredExamplesCheck")
+  }
+
+  proves(heron.language.markup.authored_pages.facts.insert_arguments) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredPageChecks")
+    verify("internal/tools/docs/lenses_test.go", test = "TestAuthoredPagesRender")
+  }
+
+  proves(heron.language.markup.authored_pages.facts.inserted_facts_required) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredPageChecks")
+  }
+
+  proves(heron.language.markup.authored_pages.facts.inserted_strings) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestAuthoredPagesRender")
+  }
+
+  proves(heron.language.markup.authored_pages.links.links_checked) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredPageChecks")
+  }
+
+  proves(heron.language.markup.lens_marks.mark_attaches) {
+    verify("internal/core/lens/lens_test.go", test = "TestModes")
+  }
+
+  proves(heron.language.markup.lens_marks.mark_splits_run) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkSplitsRun")
+  }
+
+  proves(heron.language.markup.lens_marks.one_text_still) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensMarksRender")
+  }
+
+  proves(heron.language.markup.lens_marks.mark_checked_on_prose) {
+    verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
+  }
 }

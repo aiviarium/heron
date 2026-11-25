@@ -234,3 +234,24 @@ diagnostics_untested: status<untested>(
   | Built, with no test that asserts the message yet: the checker reports the first four and
   | the extension host the other four.
 }
+
+lenses_planned: status<planned>(
+  heron.language.markup.authored_pages.links.file_links_checked,
+  heron.language.markup.lens_marks.only_lens_on_prose,
+) {
+  | Not built yet: the two lints on authored pages and prose runs, a dead file link and an
+  | annotation other than `@lens` on a run, wait for the prose lints' next round.
+}
+
+lenses_untested: status<untested>(
+  heron.tools.docs.lenses.navigation.nav_by_area,
+  heron.tools.docs.rendering.rules_flow,
+  heron.tools.docs.rendering.one_indent,
+  heron.tools.docs.rendering.no_nested_boxes,
+  heron.tools.frontend.design_system.typography.sentences_at_full_strength,
+  heron.tools.frontend.design_system.typography.small_text_for_facts,
+) {
+  | Built in the docs theme and the navigation, and reviewed on the screenshots of every
+  | lens, with no test that measures the rendered pages yet.
+}
+

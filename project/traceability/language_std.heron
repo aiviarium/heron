@@ -8,4 +8,12 @@ language_std: section {
   proves(heron.language.std.checked_like_any) {
     verify("internal/core/check/std_test.go", test = "TestEveryStdPackageChecks")
   }
+
+  proves(heron.language.std.docs.lens_mark_from_doc) {
+    verify("internal/core/lens/lens_test.go", test = "TestStandardLensesInStd")
+  }
+
+  proves(heron.language.std.docs.standard_lenses_in_std) {
+    verify("internal/core/lens/lens_test.go", test = "TestStandardLensesInStd")
+  }
 }

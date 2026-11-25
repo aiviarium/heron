@@ -197,7 +197,7 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 		if n.Name == "" {
 			name = "this " + what
 		}
-		errAt(&ds, n.Decl, "project-mode", "%s is a %s, which is spec content: this tree implements %s, so rules, stories, terms and the other spec kinds belong in the spec package, and the project only refers to them", name, what, p.SpecName())
+		errAt(&ds, n.Decl, "project-mode", "%s is a %s, which is spec content: this tree implements %s, so the spec's kinds belong in the spec package, and the project only refers to them", name, what, p.SpecName())
 		return false
 	})
 	for _, n := range append(append([]*resolve.Node(nil), p.Proofs...), p.Statuses...) {

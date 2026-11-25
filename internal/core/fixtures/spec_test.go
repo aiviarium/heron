@@ -36,7 +36,7 @@ func TestFixturesAreTheSpecExamples(t *testing.T) {
 			t.Errorf("%s: two blocks have this key", b.Key())
 		}
 		seen[b.Key()] = true
-		if !strings.HasPrefix(b.Path, "language.") && !strings.HasPrefix(b.Path, "tools.") && !strings.HasPrefix(b.Path, "cli.") && !strings.HasPrefix(b.Path, "product.") {
+		if !strings.HasPrefix(b.Path, "language.") && !strings.HasPrefix(b.Path, "tools.") && !strings.HasPrefix(b.Path, "cli.") && !strings.HasPrefix(b.Path, "product.") && !strings.HasPrefix(b.Path, "learn.") && !strings.HasPrefix(b.Path, "guide.") {
 			t.Errorf("%s (%s): not a path inside the spec package", b.Key(), b.File)
 		}
 	}

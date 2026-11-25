@@ -62,10 +62,6 @@ language_specifications: section {
     verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
   }
 
-  proves(heron.language.specifications.requirements.consequences_listed) {
-    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
-  }
-
   proves(heron.language.specifications.requirements.diagnostics.instead_positive) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
@@ -193,5 +189,54 @@ language_specifications: section {
 
   proves(heron.language.specifications.tech_kinds.diagnostic_view) {
     verify("internal/tools/docs/grammar_test.go", test = "TestDiagnosticsRender")
+  }
+
+  proves(heron.language.specifications.requirements.examples_after_sentence) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+    verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
+  }
+
+  proves(heron.language.specifications.implementations.sealed.sealed_locked) {
+    verify("internal/core/resolve/sealed_test.go", test = "TestSealedPackage")
+  }
+
+  proves(heron.language.specifications.implementations.diagnostics.sealed_node) {
+    verify("internal/core/resolve/sealed_test.go", test = "TestSealedPackage")
+  }
+
+  proves(heron.language.specifications.implementations.sealed.spec_kinds_in_spec) {
+    verify("internal/core/check/project_test.go", test = "TestProjectMode")
+  }
+
+  proves(heron.language.specifications.implementations.diagnostics.spec_content) {
+    verify("internal/core/check/project_test.go", test = "TestProjectMode")
+  }
+
+  proves(heron.language.specifications.implementations.versions.spec_version_form) {
+    verify("internal/core/check/project_test.go", test = "TestProjectVersions")
+  }
+
+  proves(heron.language.specifications.implementations.diagnostics.spec_version) {
+    verify("internal/core/check/project_test.go", test = "TestProjectVersions")
+  }
+
+  proves(heron.language.specifications.implementations.versions.version_starts_with_spec) {
+    verify("internal/core/check/project_test.go", test = "TestProjectVersions")
+  }
+
+  proves(heron.language.specifications.implementations.diagnostics.project_version) {
+    verify("internal/core/check/project_test.go", test = "TestProjectVersions")
+  }
+
+  proves(heron.language.specifications.implementations.versions.schemes) {
+    verify("internal/core/check/project_test.go", test = "TestProjectVersions")
+  }
+
+  proves(heron.language.specifications.implementations.versions.build_order) {
+    verify("internal/core/project/version_test.go", test = "TestCompare")
+    verify("internal/core/project/version_test.go", test = "TestNext")
+  }
+  proves(heron.language.specifications.implementations.versions.release_tags) {
+    verify("scripts/e2e-project.sh")
   }
 }

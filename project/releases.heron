@@ -2,4 +2,6 @@ releases: section {
   | What the implementation has shipped, each release tagged in git as `v<version>`.
 
   first: release("0.1.0+build1") {{ The first build against the 0.1.0 spec. }}
+
+  lenses: release("0.2.0+build1") {{ The 0.2.0 spec: the docs' lenses, the authored pages and the rendering baseline. }}
 }

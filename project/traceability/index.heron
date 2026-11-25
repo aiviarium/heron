@@ -2,6 +2,7 @@
 // file per area of the spec.
 include = [
   "./guide.heron",
+  "./product_epics.heron",
   "./language_core_format.heron",
   "./language_grammar.heron",
   "./language_schemas.heron",
