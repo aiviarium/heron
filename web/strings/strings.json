@@ -213,7 +213,11 @@
       "proven": "proven",
       "planned": "planned",
       "untested": "untested",
-      "missing": "missing"
+      "missing": "missing",
+      "practice": "practice",
+      "practices": "Practices",
+      "practices_count": "({practices} practices of people and agents, not counted)",
+      "practices_note": "Requirements on the people and agents who author and build the system, by their subject; no test of the code proves them"
     },
     "project": {
       "implements": "Implements {spec} at {at}",

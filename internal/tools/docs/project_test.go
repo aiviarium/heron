@@ -104,3 +104,76 @@ func TestProjectSiteLinksToSpecSite(t *testing.T) {
 		t.Errorf("conformance links to the spec site: %s", h)
 	}
 }
+
+// A requirement whose subject is a person or an agent, with no proof and
+// no status, is a practice: listed in its own group and not counted among
+// what the code must meet, while one a proof names stays proven. A rule
+// on a system actor with neither is still missing.
+func TestConformancePractices(t *testing.T) {
+	dir := t.TempDir()
+	read := func(p string) string {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	spec := strings.Replace(read("../../../examples/shop-spec/index.heron"), "  /// The parts of the system", `  helper: actor(kind = ActorKind.AGENT) {{ An agent that builds the shop. }}
+  ledger: actor(kind = ActorKind.SYSTEM) {{ The books. }}
+
+  conduct: section {
+    tidy_carts: rule(parts.cart, by = buyer) {
+      should {{ empty a cart they won't pay for }}
+    }
+
+    small_changes: rule(parts.cart, by = helper) {
+      must {{ change one part at a time }}
+    }
+
+    proven_habit: rule(parts.cart, by = buyer) {
+      must {{ see the total before paying }}
+    }
+
+    books_balance: rule(parts.payments, by = ledger) {
+      must {{ balance every day }}
+    }
+  }
+
+  /// The parts of the system`, 1)
+	app := strings.Replace(read("../../../examples/shop/index.heron"), "  refunds_later:", `  proves(shop.conduct.proven_habit) {
+    verify("internal/cart/total_test.go", test = "TestTotalShown")
+  }
+
+  refunds_later:`, 1)
+	app = strings.Replace(app, `  since = "../shop-spec-2.1.2/"`+"\n", "", 1)
+	for name, src := range map[string]string{"shop-spec/index.heron": spec, "shop/index.heron": app} {
+		os.MkdirAll(filepath.Join(dir, filepath.Dir(name)), 0o755)
+		os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644)
+	}
+	s := site(t, filepath.Join(dir, "shop/index.heron"))
+	rep := s.project.Conformance()
+	status := map[string]string{}
+	for _, r := range rep.Rows {
+		status[r.Path] = r.Status
+	}
+	for path, want := range map[string]string{
+		"conduct.tidy_carts": "practice", "conduct.small_changes": "practice",
+		"conduct.proven_habit": "proven", "conduct.books_balance": "missing",
+	} {
+		if status[path] != want {
+			t.Errorf("%s is %q, want %q", path, status[path], want)
+		}
+	}
+	if rep.Counts["practice"] != 2 || rep.Obligations() != len(rep.Rows)-2 {
+		t.Errorf("counts %v of %d rows, obligations %d", rep.Counts, len(rep.Rows), rep.Obligations())
+	}
+	h := pageHTML(t, s, "_conformance.html")
+	for _, want := range []string{"(2 practices of people and agents, not counted)", `id="practices"`, `<span class="badge status-practice">practice</span>`} {
+		if !strings.Contains(h, want) {
+			t.Errorf("conformance page lacks %s", want)
+		}
+	}
+	if md := string(rep.Markdown()); !strings.Contains(md, "## Practices") || !strings.Contains(md, "2 practices of people and agents, not counted.") {
+		t.Errorf("markdown lacks the practices:\n%s", md)
+	}
+}

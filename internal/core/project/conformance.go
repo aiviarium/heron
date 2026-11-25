@@ -21,7 +21,9 @@ type Report struct {
 	At      string `json:"at"`
 	Version string `json:"version,omitempty"`
 	Rows    []Row  `json:"requirements"`
-	// Counts by status: proven, planned, untested, missing.
+	// Counts by status: proven, planned, untested, missing, and practice
+	// for the requirements on people and agents that aren't obligations
+	// of the code.
 	Counts  map[string]int `json:"counts"`
 	Changes *Changes       `json:"changes,omitempty"`
 }
@@ -54,8 +56,12 @@ type Changes struct {
 	Err string `json:"error,omitempty"`
 }
 
-// Statuses in report order.
-var Statuses = []string{"proven", "planned", "untested", "missing"}
+// Statuses in report order. Practices come last, in a group of their own.
+var Statuses = []string{"proven", "planned", "untested", "missing", "practice"}
+
+// Obligations is the number of requirements the code must meet: every
+// requirement but the practices.
+func (r *Report) Obligations() int { return len(r.Rows) - r.Counts["practice"] }
 
 // Conformance computes the project's report. The earlier spec version, if
 // `since` names one, is read from its path relative to the file that
@@ -196,19 +202,16 @@ func (r *Report) Markdown() []byte {
 	if r.Version != "" {
 		fmt.Fprintf(&b, "Project version %s. ", r.Version)
 	}
-	fmt.Fprintf(&b, "%d requirements: %d proven, %d planned, %d untested, %d missing.\n\n",
-		len(r.Rows), r.Counts["proven"], r.Counts["planned"], r.Counts["untested"], r.Counts["missing"])
-	b.WriteString("| Requirement | Kind | Status | Proven by |\n| --- | --- | --- | --- |\n")
-	for _, row := range r.Rows {
-		var proofs []string
-		for _, p := range row.Proofs {
-			s := "`" + p.Path + "`"
-			if p.Test != "" {
-				s += " `" + p.Test + "`"
-			}
-			proofs = append(proofs, s)
-		}
-		fmt.Fprintf(&b, "| `%s` | %s | %s | %s |\n", row.Path, row.Kind, row.Status, strings.Join(proofs, ", "))
+	fmt.Fprintf(&b, "%d requirements: %d proven, %d planned, %d untested, %d missing.",
+		r.Obligations(), r.Counts["proven"], r.Counts["planned"], r.Counts["untested"], r.Counts["missing"])
+	if n := r.Counts["practice"]; n > 0 {
+		fmt.Fprintf(&b, " %d practices of people and agents, not counted.", n)
+	}
+	b.WriteString("\n\n")
+	r.markdownTable(&b, func(row Row) bool { return row.Status != "practice" })
+	if r.Counts["practice"] > 0 {
+		b.WriteString("\n## Practices\n\nRequirements on the people and agents who author and build, by their `by`; no test of the code proves them.\n\n")
+		r.markdownTable(&b, func(row Row) bool { return row.Status == "practice" })
 	}
 	if ch := r.Changes; ch != nil {
 		fmt.Fprintf(&b, "\n## Changes from %s %s to %s\n\n", r.Spec, orDash(ch.From), orDash(ch.To))
@@ -234,6 +237,25 @@ func (r *Report) Markdown() []byte {
 		}
 	}
 	return []byte(b.String())
+}
+
+// markdownTable writes the rows that keep holds as a Markdown table.
+func (r *Report) markdownTable(b *strings.Builder, keep func(Row) bool) {
+	b.WriteString("| Requirement | Kind | Status | Proven by |\n| --- | --- | --- | --- |\n")
+	for _, row := range r.Rows {
+		if !keep(row) {
+			continue
+		}
+		var proofs []string
+		for _, p := range row.Proofs {
+			s := "`" + p.Path + "`"
+			if p.Test != "" {
+				s += " `" + p.Test + "`"
+			}
+			proofs = append(proofs, s)
+		}
+		fmt.Fprintf(b, "| `%s` | %s | %s | %s |\n", row.Path, row.Kind, row.Status, strings.Join(proofs, ", "))
+	}
 }
 
 func orDash(s string) string {

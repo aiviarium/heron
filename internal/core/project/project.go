@@ -232,7 +232,9 @@ type Requirement struct {
 	Kind string
 	// Proofs are the verify nodes of the proofs that name it.
 	Proofs []*resolve.Node
-	// Status is "proven", "planned", "untested" or "missing".
+	// Status is "proven", "planned", "untested" or "missing", or
+	// "practice" for a requirement on a person or an agent that no proof
+	// or status names: a practice, not an obligation of the code.
 	Status string
 }
 
@@ -275,7 +277,40 @@ func (p *Project) Requirements() []*Requirement {
 			}
 		}
 	}
+	for _, r := range out {
+		if r.Status == "missing" && PracticeSubject(c, r.Node) {
+			r.Status = "practice"
+		}
+	}
 	return out
+}
+
+// PracticeSubject reports whether a requirement's `by` names a person or
+// an agent: an std/product actor of kind PERSON, the default, or AGENT, or
+// a persona. What it asks of them is a practice of the people and agents
+// who author and build, which no test of the code proves, unless a proof
+// links one, as a test of contrast or of visible text can.
+func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
+	e := NamedArg(KindArgs(n), "by")
+	if e == nil {
+		return false
+	}
+	by := RefTarget(c, e.Syntax(), n.Decl)
+	if by == nil {
+		return false
+	}
+	switch KindPath(c, by) {
+	case "product.persona":
+		return true
+	case "product.actor":
+		kind := NamedArg(KindArgs(by), "kind")
+		if kind == nil {
+			return true
+		}
+		k := strings.TrimSpace(kind.Syntax().Text())
+		return strings.HasSuffix(k, "PERSON") || strings.HasSuffix(k, "AGENT")
+	}
+	return false
 }
 
 // SpecRequirements are a spec package's requirement nodes, in tree order.

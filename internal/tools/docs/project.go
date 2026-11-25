@@ -19,30 +19,20 @@ func (s *Site) conformancePage(c *Ctx) error {
 		"project", displayName(s, s.project.Node), "spec", rep.Spec, "at", rep.At,
 		"proven", strconv.Itoa(rep.Counts["proven"]), "planned", strconv.Itoa(rep.Counts["planned"]),
 		"untested", strconv.Itoa(rep.Counts["untested"]), "missing", strconv.Itoa(rep.Counts["missing"]),
-		"total", strconv.Itoa(len(rep.Rows)))))
+		"total", strconv.Itoa(rep.Obligations()))))
+	if n := rep.Counts["practice"]; n > 0 {
+		c.W(` `, esc(label("docs.conformance.practices_count", "practices", strconv.Itoa(n))))
+	}
 	c.W(`</p>`)
 	if rep.Version != "" {
 		c.W(`<p class="conformance-version">`, esc(label("docs.conformance.version", "version", rep.Version)), `</p>`)
 	}
-	c.W(`<div class="table-wrap"><table class="conformance-table"><thead><tr><th>`, esc(label("docs.col.requirement")),
-		`</th><th>`, esc(label("docs.col.kind")), `</th><th>`, esc(label("docs.col.status")),
-		`</th><th>`, esc(label("docs.col.proven_by")), `</th></tr></thead><tbody>`)
-	for _, row := range rep.Rows {
-		c.W(`<tr><td>`, s.linkHTML(row.Node, `<code>`+esc(row.Path)+`</code>`, "spec-ref"),
-			`</td><td>`, esc(row.Kind), `</td><td><span class="badge status-`, attr(row.Status), `">`,
-			esc(label("docs.conformance."+row.Status)), `</span></td><td>`)
-		for i, p := range row.Proofs {
-			if i > 0 {
-				c.W(`<br>`)
-			}
-			c.W(`<code class="path">`, esc(p.Path), `</code>`)
-			if p.Test != "" {
-				c.W(` <code class="test">`, esc(p.Test), `</code>`)
-			}
-		}
-		c.W(`</td></tr>`)
+	s.conformanceTable(c, rep, func(row project.Row) bool { return row.Status != "practice" })
+	if rep.Counts["practice"] > 0 {
+		c.Heading(2, "practices", label("docs.conformance.practices"), "")
+		c.W(`<p>`, esc(label("docs.conformance.practices_note")), `</p>`)
+		s.conformanceTable(c, rep, func(row project.Row) bool { return row.Status == "practice" })
 	}
-	c.W(`</tbody></table></div>`)
 	if ch := rep.Changes; ch != nil {
 		title := label("docs.conformance.changes", "spec", rep.Spec, "from", ch.From, "to", ch.To)
 		c.Heading(2, "changes", title, "")
@@ -299,4 +289,30 @@ func (c *Ctx) specLinks(ns []*resolve.Node) string {
 		parts = append(parts, c.Site.linkHTML(n, `<code>`+esc(text)+`</code>`, "spec-ref"))
 	}
 	return strings.Join(parts, `<span class="sep">, </span>`)
+}
+
+// conformanceTable writes the report's rows that keep holds as a table.
+func (s *Site) conformanceTable(c *Ctx, rep *project.Report, keep func(project.Row) bool) {
+	c.W(`<div class="table-wrap"><table class="conformance-table"><thead><tr><th>`, esc(label("docs.col.requirement")),
+		`</th><th>`, esc(label("docs.col.kind")), `</th><th>`, esc(label("docs.col.status")),
+		`</th><th>`, esc(label("docs.col.proven_by")), `</th></tr></thead><tbody>`)
+	for _, row := range rep.Rows {
+		if !keep(row) {
+			continue
+		}
+		c.W(`<tr><td>`, s.linkHTML(row.Node, `<code>`+esc(row.Path)+`</code>`, "spec-ref"),
+			`</td><td>`, esc(row.Kind), `</td><td><span class="badge status-`, attr(row.Status), `">`,
+			esc(label("docs.conformance."+row.Status)), `</span></td><td>`)
+		for i, p := range row.Proofs {
+			if i > 0 {
+				c.W(`<br>`)
+			}
+			c.W(`<code class="path">`, esc(p.Path), `</code>`)
+			if p.Test != "" {
+				c.W(` <code class="test">`, esc(p.Test), `</code>`)
+			}
+		}
+		c.W(`</td></tr>`)
+	}
+	c.W(`</tbody></table></div>`)
 }
