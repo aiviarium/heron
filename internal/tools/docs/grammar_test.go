@@ -120,7 +120,7 @@ func sortedKeys[V any](m map[string]V) []string {
 // the diagnostics index lists it by code with a link to its section.
 func TestDiagnosticsRender(t *testing.T) {
 	s := site(t, entries["spec"])
-	n := s.Tree.Find("language.core_format.conflicts.diagnostics.declared_twice")
+	n := s.Tree.Find("heron.language.core_format.conflicts.diagnostics.declared_twice")
 	if n == nil {
 		t.Fatal("no declared_twice diagnostic")
 	}
@@ -128,7 +128,7 @@ func TestDiagnosticsRender(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`<code class="diag-code">conflict</code>`, `sev-error`, `<span class="ph">‹name›</span> is declared twice`, `first declared here`, `runtime.resolve`} {
+	for _, want := range []string{`<code class="diag-code">conflict</code>`, `sev-error`, `<span class="ph">‹name›</span> is declared twice`, `first declared here`, `checker`} {
 		if !strings.Contains(f.HTML, want) {
 			t.Fatalf("diagnostic card lacks %q:\n%s", want, f.HTML)
 		}

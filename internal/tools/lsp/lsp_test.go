@@ -116,7 +116,11 @@ func spellings(t *testing.T, path, link, linkTarget string) []string {
 	return out
 }
 
-// Every file of the sample repository and of spec/ opens with zero
+// specSet is the spec package as the repository installs it, under
+// .heron/packages/ (scripts/spec-setup.sh puts it there).
+const specSet = ".heron/packages/github.com/aiviarium/heron-specs/heron"
+
+// Every file of the sample repository and of the spec package opens with zero
 // diagnostics, whatever URI spelling and order reach it, through an entry
 // that imports or includes it, and after edits, closes and reopens.
 func TestOpenEveryFileWithoutFalseDiagnostics(t *testing.T) {
@@ -125,8 +129,8 @@ func TestOpenEveryFileWithoutFalseDiagnostics(t *testing.T) {
 	if err := os.Symlink(root, link); err != nil {
 		t.Fatal(err)
 	}
-	for _, set := range []string{"examples/petstore", "spec"} {
-		dir := filepath.Join(root, set)
+	for _, set := range []string{"examples/petstore", specSet} {
+		dir := filepath.Join(root, set) + string(filepath.Separator)
 		files := heronFiles(t, dir)
 		if len(files) == 0 {
 			t.Fatalf("no files in %s", set)

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/fixtures"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/std"
@@ -17,6 +18,9 @@ import (
 
 func site(t *testing.T, entry string) *Site {
 	t.Helper()
+	if entry == "" && specMissing != nil {
+		t.Fatal(specMissing)
+	}
 	id, err := resolve.Canonical(entry)
 	if err != nil {
 		t.Fatal(err)
@@ -32,11 +36,22 @@ func site(t *testing.T, entry string) *Site {
 
 var entries = map[string]string{
 	"petstore":  "../../../examples/petstore/index.heron",
-	"spec":      "../../../spec/index.heron",
 	"kinds":     "testdata/kinds/index.heron",
 	"shop":      "../../../examples/shop/index.heron",
 	"shop-spec": "../../../examples/shop-spec/index.heron",
 }
+
+// The spec package's entry, as the repository imports it: from
+// $HERON_SPECS_DIR or .heron/packages/ (scripts/spec-setup.sh puts it there).
+func init() {
+	if e, err := fixtures.SpecEntry(filepath.Join("..", "..", "..")); err == nil {
+		entries["spec"] = e
+	} else {
+		specMissing = err
+	}
+}
+
+var specMissing error
 
 var (
 	scriptRe = regexp.MustCompile(`(?s)<script.*?</script>|<style.*?</style>|<title>.*?</title>`)
