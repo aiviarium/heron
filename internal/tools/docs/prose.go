@@ -160,7 +160,12 @@ func (p *proseBuf) container(n *syntax.Node) {
 					p.b.WriteString(ch.Text)
 				}
 			case syntax.Newline:
-				p.b.WriteString("\n")
+				// Between the lines of a `///` doc, each DocLine has
+				// ended its own line already; another newline would make
+				// every doc line a paragraph of its own.
+				if n.Kind != syntax.Doc {
+					p.b.WriteString("\n")
+				}
 				lineStart = true
 			case syntax.CodeSpan:
 				code := strings.Trim(ch.Text, "`")
