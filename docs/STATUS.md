@@ -1,26 +1,33 @@
 # Status
 
-Units 1 and 2 against their tabs' "Done means", with the remaining open
-questions at the end.
+Units 1 and 2 against their "Done means", with the remaining open questions
+at the end.
 
-Heron's own spec under `spec/` is the source of truth for the system: what
-the code must do is stated there, by domain (`spec/language/`,
-`spec/runtime/`, `spec/tools/`, `spec/cli/`), and how the work is delivered
-is in `spec/delivery/`. This file is a readable summary of where the build
-stands against it and links into it rather than repeating it; where the two
-disagree, the spec wins.
+The spec is the sealed package `heron/` of
+[aiviarium/heron-specs](https://github.com/aiviarium/heron-specs), imported
+here at 0.1.0 and pinned in `heron.lock`: what the code must do is stated
+there, by domain (`language/`, `cli/`, `tools/`, `product/`). How this
+repository realizes it is the project tree's (`project/`): the components,
+the proofs that link each requirement to its tests, the status of the rest,
+the delivery plan and the releases. `heron generate conformance` reports
+every requirement of the spec as proven, planned, untested or missing, with
+the requirements on people and agents as practices of their own, and
+`scripts/ci.sh` fails while any is missing. This file is a readable summary
+of where the build stands and links into both rather than repeating them;
+where they disagree, the spec wins.
 
 ## Unit 1
 
-Unit 1 ("Language and runtime") against the five items of "Done means" on
-the unit's tab (`docs/design/13-unit-1-language-and-runtime.md`). Every
-check named here runs in `scripts/ci.sh`, which also passes from a fresh
-`git clone` of the repository into an empty directory, so no untracked or
-ignored file is needed.
+Unit 1 ("Language and runtime") against the five items of its "Done means"
+(the project tree's `delivery/unit_1/`). Every check named here runs in
+`scripts/ci.sh`, which also passes from a fresh `git clone` of the
+repository into an empty directory, with the spec package from `heron run
+setup` or from the sibling checkout `HERON_SPECS_DIR` names, so no other
+untracked or ignored file is needed.
 
 | # | Item | Proven by | Status |
 | --- | --- | --- | --- |
-| 1 | Fixtures | `TestNoDrift`, `TestFixturesParse`, `TestFixturePrefixes`, `FuzzParse`, `TestFixturesFormatToThemselves`, `TestFixturesCheckClean`, `TestCleanFixturesLintClean`, `heron fmt --check fixtures` | 28 of 40 unit-1 Heron blocks check clean; 12 pending |
+| 1 | Fixtures | `TestFixturesAreTheSpecExamples`, `TestFixturesParse`, `TestFixturePrefixes`, `FuzzParse`, `TestFixturesFormatToThemselves`, `TestFixturesCheckClean`, `TestCleanFixturesLintClean` | 26 of the spec's 29 Heron examples check clean; 3 pending |
 | 2 | Setup | `scripts/e2e-setup.sh`, `internal/core/setup` tests | met for the sample, with gaps below |
 | 3 | Tasks | `scripts/e2e-tasks.sh`, `internal/core/cli` and `records` tests | met |
 | 4 | Extensions | `scripts/e2e-interop.sh`, `internal/core/extension` tests, `web/runtime`'s vitest suite | met |
@@ -28,38 +35,29 @@ ignored file is needed.
 
 ### 1. Fixtures
 
-Every Heron block of the tabs parses losslessly (54 of 54, including the
-later units' tabs; the sketch `devops/01` elides a body and is lossless
-with recovery), every prefix re-parses losslessly, all format to
-themselves, and formatting is idempotent. Of the 40 Heron blocks on unit 1's
-tabs, 28 check clean. `fixtures/pending.txt` lists the other 12, each
-under the node of `spec/` that says why, and the test fails when a pending
-block starts checking clean (`spec/delivery/roadmap.heron`,
-`pending_blocks`):
+The fixtures are the spec package's examples: every fenced code block of an
+`example` node, keyed by the node's path (`internal/core/fixtures`). Nothing
+is copied into this repository, so changing an example in heron-specs
+changes what the implementation is tested against. Of the 32 blocks, 29 are
+Heron (one of them a prose file), one is the surface grammar in EBNF and two
+are TS (`fixtures/modes.txt`). Every Heron example parses losslessly, every
+prefix re-parses losslessly, all format to themselves, and formatting is
+idempotent. 26 check clean, each in the context `fixtures/contexts.txt`
+gives it (`fixtures/context/`). `fixtures/pending.txt` lists the other 3
+with their reasons, and the test fails when a listed example starts
+checking clean:
 
-- 10 use packages of units 3 and 4 (`std/ci`, `std/env`, `std/scenarios`,
-  `std/agents`, a prompt). The planned rule `deferred_blocks_check` in
-  `spec/delivery/roadmap.heron` says they check clean once those units
-  declare them; until then unit 1 is done without them.
-- 1, `example/10`, names `pet_lifecycle` and `#ordering`, which are declared
-  under the `orders` mount. The Core format tab answers the old question
-  `mounted_names_visibility`: files mounted in a scope "see its names", and
-  that is "how a whole subtree gets a prefix", so a sibling writes
-  `orders.pet_lifecycle`. `resolve` already behaves so and `examples/petstore` already writes the
-  prefix. The block itself is wrong as the Example tab writes it, and
-  `docs/design/` is an export of the design document, so the fix belongs
-  in that document (`example_mount_prefix`). The block stays pending until
-  the export carries it. `example/07`'s changelog links have the same
-  problem, behind its `std/ci` dependency.
-- 1, `specifications/04`, the Specifications tab's planning example, holds
-  a decision record. std/spec has no `decision` kind any more, so the block
-  can't check clean; `planning_example_erratum` in
-  `spec/language/specifications/planning.heron` states the correction the
-  design document needs.
+- `language.data.configuration.data_configuration` and
+  `language.data.configuration.data_layering` use `std/ci` and `std/env`
+  of unit 3 (DevOps);
+- `language.markup.long_form.markup_prompt` is a prompt of unit 4 (Agents).
 
-Gaps: the tabs' TS blocks (Interop) aren't type-checked as fixtures, only
-the sample package's TS is; "every code block" is read as every Heron and
-prose block.
+The project's roadmap (`project/delivery/roadmap.heron`) plans them: they
+check clean once those units declare what they use, and unit 1 is done
+without them until then.
+
+Gaps: the spec's TS examples (Interop) aren't type-checked as fixtures,
+only the sample package's TS is.
 
 ### 2. Setup
 
@@ -143,8 +141,8 @@ helper live in unit packages. Nothing needed moving.
 `unit1` tag is set, appends unit 2's. `go build -tags unit1 ./cmd/heron`
 gives the language and runtime alone, with `check`, `fmt`, `lint`, `run`
 and `generate` and no `lsp`, `serve` or docs target. `scripts/ci.sh` builds
-it and, with it, formats, checks and lints `spec/` and
-`examples/petstore` and runs `e2e-setup.sh`, `e2e-tasks.sh` and
+it and, with it, formats, checks and lints the repository's tree (the spec
+package and the project tree) and `examples/petstore` and runs `e2e-setup.sh`, `e2e-tasks.sh` and
 `e2e-interop.sh` (`HERON_TAGS=unit1`; setup then pins no Vale).
 `e2e-prose.sh` builds its own unit-1 binary. CI also fails if a package
 under `internal/core` or `std`, or its tests, imports `internal/tools`, so
@@ -152,15 +150,15 @@ unit 1's Go tests are unit 1's alone.
 
 What "renders as the documentation site at every stage" means at the
 unit-1 stage: the docs generator is unit 2's, so at stage 1 nothing renders.
-The rebuild reads the requirement as: spec/ checks and lints clean with the
-unit-1 binary, so its `std/doc` sections, terms and links resolve and the
-tree unit 2 renders is already valid; rendering itself (`heron generate
-docs spec`, every link and island, `scripts/e2e-docs.sh`) is proven from
-stage 1–2 on.
+The build reads the requirement as: the spec package checks and lints clean
+with the unit-1 binary, so its `std/doc` sections, terms and links resolve
+and the tree unit 2 renders is already valid; rendering itself (`heron
+generate docs` on the package, every link and island, `scripts/e2e-docs.sh`)
+is proven from stage 1–2 on.
 
 Gap: the standard packages are embedded as one set, so the unit-1 binary
 still carries unit 2's `std/lint` and `std/docs` sources. They check, and
-spec/ can import `std/lint`, but without unit 2 no prose provider runs, so
+the spec package can import `std/lint`, but without unit 2 no prose provider runs, so
 `heron lint` at stage 1 is the core lints only.
 
 ### Recommendations on unit 1's open questions
@@ -201,8 +199,8 @@ agree on one location without unit 1 knowing the `audit` node exists.
 
 ## Unit 2
 
-Unit 2 ("Development tools") against the three items of "Done means" on
-its tab (`docs/design/14-unit-2-development-tools.md`). The checks run in
+Unit 2 ("Development tools") against the three items of its "Done means"
+(the project tree's `delivery/unit_2/`). The checks run in
 `scripts/ci.sh` with Vale required (`HERON_REQUIRE_VALE=1`, Vale v3.28.1
 installed from the Go proxy).
 
@@ -210,7 +208,7 @@ installed from the Go proxy).
 | --- | --- | --- | --- |
 | 1 | Language server | `scripts/e2e-lsp.sh` (a scripted client over stdio), `web/shell/e2e/lsp.cjs` (Monaco through `heron serve`), `internal/tools/lsp` tests | met |
 | 2 | Preview and docs | `web/shell/e2e/preview.cjs`, `first-run.cjs`, `scripts/e2e-docs.sh`, `internal/tools/docs` tests | met, with gaps below |
-| 3 | Prose | `scripts/e2e-lsp.sh`, `internal/tools/prose` tests, `heron lint spec` in CI | met, with gaps below |
+| 3 | Prose | `scripts/e2e-lsp.sh`, `internal/tools/prose` tests, `heron lint .` in CI | met, with gaps below |
 
 ### 1. Language server
 
@@ -220,7 +218,7 @@ providers, each with its source, plus completion, hover, go to definition
 formatting, semantic tokens, symbols, folding and code actions.
 `e2e-lsp.sh` drives the binary over stdio on a copy of the sample; `lsp.cjs`
 does the same five things in Monaco against `heron serve`'s `/api/v1/lsp`
-socket. The Go tests open every file of `examples/petstore` and `spec/`
+socket. The Go tests open every file of `examples/petstore` and of the spec package
 through five URI spellings in three orders with zero diagnostics.
 The tree-sitter grammar parses every fixture (`test-fixtures.sh`).
 
@@ -237,7 +235,7 @@ empty profile and follows the file tree, the outline, the palette, the
 preview, the problems and a gutter run, failing on any console error,
 failed request or page error; `switching.cjs`, `typing.cjs`, `indent.cjs`
 and `visible-text.cjs` cover the rest of the editor screen.
-`e2e-docs.sh` runs `heron generate docs` on the sample and on `spec/` and
+`e2e-docs.sh` runs `heron generate docs` on the sample and on the spec package and
 checks every link and island in Chromium.
 
 Gaps:
@@ -256,9 +254,9 @@ sees Vale alerts on the right words of a Heron file, never inside code or
 links, with Vale's fix as a quick fix and the accept and reject vocabulary
 actions; the spec-aware lints of `std/lint` flag an unlinked term in the
 sample. `heron run setup` pins Vale in `heron.lock` and syncs its packages
-(`e2e-setup.sh`). `spec/` imports `std/lint` and has its own `.vale.ini`,
-and `heron lint spec` passes with both providers and nothing silenced
-(`spec_prose_lints_adopted`).
+(`e2e-setup.sh`). The spec package imports `std/lint` and has its own
+`.vale.ini`; heron-specs' CI and `heron lint .` here pass with both
+providers and nothing silenced.
 
 Gaps:
 - Vale alerts are tested through the stdio client, not in Monaco.
@@ -276,14 +274,8 @@ and the docs; it's now dedented.
 
 ## Open questions
 
-The questions still open are the `open(…)` nodes under `spec/`
-(`grep -rn ': open(' spec` lists them); each sits on the node it's about,
-and the rendered spec shows it there. A question is resolved by writing its
-answer into the spec as rules and removing the `open`.
-
-Resolved in this pass: `undeclared_error_types` (`std/files`, `std/json`
-and `std/core` declare the errors their funcs throw; rule `declared_errors`
-in `spec/language/scripting/code.heron`), `std_surface_invented` (each
-standard package's component in `spec/language/std/` links every export to
-where it's specified, and `Duration`'s and `Money`'s members are planned for
-removal) and `fixtures_of_deferred_units` (above).
+The questions still open about what the system does are the spec's, kept in
+heron-specs as `open(…)` nodes on the nodes they're about. Questions about
+how this repository builds it belong to the project tree. A question is
+resolved by writing its answer into the spec as rules, or into the project
+tree, and removing the `open`.

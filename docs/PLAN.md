@@ -1,20 +1,26 @@
 # Rebuild plan
 
-This plan covers the rebuild of units 1 (Language and runtime) and 2
-(Development tools) from the design in `docs/design/`. Units 3 (DevOps and
-testing) and 4 (Agents) are deferred at the user's request: their tabs are
-exported and their fixtures are extracted, but nothing in this rebuild
-implements them, and nothing in units 1 and 2 may know they exist.
+This plan covers the build of units 1 (Language and runtime) and 2
+(Development tools). Units 3 (DevOps and testing) and 4 (Agents) are
+deferred: nothing here implements them, and nothing in units 1 and 2 may
+know they exist.
 
-The design wins over the first implementation everywhere. Old code is mined
-from history (`git show 9a8b6b0:<path>`) for techniques only.
+The spec is a detached system. It's authored in
+[aiviarium/heron-specs](https://github.com/aiviarium/heron-specs) as the
+sealed package `heron/`, versioned on its own, and never names code. This
+repository imports it, `git+https://github.com/aiviarium/heron-specs//heron@v0`
+pinned in `heron.lock`, and holds only the implementation: the code and the
+project tree (`project/`: architecture components, the proofs that link each
+spec requirement to its tests, status, the delivery plan and releases). It
+can't amend the spec; a change to what the system does is a change to
+heron-specs first. This file is a readable overview of how the build was
+carried out and links into the spec and the project tree rather than
+repeating them; where they disagree, the spec wins.
 
-Heron's own spec under `spec/` is the source of truth: what each part of the
-system does is specified there (`spec/language/`, `spec/runtime/`,
-`spec/tools/`, `spec/cli/`), the units, increments and roadmap are in
-`spec/delivery/`, and `spec/guide.heron` says how the tree is laid out. This
-file is a readable overview of how the rebuild was carried out and links into
-the spec rather than repeating it; where they disagree, the spec wins.
+The first build was rebuilt from a design sketch whose code blocks were its
+first fixtures. That sketch and the history before this repository's first
+commit are kept in the specs-v0 archive; the fixtures now come from the spec
+package's `example` nodes.
 
 ## Layout
 
@@ -46,18 +52,26 @@ internal/core/             unit 1
   gen/                     generation framework and `heron generate`
   extension/               CBOR-RPC host, handshake, limits, JS host supervision
   cli/                     unit 1's commands: check, fmt, lint, run, generate
-  fixtures/                fixture extraction and the drift test
+  fixtures/                the fixtures: the code blocks of the spec
+                           package's example nodes, by node path
 internal/tools/            unit 2
   lsp/ prose/ docs/ server/
 std/                       standard packages as Heron source, embedded (std.go)
 grammar/                   heron.ungram (node kinds) and, later, tree-sitter
 web/                       pnpm workspace: runtime/ (@heron/runtime), then
                            unit 2's components/ shell/ editor/ docs/
-spec/                      Heron's own spec, in Heron (see spec/guide.heron)
-fixtures/                  code blocks of docs/design, with manifest and modes
-scripts/spec-docs.sh       builds spec/ as its docs site and serves it (--live: heron serve)
-scripts/ci.sh              local CI: gofmt, vet, go-check-sumtype, tests,
-                           fixture checks, the e2e-*.sh scripts
+index.heron                the repository's tree: imports the spec package,
+                           includes the project tree, and its setup task
+heron.lock                 pins the spec package's tag and commit
+project/                   the project tree: components, proofs, status,
+                           delivery, releases
+fixtures/                  modes.txt, pending.txt and contexts.txt, keyed by
+                           example node path, and the contexts examples check in
+scripts/spec-setup.sh      heron run setup, or links $HERON_SPECS_DIR in its place
+scripts/spec-docs.sh       builds the spec package as its docs site and serves it (--live: heron serve)
+scripts/ci.sh              local CI: the spec package, gofmt, vet,
+                           go-check-sumtype, tests, fixture checks,
+                           conformance, the e2e-*.sh scripts
 examples/petstore/         the Example tab's repository, as far as unit 1 goes
 ```
 
@@ -98,8 +112,8 @@ starts when the one before it is done.
    Heron declaration) and 5 (a sample prose provider flags only prose words,
    fixes land on the exact range).
 
-Heron's own spec under `spec/` must check clean (and, once unit 2 has docs,
-render) at every stage.
+The spec package must check clean (and, once unit 2 has docs, render) at
+every stage; heron-specs' own CI builds this repository's binary for that.
 
 ## Extension points and how each is proven
 
@@ -136,10 +150,13 @@ generation target plus renderer registration.
 - tree-sitter-cli 0.25.3 comes from npm in `grammar/tree-sitter-heron`;
   `tree-sitter parse` compiles the grammar with the system C compiler.
 - No GitHub CI. `scripts/ci.sh` is the whole check and is run locally.
-- The design is exported from the Claude Docs document "Spec Language —
-  Design Sketches" with the docs export tool, decoded, and written to
-  `docs/design/NN-slug.md`; `fixtures/` is regenerated from those files with
-  `go run ./internal/core/fixtures/extract`.
+- The spec package is installed by `scripts/spec-setup.sh` (`heron run
+  setup`, from `heron.lock`) under `.heron/packages/`. For local work and CI
+  against a sibling checkout, `HERON_SPECS_DIR=../heron-specs/heron
+  scripts/spec-setup.sh` links that checkout in its place, and the Go tests,
+  `protogen` and the scripts read the package from `$HERON_SPECS_DIR` when
+  it's set. `go run ./internal/core/fixtures/extract -out DIR` writes the
+  fixtures to a folder, as the tree-sitter test does.
 
 ## Status
 
@@ -172,14 +189,12 @@ script or test that proves each and the gaps that remain.
   - `heron check` (with `--json` and `--watch`) and `heron lint` (with
     `--json`); results are memoized per file and per node, and a test
     counts recomputations.
-  - Fixtures: 28 of 40 Heron blocks of unit 1's tabs check clean; the other
-    12 are in `fixtures/pending.txt`, 10 for packages of units 3 and 4, one
-    Example tab block that names mounted nodes without their mount's prefix
-    (`spec/language/core_format/mounts.heron`) and the Specifications tab's
-    planning example, whose decision record std/spec no longer has a kind
-    for (`planning_example_erratum`); the rest wait for
-    units 3 and 4 (`deferred_blocks_check` in `spec/delivery/roadmap.heron`).
-    `spec/` checks and lints clean in `scripts/ci.sh`.
+  - Fixtures: 26 of the spec package's 29 Heron examples check clean; the
+    other 3 are in `fixtures/pending.txt`, each with its reason, and wait
+    for packages of units 3 and 4 (`std/ci`, `std/env` and prompts), as the
+    project's roadmap (`project/delivery/roadmap.heron`) plans. The
+    repository's tree, the spec package included, checks and lints clean in
+    `scripts/ci.sh`.
   - Bodies are checked against `accept` lists: prose, code, child kinds
     and `max`.
   - Overloads are selected by arguments (the first `<overload>` whose
@@ -200,7 +215,7 @@ script or test that proves each and the gaps that remain.
     with `--undo-on-failure` runs the `@undo` task of every finished task,
     newest first. Exit 1 is a failed task, 2 a usage error.
   - `records` stores records of registered kinds as JSON data files
-    (`spec/runtime/records.heron`); `heron run` records every run
+    (`project/architecture/runtime/records.heron`); `heron run` records every run
     that starts under `.heron/audit/run/`. A sample record kind is written,
     listed, read back and pruned in `records`' tests.
   - `heron run setup` (`internal/core/setup`, `std/repo`): checks the
@@ -301,21 +316,21 @@ with either name, and keeps fixes whose range maps exactly as
 
 Checker fixes from the spec port: std/spec accepts each condition kind
 once per rule, transition or quality; `instead` outside a negative
-strength is an error; `example` and `open` stay out of
-sections (`spec_examples_outside_sections`); and `TestSpecExamplesCheck`
-links every spec/ example of a unit-1 Heron block to its fixture's check
-(23 clean, 3 pending; unit 2's three Heron examples wait for unit 2).
+strength is an error; and `example` and `open` stay out of
+sections. The spec's examples are the fixtures themselves, so there's no
+second check that links them.
 
 ### Interop, extensions and generation
 
 Phase 4's interop half, built on branch `u1-interop`; done criterion 4 is
-met by `scripts/e2e-interop.sh`. The interop spec is
-`spec/language/interop/`, with the protocol included from
-`internal/core/extension/protocol/protocol.heron`.
+met by `scripts/e2e-interop.sh`. The interop spec is the spec package's
+`language/interop/`, whose `protocol_messages.heron` describes the
+protocol's messages.
 
-- **Protocol** (`internal/core/extension/protocol`): described once in
-  `protocol.heron`; `protogen` writes `protocol_gen.go` and
-  `web/runtime/src/protocol.gen.ts`, checked current in CI. `Conn` frames
+- **Protocol** (`internal/core/extension/protocol`): described once, in
+  the spec package's `language/interop/protocol_messages.heron`; `protogen`
+  reads it from the imported package and writes `protocol_gen.go` and
+  `web/runtime/src/protocol.gen.ts`, checked current against it in CI. `Conn` frames
   messages (4-byte length, CBOR or `--wire json`), calls both ways,
   cancels (`$/cancel`), streams (`$/stream`), applies frame, in-flight and
   timeout limits, carries the run id, and keeps Heron values' types
@@ -404,7 +419,7 @@ registry and nothing else.
   hover, definition (into std as `heron:/std/…`, and from import and
   include strings), references, rename by path, formatting, semantic
   tokens, symbols, folding and code actions. Tests open every file of
-  examples/petstore and spec/ through five URI spellings in three
+  examples/petstore and the spec package through five URI spellings in three
   orders with zero diagnostics, through edits, closes and reopens; an error
   appears and clears, and a break in an import reaches its importer, open
   or on disk. `scripts/e2e-lsp.sh` drives the binary over stdio.
@@ -520,7 +535,7 @@ s.DataJS()                        // the search index, hover cards and island st
 ### Styling and extending the docs (`std/docs`)
 
 A tree imports `std/docs@1` and writes the Styling tab's block; `s.Config`
-holds what it set (`spec/language/std/docs.heron`, `spec/tools/docs.heron`):
+holds what it set (the spec package's `language/std/docs.heron` and `tools/docs.heron`):
 
 ```text
 docs {
