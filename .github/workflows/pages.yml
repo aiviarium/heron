@@ -1,8 +1,8 @@
 # The published site on GitHub Pages, https://aiviarium.github.io/heron/:
-# the project site (architecture, conformance, releases) at the root and the
-# spec package's own site under spec/, built by scripts/pages.sh. The
-# project tree's `implements { docs = ".../heron/spec/" }` links spec nodes
-# there. The spec is heron-specs at the commit heron.lock pins, as in CI.
+# the spec package's own site with its lenses (the user lens at the root,
+# dev/ and explore/), and the project site (architecture, conformance,
+# releases) under project/, built by scripts/pages.sh. The project tree's
+# `implements { docs = ".../heron/" }` links spec nodes there. The spec is heron-specs at the commit heron.lock pins, as in CI.
 #
 # The repository's Settings > Pages > Source must be "GitHub Actions".
 name: Pages

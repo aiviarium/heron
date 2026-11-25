@@ -3,9 +3,12 @@
 [![CI](https://github.com/aiviarium/heron/actions/workflows/ci.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/ci.yml)
 [![Pages](https://github.com/aiviarium/heron/actions/workflows/pages.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/pages.yml)
 
-**Docs:** [aiviarium.github.io/heron](https://aiviarium.github.io/heron/), the project
-site (architecture, conformance, releases), and the spec it implements at
-[aiviarium.github.io/heron/spec](https://aiviarium.github.io/heron/spec/).
+**Docs:** [aiviarium.github.io/heron](https://aiviarium.github.io/heron/), the spec it
+implements in its three lenses (for users at the root,
+[/dev/](https://aiviarium.github.io/heron/dev/) for spec writers and
+[/explore/](https://aiviarium.github.io/heron/explore/) for the whole tree), and the
+project site (architecture, conformance, releases) at
+[/project/](https://aiviarium.github.io/heron/project/).
 
 The implementation of Heron: the `heron` binary, its standard packages and
 its frontend. What Heron does is specified apart from this repository, in
@@ -91,10 +94,12 @@ and `docs/STATUS.md` where it stands.
 
 ## The published site
 
-`.github/workflows/pages.yml` publishes, on every push to `main`, the
-project site at [aiviarium.github.io/heron](https://aiviarium.github.io/heron/)
-and the spec package's own site under
-[`/spec/`](https://aiviarium.github.io/heron/spec/), where the project tree's
-`implements { docs = ... }` links spec nodes to. `scripts/pages.sh <dir>`
+`.github/workflows/pages.yml` publishes, on every push to `main`, the spec
+package's own site with every lens its docs block builds, the user lens at
+[aiviarium.github.io/heron](https://aiviarium.github.io/heron/) and the others under
+[`/dev/`](https://aiviarium.github.io/heron/dev/) and
+[`/explore/`](https://aiviarium.github.io/heron/explore/), where the project tree's
+`implements { docs = ... }` links spec nodes to; and the project site under
+[`/project/`](https://aiviarium.github.io/heron/project/). `scripts/pages.sh <dir>`
 builds the same site locally. The repository's **Settings > Pages > Source**
 must be set to **GitHub Actions** for the deployment to run.

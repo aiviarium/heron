@@ -14,9 +14,9 @@ import = [
 @display("Heron implementation")
 heron_impl: implements(heron, at = "0.1.0") {
   version = "0.1.0+build1"
-  // The spec's own site, published with the project site on GitHub Pages
-  // (.github/workflows/pages.yml): links to spec nodes go to their pages there.
-  docs = "https://aiviarium.github.io/heron/spec/"
+  // The spec's own site, at the root of GitHub Pages with the project site
+  // under project/ (.github/workflows/pages.yml): links to spec nodes go there.
+  docs = "https://aiviarium.github.io/heron/"
 
   | This repository implements the Heron spec at 0.1.0. Its versions start with the spec
   | version, and the build counter after `+` counts its releases of that spec version.
