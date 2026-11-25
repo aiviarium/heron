@@ -1,9 +1,10 @@
 // Package protocol is the extension protocol: the messages and methods
-// generated from protocol.heron, the values that cross the boundary as
+// generated from the spec package's language/interop/protocol_messages.heron,
+// the values that cross the boundary as
 // their Heron types, and the wire encodings and framing.
 package protocol
 
-//go:generate go run ./internal/protogen -in protocol.heron -go protocol_gen.go -ts ../../../../web/runtime/src/protocol.gen.ts
+//go:generate go run ./internal/protogen -root ../../../.. -go protocol_gen.go -ts ../../../../web/runtime/src/protocol.gen.ts
 
 import (
 	"encoding/json"
