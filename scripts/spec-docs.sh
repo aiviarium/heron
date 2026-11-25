@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Heron's own spec as its documentation site: `heron generate docs` on
-# spec/, written to .heron/spec-docs/ at the repository root, then served
-# with the URL printed.
+# Heron's own spec as its documentation site: `heron generate docs` on the
+# imported spec package ($HERON_SPECS_DIR, or the one scripts/spec-setup.sh
+# installed), written to .heron/spec-docs/ at the repository root, then
+# served with the URL printed.
 #
 #   scripts/spec-docs.sh                 generate and serve the static site
-#   scripts/spec-docs.sh --live          serve spec/ live in `heron serve` instead
+#   scripts/spec-docs.sh --live          serve the spec live in `heron serve` instead
 #   scripts/spec-docs.sh --no-serve      generate only, and print the site's folder
 #   scripts/spec-docs.sh --addr H:P      listen on H:P (default 127.0.0.1:7341;
 #                                        port 0 picks a free one)
@@ -20,12 +21,13 @@ while [ $# -gt 0 ]; do
     --no-serve) mode=none ;;
     --addr) addr=$2; shift ;;
     --addr=*) addr=${1#--addr=} ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "spec-docs: unknown option $1" >&2; exit 2 ;;
   esac
   shift
 done
 
+spec=$(go run ./internal/core/fixtures/specdir)
 bin=$root/.heron/bin
 mkdir -p "$bin"
 go build -o "$bin/heron" ./cmd/heron
@@ -33,7 +35,7 @@ go build -o "$bin/heron" ./cmd/heron
 if [ "$mode" = live ]; then
   # The spec browser renders the tree on disk as it changes; its docs are
   # under /docs/.
-  "$bin/heron" serve --addr "$addr" spec | sed -u "s#/\$#/docs/#"
+  "$bin/heron" serve --addr "$addr" "$spec" | sed -u "s#/\$#/docs/#"
   exit
 fi
 
@@ -42,7 +44,7 @@ fi
 site=$root/.heron/spec-docs
 work=$(mktemp -d "$root/.heron/spec-docs.XXXXXX")
 trap 'rm -rf "$work"' EXIT
-(cd "$work" && "$bin/heron" generate --entry "$root/spec" docs >/dev/null)
+(cd "$work" && "$bin/heron" generate --entry "$spec" docs >/dev/null)
 rm -rf "$site"
 mv "$work/.heron/docs" "$site"
 rm -rf "$work"

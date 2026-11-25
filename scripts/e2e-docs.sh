@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The docs end to end: `heron generate docs` builds a working site for the
-# sample repository and for spec/, and every link and island works in
+# sample repository and for the imported spec package, and every link and island works in
 # Chromium. With --screenshots, also writes web/screenshots/docs-*.png.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -17,9 +17,11 @@ rm -rf "$tmp/petstore/.heron"
 test -f "$tmp/petstore/.heron/docs/store.place_order.html"
 test -f "$tmp/petstore/.heron/docs/versions.json"
 
-# Heron's own spec, as the language's documentation site.
+# Heron's own spec, the package this repository imports, as the language's
+# documentation site.
+spec=$(go run ./internal/core/fixtures/specdir)
 mkdir -p "$tmp/spec"
-(cd "$tmp/spec" && "$tmp/heron" generate --entry "$root/spec" docs >/dev/null)
+(cd "$tmp/spec" && "$tmp/heron" generate --entry "$spec" docs >/dev/null)
 test -f "$tmp/spec/.heron/docs/index.html"
 
 # A project that implements a sealed spec: its conformance and status
