@@ -204,7 +204,9 @@ func sortedKeys[V any](m map[string]V) []string {
 func packagePins(t *resolve.Tree) map[string]Pin {
 	out := map[string]Pin{}
 	for _, p := range t.Imports {
-		if p.Major == 0 || p.Tree == nil || p.Tree.Entry == nil {
+		// A file import has no major version; a git import's may be 0,
+		// as in `…//heron@v0`.
+		if (p.Major == 0 && p.Git == nil) || p.Tree == nil || p.Tree.Entry == nil {
 			continue
 		}
 		if p.Git != nil {

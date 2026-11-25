@@ -294,7 +294,7 @@ func (s *Scope) Names(f func(name string, b Binding)) {
 // tree of its own.
 type Package struct {
 	Name    string // "std/doc", or the import string of a local import
-	Major   int    // the major version asked for; 0 for a local import
+	Major   int    // the major version asked for; 0 for a local import, or a git import at v0
 	Version string // the version the package declares, if any
 	Tree    *Tree
 	// Exports are the nodes flagged <export>, mounted at an importing root.

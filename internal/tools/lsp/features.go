@@ -194,7 +194,7 @@ func (s *Session) allResults() []*result {
 		out = append(out, r)
 		for _, t := range r.trees() {
 			for _, p := range t.Imports {
-				if p.Major == 0 && p.Tree != nil && p.Tree.Entry != nil {
+				if p.Major == 0 && p.Git == nil && p.Tree != nil && p.Tree.Entry != nil {
 					add(s.check(p.Tree.Entry.ID))
 				}
 			}

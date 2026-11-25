@@ -658,7 +658,7 @@ func treeFiles(t *resolve.Tree) []resolve.FileID {
 			}
 		}
 		for _, p := range t.Imports {
-			if p.Major == 0 {
+			if p.Major == 0 && p.Git == nil {
 				walk(p.Tree)
 			}
 		}
