@@ -1,0 +1,82 @@
+@realizes(heron.product.system.checker)
+types: component("internal/core/types", lang = "go") {
+  | Checks the resolved tree against the [schemas](#heron.language.schemas.kinds.schema) in scope, and answers the questions
+  | every later stage asks about a node: which kind or type it has, which fields and kind
+  | arguments it takes, and what each path in it names.
+
+  uses = [architecture.runtime.ast, architecture.runtime.diag, architecture.runtime.resolve, architecture.runtime.syntax]
+
+  classifies: responsibility {{
+    Finds each node's kind or type, through its declaration, its parent's fields and the
+    kinds the [schemas](#heron.language.schemas.kinds.schema) declare, and the categories, flags, annotations and interfaces
+    that apply to it.
+  }}
+
+  checks: responsibility {{
+    Checks kind arguments, fields, values against their types, what a body accepts, flags
+    and annotations and where they attach, [typed strings](#heron.language.data.typed_strings.typed_string), constructors, generics and
+    [overloads](#heron.language.schemas.overloads.overload), and the spec kinds' own checks.
+  }}
+
+  references: responsibility {{
+    Resolves every path in values, links, tags and inserts, and records what each names
+    and how often each local is used, for lints and go-to-definition.
+  }}
+
+  surface(title = "check.go") {{
+    func Check(t *resolve.Tree) (*Checker, diag.List)
+    func New(t *resolve.Tree) *Checker
+    // CheckNode checks one top-level node and returns its diagnostics.
+    func (c *Checker) CheckNode(n *resolve.Node) diag.List
+
+    type Checker struct {
+      Tree      *resolve.Tree
+      LocalUses map[*resolve.Local]int               // references to each local and param
+      Refs      map[*syntax.Node]*resolve.Node       // each path that resolved, to what it names
+    }
+
+    // Queries the lints, the interpreter and the language server read.
+    func (c *Checker) KindOf(n *resolve.Node) *resolve.Node
+    func (c *Checker) TypeOf(n *resolve.Node) *resolve.Node
+    func (c *Checker) Meta(n *resolve.Node) *resolve.Node
+    func (c *Checker) Field(n *resolve.Node, name string) (Field, bool)
+    func (c *Checker) Fields(n *resolve.Node) []Field
+    func (c *Checker) Params(n *resolve.Node) []Param
+    func (c *Checker) KindParams(k, instance *resolve.Node) []Param
+    func (c *Checker) Accepts(parent, k *resolve.Node) bool
+    func (c *Checker) Implements(t *resolve.Node) []*resolve.Node
+    func (c *Checker) IsEnum(n *resolve.Node) bool
+    func (c *Checker) Variant(e *resolve.Node, name string) *resolve.Node
+    func (c *Checker) VerbatimText(n *resolve.Node) bool
+
+    func HasKindFlag(n *resolve.Node, flag string) bool
+    func IsStd(n *resolve.Node, pkg, path string) bool
+    var TypedStrings map[string]func(string) error
+  }}
+
+  node_local: invariant {
+    must {{ give each top-level node's diagnostics from that node's own sites and the tree's structure alone, so `check` can memoize them per node }}
+    verify("internal/core/check/memo_test.go", test = "TestIncrementalRecomputation")
+  }
+
+  std_checks_clean: invariant {
+    must {{ check every standard package clean }}
+    verify("internal/core/types/types_test.go", test = "TestStdPackagesCheckClean")
+  }
+
+  raises("unresolved") {{ A name, kind, flag, annotation, link or member that resolves to nothing, with the closest name when one is near. }}
+  raises("type") {{ A value of the wrong type, or a name that's no variant of the enum expected. }}
+  raises("typed-string") {{ A string that isn't of the form its [typed string](#heron.language.data.typed_strings.typed_string) requires: the [typed string diagnostics](#heron.language.data.typed_strings). }}
+  raises("unknown-field") {{ A member no field of the kind or type declares. }}
+  raises("unknown-argument") {{ A named argument no parameter declares, or a [tag attribute](#heron.language.markup.tags.tag_attribute) no argument declares. }}
+  raises("missing-argument") {{ A required kind argument left out. }}
+  raises("too-many-arguments") {{ More positional arguments than parameters. }}
+  raises("accept") {{ A child, text or `do` block a body doesn't accept: the [accept diagnostics](#heron.language.schemas.accept). }}
+  raises("not-a-kind") {{ A path in kind position that names something other than a kind. }}
+  raises("not-a-flag") {{ A name in a flag list that isn't a flag. }}
+  raises("not-an-annotation") {{ An annotation whose name isn't an annotation. }}
+  raises("instead") {{ An `instead` under a rule with no negative strength, `mustNot` or `shouldNot`. }}
+
+  obligation(path = "internal/core/types/types_test.go") {{ Clean files and each error, the standard packages, body accepts, [overloads](#heron.language.schemas.overloads.overload), generics and patches, APIs and ops, and the spec kinds. }}
+  obligation(path = "internal/core/types/typed_strings_test.go") {{ Every typed string's valid and invalid forms. }}
+}

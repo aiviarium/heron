@@ -1,0 +1,29 @@
+// Traceability: which test or script proves each spec requirement, one
+// file per area of the spec.
+include = [
+  "./guide.heron",
+  "./language_core_format.heron",
+  "./language_grammar.heron",
+  "./language_schemas.heron",
+  "./language_markup.heron",
+  "./language_data.heron",
+  "./language_apis.heron",
+  "./language_specifications.heron",
+  "./language_scripting.heron",
+  "./language_interop.heron",
+  "./language_std.heron",
+  "./cli_check.heron",
+  "./cli_fmt.heron",
+  "./cli_lint.heron",
+  "./cli_run.heron",
+  "./cli_generate.heron",
+  "./tools_lsp.heron",
+  "./tools_prose.heron",
+  "./tools_tree_sitter.heron",
+  "./tools_docs.heron",
+  "./tools_server.heron",
+  "./tools_frontend.heron",
+]
+
+| Which test or script proves each requirement of [the spec](#heron), one page per area of it. A
+| requirement no proof names is planned or untested in [the status](#status), or missing.

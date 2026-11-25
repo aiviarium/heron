@@ -1,0 +1,260 @@
+language_schemas: section {
+  | The tests that prove the requirements of the spec's [language.schemas](#heron.language.schemas).
+
+  proves(heron.language.schemas.kinds.parsing_needs_no_schema) {
+    verify("internal/core/syntax/lossless_test.go", test = "FuzzParse")
+  }
+
+  proves(heron.language.schemas.kinds.packages.package_version) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.schemas.kinds.packages.package_body) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.kind_params) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.kind_fields) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.unknown_fields) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.heading_kind) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.typed_kind) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.infer_has_no_effect) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.args_from) {
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  proves(heron.language.schemas.kinds.declaring.fields_from) {
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  proves(heron.language.schemas.kinds.refs.refs_resolve) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.schemas.accept.child_kinds) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.not_children) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.first_entry_counts) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.max_bound) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.unaccepted_child) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.prose_and_code) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.diagnostics.doesnt_accept) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.diagnostics.accepts_at_most) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.diagnostics.takes_no_prose) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.accept.diagnostics.takes_no_do_block) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.modes.lookup_by_mode) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.modes.accepted_kind_wins) {
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  proves(heron.language.schemas.modes.prose_tags) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.modes.structure_only) {
+    verify("internal/core/lint/lint_test.go", test = "TestTagKind")
+  }
+
+  proves(heron.language.schemas.modes.tag_names_kind) {
+    verify("internal/core/lint/lint_test.go", test = "TestTagKind")
+  }
+
+  proves(heron.language.schemas.modes.inline_only_as_tags) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.modes.diagnostics.structure_only_tag) {
+    verify("internal/core/lint/lint_test.go", test = "TestTagKind")
+  }
+
+  proves(heron.language.schemas.modes.diagnostics.tag_not_a_kind) {
+    verify("internal/core/lint/lint_test.go", test = "TestTagKind")
+  }
+
+  proves(heron.language.schemas.categories.joining) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.schemas.categories.open_sets) {
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  proves(heron.language.schemas.flags.declaring_flags) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.schemas.flags.flag_on) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+  }
+
+  proves(heron.language.schemas.flags.flag_on_annotation) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagOnAnnotation")
+  }
+
+  proves(heron.language.schemas.flags.diagnostics.flag_misplaced) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+  }
+
+  proves(heron.language.schemas.annotations.declaring_annotations) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.schemas.annotations.annotation_on) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.annotations.annotation_on_params) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.annotations.repeatable) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.annotations.extern) {
+    verify("internal/core/extension/decl_test.go", test = "TestDiscoverExternDeclarations")
+  }
+
+  proves(heron.language.schemas.annotations.diagnostics.annotation_misplaced) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.annotations.diagnostics.annotation_on_param) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.annotations.diagnostics.annotation_repeated) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.overloads.overload_selection) {
+    verify("internal/core/types/types_test.go", test = "TestOverloads")
+  }
+
+  proves(heron.language.schemas.overloads.paths_are_refs) {
+    verify("internal/core/types/types_test.go", test = "TestOverloads")
+  }
+
+  proves(heron.language.schemas.overloads.no_overload_fits) {
+    verify("internal/core/types/types_test.go", test = "TestOverloads")
+  }
+
+  proves(heron.language.schemas.generics.generic_members) {
+    verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
+  }
+
+  proves(heron.language.schemas.generics.patch) {
+    verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
+  }
+
+  proves(heron.language.schemas.generics.patch_needs_map) {
+    verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
+  }
+
+  proves(heron.language.schemas.highlighting.static_layer) {
+    verify("scripts/ci.sh")
+  }
+
+  proves(heron.language.schemas.highlighting.semantic_layer) {
+    verify("internal/tools/lsp/features_test.go", test = "TestFormattingTokensSymbolsFolding")
+  }
+
+  proves(heron.language.schemas.mixing.both_directions) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.mixing.heron_file_root) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.schemas.mixing.prose_file_root) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.schemas.mixing.extend_from_own_side) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.schemas.extensions.manifest.one_declaration) {
+    verify("internal/core/extension/decl_test.go", test = "TestDiscoverExternDeclarations")
+  }
+
+  proves(heron.language.schemas.extensions.manifest.schema_keeps_types) {
+    verify("internal/core/extension/decl_test.go", test = "TestDiscoverTheSamplePackage")
+  }
+
+  proves(heron.language.schemas.extensions.limits.sandboxed) {
+    verify("internal/core/extension/sandbox_test.go", test = "TestExtensionRunsWithItsLimits")
+  }
+
+  proves(heron.language.schemas.extensions.lifecycle.handshake) {
+    verify("internal/core/extension/jshost_test.go", test = "TestHandshakeMismatchIsReported")
+  }
+
+  proves(heron.language.schemas.extensions.lifecycle.one_process) {
+    verify("internal/core/extension/jshost_test.go", test = "TestCrashFailsCallsAndRestarts")
+  }
+
+  proves(heron.language.schemas.extensions.lifecycle.run_id_on_requests) {
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestRunIDTravels")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestTimeoutFromLimits")
+  }
+
+  proves(heron.language.schemas.extensions.diagnostics.not_implemented) {
+    verify("internal/core/extension/jshost_test.go", test = "TestHandshakeMismatchIsReported")
+  }
+
+  proves(heron.language.schemas.flags.diagnostics.flag_misplaced_on_annotation) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagOnAnnotation")
+  }
+}

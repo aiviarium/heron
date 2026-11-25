@@ -1,0 +1,139 @@
+tools_lsp: section {
+  | The tests that prove the requirements of the spec's [tools.lsp](#heron.tools.lsp).
+
+  proves(heron.tools.lsp.session.one_identity) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestOpenEveryFileWithoutFalseDiagnostics")
+  }
+
+  proves(heron.tools.lsp.session.overlay) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.session.outermost_entry) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestOpenEveryFileWithoutFalseDiagnostics")
+  }
+
+  proves(heron.tools.lsp.session.recheck_all_open) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.session.debounce) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.session.watched_files) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.session.workspace_root) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestOpenEveryFileWithoutFalseDiagnostics")
+  }
+
+  proves(heron.tools.lsp.diagnostics.publish_per_file) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.diagnostics.clear_fixed) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.diagnostics.no_std_diagnostics) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestOpenEveryFileWithoutFalseDiagnostics")
+  }
+
+  proves(heron.tools.lsp.diagnostics.diagnostic_source) {
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  proves(heron.tools.lsp.completion.completion_items) {
+    verify("internal/tools/lsp/features_test.go", test = "TestCompletion")
+  }
+
+  proves(heron.tools.lsp.completion.completion_list) {
+    verify("internal/tools/lsp/features_test.go", test = "TestCompletion")
+  }
+
+  proves(heron.tools.lsp.completion.prose_word_quiet) {
+    verify("internal/tools/lsp/features_test.go", test = "TestCompletion")
+  }
+
+  proves(heron.tools.lsp.hover.hover_node) {
+    verify("internal/tools/lsp/features_test.go", test = "TestHoverShowsDocs")
+  }
+
+  proves(heron.tools.lsp.hover.hover_local) {
+    verify("internal/tools/lsp/features_test.go", test = "TestHoverShowsDocs")
+  }
+
+  proves(heron.tools.lsp.hover.hover_file) {
+    verify("internal/tools/lsp/features_test.go", test = "TestHoverShowsDocs")
+  }
+
+  proves(heron.tools.lsp.definition.definition_target) {
+    verify("internal/tools/lsp/features_test.go", test = "TestDefinitionAcrossFilesAndFromImportStrings")
+  }
+
+  proves(heron.tools.lsp.definition.definition_into_std) {
+    verify("internal/tools/lsp/features_test.go", test = "TestDefinitionAcrossFilesAndFromImportStrings")
+  }
+
+  proves(heron.tools.lsp.references.references_everywhere) {
+    verify("internal/tools/lsp/features_test.go", test = "TestReferencesAndRename")
+  }
+
+  proves(heron.tools.lsp.rename.rename_by_path) {
+    verify("internal/tools/lsp/features_test.go", test = "TestReferencesAndRename")
+  }
+
+  proves(heron.tools.lsp.rename.rename_refused) {
+    verify("internal/tools/lsp/features_test.go", test = "TestReferencesAndRename")
+  }
+
+  proves(heron.tools.lsp.rename.prepare_rename) {
+    verify("internal/tools/lsp/features_test.go", test = "TestReferencesAndRename")
+  }
+
+  proves(heron.tools.lsp.formatting.format_whole_file) {
+    verify("internal/tools/lsp/features_test.go", test = "TestFormattingTokensSymbolsFolding")
+  }
+
+  proves(heron.tools.lsp.semantic_tokens.full_tokens) {
+    verify("internal/tools/lsp/features_test.go", test = "TestFormattingTokensSymbolsFolding")
+  }
+
+  proves(heron.tools.lsp.symbols.document_symbols) {
+    verify("internal/tools/lsp/features_test.go", test = "TestFormattingTokensSymbolsFolding")
+  }
+
+  proves(heron.tools.lsp.folding.folding_ranges) {
+    verify("internal/tools/lsp/features_test.go", test = "TestFormattingTokensSymbolsFolding")
+  }
+
+  proves(heron.tools.lsp.code_actions.fixes_as_quick_fixes) {
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  proves(heron.tools.lsp.code_actions.vocabulary_actions) {
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  proves(heron.tools.lsp.commands.run_command) {
+    verify("internal/tools/prose/prose_test.go", test = "TestVocabularyActionsAndCaching")
+  }
+
+  proves(heron.tools.lsp.commands.sync_command) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.lsp.extensions.source_request) {
+    verify("internal/tools/lsp/features_test.go", test = "TestDefinitionAcrossFilesAndFromImportStrings")
+  }
+
+  proves(heron.tools.lsp.extensions.std_scheme) {
+    verify("internal/tools/lsp/features_test.go", test = "TestDefinitionAcrossFilesAndFromImportStrings")
+  }
+
+  proves(heron.tools.lsp.extensions.capabilities) {
+    verify("scripts/e2e-lsp.sh")
+  }
+}

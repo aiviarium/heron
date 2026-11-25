@@ -1,0 +1,59 @@
+units: section {
+  | The system ships as one Go binary, `heron`, built in four units, one after another; the
+  | binary, its wiring and the repository's layout are the [binary](#architecture.runtime.binary)
+  | and the [repository layout](#architecture.runtime.layout) components.
+  |
+  | A **unit** is one of the four parts the binary is built in, each owning its Go packages
+  | under `internal/<unit>/`, its standard packages under `std/`, its frontend packages under
+  | `web/`, and the fixtures from its tabs.
+  |
+  | The units are built in order, and each one only adds to those before it. DevOps and
+  | testing, and Agents, are pure extensions: they register commands, generation targets,
+  | drivers, packages, records, server routes and frontend views through the
+  | [extension points](#heron.language.interop.declaring.extension_point) of the first two units.
+  |
+  | | Unit                    | Holds                                                                                              | Commands                          | Spec |
+  | | ----------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------- | ---- |
+  | | 1. Language and runtime | parser, resolver, types, interpreter, lints, formatter, records, generation framework, extensions and interop, the registry, the standard packages | `check`, `fmt`, `lint`, `run`, `generate` | [the language](#heron.language) |
+  | | 2. Development tools    | language server, editor grammar, prose linting with Vale, docs generator, server and frontend shells, spec browser, code editor and preview, the shared UI | `lsp`, `serve`, `generate docs` | [the tools](#heron.tools) |
+  | | 3. DevOps and testing   | test planner, CI adapters, releases, test coordinator, workers, Incus driver, dashboard          | `test`, `worker`, `generate ci`   | not yet specified |
+  | | 4. Agents               | prompt processing, harness adapters, agent environments, `delegate`, prompt workbench            | `generate agents`                 | not yet specified |
+  |
+  | Units 1 and 2 are the [runtime](#architecture.runtime) and the
+  | [development tools](#architecture.tools); units 3 and 4 are [deferred](#delivery.roadmap).
+
+  principles: section {
+    | How the units relate. The first is checked in CI, as the
+    | [binary's invariant](#architecture.runtime.binary.units_import_backwards); the others are kept in review.
+    |
+    | - **Dependencies point backwards.** No unit imports a later one, and DevOps and testing
+    |   and Agents don't import each other; they meet through data: records, the registry and
+    |   the server API.
+    | - **Seams are extension points.** A unit registers its commands, generation targets,
+    |   drivers, lints, record kinds, server routes, frontend panels, gutter providers and
+    |   renderers the way an external extension does, so an earlier unit never knows which
+    |   later units exist.
+    | - **Missing seams are added, not special-cased.** When a later unit needs something an
+    |   earlier one doesn't offer, the earlier unit gains a general extension point, tested
+    |   with a sample extension, and no special case for that unit.
+  }
+
+  build_order: section {
+    | 1. **Language and runtime:** the lossless parser and `heron fmt`; resolution, types
+    |    and the core lints; the interpreter, tasks and `heron run`, then the repository's
+    |    `setup`; the prose view, the generation framework, extensions, the CBOR-RPC host
+    |    and the TS SDK, each proven with a sample extension.
+    | 2. **Development tools:** the tree-sitter grammar and `heron lsp`; prose linting
+    |    with Vale; the docs renderer and `heron generate docs`; the server and frontend
+    |    shells with their extension points; the code editor with its live preview.
+    | 3. **DevOps and testing:** the planner and Incus workers on a local daemon, then
+    |    the coordinator with several hosts; CI adapters and releases; the dashboard panel
+    |    and gutter results.
+    | 4. **Agents:** prompt processing and the harness adapters; `delegate` and agent
+    |    environments; the workbench panel and prompt previews.
+    |
+    | A unit starts only once the one before it meets its own done criteria
+    | ([unit 1](#delivery.unit_1), [unit 2](#delivery.unit_2)). The whole build is done only when all four units are,
+    | and the binary still builds and passes with each prefix of the units.
+  }
+}

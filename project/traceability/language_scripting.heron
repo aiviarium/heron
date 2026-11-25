@@ -1,0 +1,489 @@
+language_scripting: section {
+  | The tests that prove the requirements of the spec's [language.scripting](#heron.language.scripting).
+
+  proves(heron.language.scripting.code.values.ints_stay_whole) {
+    verify("internal/core/eval/eval_test.go", test = "TestOperators")
+  }
+
+  proves(heron.language.scripting.code.values.division_by_zero) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.values.bools_only) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.values.short_circuit) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.values.operands) {
+    verify("internal/core/eval/eval_test.go", test = "TestOperators")
+  }
+
+  proves(heron.language.scripting.code.values.structural_equality) {
+    verify("internal/core/eval/eval_test.go", test = "TestOperators")
+  }
+
+  proves(heron.language.scripting.code.values.membership) {
+    verify("internal/core/eval/eval_test.go", test = "TestOperators")
+  }
+
+  proves(heron.language.scripting.code.values.type_tests) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+    verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
+  }
+
+  proves(heron.language.scripting.code.values.enum_values) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.code.values.clock_reading) {
+    verify("internal/core/eval/eval_test.go", test = "TestNodeFieldsAndHooks")
+  }
+
+  proves(heron.language.scripting.code.values.determinism) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.code.values.missing_capability) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.values.conversions) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+    verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
+  }
+
+  proves(heron.language.scripting.code.members.string_case) {
+    verify("internal/core/eval/eval_test.go", test = "TestMacros")
+  }
+
+  proves(heron.language.scripting.code.members.absent_members) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.members.no_member) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.members.method_fallback) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.bindings.bound_once) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.bindings.fields_not_locals) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.bindings.set_fields) {
+    verify("internal/core/eval/eval_test.go", test = "TestNodeFieldsAndHooks")
+  }
+
+  proves(heron.language.scripting.code.control_flow.if_value) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.control_flow.for_collects) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.control_flow.for_collections) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.control_flow.return_ends_the_call) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.control_flow.return_in_expression) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.control_flow.no_recursion) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.calls.argument_binding) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.calls.argument_mismatch) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.calls.type_calls) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.code.calls.bodiless_funcs) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.calls.uncallable) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.calls.calls_recorded) {
+    verify("internal/core/eval/eval_test.go", test = "TestTasks")
+  }
+
+  proves(heron.language.scripting.code.calls.log_lines) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.code.failures.throws_propagate) {
+    verify("internal/core/eval/eval_test.go", test = "TestUncaughtThrowFails")
+  }
+
+  proves(heron.language.scripting.code.failures.declared_errors) {
+    verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
+  }
+
+  proves(heron.language.scripting.code.failures.attempt_catches_throws) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+    verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
+  }
+
+  proves(heron.language.scripting.code.failures.attempt_passes_faults) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.failures.attempt_one_call) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.failures.faults_located) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.steps.trailing_block_step) {
+    verify("internal/core/eval/eval_test.go", test = "TestStepsAreRecorded")
+  }
+
+  proves(heron.language.scripting.code.steps.registered_step_funcs) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.steps.return_in_step) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.steps.hooks_in_order) {
+    verify("internal/core/eval/eval_test.go", test = "TestNodeFieldsAndHooks")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.division_by_zero) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.needs_bool) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.operator_undefined) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.no_capability) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.no_member) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.already_bound) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.locals_never_change) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.not_iterable) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.return_in_expression) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.calls_itself) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.wrong_arguments) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.no_implementation) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.not_callable) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.code.diagnostics.attempt_arity) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeEdges")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.argv_only) {
+    verify("internal/core/eval/host/host_test.go", test = "TestRunPassesArgumentsWithoutAShell")
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.scripts_run_by_language) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+    verify("internal/core/eval/eval_test.go", test = "TestProcessAndFileEdges")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.process_environment) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.pipes_are_params) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.nonzero_exit) {
+    verify("internal/core/eval/eval_test.go", test = "TestUncaughtThrowFails")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.cant_start) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessAndFileEdges")
+  }
+
+  proves(heron.language.scripting.processes_and_files.processes.processes_recorded) {
+    verify("internal/core/cli/run_test.go", test = "TestRunIsRecorded")
+  }
+
+  proves(heron.language.scripting.processes_and_files.quoting.sh_quoting) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.processes_and_files.quoting.raw_inserts) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessAndFileEdges")
+  }
+
+  proves(heron.language.scripting.processes_and_files.quoting.raw_embeds_static) {
+    verify("internal/core/eval/eval_test.go", test = "TestStringValues")
+  }
+
+  proves(heron.language.scripting.processes_and_files.files.file_paths) {
+    verify("internal/core/eval/host/host_test.go", test = "TestFiles")
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.processes_and_files.files.file_errors) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessAndFileEdges")
+    verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
+  }
+
+  proves(heron.language.scripting.processes_and_files.files.file_content) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+  }
+
+  proves(heron.language.scripting.processes_and_files.files.temp_files) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+    verify("internal/core/eval/eval_test.go", test = "TestProcessAndFileEdges")
+  }
+
+  proves(heron.language.scripting.tasks.finding.run_by_path) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.finding.repository_tasks) {
+    verify("internal/core/cli/run_test.go", test = "TestRunFindsRepositoryTasksAndRunsNeedsOnce")
+  }
+
+  proves(heron.language.scripting.tasks.finding.no_such_task) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.finding.checked_first) {
+    verify("internal/core/cli/run_test.go", test = "TestRunYesChecksAndFailingUndo")
+  }
+
+  proves(heron.language.scripting.tasks.params.params_by_type) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.params.bool_switch) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.params.bad_params) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.params.missing_params_asked) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.params.missing_params_fail) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.params.defaults_and_optionals) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.ordering.needs_annotation) {
+    verify("internal/core/cli/run_test.go", test = "TestRunFindsRepositoryTasksAndRunsNeedsOnce")
+  }
+
+  proves(heron.language.scripting.tasks.ordering.one_at_a_time) {
+    verify("internal/core/cli/run_test.go", test = "TestRunFindsRepositoryTasksAndRunsNeedsOnce")
+  }
+
+  proves(heron.language.scripting.tasks.ordering.needed_without_args) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.ordering.needs_cycle) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.ordering.needs_non_task) {
+    verify("internal/core/cli/run_test.go", test = "TestRunYesChecksAndFailingUndo")
+  }
+
+  proves(heron.language.scripting.tasks.ordering.task_calls) {
+    verify("internal/core/eval/eval_test.go", test = "TestTasks")
+  }
+
+  proves(heron.language.scripting.tasks.confirming.confirm_asks) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.confirming.declined) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.confirming.confirm_without_terminal) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.confirming.yes_flag) {
+    verify("internal/core/cli/run_test.go", test = "TestRunYesChecksAndFailingUndo")
+  }
+
+  proves(heron.language.scripting.tasks.failing.uncaught_throw) {
+    verify("internal/core/eval/eval_test.go", test = "TestUncaughtThrowFails")
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.failing.undo_on_failure) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.failing.undo_keeps_going) {
+    verify("internal/core/cli/run_test.go", test = "TestRunYesChecksAndFailingUndo")
+  }
+
+  proves(heron.language.scripting.tasks.failing.no_undo_by_default) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.results.task_results) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.results.json_results) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+    verify("internal/core/cli/run_test.go", test = "TestRunFindsRepositoryTasksAndRunsNeedsOnce")
+  }
+
+  proves(heron.language.scripting.tasks.results.runs_recorded) {
+    verify("internal/core/cli/run_test.go", test = "TestRunIsRecorded")
+  }
+
+  proves(heron.language.scripting.tasks.results.record_failure_warns) {
+    verify("internal/core/cli/run_test.go", test = "TestRunYesChecksAndFailingUndo")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.no_task) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.bad_param) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.needs_param) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.needs_cycle) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.needs_non_task) {
+    verify("internal/core/cli/run_test.go", test = "TestRunYesChecksAndFailingUndo")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.not_confirmed) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.tasks.diagnostics.needs_yes) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.funcs.func_forms) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.funcs.bodiless_registered) {
+    verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.funcs.values_once) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.funcs.pure_only_while_evaluating) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.funcs.pure_cache) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.funcs.pure_cache_misses) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureFailuresAreNotCached")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.macros.template_expansion) {
+    verify("internal/core/eval/eval_test.go", test = "TestMacros")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.macros.emit_expansion) {
+    verify("internal/core/eval/eval_test.go", test = "TestMacros")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.macros.emit_outside_macro) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureFailuresAreNotCached")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.macros.expansion_is_evaluation) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.diagnostics.not_pure) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
+  }
+
+  proves(heron.language.scripting.funcs_and_templates.diagnostics.emit_outside) {
+    verify("internal/core/eval/foreign_test.go", test = "TestPureFailuresAreNotCached")
+  }
+
+  proves(heron.language.scripting.code.values.int_overflow, heron.language.scripting.code.diagnostics.int_overflow) {
+    verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
+  }
+}

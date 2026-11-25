@@ -1,0 +1,67 @@
+frontend: section {
+  | The pnpm workspace under `web/`, one component each: TypeScript with Solid 2, built
+  | with Vite around one shared component package.
+
+  @realizes(heron.product.system.editor, heron.product.system.docs_generator)
+  tokens: component("web/tokens", lang = "ts") {
+    | The design tokens, declared once in `tokens.json` and generated to CSS, TS and Go, as
+    | [the design system](#heron.tools.frontend.design_system) says.
+
+    uses = []
+
+    obligation(path = "web/tokens/tokens_test.go") {{ Keep the generated files current, and check contrast, neutral [surfaces](#heron.tools.frontend.design_system.surfaces) and the scales. }}
+  }
+
+  @realizes(heron.product.system.editor, heron.product.system.docs_generator)
+  strings: component("web/strings", lang = "ts") {
+    | The catalogue of every string the tools show that doesn't come from a spec, in
+    | `strings.json`, keyed `<tool>.<group>.<name>`: the docs renderer reads `docs.*`, its
+    | islands `docs.island.*` through `data.js`, and the app `app.*`. Go reads it through the
+    | package `uistrings`.
+
+    uses = []
+
+    one_catalogue: invariant {
+      must {{ hold every string the docs renderer, its islands and the app show that doesn't come from a spec }}
+      verify("internal/tools/docs/docs_test.go", test = "TestVisibleTextComesFromSpecOrCatalogue")
+    }
+  }
+
+  @realizes(heron.product.system.editor, heron.product.system.docs_generator)
+  components: component("web/components", lang = "ts") {
+    | The shared components the app and the docs' islands compose from the [UI SDK](#heron.tools.frontend.design_system.ui_sdk): buttons, icon
+    | buttons, keys, the file tree, lists, tabs and the palette, styled from the tokens.
+
+    uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings]
+  }
+
+  @realizes(heron.product.system.editor)
+  editor_package: component("web/editor", lang = "ts") {
+    | Monaco set up for Heron, the language client over the `/lsp` socket, the models of the
+    | open files, the language features and the preview, as [the code editor](#heron.tools.frontend.editor) specifies.
+
+    uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings, architecture.tools.frontend.components]
+  }
+
+  @realizes(heron.product.system.editor)
+  shell_package: component("web/shell", lang = "ts") {
+    | The app `heron serve` embeds: the [editor screen](#heron.tools.frontend.screens.editor_screen), its state, the generated API client
+    | and the [extension points](#heron.tools.frontend.shell) later [units](#delivery.units) add their views through.
+
+    uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings, architecture.tools.frontend.components, architecture.tools.frontend.editor_package]
+
+    obligation(path = "scripts/e2e-app.sh") {{ The editor's acceptance tests: Playwright drives Chromium against the real `heron serve` on fresh copies of the sample repository. }}
+  }
+
+  @realizes(heron.product.system.docs_generator)
+  docs_islands: component("web/docs", lang = "ts") {
+    | The docs' built-in theme and [islands](#heron.tools.docs.islands), built once into `internal/tools/docs/assets` and embedded.
+
+    uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings, architecture.tools.frontend.components]
+
+    assets_current: invariant {
+      must {{ keep the committed `docs.js` and `docs.css` equal to the build of `web/docs` }}
+      verify("scripts/ci.sh")
+    }
+  }
+}

@@ -1,0 +1,115 @@
+tools_docs: section {
+  | The tests that prove the requirements of the spec's [tools.docs](#heron.tools.docs).
+
+  proves(heron.tools.docs.site.page_files) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLinksResolve")
+  }
+
+  proves(heron.tools.docs.site.page_nodes) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.tools.docs.site.site_title) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProjectHeadingPath")
+  }
+
+  proves(heron.tools.docs.site.gathered_pages) {
+    verify("internal/tools/docs/grammar_test.go", test = "TestDiagnosticsRender")
+  }
+
+  proves(heron.tools.docs.site.pages_follow_tree) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.tools.docs.site.sentences_from_spec) {
+    verify("internal/tools/docs/docs_test.go", test = "TestVisibleTextComesFromSpecOrCatalogue")
+  }
+
+  proves(heron.tools.docs.page_layout.frame) {
+    verify("internal/tools/docs/docs_test.go", test = "TestOpPage")
+  }
+
+  proves(heron.tools.docs.page_layout.narrow_screens) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.theme_before_paint) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.renderers.renderer_per_kind) {
+    verify("internal/tools/docs/docs_test.go", test = "TestRendererRegistry")
+  }
+
+  proves(heron.tools.docs.renderers.tag_renderers) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.tools.docs.renderers.ts_renderer_contract) {
+    verify("internal/tools/docs/ts_test.go", test = "TestTSRenderers")
+  }
+
+  proves(heron.tools.docs.renderers.ts_renderer_fallback) {
+    verify("internal/tools/docs/ts_test.go", test = "TestTSRenderers")
+  }
+
+  proves(heron.tools.docs.extending.theme_layer) {
+    verify("internal/tools/docs/config_test.go", test = "TestTheme")
+  }
+
+  proves(heron.tools.docs.extending.layouts_per_section) {
+    verify("internal/tools/docs/config_test.go", test = "TestLayoutsAndSlots")
+  }
+
+  proves(heron.tools.docs.extending.changelog_entries) {
+    verify("internal/tools/docs/config_test.go", test = "TestChangelogLayout")
+  }
+
+  proves(heron.tools.docs.extending.slots) {
+    verify("internal/tools/docs/config_test.go", test = "TestLayoutsAndSlots")
+  }
+
+  proves(heron.tools.docs.islands.islands_enhance) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.islands.islands_work) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.islands.try_it) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.search.search_index) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.search.hover_cards) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.diagrams.svg_layout) {
+    verify("internal/tools/docs/docs_test.go", test = "TestDependencyGraph")
+  }
+
+  proves(heron.tools.docs.diagrams.diagram_style) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.tools.docs.diagrams.table_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestDependencyGraph")
+  }
+
+  proves(heron.tools.docs.diagrams.task_graph) {
+    verify("internal/tools/docs/docs_test.go", test = "TestDependencyGraph")
+  }
+
+  proves(heron.tools.docs.versions.working_build) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.versions.version_switch) {
+    verify("scripts/e2e-docs.sh")
+  }
+}

@@ -1,0 +1,236 @@
+// Where the spec requirements stand that no test proves yet: planned when
+// they aren't built, untested when they are built and nothing proves them.
+
+| Where the spec's requirements stand that no test proves yet: `planned` when they aren't built,
+| `untested` when they are built and no test proves them. A requirement that no proof in
+| [the traceability](#traceability) names and no status here covers is missing.
+
+language_core_format_planned: status<planned>(
+  heron.language.core_format.files.unreachable_file,
+  heron.language.core_format.files.diagnostics.unreachable_file,
+  heron.language.core_format.prose_layer.all_prose_input,
+) {
+  | Not built yet. The 3 requirements of [language.core_format](#heron.language.core_format).
+}
+
+language_core_format_untested: status<untested>(
+  heron.language.core_format.nodes.locals.locals_never_change,
+  heron.language.core_format.amends.flag_as_boolean,
+  heron.language.core_format.amends.lists_change_by_calls,
+) {
+  | Built, with no test proving it yet. The 3 requirements of [language.core_format](#heron.language.core_format).
+}
+
+language_grammar_untested: status<untested>(
+  heron.language.grammar.recovery.checking_goes_on,
+) {
+  | Built, with no test proving it yet. The 1 requirement of [language.grammar](#heron.language.grammar).
+}
+
+language_schemas_untested: status<untested>(
+  heron.language.schemas.kinds.refs.ref_kind_documents,
+  heron.language.schemas.accept.verbatim_text,
+  heron.language.schemas.extensions.limits.unsandboxed,
+  heron.language.schemas.extensions.limits.hosts_not_filtered,
+  heron.language.schemas.extensions.limits.trust_first_run,
+  heron.language.schemas.extensions.limits.js_host_unlimited,
+  heron.language.schemas.extensions.lifecycle.start_failure,
+  heron.language.schemas.extensions.lifecycle.builtins_same_contract,
+) {
+  | Built, with no test proving it yet. The 8 requirements of [language.schemas](#heron.language.schemas).
+}
+
+language_schemas_planned: status<planned>(
+  heron.language.schemas.modes.wrong_mode,
+  heron.language.schemas.modes.diagnostics.wrong_mode_name,
+  heron.language.schemas.flags.flag_groups,
+  heron.language.schemas.flags.diagnostics.flag_group_twice,
+  heron.language.schemas.highlighting.token_override,
+  heron.language.schemas.highlighting.injection,
+  heron.language.schemas.highlighting.insert_safety,
+  heron.language.schemas.extensions.manifest.pinned,
+) {
+  | Not built yet. The 8 requirements of [language.schemas](#heron.language.schemas).
+}
+
+language_markup_planned: status<planned>(
+  heron.language.markup.text.strike,
+  heron.language.markup.links.link_shows_kind,
+  heron.language.markup.links.empty_link_text,
+  heron.language.markup.inserts.insert_calls_not_run,
+  heron.language.markup.tags.required_attributes,
+  heron.language.markup.tags.slots,
+  heron.language.markup.tags.diagnostics.missing_attribute,
+  heron.language.markup.tags.diagnostics.tag_not_accepted,
+  heron.language.markup.components.other_components,
+  heron.language.markup.components.logic_rendering,
+  heron.language.markup.components.tag_or_structure,
+  heron.language.markup.from_markdown.forms_are_nodes,
+  heron.language.markup.from_markdown.more_forms,
+  heron.language.markup.from_markdown.markdown_forms_reported,
+  heron.language.markup.from_markdown.diagnostics.markdown_form,
+) {
+  | Not built yet. The 15 requirements of [language.markup](#heron.language.markup).
+}
+
+language_markup_untested: status<untested>(
+  heron.language.markup.prose_view.verbatim_docs,
+  heron.language.markup.prose_view.region_context,
+  heron.language.markup.prose_view.no_titles,
+) {
+  | Built, with no test proving it yet. The 3 requirements of [language.markup](#heron.language.markup).
+}
+
+language_data_planned: status<planned>(
+  heron.language.data.values.required_members,
+  heron.language.data.values.absent_read,
+  heron.language.data.values.defaults_present,
+  heron.language.data.values.sized_numbers,
+  heron.language.data.values.diagnostics.missing_member,
+  heron.language.data.values.diagnostics.out_of_range,
+  heron.language.data.typed_strings.currency_codes,
+  heron.language.data.typed_strings.version_form,
+  heron.language.data.typed_strings.diagnostics.not_a_version,
+  heron.language.data.configuration.profiles,
+  heron.language.data.configuration.build_time_conditions,
+  heron.language.data.types.only_errors_thrown,
+  heron.language.data.types.errors_never_enums,
+  heron.language.data.types.structural_satisfaction,
+  heron.language.data.types.restating_members,
+  heron.language.data.types.interfaces_for_all_variants,
+  heron.language.data.types.no_interface_fields,
+  heron.language.data.types.codegen,
+  heron.language.data.types.diagnostics.not_an_error,
+  heron.language.data.types.diagnostics.restate_member,
+  heron.language.data.encodings.json.json_annotations,
+) {
+  | Not built yet. The 21 requirements of [language.data](#heron.language.data).
+}
+
+language_apis_planned: status<planned>(
+  heron.language.apis.apis_and_ops.ops_as_methods,
+  heron.language.apis.params.default_binding,
+  heron.language.apis.params.no_guessed_location,
+  heron.language.apis.params.route_names_params,
+  heron.language.apis.params.diagnostics.unplaced_parameter,
+  heron.language.apis.params.diagnostics.route_mismatch,
+  heron.language.apis.responses.thrown_types_are_errors,
+  heron.language.apis.responses.status_on_errors,
+  heron.language.apis.responses.diagnostics.status_misplaced,
+  heron.language.apis.streams.no_streamed_http_params,
+  heron.language.apis.streams.diagnostics.streamed_http_param,
+  heron.language.apis.transports.std_transports,
+  heron.language.apis.examples.one_outcome,
+  heron.language.apis.examples.outcome_types,
+  heron.language.apis.examples.examples_checked,
+  heron.language.apis.examples.diagnostics.two_outcomes,
+) {
+  | Not built yet. The 16 requirements of [language.apis](#heron.language.apis).
+}
+
+language_specifications_planned: status<planned>(
+  heron.language.specifications.projects.undeclared_dependency,
+  heron.language.specifications.projects.version_from_changelog,
+  heron.language.specifications.projects.unversioned_change,
+  heron.language.specifications.projects.group_defaults,
+  heron.language.specifications.projects.diagnostics.undeclared_dependency,
+  heron.language.specifications.projects.diagnostics.unversioned_change,
+  heron.language.specifications.context.guidance_not_required,
+  heron.language.specifications.context.stale_guidance,
+  heron.language.specifications.context.out_of_scope_hint,
+  heron.language.specifications.requirements.structural_strength,
+  heron.language.specifications.lifecycles.lifecycle_field_enum,
+  heron.language.specifications.lifecycles.closed_model,
+  heron.language.specifications.lifecycles.lifecycle_lints,
+  heron.language.specifications.lifecycles.diagnostics.not_enum_field,
+  heron.language.specifications.lifecycles.diagnostics.incomplete_lifecycle,
+  heron.language.specifications.qualities.no_negative_quality,
+  heron.language.specifications.qualities.bound_typed_by_metric,
+  heron.language.specifications.qualities.measured,
+  heron.language.specifications.qualities.diagnostics.negative_quality,
+  heron.language.specifications.planning.planning_checks,
+  heron.language.specifications.traceability.verify_paths_exist,
+  heron.language.specifications.traceability.traceability_page,
+  heron.language.specifications.traceability.uncovered_shown,
+  heron.language.specifications.traceability.diagnostics.missing_proof,
+  heron.language.specifications.quality_checks.double_negative,
+  heron.language.specifications.quality_checks.singular_check,
+  heron.language.specifications.quality_checks.verifiable_check,
+  heron.language.specifications.quality_checks.consistent_check,
+  heron.language.specifications.quality_checks.separated_check,
+  heron.language.specifications.product_kinds.one_status_each,
+  heron.language.specifications.product_kinds.story_as_actor,
+  heron.language.specifications.product_kinds.diagnostics.not_an_actor,
+  heron.language.specifications.tech_kinds.uses_enforced,
+  heron.language.specifications.tech_kinds.diagnostic_message_required,
+  heron.language.specifications.tech_kinds.diagnostics.import_outside_uses,
+) {
+  | Not built yet. The 35 requirements of [language.specifications](#heron.language.specifications).
+}
+
+language_scripting_planned: status<planned>(
+  heron.language.scripting.tasks.ordering.task_refs_checked,
+  heron.language.scripting.tasks.confirming.command_flag,
+  heron.language.scripting.tasks.failing.stage_undo,
+  heron.language.scripting.funcs_and_templates.funcs.no_effects_while_evaluating,
+  heron.language.scripting.funcs_and_templates.macros.macro_expansion,
+  heron.language.scripting.funcs_and_templates.macros.expansion_errors,
+) {
+  | Not built yet. The 6 requirements of [language.scripting](#heron.language.scripting).
+}
+
+language_interop_planned: status<planned>(
+  heron.language.interop.host.supervising.progress_shown,
+  heron.language.interop.host.services.secret_stores,
+  heron.language.interop.data_mapping.interpreter.typed_values,
+  heron.language.interop.data_mapping.interpreter.streamed_results,
+  heron.language.interop.timing.replay_from_record,
+  heron.language.interop.timing.embedded_pure,
+  heron.language.interop.protocol.framing.json_wire_option,
+  heron.language.interop.packaging.types.bindings_on_setup,
+  heron.language.interop.packaging.distribution.npm_packages,
+  heron.language.interop.packaging.distribution.heron_dev,
+  heron.language.interop.packaging.distribution.testing_package,
+) {
+  | Not built yet. The 11 requirements of [language.interop](#heron.language.interop).
+}
+
+language_std_planned: status<planned>(
+  heron.language.std.schema.language_env,
+  heron.language.std.types.unit_members_dropped,
+  heron.language.std.newer_copy_wins,
+) {
+  | Not built yet. The 3 requirements of [language.std](#heron.language.std).
+}
+
+tools_docs_planned: status<planned>(
+  heron.tools.docs.renderers.heron_template_renderers,
+  heron.tools.docs.extending.release_notes,
+  heron.tools.docs.diagrams.package_graph,
+  heron.tools.docs.diagrams.coverage_graph,
+  heron.tools.docs.versions.released_builds,
+) {
+  | Not built yet. The 5 requirements of [tools.docs](#heron.tools.docs).
+}
+
+tools_frontend_planned: status<planned>(
+  heron.tools.frontend.writing.catalogue_wording.interface_style,
+) {
+  | Not built yet. The 1 requirement of [tools.frontend](#heron.tools.frontend).
+}
+
+// Diagnostics the checker and the extension host report, with no test
+// that asserts their message yet.
+diagnostics_untested: status<untested>(
+  heron.language.core_format.nodes.diagnostics.not_a_kind,
+  heron.language.core_format.nodes.diagnostics.too_many_arguments,
+  heron.language.core_format.nodes.diagnostics.not_an_annotation,
+  heron.language.schemas.flags.diagnostics.not_a_flag,
+  heron.language.schemas.extensions.diagnostics.cant_start,
+  heron.language.schemas.extensions.diagnostics.any_host,
+  heron.language.schemas.extensions.diagnostics.limits_not_enforced,
+  heron.language.schemas.extensions.diagnostics.not_trusted,
+) {
+  | Built, with no test that asserts the message yet: the checker reports the first four and
+  | the extension host the other four.
+}

@@ -1,0 +1,60 @@
+@display("Tree-sitter grammar")
+@realizes(heron.product.system.editor_grammar)
+tree_sitter: component("grammar/tree-sitter-heron", lang = "js") {
+  | The editor grammar: a tree-sitter grammar kept next to the Go parser and tested against
+  | the same fixtures. Editors get [static highlighting](#heron.language.schemas.highlighting.static_highlighting), folding and structural selection
+  | from it without starting the binary; everything semantic comes from [the language server](#architecture.tools.lsp).
+
+  uses = []
+
+  grammar_file: responsibility {{ Parse every [Heron file](#heron.language.core_format.files.heron_file) into a concrete tree an editor can colour and fold. }}
+  queries: responsibility {{ The highlight, fold and text-object queries over that tree. }}
+
+  /// The grammar, its external scanner and the generated parser, committed.
+  surface(lang = "text", title = "files") {{
+    grammar.js
+    src/scanner.c
+    src/parser.c
+    queries/highlights.scm
+    queries/folds.scm
+    queries/textobjects.scm
+    test/corpus/heron.txt
+  }}
+
+  obligation(path = "grammar/tree-sitter-heron/test-fixtures.sh") {{ Parse the Go parser's fixtures and the repository's Heron trees, and run every query on a fixture. }}
+
+  same_fixtures: invariant {
+    must {{ parse every fixture of mode `heron`, the fixtures' context files, and every `.heron` file under std/, spec/, examples/ and the extension protocol with no `ERROR` or `MISSING` node }}
+    | A [prose file](#heron.language.core_format.prose_layer.prose_file) is Markdown to editors, with Heron in its fences, and a sketch elides
+    | parts on purpose, so neither is parsed.
+    verify("grammar/tree-sitter-heron/test-fixtures.sh")
+  }
+
+  parser_current: invariant {
+    must {{ keep the committed `src/parser.c` equal to what `tree-sitter generate` writes from `grammar.js`, with tree-sitter-cli 0.25.3 }}
+    verify("scripts/ci.sh")
+  }
+
+  corpus_passes: invariant {
+    must {{ pass the corpus under `test/corpus` with `tree-sitter test` }}
+    verify("scripts/ci.sh")
+  }
+
+  scanner: section {
+    | What a context-free grammar can't tell, an external scanner does.
+
+    | | External token | What it reads                                                                  |
+    | | -------------- | ------------------------------------------------------------------------------ |
+    | | `_line_end`    | the newline that ends a `\|` or `///` line                                      |
+    | | `string`       | `"…"`, or a run of three or more quotes, with `$name` and `${…}` inside        |
+    | | `backtick`     | a code span or raw string; three or more backticks may span lines, as a fence  |
+    | | `_prose_bar`   | a `\|` that starts a [prose line](#heron.language.core_format.prose_layer.prose_lines) |
+    | | `_union_bar`   | a `\|` between two types on one line                                            |
+
+    flat_prose: invariant {
+      must {{ read prose flat: an opening and a closing tag around ordinary text, and a `[`, `$` or `<` that starts no link, insert or tag as text }}
+      | Then prose never backtracks, and a tag may span `|` lines.
+      verify("grammar/tree-sitter-heron/test-fixtures.sh")
+    }
+  }
+}

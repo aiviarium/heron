@@ -1,0 +1,160 @@
+language_markup: section {
+  | The tests that prove the requirements of the spec's [language.markup](#heron.language.markup).
+
+  proves(heron.language.markup.writing.same_text) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.markup.writing.markup_strings) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.writing.paragraphs) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.writing.doc_lines_end) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.markup.text.emphasis) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.text.code_span_verbatim) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.text.escapes_render) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.text.fenced_code_verbatim) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.links.node_links_resolve) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.markup.links.node_links_render) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.links.imported_declarations) {
+    verify("internal/tools/docs/markup_test.go", test = "TestLinkToImportedDeclaration")
+  }
+
+  proves(heron.language.markup.links.imported_links_render) {
+    verify("internal/tools/docs/markup_test.go", test = "TestLinkToImportedDeclaration")
+  }
+
+  proves(heron.language.markup.links.url_links_unchecked) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.markup.inserts.inserts_resolve) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.markup.inserts.insert_ends) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.markup.inserts.insert_prose) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.inserts.insert_value) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.inserts.insert_node) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.inserts.inserted_once) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.tags.tags_are_kinds) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.markup.tags.tag_names_a_kind) {
+    verify("internal/core/lint/lint_test.go", test = "TestTagKind")
+  }
+
+  proves(heron.language.markup.tags.attributes_are_arguments) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.markup.tags.attribute_values) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.markup.tags.tag_closing) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.markup.tags.tags_render) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.components.built_in_renderers) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+  }
+
+  proves(heron.language.markup.from_markdown.blocks_render) {
+    verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
+    verify("internal/tools/docs/grammar_test.go", test = "TestTableEscapedPipe")
+  }
+
+  proves(heron.language.markup.long_form.heading_extent) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.markup.long_form.heading_names) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.markup.prose_view.what_is_projected) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.prose_view.what_is_not_projected) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.prose_view.regions) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.prose_view.masked_spans) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.prose_view.projected_text) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.prose_view.exact_map) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseFixtureSourceMaps")
+  }
+
+  proves(heron.language.markup.prose_view.fixes_exact) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+  }
+
+  proves(heron.language.markup.prose_view.regions_cached) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseCache")
+  }
+
+  proves(heron.language.markup.prose_view.html_projection) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseHTML")
+  }
+
+  proves(heron.language.markup.prose_view.providers_in_pipeline) {
+    verify("internal/core/lint/prose_test.go", test = "TestProseAllow")
+  }
+}

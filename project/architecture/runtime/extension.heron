@@ -1,0 +1,219 @@
+@realizes(heron.product.system.extension_host)
+extension: component("internal/core/extension", lang = "go") {
+  | Runs what packages declare and code implements: it starts [extension processes](#heron.language.schemas.extensions.extension_process) and
+  | the [JS host](#heron.language.interop.host.js_host), speaks the protocol to them, runs the capability handshake, applies the
+  | limits each declares, and registers what each implements in the registry the
+  | built-in parts use. [Foreign funcs](#heron.language.interop.declaring.foreign_func) and [extension points](#heron.language.interop.declaring.extension_point) share the protocol, so
+  | one package supervises both.
+
+  uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.protocol, architecture.runtime.lint, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
+
+  discovers: responsibility {{
+    Finds in a checked tree every `extension(…)` node and every declaration bound to a
+    module, `= module.export` or `extern`, and groups them into the processes to start:
+    one per extension, and one [JS host](#heron.language.interop.host.js_host) for every `js(…)` module.
+  }}
+
+  supervises: responsibility {{
+    Starts a process on first use, asks before an extension's first run on this machine,
+    runs it in the sandbox its limits allow, restarts it after a crash, and stops every
+    process when the registry closes.
+  }}
+
+  registers: responsibility {{
+    Registers what each process says it implements as funcs, macros, transports, lints,
+    resource drivers, generators and renderers, keyed by the declarations' paths, and the
+    `js` foreign binder; reports a declaration its process doesn't implement through the
+    `extension` lint.
+  }}
+
+  serves_calls: responsibility {{
+    Serves a process's calls back into the run, `ctx.call`, `ctx.resource` and
+    `ctx.secret`, within the run whose id the call carries.
+  }}
+
+  surface(title = "manager.go") {{
+    // Register installs the loader of a tree's extensions, the js binder, the
+    // extension lint and shutdown.
+    func Register(r *registry.Registry) *Manager
+    func NewManager(r *registry.Registry) *Manager
+
+    type Manager struct {
+      Registry  *registry.Registry
+      Log       io.Writer
+      Warn      func(string)
+      Wire      protocol.Wire
+      Approve   func(s *Spec) (bool, error) // asked before a first run
+      NoSandbox bool
+      TempRoot  string
+      Call      func(ctx context.Context, target string, args map[string]any) (any, error)
+    }
+    func (m *Manager) Load(ctx context.Context, res *check.Result) error
+    func (m *Manager) Verify(ctx context.Context) diag.List
+    func (m *Manager) Instance(ctx context.Context, path string) (any, error)
+    func (m *Manager) Close()
+  }}
+
+  surface(title = "decl.go") {{
+    type Spec struct {
+      Name                     string // the extension node's path, or the JS host
+      Command                  []string
+      Dir                      string
+      Files, Network, Commands []string // what it declared it needs
+      Version, Checksum        string
+      Decls                    []Decl
+    }
+    type Discovery struct { /* the specs and declarations of a tree */ }
+    func Discover(t *resolve.Tree, c *types.Checker) *Discovery
+    func EncodeNode(c *types.Checker, n *resolve.Node, depth int) *protocol.Node
+  }}
+
+  surface(lang = "text", title = "Environment") {{
+    HERON_NODE              the node binary for the JS host (default: node on PATH)
+    HERON_JS_HOST           the host script, instead of node_modules/@heron/runtime/dist/host-main.js
+    HERON_JS_INSPECT        when set, starts the JS host with --inspect
+    HERON_TRUST_EXTENSIONS  1 runs extensions without asking before their first run
+    HERON_SECRET_NAME       the secret ctx.secret("name") returns: NAME is the name upper-cased, dots and dashes as _
+  }}
+
+  same_contract: invariant {
+    must {{ register what an extension implements through the same registry calls a built-in part uses, so a command can't tell them apart }}
+    verify("internal/core/extension/jshost_test.go", test = "TestSampleLintThroughHeronLint")
+  }
+
+  crash_restarts: invariant {
+    must {{ fail the calls in flight when a process dies, and start it again on the next call }}
+    verify("internal/core/extension/jshost_test.go", test = "TestCrashFailsCallsAndRestarts")
+  }
+
+  limits_applied: invariant {
+    must {{ run an extension with the files, hosts and commands it declared and no others, where the sandbox can be used }}
+    verify("internal/core/extension/sandbox_test.go", test = "TestExtensionRunsWithItsLimits")
+  }
+
+  @display("Sandbox helper")
+  sandbox_helper: invariant {
+    must {{ set the sandbox up by re-executing the `heron` binary inside the new namespaces with `HERON_EXTENSION_SANDBOX` holding the writable paths and the command, so the helper makes every file read-only but those paths and then executes the extension }}
+    verify("internal/core/extension/sandbox_test.go", test = "TestExtensionRunsWithItsLimits")
+  }
+
+  raises("extension") {{ The [extension diagnostics](#heron.language.schemas.extensions): a process that can't start, isn't trusted, doesn't implement a declaration, or runs without its limits enforced. }}
+  raises("ForeignError") {{ A `*protocol.Error` for a foreign call that can't be served: no Node, no [JS host](#heron.language.interop.host.js_host) installed, an extension not approved on this machine. }}
+
+  obligation(path = "internal/core/extension/decl_test.go") {{ Discovery of the sample package's extension and of `extern` declarations. }}
+  obligation(path = "internal/core/extension/jshost_test.go") {{ The sample TS package's func, transport, resource and lint through the [JS host](#heron.language.interop.host.js_host), [run scopes](#heron.language.interop.timing.run_scope), crashes and handshake mismatches. }}
+  obligation(path = "internal/core/extension/sandbox_test.go") {{ An extension runs inside its declared limits. }}
+  obligation(path = "scripts/e2e-interop.sh") {{ The sample TS package type-checks against the [generated bindings](#heron.language.interop.packaging.generated_bindings) and each part works through the binary. }}
+
+  verify("scripts/e2e-interop.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for extensions: a sample TS package's foreign func, transport, lint and resource driver type-check against their Heron declarations and work like built-in parts. }}
+}
+
+@realizes(heron.product.system.extension_host)
+protocol: component("internal/core/extension/protocol", lang = "go") {
+  | The extension protocol: its messages and methods, generated from `protocol.heron`, the
+  | values that cross the boundary as their Heron types, and the wire encodings and framing.
+
+  uses = []
+
+  describes: responsibility {{
+    Keeps `protocol.heron`, the Heron description of every message, method, limit and
+    error code, and generates from it `protocol_gen.go` and `web/runtime/src/protocol.gen.ts`
+    with `internal/protogen`.
+  }}
+
+  connects: responsibility {{
+    Runs one connection over a reader and a writer: calls both ways, notifications,
+    streamed results, cancellation, timeouts from the limits, the frame limit and the run
+    id each call carries.
+  }}
+
+  values: responsibility {{
+    Encodes Heron values with their types, decimals, durations, refs, variants, prose and
+    sets, as CBOR with Heron's tags or as JSON.
+  }}
+
+  surface(title = "conn.go") {{
+    type Options struct { /* the wire, the handler, the limits */ }
+    func NewConn(r io.Reader, w io.Writer, opts Options) *Conn
+    func (c *Conn) Serve() error
+    func (c *Conn) Call(ctx context.Context, method string, params, result any) error
+    func (c *Conn) CallStream(ctx context.Context, method string, params, result any, item func(decode func(any) error) error) error
+    func (c *Conn) Notify(method string, params any) error
+    func (c *Conn) SetLimits(l Limits)
+    func (c *Conn) Done() <-chan struct{}
+
+    type Error struct { /* code, message, the thrown Heron type and fields */ }
+    func Errorf(code int64, format string, args ...any) *Error
+    func WithRun(ctx context.Context, run string) context.Context
+    func RunOf(ctx context.Context) string
+  }}
+
+  surface(lang = "sh", title = "Regenerating") {{
+    go run ./internal/core/extension/protocol/internal/protogen \
+      -in internal/core/extension/protocol/protocol.heron \
+      -go internal/core/extension/protocol/protocol_gen.go -ts web/runtime/src/protocol.gen.ts
+  }}
+
+  generated_current: invariant {
+    must {{ equal, in both generated files, what `protogen` writes from `protocol.heron` }}
+    verify("scripts/ci.sh", test = "generated code is current")
+  }
+
+  description_checks: invariant {
+    must {{ check and lint `protocol.heron` clean with the binary }}
+    verify("scripts/ci.sh", test = "the protocol description checks and lints clean")
+  }
+
+  @display("No stages")
+  no_io: invariant {
+    mustNot {{ import a stage, so a host in another process links only the protocol }}
+    verify("internal/tools/docs/components_test.go", test = "TestSpecComponentUses")
+  }
+
+  obligation(path = "internal/core/extension/protocol/conn_test.go") {{ Calls both ways, typed values, [thrown errors](#heron.language.scripting.code.thrown_error), cancellation, timeouts, streaming, run ids, the frame limit and a closed connection. }}
+  obligation(path = "internal/core/extension/protocol/tags_test.go") {{ The CBOR tag and the JSON form of each Heron value. }}
+}
+
+@display("TS runtime")
+@realizes(heron.product.system.extension_host)
+js_runtime: component("web/runtime", lang = "ts") {
+  | `@heron/runtime`, [unit](#delivery.units) 1's TS SDK and [JS host](#heron.language.interop.host.js_host): the same protocol in TS, the helpers an
+  | extension's code defines its parts with, and the host that loads a project's TS modules
+  | for its `js(…)` declarations. It's built in the `web/` workspace and installed into a
+  | project as a dev dependency.
+
+  sdk: responsibility {{
+    Exports `defineFunc`, `defineMacro`, `defineTransport`, `defineLint`,
+    `defineResource`, `defineGenerator` and `defineRenderer`, each tagging an
+    implementation with the [extension point](#heron.language.interop.declaring.extension_point) it serves, and `stamp`, which ties it to a
+    declaration's path.
+  }}
+
+  host: responsibility {{
+    Runs as `heron-js-host`: imports the module a declaration names, finds its export, and
+    serves it over the protocol, rejecting an export stamped for another declaration or of
+    another [extension point](#heron.language.interop.declaring.extension_point).
+  }}
+
+  surface(title = "src/index.ts") {{
+    // fn returns a value, a promise of one, or an async iterable for a stream.
+    export function defineFunc(fn: (args: A, ctx: Ctx) => unknown, opts?: { path?: string }): FuncImpl // generic in its arguments A and result R
+    export function defineTransport(t: Transport, opts?: { path?: string }): TransportImpl
+    export function defineLint(l: { run: LintImpl["run"] }, opts?: { path?: string }): LintImpl
+    export function defineResource(d: ResourceDriver, opts?: { path?: string }): ResourceImpl // generic in its handle H and snapshot S
+    export function defineRenderer(kind: string, render: Renderer["render"]): Renderer
+    // stamp returns impl, of the type it was given, tied to a declaration's path.
+    export function stamp(impl: Impl, path: string): Impl
+    export function serveExtension(conn: Conn, opts: ServeOptions): void
+    export function serveHost(input: NodeJS.ReadableStream, output: NodeJS.WritableStream, opts?: ConnOptions): Conn
+    export function runExtension(name: string, version: string, impls: { [path: string]: Impl }): Conn
+    export class HeronError extends Error {}
+  }}
+
+  same_wire: invariant {
+    must {{ round-trip every Heron value with its type over both wires, and fail calls in flight when the peer goes away }}
+    verify("web/runtime/src/runtime.test.ts")
+  }
+
+  obligation(path = "web/runtime/src/runtime.test.ts") {{ Values, the connection, the handshake and each [extension point](#heron.language.interop.declaring.extension_point), a wrong point rejected, and the host loading modules and renderers. }}
+}

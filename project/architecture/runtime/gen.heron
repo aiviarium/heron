@@ -1,0 +1,85 @@
+@realizes(heron.product.system.generator)
+gen: component("internal/core/gen", lang = "go") {
+  | The generation framework behind `heron generate`: adapters read the checked tree and
+  | return files, none with a config format of its own, and the framework writes them and
+  | the managed ignore block. Built-in adapters and those extensions implement register
+  | alike, through the registry's generation targets.
+
+  uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.extension, architecture.runtime.protocol, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
+
+  runs_targets: responsibility {{
+    Runs the adapters of the targets asked for, or of every target for none, writes each
+    file under the project's folder only when its content changed, and reports what it
+    wrote.
+  }}
+
+  ignore_block: responsibility {{
+    Owns the managed block of `.gitignore`, between `# heron:begin` and `# heron:end`, with
+    a section per writer under `# from <owner>`: `heron generate` writes `/.heron/` and every
+    file an adapter marks as a build output, and `heron run setup` writes its own section
+    through `IgnoreSection`. Lines outside the block are kept.
+  }}
+
+  ts_target: responsibility {{
+    Registers the `ts` target, adapter `js.ts`: `.heron/types.ts` holds an interface per
+    record type and a union per enum, in namespaces by path, and `.heron/bindings.ts`
+    holds `bind`, whose members wrap an implementation with its declaration's types and
+    stamp it with the declaration's path.
+  }}
+
+  surface(title = "gen.go") {{
+    // Register installs `heron generate` and the ts target.
+    func Register(r *registry.Registry)
+
+    // Input is what an adapter receives, as the `in` of registry.Generator.
+    type Input struct {
+      Tree    *resolve.Tree
+      Checker *types.Checker
+      Dir     string // the folder files are written under
+    }
+    func (in *Input) ResolvedTree() (*resolve.Tree, *types.Checker)
+
+    type Result struct {
+      Written   []string // paths changed, relative to Dir
+      Unchanged []string
+    }
+    // Run runs the targets' adapters, every target for none, and updates the
+    // managed ignore block when it ran every target.
+    func Run(ctx context.Context, r *registry.Registry, in *Input, targets []string) (*Result, error)
+
+    func TS(in *Input) ([]registry.GeneratedFile, error)
+  }}
+
+  surface(title = "ignore.go") {{
+    const (
+      BlockBegin    = "# heron:begin (managed by heron; edits inside are replaced)"
+      BlockEnd      = "# heron:end"
+      OwnerGenerate = "heron generate"
+      OwnerSetup    = "heron run setup"
+    )
+    type IgnoreSection struct{ Owner string }
+    func (s IgnoreSection) WriteIgnore(root string, entries []string) (bool, error)
+    func IgnoreBlock(text, owner string, entries []string) (string, error)
+  }}
+
+  paths_inside: invariant {
+    mustNot {{ write a file whose path is absolute, is `.` or leaves the project's folder through `..` }}
+    verify("internal/core/gen/gen_test.go", test = "TestPathsStayInside")
+  }
+
+  writes_changes_only: invariant {
+    must {{ leave a file whose content is unchanged untouched, so running a target twice changes nothing }}
+    verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
+  }
+
+  sections_kept: invariant {
+    mustNot {{ erase another owner's section of the managed block, or any line outside it }}
+    verify("internal/core/gen/gen_test.go", test = "TestIgnoreBlockKeepsTheRest")
+  }
+
+  raises("no adapter") {{ `no adapter is registered for target "‹target›"; targets: …`, for a target nothing registered. }}
+  raises("outside") {{ `generated path "‹path›" is outside the project directory`, from an adapter that returned such a path. }}
+  raises("adapter failed") {{ `‹adapter› (‹target›): …`, wrapping the error an adapter returned; files written before it stay written. }}
+
+  obligation(path = "internal/core/gen/gen_test.go") {{ Targets run and write once, the ignore block keeps the rest of the file, paths stay inside, and the TS types and bindings of a sample tree. }}
+}

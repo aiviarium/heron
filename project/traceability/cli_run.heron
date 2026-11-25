@@ -1,0 +1,27 @@
+cli_run: section {
+  | The tests that prove the requirements of the spec's [cli.run](#heron.cli.run).
+
+  proves(heron.cli.run.missing_asked) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.cli.run.missing_without_terminal) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.cli.run.needs_once_in_order) {
+    verify("internal/core/cli/run_test.go", test = "TestRunFindsRepositoryTasksAndRunsNeedsOnce")
+  }
+
+  proves(heron.cli.run.failure_stops) {
+    verify("internal/core/cli/run_test.go", test = "TestRunUndoAndConfirm")
+  }
+
+  proves(heron.cli.run.every_run_recorded) {
+    verify("internal/core/cli/run_test.go", test = "TestRunIsRecorded")
+  }
+
+  proves(heron.cli.run.install_before_check) {
+    verify("scripts/e2e-setup.sh", test = "a package from git installs from heron.lock before the tree is checked")
+  }
+}

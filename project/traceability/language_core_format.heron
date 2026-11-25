@@ -1,0 +1,443 @@
+language_core_format: section {
+  | The tests that prove the requirements of the spec's [language.core_format](#heron.language.core_format).
+
+  proves(heron.language.core_format.files.no_core_kinds) {
+    verify("internal/core/types/types_test.go", test = "TestStdPackagesCheckClean")
+  }
+
+  proves(heron.language.core_format.files.file_kinds) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.core_format.files.entry_from_folder) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestIncludeGuardAndMount")
+  }
+
+  proves(heron.language.core_format.files.one_identity) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestCanonicalIdentity")
+  }
+
+  proves(heron.language.core_format.files.one_tree) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.core_format.files.directives) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.files.diagnostics.not_a_list) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.files.diagnostics.not_plain) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.nodes.left_to_right) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.bodies_hold_members) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.core_format.nodes.declaring.declared_kinds) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.declaring.declared_once) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
+  }
+
+  proves(heron.language.core_format.nodes.entering.enter_never_creates) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.entering.enter_anywhere_in_order) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
+  }
+
+  proves(heron.language.core_format.nodes.creating.calls_construct) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.core_format.nodes.creating.calls_yield) {
+    verify("internal/core/eval/eval_test.go", test = "TestMacros")
+  }
+
+  proves(heron.language.core_format.nodes.creating.arguments) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.creating.argument_errors) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.variadic_params) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.core_format.nodes.flags.known_flags) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.flags.flag_placement) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+  }
+
+  proves(heron.language.core_format.nodes.annotations.annotations_resolve) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.annotations.annotation_placement) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.core_format.nodes.locals.locals_visible_below) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLocalsAreVisibleBelowOnly")
+  }
+
+  proves(heron.language.core_format.nodes.locals.locals_stay_out) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLocalsAreVisibleBelowOnly")
+  }
+
+  proves(heron.language.core_format.nodes.locals.unused_locals) {
+    verify("internal/core/lint/lint_test.go", test = "TestUnusedLet")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.unknown_kind) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.entered_missing) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.unknown_argument) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.missing_argument) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.unknown_flag) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.unknown_annotation) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.nodes.diagnostics.unused_let) {
+    verify("internal/core/lint/lint_test.go", test = "TestUnusedLet")
+  }
+
+  proves(heron.language.core_format.naming.lexical_lookup) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestScopedImports")
+  }
+
+  proves(heron.language.core_format.naming.unknown_names) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.naming.closest_names) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.naming.display_names) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.core_format.naming.diagnostics.unknown_name) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.naming.diagnostics.no_member) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.imports.includes.include_order) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.core_format.imports.includes.include_paths) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.includes.missing_include) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.includes.includes_are_guarded) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestIncludeGuardAndMount")
+  }
+
+  proves(heron.language.core_format.imports.includes.include_cycles) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestIncludeCycleIsFinite")
+  }
+
+  proves(heron.language.core_format.imports.includes.globs_are_deterministic) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestIncludeGuardAndMount")
+  }
+
+  proves(heron.language.core_format.imports.includes.rounds) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
+  }
+
+  proves(heron.language.core_format.imports.packages.imports_are_scoped) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestScopedImports")
+  }
+
+  proves(heron.language.core_format.imports.packages.package_versions) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.packages.lock_pins) {
+    verify("internal/core/setup/setup_test.go", test = "TestLockRoundTrip")
+  }
+
+  proves(heron.language.core_format.imports.packages.file_imports) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestScopedImports")
+  }
+
+  proves(heron.language.core_format.imports.packages.prelude) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestStdPackagesResolve")
+  }
+
+  proves(heron.language.core_format.imports.packages.import_cycle) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportCycleIsAnError")
+  }
+
+  proves(heron.language.core_format.imports.packages.repeated_import) {
+    verify("internal/core/lint/lint_test.go", test = "TestRepeatedImportAndAllow")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.repeated_import) {
+    verify("internal/core/lint/lint_test.go", test = "TestRepeatedImportAndAllow")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.unknown_package) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.no_major) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.bad_major) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.wrong_major) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.not_installed) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.no_such_import) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.no_such_include) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
+  }
+
+  proves(heron.language.core_format.imports.diagnostics.import_cycle) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestImportCycleIsAnError")
+  }
+
+  proves(heron.language.core_format.mounts.folder_mounts) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestIncludeGuardAndMount")
+  }
+
+  proves(heron.language.core_format.mounts.scoped_includes) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestIncludeGuardAndMount")
+  }
+
+  proves(heron.language.core_format.mounts.mounted_names_prefixed) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestMountedNamesArePrefixed")
+  }
+
+  proves(heron.language.core_format.mounts.scopes_create) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.core_format.mounts.groups_flatten) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.core_format.exports.import_mounts_exports_only) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
+  }
+
+  proves(heron.language.core_format.exports.exports_once) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
+  }
+
+  proves(heron.language.core_format.exports.export_conflict) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
+  }
+
+  proves(heron.language.core_format.amends.set_declared_fields) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.amends.set_one_field) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestMapsMergeAndAssignReplaces")
+  }
+
+  proves(heron.language.core_format.amends.reading_order) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.core_format.amends.diagnostics.no_field) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.conflicts.set_once) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestSetTwiceInOneBody")
+  }
+
+  proves(heron.language.core_format.conflicts.unordered_conflict) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.core_format.conflicts.conflicts_keep_first) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
+  }
+
+  proves(heron.language.core_format.conflicts.diagnostics.declared_twice) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
+  }
+
+  proves(heron.language.core_format.conflicts.diagnostics.set_twice) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestSetTwiceInOneBody")
+  }
+
+  proves(heron.language.core_format.conflicts.diagnostics.set_in_two_files) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.core_format.conflicts.diagnostics.exported_twice) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
+  }
+
+  proves(heron.language.core_format.conflicts.diagnostics.exported_and_declared) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
+  }
+
+  proves(heron.language.core_format.values.literal_types) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.values.numbers_by_form) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.values.enum_values) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.values.strings_parsed_by_type) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.values.prose_as_string) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.core_format.values.whitespace_is_layout) {
+    verify("internal/core/format/format_test.go", test = "TestLayout")
+  }
+
+  proves(heron.language.core_format.values.diagnostics.wrong_type) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.values.diagnostics.not_a_variant) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.expressions.references) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.expressions.arithmetic) {
+    verify("internal/core/eval/eval_test.go", test = "TestOperators")
+  }
+
+  proves(heron.language.core_format.expressions.comparisons) {
+    verify("internal/core/eval/eval_test.go", test = "TestOperators")
+  }
+
+  proves(heron.language.core_format.expressions.method_calls) {
+    verify("internal/core/eval/eval_test.go", test = "TestBindingsAndControlFlow")
+  }
+
+  proves(heron.language.core_format.expressions.casts_convert) {
+    verify("internal/core/types/types_test.go", test = "TestCleanFile")
+  }
+
+  proves(heron.language.core_format.expressions.structural_guards) {
+    verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
+  }
+
+  proves(heron.language.core_format.prose_layer.docs_are_doc) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.core_format.prose_layer.prose_needs_a_kind) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.core_format.prose_layer.links_resolve) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.prose_layer.tags_name_kinds) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.prose_layer.inserts_resolve) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.prose_layer.headings_need_a_kind) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.core_format.prose_layer.diagnostics.broken_link) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.prose_layer.diagnostics.unknown_tag) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.prose_layer.diagnostics.unknown_attribute) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.prose_layer.diagnostics.heading_needs_kind) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.core_format.code_layer.nothing_runs_outside_do) {
+    verify("internal/core/eval/eval_test.go", test = "TestTasks")
+  }
+
+  proves(heron.language.core_format.code_layer.fixed_statements) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.core_format.code_layer.code_reads_in_order) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.core_format.code_layer.do_needs_a_kind) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+}

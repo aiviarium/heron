@@ -1,0 +1,432 @@
+language_grammar: section {
+  | The tests that prove the requirements of the spec's [language.grammar](#heron.language.grammar).
+
+  proves(heron.language.grammar.lexical.line_kinds) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.meaning_is_local) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.line_ends) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.layout_whitespace) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.identifiers) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.numbers) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.comments) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.no_comments_in_text) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.comment_members) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.words_in_structure) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.lexical.word_boundaries) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.structure.modes.body_by_opener) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.modes.prose_after_eq) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.modes.code_only_in_do) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.modes.inserts_switch_back) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.declaration_shape) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.params_or_args) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.named_or_positional) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.invoke_shape) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.enter_shape) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.let_shape) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.paths) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.flag_lists) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.optional_marker) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.lines.newlines_end_members) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.lines.doc_lines_attach) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.lines.annotation_lines) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.prose.lines_and_blocks.prose_line_runs) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.lines_and_blocks.inline_on_one_line) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.lines_and_blocks.block_closes) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.lines_and_blocks.block_close_ends_fence) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.inline_forms.prose_escapes) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.inline_forms.code_spans) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.inline_forms.links) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.inline_forms.tags) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.inline_forms.tag_closing) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.prose.inline_forms.fences) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.prose_files.headings) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.prose_files.heron_fences) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.prose.prose_files.unclosed_fence) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.code.statements.statement_shapes) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.statements.trailing_blocks) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.statements.assignment_targets) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.statements.else_placement) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.statements.for_loops) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.operator_precedence) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.unary_operators) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.postfix_binds_tightest) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.operator_continues_line) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.unspaced_operators) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.word_logic) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.union_not_prose) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.code.expressions.cast_lookahead) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.collection_literals) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.expressions.map_after_eq) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.types.type_operators) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.code.types.type_arguments) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestCode")
+  }
+
+  proves(heron.language.grammar.strings.quoted.quote_runs) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.quoted.one_line_strings) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.quoted.string_escapes) {
+    verify("internal/core/eval/eval_test.go", test = "TestStringValues")
+  }
+
+  proves(heron.language.grammar.strings.quoted.multi_line_values) {
+    verify("internal/core/eval/eval_test.go", test = "TestStringValues")
+  }
+
+  proves(heron.language.grammar.strings.raw.raw_runs) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.raw.one_line_raw) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.inserts.insert_forms) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.inserts.insert_calls) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.inserts.insert_fallback_linear) {
+    verify("internal/core/syntax/lossless_test.go", test = "FuzzParse")
+  }
+
+  proves(heron.language.grammar.strings.inserts.nothing_follows_a_call) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.strings.embedded.embedded_is_cast) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStrings")
+  }
+
+  proves(heron.language.grammar.recovery.lossless) {
+    verify("internal/core/syntax/lossless_test.go", test = "TestFixturePrefixes")
+    verify("internal/core/syntax/lossless_test.go", test = "FuzzParse")
+  }
+
+  proves(heron.language.grammar.recovery.never_fails) {
+    verify("internal/core/syntax/lossless_test.go", test = "FuzzParse")
+  }
+
+  proves(heron.language.grammar.recovery.syntax_errors) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.lines.rest_of_line) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.lines.no_member) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.lines.progress) {
+    verify("internal/core/syntax/lossless_test.go", test = "FuzzParse")
+  }
+
+  proves(heron.language.grammar.recovery.missing.missing_parts) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.lists.list_entries) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.lists.map_entries) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.depth.nesting_limit) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecoveryDepth")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.end_of_line) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.no_member) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_brace) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_double_brace) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_set_value) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_let_equals) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_value) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_type) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_name) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_in) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_block) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_param_name) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_param_type) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_paren) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_bracket) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_angle) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.unterminated_string) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.unterminated_raw) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.missing_fence) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.argument_list) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.array_list) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.map_entry) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.map_equals) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.map_separator) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.tag_mismatch) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.tag_unclosed) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
+  }
+
+  proves(heron.language.grammar.recovery.diagnostics.too_deep) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestRecoveryDepth")
+  }
+
+  proves(heron.language.grammar.productions.ungram_is_the_spec) {
+    verify("internal/tools/docs/grammar_test.go", test = "TestSpecGrammarIsUngram")
+  }
+
+  proves(heron.language.grammar.productions.surface_is_the_design) {
+    verify("internal/core/syntax/fixtures_test.go", test = "TestFixturesParse")
+  }
+}

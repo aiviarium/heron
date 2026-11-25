@@ -1,0 +1,11 @@
+language_std: section {
+  | The tests that prove the requirements of the spec's [language.std](#heron.language.std).
+
+  proves(heron.language.std.embedded_copy) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestStdPackagesResolve")
+  }
+
+  proves(heron.language.std.checked_like_any) {
+    verify("internal/core/check/std_test.go", test = "TestEveryStdPackageChecks")
+  }
+}

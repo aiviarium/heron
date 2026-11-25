@@ -1,0 +1,60 @@
+@realizes(heron.product.system.docs_generator)
+docs: component("internal/tools/docs", lang = "go") {
+  | Renders a checked tree as a documentation site, as pages and as fragments for the live
+  | preview. `heron generate docs` writes the site as plain files that work without a
+  | server, and `heron serve` serves the same pages live as the spec browser, so what
+  | people read and what they edit never look different.
+
+  uses = [architecture.runtime.ast, architecture.runtime.gen, architecture.runtime.project, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types, architecture.tools.frontend.strings, architecture.tools.frontend.tokens]
+
+  pages: responsibility {{ Lay out the tree's nodes as pages, [site areas](#heron.tools.docs.site.site_area) and navigation, and render each node through its kind's renderer. }}
+  reference: responsibility {{ The API reference: an op page per op and a type page per type, with examples in every form. }}
+  islands_owned: responsibility {{ Hold the built theme and islands, and the search index and hover cards every page loads. }}
+  generation: responsibility {{ The `docs` generation target, and the released builds the version switch lists. }}
+
+  /// A site over a checked tree, its pages and the fragments the preview shows.
+  surface(title = "site.go") {{
+    func New(t *resolve.Tree, c *types.Checker, opts Options) *Site
+    func (s *Site) Files() ([]File, error)
+    func (s *Site) RenderPage(p *Page) (string, error)
+    func (s *Site) RenderNode(n *resolve.Node) (*Fragment, error)
+    func (s *Site) RenderFile(file resolve.FileID) (*Fragment, error)
+    func (s *Site) Search() []entry
+    func (s *Site) DataJS() []byte
+    func Register(r *registry.Registry)
+  }}
+
+  /// What a renderer sees: the node, its page, and how to write it.
+  surface(title = "ctx.go") {{
+    type RenderFunc func(c *Ctx) error
+    func Builtin(kind string) RenderFunc
+    func BuiltinKinds() []string
+    func (c *Ctx) Slot(name string) string
+  }}
+
+  obligation(path = "scripts/e2e-docs.sh") {{ Generate the sample repository's site, spec/'s and the docs sample's, and drive every link and island in Chromium from `file://`. }}
+
+  split_grammars: invariant {
+    must {{ link a name in a production to the production or token of that name in any grammar with the same `source`, preferring the grammar it's written in, on whichever page that grammar is shown }}
+    verify("internal/tools/docs/docs_test.go", test = "TestLinksResolve")
+  }
+
+  links_resolve: invariant {
+    must {{ give every page a unique set of ids, and make every link within the site resolve to a page and an anchor that exist }}
+    verify("internal/tools/docs/docs_test.go", test = "TestLinksResolve")
+  }
+
+  go_renders: invariant {
+    must {{ render pages in Go from the node tree, with the islands and the built-in styles built once from `web/docs` and embedded in the binary, so that generating docs needs no Node unless the tree names a [TS renderer](#heron.tools.docs.renderers.ts_renderer) }}
+    verify("scripts/ci.sh")
+  }
+
+  verify("scripts/e2e-docs.sh") {{ [Unit](#delivery.units) 2's [done criterion](#delivery.unit_2) for the docs: `heron generate docs` produces a working site for the sample repository. }}
+
+  requirement_status: invariant {
+    must {{ list every requirement of the implemented spec on the conformance page as proven, planned, untested or missing, and the requirements on people and agents that no proof or status names as practices of their own, not counted }}
+    | The status comes from the project's proofs and statuses; `scripts/ci.sh` fails while
+    | any requirement is missing.
+    verify("internal/tools/docs/project_test.go", test = "TestConformancePractices")
+  }
+}

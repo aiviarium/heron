@@ -1,0 +1,37 @@
+@realizes(heron.product.system.formatter)
+format: component("internal/core/format", lang = "go") {
+  | Formats [Heron files](#heron.language.core_format.files.heron_file) from their [lossless tree](#heron.language.grammar.recovery.lossless_tree), behind `heron fmt`.
+  | Formatting normalizes layout only, so hand-aligned columns survive and literal text is
+  | never touched.
+
+  uses = [architecture.runtime.syntax]
+
+  layout: responsibility {{
+    Sets each line's indentation from its nesting, two spaces a level; removes trailing
+    spaces; turns each run of blank lines into one; ends the file in exactly one newline;
+    and gives a `{{ }}` body the indentation of its nesting while keeping its lines'
+    relative indentation.
+  }}
+
+  surface(title = "format.go") {{
+    // Source formats src, a file called name. Files with syntax errors are
+    // formatted too; the tree is lossless, so nothing is lost.
+    func Source(name, src string) string
+
+    // Tree formats a parsed file.
+    func Tree(tr *syntax.Tree) string
+  }}
+
+  idempotent: invariant {
+    must {{ give back its input when given its own output }}
+    verify("internal/core/format/format_test.go", test = "TestIdempotent")
+  }
+
+  literal_text_kept: invariant {
+    mustNot {{ change spacing within a line, the text of a string, a raw string or fenced code, or the relative indentation of a `{{ }}` body }}
+    verify("internal/core/format/format_test.go", test = "TestLayout")
+    verify("internal/core/format/format_test.go", test = "TestFixturesFormatToThemselves")
+  }
+
+  obligation(path = "internal/core/format/format_test.go") {{ Every Heron fixture formats to itself, formatting twice equals formatting once, and each layout rule holds. }}
+}

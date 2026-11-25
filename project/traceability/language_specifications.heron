@@ -1,0 +1,197 @@
+language_specifications: section {
+  | The tests that prove the requirements of the spec's [language.specifications](#heron.language.specifications).
+
+  proves(heron.language.specifications.projects.project_fields) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.projects.project_tasks) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.projects.project_heading) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProjectHeadingPath")
+  }
+
+  proves(heron.language.specifications.projects.lock_pins_sources) {
+    verify("internal/core/setup/setup_test.go", test = "TestLockRoundTrip")
+  }
+
+  proves(heron.language.specifications.context.out_of_scope_shown) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.context.flags_on_sections) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+  }
+
+  proves(heron.language.specifications.context.terms_linked) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.context.one_sense) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.context.term_shown) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.requirements.one_strength) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.specifications.requirements.conditions_once) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.specifications.requirements.instead_only_negative) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.specifications.requirements.prose_only_rules) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.requirements.ears_sentence) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.requirements.subject_words) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.requirements.consequences_listed) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.requirements.diagnostics.instead_positive) {
+    verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
+  }
+
+  proves(heron.language.specifications.lifecycles.transition_variants) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.lifecycles.transition_body) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.lifecycles.lifecycle_view) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.qualities.quality_body) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.qualities.quality_view) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.qualities.vague_words_measured) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.planning.open_view) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.traceability.verify_shown) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.traceability.status_shown) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.traceability.status_placement) {
+    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+  }
+
+  proves(heron.language.specifications.quality_checks.unambiguous_wording) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.nodes_linked) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.unlinked_term) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.ruled_out_synonym) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.two_senses) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.unlinked_node) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.dead_link) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.weak_modal) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.diagnostics.vague_word) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.product_kinds.product_bodies) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.product_kinds.actor_kinds) {
+    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
+  }
+
+  proves(heron.language.specifications.product_kinds.actor_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.product_kinds.story_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.product_kinds.usecase_numbering) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.product_kinds.done_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.tech_kinds.component_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.tech_kinds.command_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.tech_kinds.grammar_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.tech_kinds.grammar_source) {
+    verify("internal/tools/docs/grammar_test.go", test = "TestSpecGrammarIsUngram")
+  }
+
+  proves(heron.language.specifications.tech_kinds.screen_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+  }
+
+  proves(heron.language.specifications.tech_kinds.diagnostic_view) {
+    verify("internal/tools/docs/grammar_test.go", test = "TestDiagnosticsRender")
+  }
+}

@@ -1,4 +1,35 @@
-// The project tree: the components that realize the spec, the tests that
-// prove its requirements, where the rest stands, and the releases. It is
-// built apart and integrated here; until then this placeholder keeps the
-// root's include resolving.
+// The Heron implementation's project tree: it imports the sealed Heron spec
+// package at its version and adds only what is about the implementation:
+// the components, the tests that prove the spec's requirements, where the
+// rest stands, the delivery plan and the releases.
+import = [
+  "std/doc@1",
+  "std/spec@1",
+  "std/tech@1",
+  "std/project@1",
+  "std/docs@1",
+]
+
+/// The Heron implementation: the `heron` binary, its standard packages and its frontend.
+@display("Heron implementation")
+heron_impl: implements(heron, at = "0.1.0") {
+  version = "0.1.0+build1"
+  // docs = "<base URL of the published spec site>": unset until the spec
+  // site is published, so links to spec nodes go to the read-only _spec.html.
+
+  | This repository implements the Heron spec at 0.1.0. Its versions start with the spec
+  | version, and the build counter after `+` counts its releases of that spec version.
+}
+
+include = [
+  "./architecture/",
+  "./traceability/",
+  "./status/",
+  "./delivery/",
+  "./releases.heron",
+]
+
+// The project site; its title is heron_impl's display name.
+docs {
+  depth = 3
+}

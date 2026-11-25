@@ -1,0 +1,99 @@
+@realizes(heron.product.system.checker)
+check: component("internal/core/check", lang = "go") {
+  | Runs the stages of `heron check` over an [entry point](#heron.language.core_format.files.entry_point), parse, resolve and type-check,
+  | in a session that keeps what stays valid between checks, so a watch loop or the
+  | language server redoes only what an edit touches. It also runs the design's fixtures
+  | as the [unit](#delivery.units)-1 done criterion asks.
+
+  uses = [architecture.runtime.diag, architecture.runtime.fixtures, architecture.runtime.project, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
+
+  stages: responsibility {{
+    Resolves an [entry point](#heron.language.core_format.files.entry_point), type-checks each top-level node and the root, and returns
+    the tree, the checker and every diagnostic of the tree and the packages it imports,
+    sorted.
+  }}
+
+  memoizes: responsibility {{
+    Keeps each top-level node's diagnostics under a key of the tree's structure (every
+    file without the prose, docs and code inside bodies) and the text and position of the
+    node's own sites, and serves an unchanged node's diagnostics without checking it.
+  }}
+
+  completes: responsibility {{
+    Checks the memo-served nodes for their facts alone when a caller needs references and
+    local uses for the whole tree, as the lints and the language server's queries do.
+  }}
+
+  fixtures: responsibility {{
+    Checks every Heron block of [unit](#delivery.units) 1's tabs under `fixtures/`, each as the file it
+    shows. A tab's `fixtures/context/<tab>.heron` is the outermost scope of its blocks'
+    trees: it imports the packages the excerpts assume and includes other blocks, and
+    declares only names no tab declares. Blocks that include files the tab doesn't show are
+    placed beside those files from `fixtures/context/files/`, and the Example tab is
+    assembled as the repository its headings describe and checked from `index.heron`. A
+    block listed in `fixtures/pending.txt` is expected to fail, and the test fails once it
+    checks clean.
+  }}
+
+  surface(title = "check.go") {{
+    type Session struct {
+      Loader     *resolve.Loader
+      Resolver   *resolve.Resolver
+      Recomputed int // nodes type-checked rather than served from the memo
+    }
+    func NewSession() *Session
+    func (s *Session) Check(entry resolve.FileID) *Result
+    // Pos maps a diagnostic's file and offset to a 1-based line and column.
+    func (s *Session) Pos(file string, off int) (int, int)
+
+    type Result struct {
+      Tree    *resolve.Tree
+      Checker *types.Checker
+      Diags   diag.List
+    }
+    // Complete type-checks the memo-served nodes, discarding their
+    // diagnostics, so the checker's facts cover the whole tree.
+    func (r *Result) Complete()
+    // Ensure does the same for one node.
+    func (r *Result) Ensure(n *resolve.Node)
+  }}
+
+  surface(title = "fixtures.go") {{
+    var UnitOneTabs map[string]bool
+    type FixtureRun struct { /* the block, its diagnostics and whether it's pending */ }
+    func CheckFixtures(t TB, root string) []FixtureRun
+  }}
+
+  memo_exact: invariant {
+    must {{ give the same diagnostics for a tree whether its nodes were checked or served from the memo }}
+    verify("internal/core/check/memo_test.go", test = "TestIncrementalRecomputation")
+  }
+
+  edit_rechecks_node: invariant {
+    must {{ recheck only the edited node after an edit to a node's prose or code, and every node after an edit to the tree's structure }}
+    verify("internal/core/check/memo_test.go", test = "TestIncrementalRecomputation")
+  }
+
+  fixtures_clean: invariant {
+    must {{ check every Heron block of [unit](#delivery.units) 1's tabs clean against the standard packages, unless it's marked as showing an error or listed as pending }}
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  spec_examples_check: invariant {
+    must {{ check every Heron code block of an `example` in the spec package clean, in the context `fixtures/contexts.txt` gives it, except those `fixtures/pending.txt` lists, which must still fail }}
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  obligation(path = "internal/core/check/memo_test.go") {{ An unchanged tree recomputes nothing and parses nothing; an edit to one node's prose rechecks that node alone. }}
+  obligation(path = "internal/core/check/fixtures_test.go") {{ The fixtures of [unit](#delivery.units) 1's tabs check clean, and a pending block that starts checking clean fails the test. }}
+
+  pending_blocks: invariant {
+    must {{ check every Heron block of [unit](#delivery.units) 1's tabs clean, except a block `fixtures/pending.txt` ties to a reason it can't yet }}
+    | A listed block that checks clean, and a listed block that isn't one of the tabs' blocks,
+    | each fail the fixture test, so the list can't go stale. The [roadmap](#delivery.roadmap) says which
+    | blocks wait for units 3 and 4.
+    verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean")
+  }
+
+  verify("internal/core/check/fixtures_test.go", test = "TestFixturesCheckClean") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for the fixtures: every code block of unit 1's tabs parses, formats to itself and checks clean, unless it's marked as showing an error or listed as pending. }}
+}

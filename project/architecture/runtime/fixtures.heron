@@ -1,0 +1,65 @@
+@realizes(heron.product.system.parser, heron.product.system.checker)
+fixtures: component("internal/core/fixtures", lang = "go") {
+  | Reads the parser and checker fixtures from the spec package: every fenced code block of
+  | an `example` node, keyed by the node's path. The spec is their one source; nothing is
+  | copied into this repository.
+
+  uses = [architecture.runtime.resolve, architecture.runtime.syntax]
+
+  spec_examples: responsibility {{
+    Finds every code block of an `example` node in the spec package, by resolving the
+    package's tree for the node paths, and takes each block's mode from
+    `fixtures/modes.txt` when the block isn't plain Heron: another language, a block showing
+    an error, one eliding parts with `…`, or a [prose file](#heron.language.core_format.prose_layer.prose_file).
+  }}
+
+  spec_dir: responsibility {{
+    Finds the spec package: `$HERON_SPECS_DIR` when it's set, otherwise the one `heron run
+    setup` installed under `.heron/packages/`.
+  }}
+
+  surface(title = "fixtures.go") {{
+    type Block struct {
+      Path    string `json:"path"`  // the example node's path in the spec package
+      Index   int    `json:"index"` // 1-based position among the node's blocks
+      Lang    string `json:"lang"`  // the fence's info word, or ""
+      Mode    string `json:"mode"`
+      File    string `json:"file"`  // the spec file and line, as "language/data/types.heron:118"
+      Source  string `json:"-"`
+      Content string `json:"-"`
+    }
+    func (b Block) Key() string  // the node's path, with "#2" … for further blocks
+    func (b Block) Name() string // a file name for the block, as "<path>.heron"
+    func (b Block) IsHeron() bool
+    func SpecDir(root string) (string, error)
+    func SpecEntry(root string) (string, error)
+    func Load(root string) ([]Block, error)
+    func FromPackage(dir string) ([]Block, error)
+    func ReadModes(path string) (map[string]string, error)
+
+    type SpecExample struct {
+      File, Name     string
+      NameLine, Line int
+      Lang           string
+      Content        string
+    }
+    func SpecExamples(file, src string) []SpecExample
+    func SpecFiles(root string) ([]string, error)
+  }}
+
+  surface(lang = "sh", title = "Writing the fixtures to a folder") {{
+    go run ./internal/core/fixtures/extract -out DIR
+  }}
+
+  examples_are_fixtures: invariant {
+    must {{ find a code block in every `example` node of the spec package that has one, under a key no other block has }}
+    verify("internal/core/fixtures/spec_test.go", test = "TestFixturesAreTheSpecExamples")
+  }
+
+  verify_paths_exist: invariant {
+    must {{ find on disk the path every `verify` in the project tree names, and in a Go file the test it names }}
+    verify("internal/core/fixtures/spec_test.go", test = "TestProjectVerifyPathsExist")
+  }
+
+  obligation(path = "internal/core/fixtures/spec_test.go") {{ Examples are found by node path, and every verify path exists. }}
+}

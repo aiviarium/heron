@@ -1,0 +1,107 @@
+language_apis: section {
+  | The tests that prove the requirements of the spec's [language.apis](#heron.language.apis).
+
+  proves(heron.language.apis.apis_and_ops.api_body) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.apis_and_ops.op_body) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.apis_and_ops.op_prose_value) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.apis_and_ops.op_without_result) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.apis_and_ops.ops_called_by_parameters) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.params.location_annotations) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.params.location_placement) {
+    verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
+  }
+
+  proves(heron.language.apis.params.names_carry_no_location) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.params.header_name_default) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.responses.api_errors_add) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.responses.interface_errors) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.responses.responses_shown) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.responses.transport_errors) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.streams.stream_directions) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.streams.op_socket_overrides) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.cross_cutting.api_annotations_apply) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.cross_cutting.shown_as_facts) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.language.apis.transports.binding_by_package) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.transports.request_by_parameter) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.transports.unbound_op) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.transports.binding_without_transport) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.transports.several_transports) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.transports.unimplemented_transport) {
+    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+  }
+
+  proves(heron.language.apis.examples.example_fields) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.examples.one_outcome_each) {
+    verify("internal/core/types/types_test.go", test = "TestApisAndOps")
+  }
+
+  proves(heron.language.apis.examples.examples_rendered) {
+    verify("internal/tools/docs/docs_test.go", test = "TestOpPage")
+  }
+}

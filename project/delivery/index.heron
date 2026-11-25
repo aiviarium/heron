@@ -1,0 +1,16 @@
+// Delivery: the units, their increments and what done means for each, the
+// roadmap, the process and the trace from requirements to tests.
+include = [
+  "./units.heron",
+  "./process.heron",
+  "./first_build.heron",
+  "./roadmap.heron",
+  "./traceability.heron",
+  "./unit_1/",
+  "./unit_2/",
+]
+
+| How the implementation's work is cut and delivered: the [units](#delivery.units), each unit's increments
+| and what done means for it, the [roadmap](#delivery.roadmap) of the deferred units, the
+| [process](#delivery.process) a change follows, and the [trace](#delivery.traceability) from the spec's requirements
+| to the tests.

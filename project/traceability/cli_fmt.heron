@@ -1,0 +1,7 @@
+cli_fmt: section {
+  | The tests that prove the requirements of the spec's [cli.fmt](#heron.cli.fmt).
+
+  proves(heron.cli.fmt.check_changes_nothing) {
+    verify("internal/core/cli/cli_test.go", test = "TestFmt")
+  }
+}

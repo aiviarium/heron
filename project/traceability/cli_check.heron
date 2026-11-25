@@ -1,0 +1,11 @@
+cli_check: section {
+  | The tests that prove the requirements of the spec's [cli.check](#heron.cli.check).
+
+  proves(heron.cli.check.errors_fail) {
+    verify("internal/core/cli/check_test.go", test = "TestCheckCommand")
+  }
+
+  proves(heron.cli.check.watch_rechecks_edit) {
+    verify("internal/core/cli/watch_test.go", test = "TestCheckWatch")
+  }
+}

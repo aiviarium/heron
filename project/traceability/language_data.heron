@@ -1,0 +1,89 @@
+language_data: section {
+  | The tests that prove the requirements of the spec's [language.data](#heron.language.data).
+
+  proves(heron.language.data.typed_strings.parsed_where_expected) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.typed_strings.parsers_by_path) {
+    verify("internal/core/types/typed_strings_test.go", test = "TestTypedStrings")
+  }
+
+  proves(heron.language.data.typed_strings.other_literals) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.typed_strings.duration_form) {
+    verify("internal/core/types/typed_strings_test.go", test = "TestTypedStrings")
+  }
+
+  proves(heron.language.data.typed_strings.money_form) {
+    verify("internal/core/types/typed_strings_test.go", test = "TestTypedStrings")
+  }
+
+  proves(heron.language.data.typed_strings.timestamp_form) {
+    verify("internal/core/types/typed_strings_test.go", test = "TestTypedStrings")
+  }
+
+  proves(heron.language.data.typed_strings.diagnostics.not_a_duration) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.typed_strings.diagnostics.not_money) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.typed_strings.diagnostics.not_a_timestamp) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.configuration.scopes_amend) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestMapsMergeAndAssignReplaces")
+  }
+
+  proves(heron.language.data.configuration.maps_merge) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestMapsMergeAndAssignReplaces")
+  }
+
+  proves(heron.language.data.configuration.layering) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.data.configuration.locals_not_amended) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLocalsAreVisibleBelowOnly")
+  }
+
+  proves(heron.language.data.configuration.typed_configuration) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.types.closed_records) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.data.types.patch_concretized) {
+    verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
+  }
+
+  proves(heron.language.data.types.generics_checked) {
+    verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
+  }
+
+  proves(heron.language.data.encodings.json.json_encode) {
+    verify("internal/core/eval/eval_test.go", test = "TestJSONEncode")
+  }
+
+  proves(heron.language.data.encodings.json.json_decode) {
+    verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
+    verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
+  }
+
+  proves(heron.language.data.encodings.json.json_wire) {
+    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
+  }
+
+  proves(heron.language.data.encodings.cbor.cbor_tags) {
+    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestValuesKeepTheirTypes")
+  }
+}

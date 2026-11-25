@@ -1,0 +1,47 @@
+// The runtime: unit 1's Go packages, one component each, the binary that
+// wires the units together, and the repository's layout.
+include = [
+  "./binary.heron",
+  "./layout.heron",
+  "./syntax.heron",
+  "./ast.heron",
+  "./diag.heron",
+  "./resolve.heron",
+  "./types.heron",
+  "./check.heron",
+  "./eval.heron",
+  "./format.heron",
+  "./lint.heron",
+  "./records.heron",
+  "./registry.heron",
+  "./gen.heron",
+  "./project.heron",
+  "./extension.heron",
+  "./setup.heron",
+  "./cli.heron",
+  "./fixtures.heron",
+  "./std.heron",
+]
+
+| [Unit](#delivery.units) 1, the language and runtime: a compiler with a runner attached, the extension and
+| interop host, and the standard packages that define the language. Every later [unit](#delivery.units)
+| builds on it, and nothing in it knows they exist.
+|
+| Each Go package is one component: what it owns, its interface, what it may import, its
+| invariants, its errors and the tests that hold it to its contract. The stages run in
+| order, each reading what the one before it produced:
+|
+| | Stage                                  | Reads                    | Gives                                           |
+| | -------------------------------------- | ------------------------ | ----------------------------------------------- |
+| | [syntax](#architecture.runtime.syntax)              | a file's text            | a [lossless tree](#heron.language.grammar.recovery.lossless_tree) and syntax errors      |
+| | [ast](#architecture.runtime.ast)                    | the syntax tree          | typed views of its nodes                        |
+| | [resolve](#architecture.runtime.resolve)            | an [entry point](#heron.language.core_format.files.entry_point)          | one node tree, with its packages mounted        |
+| | [types](#architecture.runtime.types)                | the node tree            | kinds, types, references and type errors        |
+| | [check](#architecture.runtime.check)                | an [entry point](#heron.language.core_format.files.entry_point)          | all of the above, memoized per node             |
+| | [lint](#architecture.runtime.lint) and [format](#architecture.runtime.format) | a checked tree, a syntax tree | findings with fixes, formatted text  |
+| | [eval](#architecture.runtime.eval)                  | a checked tree           | the results of funcs, tasks and macros          |
+| | [gen](#architecture.runtime.gen)                    | a checked tree           | generated files                                 |
+|
+| Around them, [registry](#architecture.runtime.registry) holds the [extension points](#heron.language.interop.declaring.extension_point) every [unit](#delivery.units) registers
+| through, [extension](#architecture.runtime.extension) runs what extensions implement, and
+| [cli](#architecture.runtime.cli) and [the binary](#architecture.runtime.binary) put them on the command line.

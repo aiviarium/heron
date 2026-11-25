@@ -1,0 +1,265 @@
+@realizes(heron.product.system.extension_host)
+registry: component("internal/core/registry", lang = "go") {
+  | The [extension points](#heron.language.interop.declaring.extension_point) every [unit](#delivery.units) registers through. A built-in part, a part of a
+  | later [unit](#delivery.units) and a part an extension implements register the same way, so an earlier
+  | [unit](#delivery.units) never knows which later ones exist. The registry holds plain Go values and
+  | imports no stage: what an implementation receives from a stage is passed as `any` and
+  | named in its contract, so every [unit](#delivery.units) can import it.
+
+  uses = [architecture.runtime.diag]
+
+  holds_points: responsibility {{
+    Holds the registered commands, lints, prose providers, record kinds, funcs, foreign
+    binders, macros, transports, resource drivers, generators, renderers, setup steps and
+    loaders, and lists each kind sorted by its key.
+  }}
+
+  scopes_runs: responsibility {{
+    Opens a run's scope for `heron run`, in which resource instances are set up on first
+    use and torn down at the end, and through which extensions call back into the run.
+  }}
+
+  closes: responsibility {{
+    Runs the functions registered with `OnClose`, last first and once each, when the
+    binary or a command closes the registry, such as stopping [extension processes](#heron.language.schemas.extensions.extension_process).
+  }}
+
+  surface(title = "registry.go") {{
+    func New() *Registry
+    func (r *Registry) Close()
+    func (r *Registry) OnClose(f func())
+
+    type Env struct {
+      Dir                    string // the working directory
+      Stdin                  io.Reader
+      Stdout, Stderr         io.Writer
+    }
+    type Command struct {
+      Name    string
+      Summary string // one line, shown by `heron help`
+      Usage   string // the argument synopsis, such as "[paths…]"
+      Run     func(env *Env, args []string) int
+    }
+    func (r *Registry) AddCommand(c Command) error
+    func (r *Registry) Command(name string) *Command
+    func (r *Registry) Commands() []*Command
+
+    type Lint struct {
+      Name, Summary string
+      Run           func(in any) // in is *lint.Input
+    }
+    func (r *Registry) AddLint(l Lint) error
+    func (r *Registry) SetLint(l Lint) error
+  }}
+
+  surface(title = "funcs.go") {{
+    type FuncImpl func(ctx context.Context, call *FuncCall) (any, error)
+    type FuncCall struct {
+      Func string         // the declaration's qualified path, such as "orders.export_orders"
+      Args map[string]any // by parameter name, defaults applied
+      Dir  string         // the folder of the file that declares the func
+      Step func(ctx context.Context) error // the call's trailing block, or nil
+    }
+    type Thrown struct { // a Heron error attempt(…) can catch
+      Type   string
+      Fields map[string]any
+    }
+    type Func struct {
+      Name, Summary string
+      Call          FuncImpl
+      Foreign       string // the process that serves it, when it runs outside the binary
+    }
+    func (r *Registry) AddFunc(f Func) error
+
+    type Module struct{ Kind, Spec, Path, Dir string }
+    type Foreign struct {
+      Kind string // a module constructor, such as "js"
+      Bind func(m Module, export string) (FuncImpl, error)
+    }
+    func (r *Registry) AddForeign(f Foreign) error
+  }}
+
+  surface(title = "parts.go") {{
+    type Macro struct {
+      Path   string
+      Expand func(ctx context.Context, args map[string]any) (string, error)
+    }
+    type Transport struct {
+      Path string
+      Send func(ctx context.Context, op string, request any) (any, error)
+    }
+    type ResourceDriver struct {
+      Path                            string
+      Setup                           func(ctx context.Context) (any, error)
+      Reset, Teardown                 func(ctx context.Context, handle any) error
+      Snapshot, Fork                  func(ctx context.Context, handle any) (any, error)
+      Restore                         func(ctx context.Context, handle, snapshot any) error
+    }
+    type GeneratedFile struct {
+      Path    string // relative to the project's folder
+      Content []byte
+      Ignored bool   // a build output, listed in the managed ignore block
+    }
+    type Generator struct {
+      Path, Target string
+      Generate     func(ctx context.Context, in any) ([]GeneratedFile, error) // in is *gen.Input
+    }
+    type Loader struct {
+      Name string
+      Load func(ctx context.Context, res any) error // res is *check.Result
+    }
+    func (r *Registry) SetMacro(m Macro) error
+    func (r *Registry) SetTransport(t Transport) error
+    func (r *Registry) SetResourceDriver(d ResourceDriver) error
+    func (r *Registry) SetGenerator(g Generator) error
+    func (r *Registry) Generators(target string) []*Generator
+    func (r *Registry) Targets() []string
+    func (r *Registry) AddLoader(l Loader)
+    func (r *Registry) LoadTree(ctx context.Context, res any) error
+  }}
+
+  surface(title = "prose.go, records.go, renderers.go and setup.go") {{
+    type ProseProvider struct {
+      Name, Summary string
+      Check   func(regions []*ProseRegion) []ProseFinding
+      Prepare func(in any) (key string, check func(regions []*ProseRegion) []ProseFinding)
+    }
+    func (r *Registry) AddProseProvider(p ProseProvider) error
+
+    type RecordKind struct {
+      Name, Summary string
+      Version       int
+      Validate      func(data map[string]any) error
+    }
+    func (r *Registry) AddRecordKind(k RecordKind) error
+
+    type Renderer struct {
+      Kind, Name string
+      Render     func(ctx any) error // ctx is *docs.Ctx
+      Plain      func(ctx context.Context, in *RenderInput) (*RenderOutput, error)
+    }
+    func (r *Registry) SetRenderer(x Renderer) error
+    func (r *Registry) SetRendererSource(s RendererSource)
+    func (r *Registry) LoadRenderers(ctx context.Context) error
+
+    type ToolPin struct{ Version, Checksum string }
+    type SetupStep struct {
+      Name, Summary string
+      Run func(ctx context.Context, root string, old *ToolPin, update bool) (pin *ToolPin, result any, err error)
+    }
+    func (r *Registry) AddSetupStep(s SetupStep) error
+  }}
+
+  surface(title = "run.go") {{
+    type Run struct {
+      ID         string
+      Call       func(ctx context.Context, target string, args map[string]any) (any, error)
+      OnResource func(ResourceEvent)
+    }
+    func (r *Registry) StartRun(id string) *Run
+    func (r *Registry) RunByID(id string) *Run
+    func (run *Run) Instance(ctx context.Context, path string) (any, error)
+    func (run *Run) End(ctx context.Context) error
+    func WithRun(ctx context.Context, run *Run) context.Context
+    func RunOf(ctx context.Context) *Run
+  }}
+
+  no_stage_imports: invariant {
+    mustNot {{ import a stage or any package of a later [unit](#delivery.units); it imports only `diag` }}
+    verify("internal/tools/docs/components_test.go", test = "TestSpecComponentUses")
+  }
+
+  @display("Extension points")
+  points: section {
+    | Each point is keyed by a name or by the qualified path of the declaration it
+    | implements. A point registered with `Add…` is claimed once: a second registration under
+    | its key is an error, so two [units](#delivery.units) can't silently claim one command. A point
+    | registered with `Set…` replaces an earlier registration, so a newer external version of
+    | a built-in part, or an extension loaded again for a changed tree, takes its place. Every `Add…` has a `MustAdd…`
+    | that panics instead of returning the error, for registrations at start-up.
+
+    commands: invariant {
+      must {{ register a subcommand by its name with a summary, a usage line and a `Run` that receives the environment and the arguments after the name and returns the exit status, and refuse a name registered twice or a command with no name or `Run` }}
+      | Then `heron` dispatches to it, and `heron help` lists it sorted by name.
+      verify("internal/core/cli/cli_test.go", test = "TestSampleCommand")
+    }
+
+    lints: invariant {
+      must {{ register a lint by its name, as `@lint(allow)` writes it, with a `Run` that receives a `*lint.Input`; `AddLint` refuses a name twice and `SetLint` replaces it }}
+      | Then `heron lint` and the language server run it after the core lints' check, and its findings carry its name as their code.
+      verify("internal/core/cli/check_test.go", test = "TestSampleLint")
+    }
+
+    prose_providers: invariant {
+      must {{ register a [prose lint provider](#heron.language.markup.prose_view.prose_lint_provider) by its name with `Check`, or with `Prepare` returning a cache key and the check, and refuse a name twice }}
+      | Then it sees only uncached regions, must report on each region from that region alone, and its findings are reported as `Name.Rule`.
+      verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
+    }
+
+    record_kinds: invariant {
+      must {{ register a record kind by its name, which is also its folder, with the version of its shape and an optional validation of a record's data, and refuse a name twice }}
+      | Then `records` writes and reads it through the one store, and a record the validation rejects isn't written.
+      verify("internal/core/records/records_test.go", test = "TestSampleRecordKind")
+    }
+
+    funcs: invariant {
+      must {{ register a func implemented outside Heron by the qualified path of its body-less Heron declaration, and refuse a path twice }}
+      | Then `eval` calls it wherever the declaration is called, with arguments as plain data by parameter name and the call's trailing block as `Step`, and a returned `*Thrown` is a Heron error `attempt(…)` catches.
+      verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
+    }
+
+    foreign_binders: invariant {
+      must {{ register the binder of a [module kind](#heron.language.interop.declaring.module_kind), such as `js`, and refuse a kind twice }}
+      | Then the first call of a func declared `= module.export` asks the binder of its module's kind for the implementation, once per func.
+      verify("internal/core/extension/jshost_test.go", test = "TestSampleFuncThroughTheBinder")
+    }
+
+    macros: invariant {
+      must {{ register a macro's implementation by its declaration's path, replacing an earlier one, with `Expand` returning Heron source }}
+      verify("internal/core/eval/eval_test.go", test = "TestMacros")
+    }
+
+    transports: invariant {
+      must {{ register a [transport](#heron.language.apis.transports.transport_kind) by its declaration's path, replacing an earlier one, with `Send` taking an op's path and its request as plain data }}
+      | Then a call of an op goes through the transport its binding names.
+      verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    }
+
+    drivers: invariant {
+      must {{ register a resource's driver by the resource's path, replacing an earlier one, with `Setup` and optionally `Reset`, `Snapshot`, `Restore`, `Fork` and `Teardown`, leaving nil what it can't do }}
+      | Then a run sets an instance up on its first use, concurrent first uses sharing one setup, and tears every instance down at the end, newest first.
+      verify("internal/core/registry/run_test.go", test = "TestRunResourceLifecycle")
+    }
+
+    generation_targets: invariant {
+      must {{ register a generation adapter by its declaration's path for a target, replacing an earlier one, and refuse one with no target }}
+      | Then `heron generate <target>` runs every adapter of the target, sorted by path, and the targets are those that have an adapter.
+      verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
+    }
+
+    renderers: invariant {
+      must {{ register the renderer of a kind by the kind's path, replacing an earlier one, as a Go `Render` writing through the docs context or a `Plain` render from data; a renderer source registers renderers known only once it runs, as a TS module's are }}
+      verify("internal/tools/docs/docs_test.go", test = "TestRendererRegistry")
+    }
+
+    setup_steps: invariant {
+      must {{ register a setup step for a tool by its key in `heron.lock`'s `tools` section, and refuse a key twice }}
+      | Then `heron run setup` runs every step after pinning packages and sources, sorted by name, writes the pin each returns, and fails when a pin moved unless it runs with `update`.
+      verify("scripts/e2e-setup.sh")
+    }
+
+    loaders: invariant {
+      must {{ register a loader that registers the parts a checked tree declares, such as what its extensions implement }}
+      | Then `LoadTree` runs every loader in registration order before a command uses the tree, and returns the first error while still running the rest.
+      verify("internal/core/extension/jshost_test.go", test = "TestSampleLintThroughHeronLint")
+    }
+
+    sample_first: invariant {
+      must {{ prove each [extension point](#heron.language.interop.declaring.extension_point) with a sample registered from outside the [unit](#delivery.units) that defines it before any [unit](#delivery.units) relies on it }}
+      | For example, `TestSampleCommand` registers a command, `TestSampleLint` a lint, `words` a prose provider and the sample TS package under `web/samples/inventory` a func, a transport, a lint and a resource driver.
+      verify("scripts/e2e-interop.sh")
+    }
+  }
+
+  obligation(path = "internal/core/registry/run_test.go") {{ A run sets each resource up once on first use, tears instances down newest first, and fails uses after it ended. }}
+}

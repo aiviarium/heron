@@ -1,0 +1,56 @@
+@realizes(heron.product.system.checker)
+project: component("internal/core/project", lang = "go") {
+  | The implementation side of a detached spec: a tree whose root `implements` a spec
+  | package, with std/project's proofs, statuses and releases. It checks project mode and
+  | the implementation version schemes for `heron check`, and computes the conformance
+  | report that `heron generate conformance` and the docs show.
+
+  uses = [architecture.runtime.ast, architecture.runtime.diag, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
+
+  project_mode: responsibility {{
+    Finds a root's `implements(spec, at)` and reports, in a tree that has one, each spec
+    kind the tree declares (rules, stories, criteria, use cases, terms, epics, qualities,
+    [lifecycles](#heron.language.specifications.lifecycles.lifecycle), actors, personas, grammars, productions, commands, screens, diagnostics
+    and apis), once at the outermost, and the proofs and statuses that name no spec
+    requirement.
+  }}
+
+  versions: responsibility {{
+    Parses and orders the two implementation version schemes: `SM.Sm.Sp+<tag>IB` by
+    default, and `SM.Sm.Sp.IP+<tag>IB` where the versioning config sets
+    `scheme = "SM.Sm.Sp.IP"`. Both start with the implemented spec version, copied
+    exactly; the build counter, and the implementation patch, start again when it
+    changes. Semver gives `+` metadata no precedence, so the counter orders two builds.
+  }}
+
+  conformance: responsibility {{
+    Gives each requirement of the spec its standing (proven by which tests, planned,
+    untested, or missing) and, with `since`, the requirements added, removed and changed
+    since the earlier spec version.
+  }}
+
+  surface(title = "project.go") {{
+    func Find(t *resolve.Tree, c *types.Checker) *Project
+    func Check(t *resolve.Tree, c *types.Checker) diag.List
+    func (p *Project) Requirements() []*Requirement
+    func (p *Project) Conformance() *Report
+    func (p *Project) NextVersion(tag string) (Version, error)
+    func Parse(s string, scheme Scheme) (Version, error)
+    func Next(releases []Version, spec [3]int, scheme Scheme, tag string) Version
+  }}
+}
+
+@realizes(heron.product.system.command_line, heron.product.system.generator)
+release: component("internal/core/project/release", lang = "go") {
+  | `heron release next [--tag label]`, the version of the next release of a project
+  | that implements a spec, and `heron release check [--git]`, its versions against the
+  | spec and, with `--git`, its releases against the git tags `v<version>`. It also
+  | registers the `conformance` target of `heron generate`, which writes
+  | `.heron/conformance/conformance.md` and `conformance.json`.
+
+  uses = [architecture.runtime.check, architecture.runtime.diag, architecture.runtime.gen, architecture.runtime.project, architecture.runtime.registry, architecture.runtime.resolve]
+
+  surface(title = "release.go") {{
+    func Register(r *registry.Registry)
+  }}
+}

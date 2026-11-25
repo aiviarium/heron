@@ -1,0 +1,78 @@
+@realizes(heron.product.system.checker, heron.product.system.linter)
+diag: component("internal/core/diag", lang = "go") {
+  | The one shape every stage's findings share, from a syntax error to a prose lint, so the
+  | command line, the language server and the docs report them alike.
+
+  uses = []
+
+  shape: responsibility {{
+    Holds the file, byte range, severity, stable code, message, related sites
+    and fixes of each diagnostic, and the list that collects and orders them.
+  }}
+
+  formats: responsibility {{
+    Formats a diagnostic as the line the command line prints,
+    `file:line:col: severity: message [code]`, with each related site on a line of its own
+    after a tab.
+  }}
+
+  surface(title = "diag.go") {{
+    type Severity int
+    const (
+      Error Severity = iota
+      Warning
+      Hint
+    )
+
+    type Diagnostic struct {
+      File     string    `json:"file"`
+      Start    int       `json:"start"`
+      End      int       `json:"end"`
+      Severity Severity  `json:"severity"`
+      Code     string    `json:"code"` // a stable name, such as "unresolved" or a lint's name
+      Message  string    `json:"message"`
+      Related  []Related `json:"related,omitempty"`
+      Fixes    []Fix     `json:"fixes,omitempty"`
+    }
+
+    type Related struct {
+      File       string
+      Start, End int
+      Message    string
+    }
+
+    // A suggestion is one guess among others: an editor offers it,
+    // and `heron lint -fix` never applies it.
+    type Fix struct {
+      Title      string `json:"title"`
+      Edits      []Edit `json:"edits"`
+      Suggestion bool   `json:"suggestion,omitempty"`
+    }
+
+    type Edit struct {
+      File       string
+      Start, End int
+      New        string
+    }
+
+    type List []Diagnostic
+    func (l *List) Add(d Diagnostic)
+    func (l *List) Errorf(file string, start, end int, code, format string, args ...any)
+    func (l List) HasErrors() bool
+    func (l List) Sort() List
+
+    func Format(d Diagnostic, pos func(file string, off int) (int, int)) string
+  }}
+
+  deterministic_order: invariant {
+    must {{ sort a list by file, offset and message, and drop exact duplicates, so every command prints the same findings in the same order }}
+    verify("internal/core/diag/diag_test.go", test = "TestSortAndFormat")
+  }
+
+  severity_words: invariant {
+    must {{ encode a severity in JSON as its word: `error`, `warning` or `hint` }}
+    verify("internal/core/diag/diag_test.go", test = "TestSortAndFormat")
+  }
+
+  obligation(path = "internal/core/diag/diag_test.go") {{ Sorting, the JSON form of severities and the printed line with its related sites. }}
+}
