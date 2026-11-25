@@ -8,7 +8,7 @@ import = [
 ]
 
 include = [
-  "./project/",
+  "./project/index.heron",
 ]
 
 repository {
