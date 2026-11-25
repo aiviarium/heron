@@ -96,13 +96,13 @@ func TestSpecKindsRender(t *testing.T) {
 	}
 	for path, wants := range map[string][]string{
 		// The conditions lead, the subject and strength carry the behaviour, unless closes.
-		"refunds.window":       {"When a refund is requested, if the", ">desk</code></a> <strong class=\"strength\">must</strong> reject the request, unless the payment is under review.", "<dt>Then</dt>", "day 31 is rejected"},
-		"refunds.never_twice":  {`<span class="status status-planned">planned</span>`, "A ticket <strong class=\"strength\">must not</strong> refund a ticket twice.", "<dt>Instead</dt>"},
+		"refunds.window":       {"When a refund is requested, if the", ">desk</code></a> <strong class=\"strength\">must</strong> reject the request, unless the payment is under review, so the ticket stays open. <span class=\"rule-example\">For example, day 31 is rejected.</span>"},
+		"refunds.never_twice":  {`<span class="status status-planned">planned</span>`, "A ticket <strong class=\"strength\">must not</strong> refund a ticket twice, and must instead answer with the first refund."},
 		"refunds.held":         {"A ticket <strong class=\"strength\">must</strong> hold."},
 		"refunds.capture_date": {`<dt class="term-name">`, "The day a payment was captured."},
 		"refunds.later":        {"Out of scope", "Partial refunds."},
 		"refunds.hints":        {"Guidance", "Use the ledger client."},
-		"refunds.fast_answers": {"<dt>Metric</dt>", "<dt>At most</dt>", "<dt>Percentile</dt>", "<dt>Applies</dt>", "<strong class=\"strength\">should</strong> answer within two seconds"},
+		"refunds.fast_answers": {`<code class="chip chip-fact"><a class="ref code-ref" href="refunds.html#refunds.latency"><span class="tk-name">latency</span></a> ≤ 2s p<span class="tk-num">0.99</span></code>`, `<span class="rule-extra">Applies: `, "<strong class=\"strength\">should</strong> answer within two seconds"},
 		"refunds.ticket_life":  {"<svg", "<code>shut</code>", "<code>OPEN</code>", "<code>SHUT</code>", ">close</code>"},
 		"which_days":           {"Open question", `<span class="owner">finance</span>`, "Business days"},
 	} {

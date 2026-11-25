@@ -144,12 +144,10 @@ func renderPersona(c *Ctx) error {
 	var rows []string
 	for _, f := range []string{"goals", "pains"} {
 		if h := s.fieldInline(n, f); h != "" {
-			rows = append(rows, `<dt>`+esc(sentenceCase(f))+`</dt><dd>`+h+`</dd>`)
+			rows = append(rows, `<p class="field-line"><span class="field-label">`+esc(sentenceCase(f))+`</span> `+h+`</p>`)
 		}
 	}
-	if len(rows) > 0 {
-		c.W(`<dl class="rule-more">`, strings.Join(rows, ""), `</dl>`)
-	}
+	c.W(strings.Join(rows, ""))
 	c.W(`</article>`)
 	return nil
 }
@@ -269,9 +267,7 @@ func renderCriterion(c *Ctx) error {
 	lines("product.given", "docs.gwt.given")
 	lines("spec.when", "docs.gwt.when")
 	lines("spec.then", "docs.gwt.then")
-	if v := c.verifyList(n); v != "" {
-		c.W(`<dl class="rule-more"><dt>`, esc(label("docs.label.verified_by")), `</dt><dd>`, v, `</dd></dl>`)
-	}
+	c.W(c.verifyList(n))
 	c.W(`</div>`)
 	return nil
 }

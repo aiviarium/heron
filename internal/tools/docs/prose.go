@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 )
@@ -41,13 +42,31 @@ func (p *proseBuf) place(h string, block bool) {
 // proseHTML renders a node's `///` docs, its prose and a prose value.
 func (s *Site) proseHTML(n *resolve.Node) string {
 	var out []string
-	for _, d := range n.Docs {
-		if h := s.renderText([]resolve.Site{d}); h != "" {
-			out = append(out, h)
+	if s.kept(n) {
+		for _, d := range n.Docs {
+			if h := s.renderText([]resolve.Site{d}); h != "" {
+				out = append(out, h)
+			}
 		}
 	}
-	if h := s.renderText(n.Prose); h != "" {
+	var runs []resolve.Site
+	for _, p := range n.Prose {
+		if s.runShown(n, p) {
+			runs = append(runs, p)
+		}
+	}
+	for _, r := range runs {
+		h := s.renderText([]resolve.Site{r})
+		if h == "" {
+			continue
+		}
+		if t := s.markTags(lens.ProseRestriction(s.Checker, r)); t != "" {
+			h = `<div class="marked">` + t + h + `</div>`
+		}
 		out = append(out, h)
+	}
+	if !s.kept(n) {
+		return strings.Join(out, "")
 	}
 	if n.Value != nil {
 		sn := proseValue(n.Value.Syntax())
@@ -114,6 +133,9 @@ func (s *Site) renderText(sites []resolve.Site) string {
 func (s *Site) inlineHTML(n *resolve.Node) string {
 	var b strings.Builder
 	for _, site := range n.Prose {
+		if !s.runShown(n, site) {
+			continue
+		}
 		p := &proseBuf{s: s, site: site}
 		p.container(site.N)
 		text := strings.Join(strings.Fields(p.b.String()), " ")
@@ -256,16 +278,27 @@ func (p *proseBuf) link(l ast.Link) string {
 }
 
 func (p *proseBuf) insert(in ast.Insert) string {
-	if path := in.Path().N; path != nil {
+	path := in.Path().N
+	if path == nil {
+		// `${path.to.node.field}`: an expression that's a path names a
+		// spec fact, shown as its value.
+		if pe, ok := in.Expr().(ast.PathExpr); ok {
+			path = pe.Path().N
+		}
+	}
+	if path != nil {
 		t := p.s.refTarget(path, p.site)
 		if t != nil && t.Value != nil {
 			if sn := proseValue(t.Value.Syntax()); sn != nil {
 				return p.s.inlineHTML(t)
 			}
-			return `<code class="value">` + p.s.exprHTML(t.Value, t.ValueSite) + `</code>`
+			return `<code class="value">` + p.s.factHTML(t.Value, t.ValueSite) + `</code>`
 		}
 		if t != nil {
 			return p.s.linkHTML(t, `<code>`+esc(strings.Join(resolve.PathSegs(path), "."))+`</code>`, "")
+		}
+		if v := p.s.factValue(resolve.PathSegs(path), p.site); v != "" {
+			return `<code class="value">` + v + `</code>`
 		}
 	}
 	return `<code class="value">` + esc(strings.TrimPrefix(in.N.Text(), "$")) + `</code>`
@@ -320,12 +353,7 @@ func (p *proseBuf) tag(t ast.Tag) (string, bool) {
 }
 
 func (p *proseBuf) fence(n *syntax.Node) string {
-	var lines []string
-	for _, ch := range n.Children {
-		if t, ok := ch.(*syntax.Token); ok && t.Kind == syntax.FenceLine {
-			lines = append(lines, t.Text)
-		}
-	}
+	lines := syntax.FenceLines(n)
 	if len(lines) == 0 {
 		return ""
 	}
@@ -352,7 +380,9 @@ func (p *proseBuf) fence(n *syntax.Node) string {
 		body = body[:len(body)-1]
 	}
 	code := strings.Join(body, "\n")
-	return p.s.codeBlock(lang, "", code)
+	title := p.s.fenceTitle
+	p.s.fenceTitle = ""
+	return p.s.codeBlock(lang, title, code)
 }
 
 // --- blocks ---
@@ -518,4 +548,50 @@ func (p *proseBuf) replace(t string) string {
 func htmlUnescape(s string) string {
 	r := strings.NewReplacer("&lt;", "<", "&gt;", ">", "&amp;", "&", "&#34;", `"`, "&#39;", "'", "&quot;", `"`)
 	return r.Replace(s)
+}
+
+// factValue is the value of a spec fact a path names past its last node:
+// a field or a kind argument of that node, as `sync.dry_run.default`.
+func (s *Site) factValue(segs []string, site resolve.Site) string {
+	if len(segs) < 2 {
+		return ""
+	}
+	n := s.lookup(site, segs[:len(segs)-1])
+	if n == nil {
+		return ""
+	}
+	name := segs[len(segs)-1]
+	if ch := n.Child(name); ch != nil && ch.Value != nil {
+		return s.factHTML(ch.Value, ch.ValueSite)
+	}
+	args := kindArgs(n)
+	if e := namedArg(args, name); e != nil {
+		return s.factHTML(e, n.Decl)
+	}
+	names := s.paramNames(s.Checker.KindOf(n))
+	for i, e := range argExprs(args) {
+		if i < len(names) && names[i] == name {
+			return s.factHTML(e, n.Decl)
+		}
+	}
+	// The parameter's default, when the node passes none.
+	if k := s.Checker.KindOf(n); k != nil {
+		for _, p := range s.Checker.KindParams(k, n) {
+			if p.Name == name && p.N != nil {
+				if d := (ast.Param{N: p.N}).Default(); d != nil {
+					return s.factHTML(d, k.Decl)
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// factHTML is an inserted value: a string as its text, without quotes,
+// anything else as written.
+func (s *Site) factHTML(e ast.Expr, site resolve.Site) string {
+	if v, ok := resolve.StringValue(e.Syntax()); ok {
+		return esc(v)
+	}
+	return s.exprHTML(e, site)
 }

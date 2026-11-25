@@ -15,7 +15,14 @@
     },
     "nav": {
       "types": "Types",
-      "errors": "Errors"
+      "errors": "Errors",
+      "start": "Get started",
+      "tutorials": "Tutorials",
+      "guides": "Guides",
+      "howtos": "How-to guides",
+      "concepts": "Concepts",
+      "reference": "Reference",
+      "topics": "Topics"
     },
     "action": {
       "copy": "Copy",
@@ -150,7 +157,9 @@
       "version": "Version",
       "view": "View",
       "related_site": "Related site",
-      "reported_by": "Reported by"
+      "reported_by": "Reported by",
+      "lens": "Lens",
+      "for_example": "For example"
     },
     "lang": {
       "curl": "cURL",
@@ -161,7 +170,9 @@
       "subject": "the system",
       "subject_named": "the {name}",
       "subject_type_a": "a {type}",
-      "subject_type_an": "an {type}"
+      "subject_type_an": "an {type}",
+      "so": "so",
+      "instead": "and must instead"
     },
     "version": {
       "current": "Latest"

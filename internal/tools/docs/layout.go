@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
@@ -105,7 +106,20 @@ func (s *Site) RenderFile(file resolve.FileID) (*Fragment, error) {
 }
 
 func (s *Site) home(c *Ctx) error {
-	n := s.Tree.Root
+	n := s.homeNode()
+	if s.nav() != lens.NavTree {
+		if h := s.proseHTML(n); h != "" {
+			c.W(`<div class="lead prose">`, h, `</div>`)
+		}
+		s.homeTiles(c)
+		return nil
+	}
+	if n != s.Tree.Root {
+		if h := s.proseHTML(n); h != "" {
+			c.W(`<div class="lead prose">`, h, `</div>`)
+		}
+		return c.at(n, c.Level).childrenOrLinks()
+	}
 	c.Prose(n)
 	return c.childrenOrLinks()
 }
@@ -157,7 +171,11 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	if s.Theme != nil {
 		b.WriteString(`<link rel="stylesheet" href="` + a + `theme/theme.css">`)
 	}
-	b.WriteString(`</head><body data-layout="` + attr(p.Layout) + `" data-page="` + attr(p.File) + `">`)
+	lensName := ""
+	if s.Opts.Lens != nil {
+		lensName = s.Opts.Lens.Name
+	}
+	b.WriteString(`</head><body data-layout="` + attr(p.Layout) + `" data-page="` + attr(p.File) + `" data-lens="` + attr(lensName) + `">`)
 	b.WriteString(`<a class="skip" href="#main">` + esc(label("docs.action.skip")) + `</a>`)
 	s.topbar(&b, p)
 	cls := "layout"
@@ -178,10 +196,10 @@ func (s *Site) document(p *Page, f *Fragment) string {
 			b.WriteString(`<li><a href="` + attr(s.href(c.File)) + `">` + esc(c.Title) + `</a></li>`)
 		}
 		b.WriteString(`</ol></nav>`)
-	} else if p.Area != nil && p != s.Home && len(s.Areas) > 1 && p.Layout != "glossary" {
+	} else if p.Area != nil && p != s.Home && len(s.Areas) > 1 && p.Layout != "glossary" && p.Area.Key != "docs" {
 		b.WriteString(`<nav class="crumbs" aria-label="` + attr(label("docs.label.breadcrumb")) + `"><ol><li>` + esc(p.Area.Title) + `</li></ol></nav>`)
 	}
-	b.WriteString(`<h1 class="page-title">` + esc(p.Title) + `</h1>`)
+	b.WriteString(`<h1 class="page-title">` + esc(p.Title) + s.kindTag(p.Node) + `</h1>`)
 	b.WriteString(s.slotHTML(nil, "before", ""))
 	b.WriteString(f.HTML)
 	b.WriteString(s.slotHTML(nil, "after", ""))
@@ -199,7 +217,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 		b.WriteString(`</ul></nav>`)
 	}
 	b.WriteString(`</aside></div>`)
-	b.WriteString(`<script src="` + a + `data.js" defer></script>`)
+	b.WriteString(`<script src="` + attr(s.Opts.Data) + `" defer></script>`)
 	b.WriteString(`<script src="` + a + `docs.js" defer></script>`)
 	b.WriteString(`</body></html>`)
 	return b.String()
@@ -230,6 +248,7 @@ func (s *Site) topbar(b *strings.Builder, p *Page) {
 	}
 	b.WriteString(s.slotHTML(nil, "header", ""))
 	b.WriteString(`<div class="topbar-end">`)
+	s.lensSwitch(b, p)
 	b.WriteString(`<button type="button" class="search-btn" data-island="search" aria-label="` + attr(label("docs.action.search")) + `">` + iconSearch + `<span>` + esc(label("docs.action.search")) + `</span><kbd>⌘K</kbd></button>`)
 	b.WriteString(`<div class="version" data-island="version"><select aria-label="` + attr(label("docs.label.version")) + `">`)
 	cur := s.Opts.Version
@@ -246,6 +265,23 @@ func (s *Site) topbar(b *strings.Builder, p *Page) {
 	b.WriteString(`</select></div>`)
 	b.WriteString(`<button type="button" class="icon-btn theme" data-island="theme" aria-label="` + attr(label("docs.action.theme")) + `">` + iconTheme + `</button>`)
 	b.WriteString(`</div></div></header>`)
+}
+
+// lensSwitch writes the switch between the site's lenses, each a link to
+// the same place in that lens.
+func (s *Site) lensSwitch(b *strings.Builder, p *Page) {
+	if s.lenses == nil || len(s.lenses.sites) < 2 {
+		return
+	}
+	b.WriteString(`<nav class="lens-switch" aria-label="` + attr(label("docs.label.lens")) + `">`)
+	for _, o := range s.lenses.sites {
+		cur := ""
+		if o == s {
+			cur = ` aria-current="true"`
+		}
+		b.WriteString(`<a href="` + attr(s.lensHref(p, o)) + `" data-lens="` + attr(o.Opts.Lens.Name) + `"` + cur + `>` + esc(o.Opts.Lens.Title) + `</a>`)
+	}
+	b.WriteString(`</nav>`)
 }
 
 func (s *Site) firstPage(a *Area) *Page {
@@ -291,6 +327,9 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			b.WriteString(`<span class="m m-` + strings.ToLower(attr(q.Method)) + `">` + esc(q.Method) + `</span>`)
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span></a>`)
+		if q == p {
+			s.pageNodes(b, p)
+		}
 		if len(q.Children) > 0 && q.Layout != "api" && (depth > 0 || s.within(p, q)) {
 			b.WriteString(`<ul>`)
 			for _, c := range q.Children {
@@ -311,7 +350,18 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 		b.WriteString(`</ul>`)
 	}
 	for _, g := range a.Groups {
-		b.WriteString(`<div class="nav-group"><div class="label">` + esc(g.Title) + `</div><ul class="nav">`)
+		b.WriteString(`<div class="nav-group">`)
+		switch {
+		case g.Head != nil:
+			cur := ""
+			if g.Head == p {
+				cur = ` aria-current="page"`
+			}
+			b.WriteString(`<a class="label" href="` + attr(s.href(g.Head.File)) + `"` + cur + `>` + esc(g.Title) + `</a>`)
+		case g.Title != "":
+			b.WriteString(`<div class="label">` + esc(g.Title) + `</div>`)
+		}
+		b.WriteString(`<ul class="nav">`)
 		for _, q := range g.Pages {
 			if q.Layout == "api" {
 				continue

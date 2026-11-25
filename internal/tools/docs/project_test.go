@@ -30,7 +30,7 @@ func TestConformancePage(t *testing.T) {
 	for _, want := range []string{
 		"Store implements shop at 2.1.3: 3 proven, 1 planned, 0 untested, 1 missing of 5 requirements",
 		"Project version 2.1.3+build2",
-		`<code>checkout.pay_once</code>`,
+		`<code>checkout.<wbr>pay_once</code>`,
 		`<code class="path">internal/payments/charge_test.go</code> <code class="test">TestChargeOnce</code>`,
 		`<span class="badge status-planned">planned</span>`,
 		`<span class="badge status-missing">missing</span>`,

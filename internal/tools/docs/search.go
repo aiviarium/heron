@@ -80,7 +80,7 @@ func (s *Site) Search() []entry {
 		out = append(out, e)
 	}
 	s.Tree.Walk(func(n *resolve.Node) {
-		if !own(n) || n.Name == "" || n.Shape == resolve.ShapeSet || n.Shape == resolve.ShapeValue && !(n.Parent != nil && s.isTypeDecl(n.Parent)) {
+		if !own(n) || s.hidden(n) || n.Name == "" || n.Shape == resolve.ShapeSet || n.Shape == resolve.ShapeValue && !(n.Parent != nil && s.isTypeDecl(n.Parent)) {
 			return
 		}
 		switch k := s.kindPath(n); {

@@ -64,46 +64,71 @@ func placeholders(m string) string {
 	}
 }
 
-// diagnosticBadges are a diagnostic's code and severity as badges.
+// diagnosticBadges are a diagnostic's code and severity, as text.
 func diagnosticBadges(n *resolve.Node) string {
 	code, _ := argString(kindArgs(n), 0, "code")
 	sev := diagnosticSeverity(n)
-	return `<code class="diag-code">` + esc(code) + `</code><span class="badge sev sev-` + attr(sev) + `">` + esc(sev) + `</span>`
+	return `<code class="diag-code">` + esc(code) + `</code> <span class="sev sev-` + attr(sev) + `">` + esc(sev) + `</span>`
 }
 
+// renderDiagnostic writes a diagnostic as one entry of a compact list: its
+// code, severity and message on one line, what it means below, and who
+// reports it with the other formal parts on hover, or under it in explore.
 func renderDiagnostic(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="rule diag" id="`, attr(Anchor(n)), `">`)
-	c.W(`<div class="rule-head">`)
-	if n.Name != "" {
-		c.W(`<a class="anchor rule-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
+	if s.Opts.Lens != nil && s.Opts.Lens.Name == "user" {
+		// The error a person meets: code and message, and the fix.
+		code, _ := argString(kindArgs(n), 0, "code")
+		c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line"><code class="diag-code">`, esc(code), `</code>`)
+		if m := fieldString(n, "message"); m != "" {
+			c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
+		}
+		c.W(`</p>`)
+		if fix := firstSentence(firstParagraph(s.proseHTML(n))); fix != "" {
+			c.W(`<p class="diag-fix">`, fix, `</p>`)
+		}
+		c.W(`</div>`)
+		return nil
 	}
-	c.W(diagnosticBadges(n), statusBadge(n))
-	c.W(`</div>`)
+	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, diagnosticBadges(n), statusBadge(n))
 	if m := fieldString(n, "message"); m != "" {
-		c.W(`<p class="diag-message">`, messageHTML(m), `</p>`)
+		c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 	}
-	c.Prose(n)
-	var rows []string
+	if n.Name != "" {
+		c.W(` <a class="rule-link" href="#`, attr(Anchor(n)), `" aria-label="`, attr(displayName(s, n)), `">#</a>`)
+	}
+	c.W(`</p>`)
+	var meta []string
+	if n.Name != "" {
+		meta = append(meta, `<code class="meta-name">`+esc(relPathOf(n))+`</code>`)
+	}
+	if k := s.Checker.KindOf(n); k != nil {
+		meta = append(meta, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
+	}
 	if r := fieldString(n, "related"); r != "" {
-		rows = append(rows, `<dt>`+esc(label("docs.label.related_site"))+`</dt><dd><span class="diag-related">`+messageHTML(r)+`</span></dd>`)
+		meta = append(meta, esc(label("docs.label.related_site"))+` <span class="diag-related">`+messageHTML(r)+`</span>`)
 	}
 	if by := s.ruleBy(n); by != nil {
-		rows = append(rows, `<dt>`+esc(label("docs.label.reported_by"))+`</dt><dd>`+s.linkHTML(by, `<code>`+esc(c.refText(by))+`</code>`, "")+`</dd>`)
+		meta = append(meta, esc(label("docs.label.reported_by"))+` `+s.linkHTML(by, `<code>`+esc(c.refText(by))+`</code>`, ""))
 	}
-	if exs := s.childrenOfKind(n, "spec.example"); len(exs) > 0 {
-		var li strings.Builder
+	if len(meta) > 0 {
+		c.W(`<span class="rule-meta">`, strings.Join(meta, `<span class="dot"> · </span>`), `</span>`)
+	}
+	if h := s.proseHTML(n); h != "" {
+		c.W(`<div class="diag-doc">`, h, `</div>`)
+	}
+	if exs := s.childrenOfKind(n, "spec.example"); len(exs) == 1 {
+		c.W(`<p class="rule-example">`, esc(label("docs.label.for_example")), `: `, s.inlineHTML(exs[0]), `</p>`)
+	} else if len(exs) > 1 {
+		c.W(`<div class="rule-example"><p>`, esc(label("docs.label.for_example")), `:</p><ul>`)
 		for _, e := range exs {
-			li.WriteString(`<li>` + s.inlineHTML(e) + `</li>`)
+			c.W(`<li>`, s.inlineHTML(e), `</li>`)
 		}
-		rows = append(rows, `<dt>`+esc(label("docs.label.examples"))+`</dt><dd><ul>`+li.String()+`</ul></dd>`)
+		c.W(`</ul></div>`)
 	}
 	if v := c.verifyList(n); v != "" {
-		rows = append(rows, `<dt>`+esc(label("docs.label.verified_by"))+`</dt><dd>`+v+`</dd>`)
-	}
-	if len(rows) > 0 {
-		c.W(`<dl class="rule-more">`, strings.Join(rows, ""), `</dl>`)
+		c.W(v)
 	}
 	c.W(`</div>`)
 	return nil
@@ -120,11 +145,7 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 		}
 		return fieldString(ds[i], "message") < fieldString(ds[j], "message")
 	})
-	c.W(`<div class="table-wrap"><table class="diag-index"><thead><tr>`)
-	for _, k := range []string{"code", "severity", "message", "reported_by", "specified_in"} {
-		c.W(`<th>`, esc(label("docs.col."+k)), `</th>`)
-	}
-	c.W(`</tr></thead><tbody>`)
+	c.W(`<ul class="diag-list">`)
 	last := ""
 	for _, d := range ds {
 		cd := code(d)
@@ -134,23 +155,21 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 			*c.outline = append(*c.outline, Heading{ID: "code-" + cd, Title: cd, Level: 2})
 			last = cd
 		}
-		cls := ` class="diag-repeat"`
-		if id != "" {
-			cls = ""
+		cls := ""
+		if id == "" {
+			cls = ` class="diag-repeat"`
 		}
-		c.W(`<tr`, id, cls, `><td><code class="diag-code">`, esc(cd), `</code></td>`)
-		sev := diagnosticSeverity(d)
-		c.W(`<td><span class="badge sev sev-`, attr(sev), `">`, esc(sev), `</span></td>`)
-		c.W(`<td>`, s.linkHTML(d, messageHTML(fieldString(d, "message")), "diag-message"), `</td><td>`)
-		if by := s.ruleBy(d); by != nil {
-			c.W(s.linkHTML(by, `<code>`+esc(by.Path())+`</code>`, ""))
-		}
-		c.W(`</td><td>`)
+		c.W(`<li`, id, cls, `><p class="diag-line"><code class="diag-code">`, esc(cd), `</code> `)
+		c.W(s.linkHTML(d, messageHTML(fieldString(d, "message")), "diag-message"))
 		if p := s.anchorOf[d]; p != nil {
-			c.W(`<a href="`, attr(s.href(p.File)), `">`, esc(p.Title), `</a>`)
+			c.W(` <a class="chip" href="`, attr(s.href(p.File)), `">`, esc(p.Title), `</a>`)
 		}
-		c.W(`</td></tr>`)
+		c.W(`</p>`)
+		if fix := firstSentence(firstParagraph(s.proseHTML(d))); fix != "" {
+			c.W(`<p class="diag-fix">`, fix, `</p>`)
+		}
+		c.W(`</li>`)
 	}
-	c.W(`</tbody></table></div>`)
+	c.W(`</ul>`)
 	return nil
 }

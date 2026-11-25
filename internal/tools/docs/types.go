@@ -350,14 +350,13 @@ func renderType(c *Ctx) error {
 func (c *Ctx) renderRef() error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="rule" id="`, attr(Anchor(n)+c.anchorSuffix), `"><div class="rule-head">`)
-	c.W(s.linkHTML(n, esc(displayName(s, n)), "rule-name"))
-	c.W(`</div>`)
-	if sent := s.sentence(n); sent != "" {
-		c.W(`<p class="sentence">`, sent, `</p>`)
+	c.W(`<div class="rule" id="`, attr(Anchor(n)+c.anchorSuffix), `">`)
+	sent := s.fullSentence(n)
+	if sent == "" {
+		sent = esc(displayName(s, n))
 	}
+	c.W(`<p class="sentence">`, sent, ` `, s.linkHTML(n, "#", "rule-link"), `</p>`)
 	c.Prose(n)
-	c.consequences(n)
 	c.W(`</div>`)
 	return nil
 }

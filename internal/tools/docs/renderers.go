@@ -41,6 +41,7 @@ func init() {
 	addProductRenderers()
 	addTechRenderers()
 	addProjectRenderers()
+	addAuthoredRenderers()
 }
 
 // BuiltinKinds lists the kinds with a built-in renderer.
@@ -90,6 +91,9 @@ func registerRenderers(r *registry.Registry) {
 func (c *Ctx) title(extra string) {
 	if c.Page != nil && c.Page.Node == c.Node {
 		return
+	}
+	if !strings.Contains(extra, `class="kind"`) {
+		extra += c.Site.kindTag(c.Node)
 	}
 	c.Heading(c.Level, Anchor(c.Node), displayName(c.Site, c.Node), extra)
 }
@@ -168,7 +172,8 @@ func (c *Ctx) childrenOrLinks() error {
 		c.W(`</ul>`)
 		links = nil
 	}
-	for _, ch := range c.Node.Children {
+	headed, summing := false, false
+	for _, ch := range c.Site.inOrder(c.Node.Children) {
 		if !c.Site.shown(ch) {
 			continue
 		}
@@ -177,6 +182,17 @@ func (c *Ctx) childrenOrLinks() error {
 			continue
 		}
 		flushLinks()
+		if c.Site.summarized(ch) && !summing {
+			summing = true
+			if headed && c.Node != nil {
+				// The summary lines follow a part with a heading of its
+				// own; their heading says they're this node's again.
+				c.Heading(c.Level+1, Anchor(c.Node)+".rules", label("docs.heading.rules"), "")
+			}
+		}
+		if k := c.Site.kindPath(ch); ch.Name != "" && (k == "doc.section" || k == "" && ch.Shape == resolve.ShapeScoped) {
+			headed = true
+		}
 		if err := c.Render(ch); err != nil {
 			return err
 		}
@@ -200,7 +216,7 @@ func renderSection(c *Ctx) error {
 func renderTerm(c *Ctx) error {
 	n := c.Node
 	c.W(`<div class="term" id="`, attr(Anchor(n)), `">`)
-	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(termName(c.Site, n)), `</a>`)
+	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(termName(c.Site, n)), `</a>`, c.Site.kindTag(n))
 	if al := termAliases(n); len(al) > 0 {
 		c.W(`<span class="aliases">`, esc(strings.Join(al, ", ")), `</span>`)
 	}

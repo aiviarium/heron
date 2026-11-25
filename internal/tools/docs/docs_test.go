@@ -295,7 +295,7 @@ func TestOpPage(t *testing.T) {
 		`class="method m-post"`, `<span class="base">/v2</span>/store/orders`, // method and path, base dimmed
 		`pet_lifecycle.held`,                                                                                         // the transition it performs
 		`<code class="status err">409</code>`,                                                                        // errors by status
-		`Only available`,                                                                                             // with the rule behind it
+		`<p class="cause sentence">`,                                                                                 // with the rule behind it
 		`-X POST &#34;$BASE_URL/v2/store/orders&#34;`, `store.place_order(`, `POST</span> /v2/store/orders HTTP/1.1`, // three forms
 		`data-tryit`, `class="tryit-data"`, // Try it
 		`class="prevnext"`, `class="crumbs"`,
@@ -364,8 +364,8 @@ func TestProductAndTechKinds(t *testing.T) {
 		},
 		"cli.check.html": {
 			`<h1 class="page-title">heron check</h1>`,
-			`<td><code>[&lt;path&gt;…]</code></td>`,
-			`<td><code>--json</code></td><td><code><span class="tk-type">Bool</span></code></td><td><code><span class="tk-kw">false</span></code></td>`,
+			`<p class="line-head"><code>[&lt;path&gt;…]</code>`,
+			`<p class="line-head"><code>--json</code> <code><span class="tk-type">Bool</span></code><span class="sep">, </span>default <code><span class="tk-kw">false</span></code></p>`,
 		},
 		"runtime.syntax.html": {
 			`<dt>Used by</dt><dd><a class="ref" href="runtime.resolve.html"><code>resolve</code></a></dd>`,

@@ -317,9 +317,6 @@ func renderInvariant(c *Ctx) error {
 	n := c.Node
 	s := c.Site
 	c.W(`<div class="rule invariant" id="`, attr(Anchor(n)), `">`)
-	if n.Name != "" {
-		c.W(`<div class="rule-head"><a class="anchor rule-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></div>`)
-	}
 	for _, ch := range n.Children {
 		k := s.kindPath(ch)
 		if !strengthKinds[k] {
@@ -333,12 +330,13 @@ func renderInvariant(c *Ctx) error {
 		if !strings.HasSuffix(stripTags(out), ".") {
 			out += "."
 		}
+		if n.Name != "" {
+			out += ` <a class="rule-link" href="#` + attr(Anchor(n)) + `" aria-label="` + attr(displayName(s, n)) + `">#</a>`
+		}
 		c.W(`<p class="sentence">`, out, `</p>`)
 	}
 	c.Prose(n)
-	if v := c.verifyList(n); v != "" {
-		c.W(`<dl class="rule-more"><dt>`, esc(label("docs.label.verified_by")), `</dt><dd>`, v, `</dd></dl>`)
-	}
+	c.W(c.verifyList(n))
 	c.W(`</div>`)
 	return nil
 }
@@ -364,7 +362,12 @@ func renderCommand(c *Ctx) error {
 	c.Prose(n)
 	if as := s.childrenOfKind(n, "tech.argument"); len(as) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".arguments", label("docs.heading.arguments"), "")
-		c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.name")), `</th><th>`, esc(label("docs.col.type")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
+		small := len(as) < 3
+		if small {
+			c.W(`<ul class="lines">`)
+		} else {
+			c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.name")), `</th><th>`, esc(label("docs.col.type")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
+		}
 		for _, a := range as {
 			args := kindArgs(a)
 			an, _ := argString(args, 0, "name")
@@ -375,13 +378,26 @@ func renderCommand(c *Ctx) error {
 			if boolArg(a, "optional") {
 				shown = "[" + shown + "]"
 			}
+			if small {
+				c.W(`<li id="`, attr(Anchor(a)), `"><p class="line-head"><code>`, esc(shown), `</code> `, c.argTypeHTML(a, "type", 1), `</p>`, lineDoc(s.proseHTML(a)), `</li>`)
+				continue
+			}
 			c.W(`<tr id="`, attr(Anchor(a)), `"><td><code>`, esc(shown), `</code></td><td>`, c.argTypeHTML(a, "type", 1), `</td><td>`, s.proseHTML(a), `</td></tr>`)
 		}
-		c.W(`</tbody></table></div>`)
+		if small {
+			c.W(`</ul>`)
+		} else {
+			c.W(`</tbody></table></div>`)
+		}
 	}
 	if os := s.childrenOfKind(n, "tech.option"); len(os) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".options", label("docs.heading.options"), "")
-		c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.option")), `</th><th>`, esc(label("docs.col.type")), `</th><th>`, esc(label("docs.col.default")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
+		small := len(os) < 3
+		if small {
+			c.W(`<ul class="lines">`)
+		} else {
+			c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.option")), `</th><th>`, esc(label("docs.col.type")), `</th><th>`, esc(label("docs.col.default")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
+		}
 		for _, o := range os {
 			args := kindArgs(o)
 			on, _ := argString(args, 0, "name")
@@ -390,24 +406,53 @@ func renderCommand(c *Ctx) error {
 				shown = `<code>` + esc(sh) + `</code><span class="sep">, </span>` + shown
 			}
 			doc := s.proseHTML(o)
-			if env, ok := argString(args, -1, "env"); ok {
+			env, hasEnv := argString(args, -1, "env")
+			if small {
+				head := shown + ` ` + c.argTypeHTML(o, "type", 1)
+				if d := c.argTypeHTML(o, "default", 2); d != "" {
+					head += `<span class="sep">, </span>` + esc(label("docs.label.default")) + ` ` + d
+				}
+				if hasEnv {
+					head += `<span class="sep">, </span>` + esc(label("docs.label.env")) + ` <code>` + esc(env) + `</code>`
+				}
+				c.W(`<li id="`, attr(Anchor(o)), `"><p class="line-head">`, head, `</p>`, lineDoc(doc), `</li>`)
+				continue
+			}
+			if hasEnv {
 				doc += `<div class="mark">` + esc(label("docs.label.env")) + ` <code>` + esc(env) + `</code></div>`
 			}
 			c.W(`<tr id="`, attr(Anchor(o)), `"><td>`, shown, `</td><td>`, c.argTypeHTML(o, "type", 1), `</td><td>`, c.argTypeHTML(o, "default", 2), `</td><td>`, doc, `</td></tr>`)
 		}
-		c.W(`</tbody></table></div>`)
+		if small {
+			c.W(`</ul>`)
+		} else {
+			c.W(`</tbody></table></div>`)
+		}
 	}
 	if es := s.childrenOfKind(n, "tech.exit"); len(es) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".exit", label("docs.heading.exit_codes"), "")
-		c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.code")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
+		small := len(es) < 3
+		if small {
+			c.W(`<ul class="lines">`)
+		} else {
+			c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.code")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
+		}
 		for _, e := range es {
 			code := ""
 			if es := argExprs(kindArgs(e)); len(es) > 0 {
 				code = strings.TrimSpace(es[0].Syntax().Text())
 			}
+			if small {
+				c.W(`<li id="`, attr(Anchor(e)), `"><p class="line-head"><code>`, esc(code), `</code> `, stripP(s.proseHTML(e)), `</p></li>`)
+				continue
+			}
 			c.W(`<tr id="`, attr(Anchor(e)), `"><td><code>`, esc(code), `</code></td><td>`, s.proseHTML(e), `</td></tr>`)
 		}
-		c.W(`</tbody></table></div>`)
+		if small {
+			c.W(`</ul>`)
+		} else {
+			c.W(`</tbody></table></div>`)
+		}
 	}
 	if exs := s.childrenOfKind(n, "spec.example"); len(exs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".examples", label("docs.label.examples"), "")
@@ -759,4 +804,22 @@ func renderRegion(c *Ctx) error {
 	}
 	c.W(`</div>`)
 	return nil
+}
+
+// lineDoc is a row's description under its line, as prose.
+func lineDoc(h string) string {
+	if strings.TrimSpace(h) == "" {
+		return ""
+	}
+	return `<div class="prose line-doc">` + h + `</div>`
+}
+
+// stripP is one paragraph of rendered prose without its <p>, to join a
+// line.
+func stripP(h string) string {
+	h = strings.TrimSpace(h)
+	if strings.HasPrefix(h, "<p>") && strings.HasSuffix(h, "</p>") && strings.Count(h, "<p>") == 1 {
+		return h[3 : len(h)-4]
+	}
+	return h
 }

@@ -720,7 +720,7 @@ func renderOp(c *Ctx) error {
 		}
 		for _, cause := range e.causes {
 			if s.kindPath(cause) == "spec.rule" {
-				c.W(`<div class="cause"><span class="label">`, esc(label("docs.label.rule")), `</span> `, s.linkHTML(cause, esc(displayName(s, cause)), ""), ` <span class="sentence">`, s.sentence(cause), `</span></div>`)
+				c.W(`<p class="cause sentence">`, s.sentence(cause), ` `, s.linkHTML(cause, "#", "rule-link"), `</p>`)
 			} else {
 				c.W(`<div class="cause"><span class="label">`, esc(label("docs.label.example")), `</span> `, s.linkHTML(cause, esc(displayName(s, cause)), ""), `</div>`)
 			}
@@ -732,7 +732,7 @@ func renderOp(c *Ctx) error {
 	// Rules on the op.
 	var rules []*resolve.Node
 	s.Tree.Walk(func(x *resolve.Node) {
-		if own(x) && (s.kindPath(x) == "spec.rule" || s.kindPath(x) == "spec.quality") {
+		if own(x) && s.kept(x) && (s.kindPath(x) == "spec.rule" || s.kindPath(x) == "spec.quality") {
 			for _, t := range s.targets(x) {
 				if t == n {
 					rules = append(rules, x)
@@ -746,7 +746,7 @@ func renderOp(c *Ctx) error {
 			d := c.at(r, c.Level+2)
 			d.anchorSuffix = "--" + Anchor(n)
 			if s.kindPath(r) == "spec.quality" {
-				d.W(`<div class="rule"><div class="rule-head">`, s.linkHTML(r, esc(displayName(s, r)), "rule-name"), `</div><p class="sentence">`, s.sentence(r), `</p></div>`)
+				d.W(`<div class="rule"><p class="sentence">`, s.fullSentence(r), ` `, s.linkHTML(r, "#", "rule-link"), `</p></div>`)
 				continue
 			}
 			if err := d.renderRef(); err != nil {
@@ -790,6 +790,30 @@ func (c *Ctx) paramsTable(ps []opParam) {
 		if p.doc != nil {
 			hasDoc = true
 		}
+	}
+	if len(ps) < 3 {
+		// A small table: each parameter as one line.
+		c.W(`<ul class="lines">`)
+		for _, p := range ps {
+			name := p.name
+			if p.loc == "header" {
+				name = p.header
+			}
+			c.W(`<li><p class="line-head"><code class="fname">`, esc(name), `</code> <code>`, p.typ.html, `</code>`)
+			if !p.optional {
+				c.W(` <span class="badge req">`, esc(label("docs.badge.required")), `</span>`)
+			}
+			if p.def != nil {
+				c.W(`<span class="sep">, </span>`, esc(label("docs.label.default")), ` <code>`, s.exprHTML(p.def, p.site), `</code>`)
+			}
+			c.W(`</p>`)
+			if p.doc != nil {
+				c.W(lineDoc(s.renderText([]resolve.Site{{File: p.site.File, N: p.doc, Scope: p.site.Scope}})))
+			}
+			c.W(`</li>`)
+		}
+		c.W(`</ul>`)
+		return
 	}
 	c.W(`<div class="table-wrap"><table class="fields"><thead><tr><th>`, esc(label("docs.col.name")), `</th><th>`, esc(label("docs.col.type")), `</th>`)
 	if hasDef {

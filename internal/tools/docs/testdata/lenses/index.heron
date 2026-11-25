@@ -1,0 +1,173 @@
+// A small product spec with authored pages and every lens, for the lens
+// and authored-kind tests and the docs screenshots.
+import = ["std/schema@1", "std/doc@1", "std/types@1", "std/http@1", "std/spec@1", "std/product@1", "std/tech@1", "std/docs@1"]
+
+kite: package(version = "1.4.0") {
+  @lens(user)
+  | Kite syncs a folder of notes to a remote store. It runs as one command, `kite`, and
+  | keeps a log of every sync it makes.
+
+  @lens(developer, explore)
+  | The spec of Kite 1.4: what a sync copies, its errors and its command line.
+
+  system: section {
+    syncer: actor(kind = ActorKind.SYSTEM) {{ The part of Kite that copies notes to the store. }}
+    writer: actor {{ Someone who keeps notes in a folder. }}
+  }
+
+  start: guide {
+    | Install Kite, point it at a folder and run your first sync. This takes about five
+    | minutes and needs a store you can write to.
+    |
+    | Kite reads its settings from `kite.toml` in the folder it syncs. The
+    | [sync command](#kite.cli.sync), ${kite.cli.sync.name}, does the work; its `--dry-run` option defaults to
+    | ${kite.cli.sync.dry_run.default}, so a first run changes nothing until you say so.
+
+    first_config: example {
+      | ```text
+      | store = "s3://notes"
+      | interval = "5m"
+      | ```
+    }
+
+    @lens(user)
+    | When the sync finishes, Kite prints the number of notes it copied.
+  }
+
+  set_up_store: howto {
+    | Connect Kite to a new store and check that it can write there.
+
+    create: step {
+      | Create a bucket or a folder for the notes, and give Kite's key write access to it.
+    }
+
+    point: step {
+      | Add the store's address to `kite.toml`:
+
+      store_line: example {
+        | ```text
+        | store = "s3://notes"
+        | ```
+      }
+    }
+
+    check: step {
+      | Run `kite sync --dry-run`. Kite lists what it would copy and changes nothing.
+    }
+  }
+
+  first_sync: tutorial {
+    | Build a notes folder from nothing and keep it in sync.
+
+    folder: step {{ Make a folder and write a note in it. }}
+    run: step {{ Run `kite sync` and watch the log. }}
+  }
+
+  conflicts: concept {
+    | A [conflict](#kite.sync.conflict) happens when a note changed in the folder and in the
+    | store since the last sync. Kite keeps both copies and tells you which ones to merge,
+    | as [the conflict rule](#kite.sync.keeps_both) says.
+  }
+
+  sync: section {
+    | How a sync decides what to copy.
+
+    conflict: term {{ A note changed in two places since the last sync. }}
+
+    copies_changed: rule(sync, by = kite.system.syncer) {
+      must {{ copy every note whose content changed since the last sync }}
+      then {{ a note that only moved is renamed in the store, not copied again }}
+    }
+
+    keeps_both: rule(conflict, by = kite.system.syncer) {
+      when {{ a note changed in the folder and in the store }}
+      must {{ keep both copies, the store's under a `.conflict` suffix }}
+      unless {{ the two copies are equal }}
+    }
+
+    no_deletes: rule(sync, by = kite.system.syncer) {
+      mustNot {{ delete a note from the store }}
+      instead {{ move it to the store's `trash/` folder }}
+      example {{ removing `ideas.md` locally moves it to `trash/ideas.md` }}
+    }
+
+    @lens(developer)
+    | Spec writers: every rule here names the syncer, so the conformance report groups them.
+
+    unreadable: diagnostic("unreadable", by = kite.system.syncer) {
+      message = "can't read ‹file›"
+      | A note Kite can't read, such as one without read permission.
+    }
+
+    store_down: diagnostic("store-unreachable", severity = Severity.warning, by = kite.system.syncer) {
+      message = "the store at ‹address› doesn't answer"
+      | The store didn't answer within the timeout; Kite retries at the next interval.
+    }
+  }
+
+  /// A note as the store keeps it.
+  Note: type {
+    id: String
+    /// The note's path in the folder, as `ideas/kite.md`.
+    path: String
+    updated_at: Timestamp
+    conflicted: Bool = false
+  }
+
+  /// No note has the id.
+  @status(404)
+  NoteNotFound: type(Error) {
+    id: String
+  }
+
+  /// The store's HTTP interface, which Kite syncs through.
+  @http(base_path = "/v1")
+  store_api: api {
+    @http<get>("/notes/:id")
+    @throws(NoteNotFound)
+    get_note(@path id: String): op(Note) {
+      | Returns one note, with the time it last changed.
+
+      one_note: example {
+        id = "n1"
+        returns = Note(id = "n1", path = "ideas/kite.md", updated_at = "2026-11-02T09:00:00Z")
+      }
+    }
+
+    @http<put>("/notes/:id")
+    put_note(@path id: String, @body note: Note): op(Note) {
+      | Writes one note, replacing the store's copy.
+    }
+  }
+
+  gone_notes: rule(store_api.get_note, by = kite.system.syncer) {
+    when {{ the store answers 404 }}
+    must {{ report the note as gone and keep the local copy }}
+  }
+
+  @display("CLI")
+  cli: section {
+    sync: command("kite sync") {
+      usage = ["kite sync [--dry-run] [folder]"]
+
+      | Syncs a folder with its store, once.
+
+      folder: argument("folder", type = String, optional = true) {{ The folder to sync; `.` unless given. }}
+
+      dry_run: option("--dry-run", type = Bool, default = false) {
+        | Lists what a sync would copy without copying it.
+      }
+
+      exit(0) {{ The sync finished. }}
+      exit(1) {{ A note couldn't be copied. }}
+
+      exits_nonzero: rule(sync, by = kite.system.syncer) {
+        must {{ exit with status 1 when any note couldn't be copied }}
+      }
+    }
+  }
+}
+
+docs {
+  lenses = [user, developer, explore]
+}

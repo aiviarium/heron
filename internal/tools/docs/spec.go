@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/lens"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
@@ -167,91 +169,191 @@ func capitalise(h string) string {
 	return h
 }
 
+// fullSentence is a requirement's sentence with its consequence woven
+// in: ", so <then>" or " and instead <instead>".
+func (s *Site) fullSentence(n *resolve.Node) string {
+	sent := s.sentence(n)
+	if sent == "" {
+		return ""
+	}
+	tail := ""
+	if t := s.childOfKind(n, "spec.then"); t != nil {
+		tail += ", " + esc(label("docs.rule.so")) + " " + s.inlineHTML(t)
+	}
+	if t := s.childOfKind(n, "spec.instead"); t != nil {
+		tail += ", " + esc(label("docs.rule.instead")) + " " + s.inlineHTML(t)
+	}
+	out := sent
+	if tail != "" {
+		out = strings.TrimRight(strings.TrimSuffix(sent, ".")+tail, " ")
+		if !strings.HasSuffix(stripTags(out), ".") {
+			out += "."
+		}
+	}
+	return out + s.afterSentence(n)
+}
+
+// afterSentence is what follows a rule's sentence in its paragraph: each
+// example as a sentence of its own after the catalogue's word for an
+// example, and each condition another package adds after its kind's name.
+func (s *Site) afterSentence(n *resolve.Node) string {
+	var b strings.Builder
+	sentence := func(h string) string {
+		h = strings.TrimSpace(h)
+		if !strings.HasSuffix(stripTags(h), ".") {
+			h += "."
+		}
+		return h
+	}
+	for _, e := range s.childrenOfKind(n, "spec.example") {
+		b.WriteString(` <span class="rule-example">` + esc(label("docs.label.for_example")) + `, ` + sentence(s.inlineHTML(e)) + `</span>`)
+	}
+	if ap := s.childOfKind(n, "spec.applies"); ap != nil {
+		b.WriteString(` <span class="rule-extra">` + esc(sentenceCase("applies")) + `: ` + sentence(s.inlineHTML(ap)) + `</span>`)
+	}
+	for _, ch := range n.Children {
+		k := s.kindPath(ch)
+		if ch.Name != "" || k == "" || strengthKinds[k] || strings.HasPrefix(k, "spec.") || k == "project.verify" {
+			continue
+		}
+		b.WriteString(` <span class="rule-extra">` + esc(displayName(s, ch)) + `: ` + sentence(s.inlineHTML(ch)) + `</span>`)
+	}
+	return b.String()
+}
+
+// targetChips links a requirement's targets that aren't the node it's
+// written in, which its heading already names.
+func (c *Ctx) targetChips(n *resolve.Node) string {
+	if c.Site.explore() && c.Site.Opts.Lens != nil {
+		// Explore names every target in the rule's facts line.
+		return ""
+	}
+	var b strings.Builder
+	for _, t := range c.Site.targets(n) {
+		if t == n.Parent || c.Page != nil && t == c.Page.Node {
+			continue
+		}
+		b.WriteString(` ` + c.Site.linkHTML(t, esc(c.refText(t)), "chip"))
+	}
+	return b.String()
+}
+
+// ruleMeta is a requirement's formal parts: its name, what it's about,
+// who it binds and what verifies it. Explore shows them under the
+// sentence; the other lenses on hover.
+func (c *Ctx) ruleMeta(n *resolve.Node) string {
+	s := c.Site
+	var parts []string
+	if n.Name != "" {
+		parts = append(parts, `<code class="meta-name">`+esc(relPathOf(n))+`</code>`)
+	}
+	if k := s.Checker.KindOf(n); k != nil {
+		parts = append(parts, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
+	}
+	for _, t := range s.targets(n) {
+		parts = append(parts, s.linkHTML(t, `<code>`+esc(relPathOf(t))+`</code>`, ""))
+	}
+	if by := s.ruleBy(n); by != nil {
+		parts = append(parts, s.linkHTML(by, `<code>`+esc(relPathOf(by))+`</code>`, ""))
+	}
+	if st := s.ruleStrength(n); st != "" {
+		parts = append(parts, `<code class="meta-strength">`+esc(st)+`</code>`)
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return `<span class="rule-meta">` + strings.Join(parts, `<span class="dot"> · </span>`) + s.markTags(lens.Restriction(s.Checker, n)) + `</span>`
+}
+
+// ruleRest writes what follows a requirement's paragraph: its prose and
+// what verifies it.
+func (c *Ctx) ruleRest(n *resolve.Node) {
+	c.Prose(n)
+	if v := c.verifyList(n); v != "" {
+		c.W(v)
+	}
+}
+
+// renderRule writes a requirement as one sentence in the body font, its
+// consequence woven in, with its formal parts under it in explore and on
+// hover elsewhere; a lens that sums rules up shows the sentence alone
+// with the rest behind it.
 func renderRule(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="rule" id="`, attr(Anchor(n)), `">`)
-	c.W(`<div class="rule-head">`)
+	sent := s.fullSentence(n)
+	if sent == "" {
+		sent = `<strong>` + esc(displayName(s, n)) + `</strong>`
+	}
+	cls := "rule"
+	if s.kindPath(n) == "spec.quality" {
+		cls += " quality"
+	}
+	link := ""
 	if n.Name != "" {
-		c.W(`<a class="anchor rule-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
+		link = ` <a class="rule-link" href="#` + attr(Anchor(n)) + `" aria-label="` + attr(displayName(s, n)) + `">#</a>`
 	}
-	c.W(statusBadge(n))
-	if ts := s.targets(n); len(ts) > 0 {
-		c.targetsLine(ts)
+	head := sent + statusBadge(n) + c.targetChips(n) + c.qualityFacts(n) + link
+	if s.summarized(n) {
+		rest := c.at(n, c.Level)
+		rest.out = &strings.Builder{}
+		rest.ruleRest(n)
+		if rest.out.Len() == 0 {
+			c.W(`<div class="`, cls, ` rule-summary" id="`, attr(Anchor(n)), `"><p class="sentence">`, head, `</p></div>`)
+			return nil
+		}
+		c.W(`<details class="`, cls, ` rule-summary" id="`, attr(Anchor(n)), `"><summary class="sentence">`, head, `</summary>`, rest.out.String(), `</details>`)
+		return nil
 	}
-	c.W(`</div>`)
-	if sent := s.sentence(n); sent != "" {
-		c.W(`<p class="sentence">`, sent, `</p>`)
-	}
-	c.Prose(n)
-	c.consequences(n)
+	c.W(`<div class="`, cls, `" id="`, attr(Anchor(n)), `"><p class="sentence">`, head, `</p>`)
+	c.W(c.ruleMeta(n))
+	c.ruleRest(n)
 	c.W(`</div>`)
 	return nil
 }
 
-// consequences writes a requirement's then, instead and examples.
+// qualityFacts is a quality's metric and bound, as one chip.
+func (c *Ctx) qualityFacts(n *resolve.Node) string {
+	s := c.Site
+	if s.kindPath(n) != "spec.quality" {
+		return ""
+	}
+	var parts []string
+	if m := n.Child("metric"); m != nil && m.Value != nil {
+		parts = append(parts, s.exprHTML(m.Value, m.ValueSite))
+	}
+	for _, f := range []struct{ name, op string }{{"at_least", "≥"}, {"at_most", "≤"}} {
+		if ch := n.Child(f.name); ch != nil && ch.Value != nil {
+			parts = append(parts, f.op+" "+s.factHTML(ch.Value, ch.ValueSite))
+		}
+	}
+	if p := n.Child("percentile"); p != nil && p.Value != nil {
+		parts = append(parts, "p"+s.exprHTML(p.Value, p.ValueSite))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return ` <code class="chip chip-fact">` + strings.Join(parts, " ") + `</code>`
+}
+
+// consequences writes a requirement's then, instead, examples and what
+// verifies it, for a requirement shown inside another view.
 func (c *Ctx) consequences(n *resolve.Node) {
 	s := c.Site
-	var rows []string
-	for _, k := range []string{"spec.then", "spec.instead"} {
-		if ch := s.childOfKind(n, k); ch != nil {
-			rows = append(rows, `<dt>`+esc(sentenceCase(strings.TrimPrefix(k, "spec.")))+`</dt><dd>`+s.inlineHTML(ch)+`</dd>`)
-		}
+	var tail []string
+	if t := s.childOfKind(n, "spec.then"); t != nil {
+		tail = append(tail, esc(label("docs.rule.so"))+" "+s.inlineHTML(t))
 	}
-	if ap := s.childOfKind(n, "spec.applies"); ap != nil {
-		rows = append(rows, `<dt>`+esc(sentenceCase("applies"))+`</dt><dd>`+s.inlineHTML(ap)+`</dd>`)
+	if t := s.childOfKind(n, "spec.instead"); t != nil {
+		tail = append(tail, esc(label("docs.rule.instead"))+" "+s.inlineHTML(t))
 	}
-	if exs := s.childrenOfKind(n, "spec.example"); len(exs) > 0 {
-		var li strings.Builder
-		for _, e := range exs {
-			li.WriteString(`<li>` + s.inlineHTML(e) + `</li>`)
-		}
-		rows = append(rows, `<dt>`+esc(label("docs.label.examples"))+`</dt><dd><ul>`+li.String()+`</ul></dd>`)
+	if len(tail) > 0 {
+		c.W(`<p class="rule-then">`, capitalise(strings.Join(tail, "; ")), `</p>`)
 	}
-	if v := c.verifyList(n); v != "" {
-		rows = append(rows, `<dt>`+esc(label("docs.label.verified_by"))+`</dt><dd>`+v+`</dd>`)
-	}
-	// Conditions other packages add render with their kind's name.
-	for _, ch := range n.Children {
-		k := s.kindPath(ch)
-		if ch.Name != "" || k == "" || strengthKinds[k] || strings.HasPrefix(k, "spec.") {
-			continue
-		}
-		rows = append(rows, `<dt>`+esc(sentenceCase(s.Checker.KindOf(ch).Name))+`</dt><dd>`+s.inlineHTML(ch)+`</dd>`)
-	}
-	if len(rows) > 0 {
-		c.W(`<dl class="rule-more">`, strings.Join(rows, ""), `</dl>`)
-	}
+	c.ruleRest(n)
 }
 
-func renderQuality(c *Ctx) error {
-	n := c.Node
-	s := c.Site
-	c.W(`<div class="rule quality" id="`, attr(Anchor(n)), `">`)
-	c.W(`<div class="rule-head"><a class="anchor rule-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
-	if ts := s.targets(n); len(ts) > 0 {
-		c.targetsLine(ts)
-	}
-	c.W(`</div>`)
-	if sent := s.sentence(n); sent != "" {
-		c.W(`<p class="sentence">`, sent, `</p>`)
-	}
-	c.Prose(n)
-	var facts []string
-	for _, f := range []string{"metric", "at_least", "at_most", "percentile"} {
-		ch := n.Child(f)
-		if ch == nil || ch.Value == nil {
-			continue
-		}
-		facts = append(facts, `<dt>`+esc(sentenceCase(f))+`</dt><dd><code>`+s.exprHTML(ch.Value, ch.ValueSite)+`</code></dd>`)
-	}
-	if len(facts) > 0 {
-		c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
-	}
-	c.consequences(n)
-	c.W(`</div>`)
-	return nil
-}
+func renderQuality(c *Ctx) error { return renderRule(c) }
 
 func renderMetric(c *Ctx) error {
 	n := c.Node
@@ -423,17 +525,26 @@ func renderTransition(c *Ctx) error {
 	n := c.Node
 	s := c.Site
 	c.W(`<div class="rule transition" id="`, attr(Anchor(n)), `-detail">`)
-	c.W(`<div class="rule-head"><a class="anchor rule-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></div>`)
-	c.Prose(n)
-	var rows []string
-	for _, k := range append(append([]string(nil), leadConditions...), "spec.unless") {
+	var lead []string
+	for _, k := range leadConditions {
 		if ch := s.childOfKind(n, k); ch != nil {
-			rows = append(rows, `<dt>`+esc(sentenceCase(strings.TrimPrefix(k, "spec.")))+`</dt><dd>`+s.inlineHTML(ch)+`</dd>`)
+			lead = append(lead, esc(kindWords(strings.TrimPrefix(k, "spec.")))+" "+s.inlineHTML(ch))
 		}
 	}
-	if len(rows) > 0 {
-		c.W(`<dl class="rule-more">`, strings.Join(rows, ""), `</dl>`)
+	name := s.linkHTML(n, `<code>`+esc(n.Name)+`</code>`, "")
+	if len(lead) > 0 || s.childOfKind(n, "spec.unless") != nil {
+		sent := name
+		if len(lead) > 0 {
+			sent = capitalise(strings.Join(lead, ", ")) + ": " + name
+		}
+		if u := s.childOfKind(n, "spec.unless"); u != nil {
+			sent += ", " + esc(kindWords("unless")) + " " + s.inlineHTML(u)
+		}
+		c.W(`<p class="sentence">`, sent, `</p>`)
+	} else {
+		c.W(`<p class="sentence">`, name, `</p>`)
 	}
+	c.Prose(n)
 	c.consequences(n)
 	c.W(`</div>`)
 	return nil
@@ -468,4 +579,20 @@ func verifyRef(v *resolve.Node) string {
 		out += ` <code class="test">` + esc(t) + `</code>`
 	}
 	return out
+}
+
+// relPathOf is a node's path inside its package, as a spec's readers name
+// it, such as `tools.docs.site.page_files`.
+func relPathOf(n *resolve.Node) string {
+	if pkg := project.PackageOf(n); pkg != nil {
+		return project.RelPath(pkg, n)
+	}
+	top := n
+	for top.Parent != nil && top.Parent.Parent != nil {
+		top = top.Parent
+	}
+	if top != n && resolve.IsPackageNode(top) {
+		return strings.TrimPrefix(n.Path(), top.Path()+".")
+	}
+	return n.Path()
 }

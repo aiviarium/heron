@@ -238,7 +238,9 @@ func (s *Site) specPages(docs *Area) {
 	if p.Docs != "" {
 		// Links go to the spec's own rendered site, at the page that site
 		// shows each node on.
-		s.specSite = New(p.Package.Tree, types.New(p.Package.Tree), Options{})
+		c := types.New(p.Package.Tree)
+		s.specLenses = NewLenses(p.Package.Tree, c, Options{})
+		s.specSite = s.specLenses.Default()
 		return
 	}
 	pg := &Page{File: "_spec.html", Title: label("docs.page.spec") + " " + p.SpecName() + " " + p.SpecVersion(), Layout: "spec", Area: docs}
@@ -263,18 +265,23 @@ func (s *Site) specURL(n *resolve.Node) string {
 	if s.specSite == nil || project.PackageOf(n) != s.project.Package {
 		return ""
 	}
-	pg := s.specSite.PageOf(n)
-	if pg == nil {
-		return ""
-	}
 	base := s.project.Docs
 	if !strings.HasSuffix(base, "/") {
 		base += "/"
 	}
-	if pg.Node == n {
-		return base + pg.File
+	// The first of the spec's lenses that renders the node, in the order
+	// its docs block lists them.
+	sites := []*Site{s.specSite}
+	if s.specLenses != nil {
+		sites = s.specLenses.ordered
 	}
-	return base + pg.File + "#" + strings.ReplaceAll(Anchor(n), "#", "%23")
+	for _, o := range sites {
+		if o.anchorOf[n] == nil || !o.kept(n) {
+			continue
+		}
+		return base + lensRel(nil, o.Opts.Lens) + o.localURL(n)
+	}
+	return ""
 }
 
 // specLinks links spec nodes by their path inside the spec, as
@@ -300,7 +307,8 @@ func (s *Site) conformanceTable(c *Ctx, rep *project.Report, keep func(project.R
 		if !keep(row) {
 			continue
 		}
-		c.W(`<tr><td>`, s.linkHTML(row.Node, `<code>`+esc(row.Path)+`</code>`, "spec-ref"),
+		// A long path breaks at its dots, not inside a name.
+		c.W(`<tr><td>`, s.linkHTML(row.Node, `<code>`+strings.ReplaceAll(esc(row.Path), ".", ".<wbr>")+`</code>`, "spec-ref"),
 			`</td><td>`, esc(row.Kind), `</td><td><span class="badge status-`, attr(row.Status), `">`,
 			esc(label("docs.conformance."+row.Status)), `</span></td><td>`)
 		for i, p := range row.Proofs {

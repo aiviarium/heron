@@ -80,7 +80,11 @@ type File struct {
 
 // Files renders the whole site: every page, the data script and the
 // assets, as plain files.
-func (s *Site) Files() ([]File, error) {
+func (s *Site) Files() ([]File, error) { return s.files(true) }
+
+// files renders the site's pages and data script, and the assets when
+// withAssets is set.
+func (s *Site) files(withAssets bool) ([]File, error) {
 	if s.ThemeErr != nil {
 		return nil, s.ThemeErr
 	}
@@ -95,10 +99,11 @@ func (s *Site) Files() ([]File, error) {
 		}
 		out = append(out, File{Path: p.File, Content: []byte(h)})
 	}
-	prefix := s.Opts.Assets
-	out = append(out, File{Path: prefix + "data.js", Content: s.dataJS()})
-	for _, a := range s.Assets() {
-		out = append(out, File{Path: prefix + a.Path, Content: a.Content})
+	out = append(out, File{Path: s.Opts.Data, Content: s.dataJS()})
+	if withAssets {
+		for _, a := range s.Assets() {
+			out = append(out, File{Path: "_assets/" + a.Path, Content: a.Content})
+		}
 	}
 	return out, nil
 }
@@ -112,8 +117,7 @@ func Register(r *registry.Registry) {
 	if err := r.SetGenerator(registry.Generator{Path: "docs.site", Target: "docs", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
 		gi := in.(*gen.Input)
 		versions := releasedVersions(filepath.Join(gi.Dir, OutDir))
-		s := New(gi.Tree, gi.Checker, Options{Registry: r, Versions: versions})
-		files, err := s.Files()
+		files, err := NewLenses(gi.Tree, gi.Checker, Options{Registry: r, Versions: versions}).Files()
 		if err != nil {
 			return nil, err
 		}

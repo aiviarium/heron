@@ -104,12 +104,71 @@ func (c *Ctx) render() error {
 	kind := c.Site.kindPath(n)
 	c.Slot("before")
 	var err error
-	if r := c.Site.renderer(kind); r != nil {
+	if !c.Site.kept(n) {
+		err = renderContainer(c)
+	} else if c.Site.summarized(n) && kind != "spec.rule" && kind != "spec.quality" && !c.isPage() {
+		err = c.summary()
+	} else if r := c.Site.renderer(kind); r != nil {
 		err = r(c)
 	} else {
 		err = renderGeneric(c)
 	}
 	c.Slot("after")
+	return err
+}
+
+// renderContainer writes a node the lens leaves out but that holds nodes
+// it keeps: its heading, as their place, and those nodes, without its own
+// prose but for runs marked for the lens.
+func renderContainer(c *Ctx) error {
+	n := c.Node
+	c.W(`<section class="section" id="`, attr(Anchor(n)), `">`)
+	if n.Name != "" {
+		c.title("")
+	}
+	c.Prose(n)
+	if err := c.childrenOrLinks(); err != nil {
+		return err
+	}
+	c.W(`</section>`)
+	return nil
+}
+
+// inOrder is a node's children as the lens renders them: those it renders
+// in full first, then its summary lines, each group in the tree's order.
+func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
+	if s.explore() {
+		return children
+	}
+	var full, sum []*resolve.Node
+	for _, ch := range children {
+		if s.summarized(ch) {
+			sum = append(sum, ch)
+		} else {
+			full = append(full, ch)
+		}
+	}
+	return append(full, sum...)
+}
+
+// summary writes a node a lens sums up: its title and first sentence,
+// with the node in full behind them.
+func (c *Ctx) summary() error {
+	n := c.Node
+	s := c.Site
+	head := esc(displayName(s, n))
+	if t := firstSentence(firstParagraph(s.proseHTML(n))); t != "" {
+		head = `<strong>` + head + `</strong> ` + t
+	}
+	c.W(`<details class="node-summary" id="`, attr(Anchor(n)), `"><summary>`, head, `</summary>`)
+	d := c.at(n, c.Level)
+	var err error
+	if r := s.renderer(s.kindPath(n)); r != nil {
+		err = r(d)
+	} else {
+		err = renderGeneric(d)
+	}
+	c.W(`</details>`)
 	return err
 }
 
@@ -126,7 +185,7 @@ func (c *Ctx) Slot(name string) {
 // Children renders every child of the current node that the docs show,
 // in order.
 func (c *Ctx) Children() error {
-	for _, ch := range c.Node.Children {
+	for _, ch := range c.Site.inOrder(c.Node.Children) {
 		if !c.Site.shown(ch) {
 			continue
 		}
@@ -145,6 +204,9 @@ func (s *Site) shown(n *resolve.Node) bool {
 		return false
 	}
 	if !own(n) && !s.inConfig(n) {
+		return false
+	}
+	if s.hidden(n) {
 		return false
 	}
 	switch n.Shape {
@@ -197,6 +259,9 @@ func (s *Site) linkHTML(n *resolve.Node, inner, class string) string {
 	}
 	if u == "" {
 		return `<span class="` + cls + `"` + card + `>` + inner + `</span>`
+	}
+	if t := s.lensTag(n); t != "" && s.specURL(n) == "" {
+		inner += ` <span class="lens-tag">` + esc(t) + `</span>`
 	}
 	return `<a class="` + cls + `" href="` + attr(u) + `"` + card + `>` + inner + `</a>`
 }

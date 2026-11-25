@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
@@ -34,6 +35,11 @@ type Options struct {
 	Href func(file string) string
 	// Assets is the prefix of the asset URLs, "_assets/" by default.
 	Assets string
+	// Data is the path of the data script, Assets + "data.js" unless set.
+	Data string
+	// Lens is the lens the site renders; nil renders everything, as the
+	// explore lens does.
+	Lens *lens.Lens
 }
 
 // Page is one page of the site.
@@ -68,6 +74,9 @@ type Area struct {
 // NavGroup is a labelled group of navigation entries.
 type NavGroup struct {
 	Title string
+	// Head is the page the group's label links to, if any: a TOPIC
+	// group's section.
+	Head  *Page
 	Pages []*Page
 }
 
@@ -109,12 +118,25 @@ type Site struct {
 	// specSite is the spec's own site, which links to spec nodes go to
 	// when the project names it with `docs`.
 	specSite *Site
+	// specLenses are the spec's own lenses, when it builds more than one.
+	specLenses *Lenses
+
+	// modes memoizes how the lens renders each node; lenses is the set
+	// of lens sites this one belongs to, if any.
+	modes  map[*resolve.Node]lens.Mode
+	places map[*resolve.Node]bool
+	lenses *Lenses
+	// fenceTitle titles the next code block prose renders, once.
+	fenceTitle string
 }
 
 // New prepares a site for a checked tree.
 func New(t *resolve.Tree, c *types.Checker, opts Options) *Site {
 	if opts.Assets == "" {
 		opts.Assets = "_assets/"
+	}
+	if opts.Data == "" {
+		opts.Data = opts.Assets + "data.js"
 	}
 	s := &Site{
 		Tree: t, Checker: c, Opts: opts,
@@ -124,6 +146,8 @@ func New(t *resolve.Tree, c *types.Checker, opts Options) *Site {
 		ownerOf:      map[*syntax.Node]*resolve.Node{},
 		cards:        map[string]card{},
 		implementors: map[*resolve.Node][]*resolve.Node{},
+		modes:        map[*resolve.Node]lens.Mode{},
+		places:       map[*resolve.Node]bool{},
 	}
 	if opts.Registry != nil {
 		// Renderer modules, such as a docs block's TS renderers, register
@@ -162,7 +186,7 @@ func own(n *resolve.Node) bool {
 
 func (s *Site) classify() {
 	s.Tree.Walk(func(n *resolve.Node) {
-		if !own(n) || n.Name == "" && n.Shape != resolve.ShapeAnon {
+		if !own(n) || n.Name == "" && n.Shape != resolve.ShapeAnon || s.hidden(n) || !s.kept(n) {
 			return
 		}
 		switch k := s.kindPath(n); {
@@ -236,16 +260,18 @@ var pageKinds = map[string]bool{
 
 // isPageNode reports whether a node gets a page of its own.
 func (s *Site) isPageNode(n *resolve.Node, sectionDepth int) bool {
-	if !own(n) || n.Name == "" {
+	if !own(n) || n.Name == "" || s.hidden(n) {
 		return false
 	}
 	switch k := s.kindPath(n); {
+	case s.authored(n):
+		return true
 	case k == "doc.section":
-		return sectionDepth < s.Config.Depth
+		return sectionDepth < s.Config.Depth && s.hasContent(n)
 	case k == "types.api", k == "types.op", pageKinds[k]:
 		return true
 	case k == "" && n.Shape == resolve.ShapeScoped:
-		return s.hasDocs(n) && sectionDepth < s.Config.Depth
+		return s.hasDocs(n) && sectionDepth < s.Config.Depth && s.hasContent(n)
 	}
 	return s.isTypeDecl(n)
 }
@@ -282,7 +308,7 @@ func (s *Site) buildPages() {
 	walk = func(n *resolve.Node, parent *Page, depth int) {
 		for _, c := range n.Children {
 			k := s.kindPath(c)
-			isSection := k == "doc.section" || pageKinds[k] || k == "" && c.Shape == resolve.ShapeScoped && s.hasDocs(c)
+			isSection := k == "doc.section" || pageKinds[k] || s.authored(c) || k == "" && c.Shape == resolve.ShapeScoped && s.hasDocs(c)
 			if !isSection || !s.isPageNode(c, depth) {
 				if c.Shape == resolve.ShapeScoped && k == "" && depth == 0 || depth == 0 && resolve.IsPackageNode(c) {
 					// A folder scope or a package node, such as a spec
@@ -391,7 +417,7 @@ func (s *Site) buildPages() {
 	// Every other node is shown on the page of its nearest ancestor that
 	// has one.
 	s.Tree.Walk(func(n *resolve.Node) {
-		if s.anchorOf[n] != nil || !own(n) {
+		if s.anchorOf[n] != nil || !own(n) || s.hidden(n) {
 			return
 		}
 		for a := n.Parent; a != nil; a = a.Parent {
@@ -413,6 +439,8 @@ func (s *Site) buildPages() {
 		}
 	}
 
+	s.applyNav(docs)
+
 	// Previous and next follow the navigation order of each area.
 	for _, a := range s.Areas {
 		var order []*Page
@@ -425,7 +453,10 @@ func (s *Site) buildPages() {
 		}
 		flat(a.Pages)
 		for _, g := range a.Groups {
-			order = append(order, g.Pages...)
+			if g.Head != nil {
+				order = append(order, g.Head)
+			}
+			flat(g.Pages)
 		}
 		for i, p := range order {
 			if i > 0 {
@@ -458,6 +489,9 @@ func (s *Site) title() string {
 	}
 	if s.project != nil {
 		return displayName(s, s.project.Node)
+	}
+	if pk := s.homeNode(); pk != s.Tree.Root {
+		return displayName(s, pk)
 	}
 	for _, c := range s.Tree.Root.Children {
 		if own(c) && s.kindPath(c) == "doc.section" {
@@ -504,6 +538,16 @@ func (s *Site) URL(n *resolve.Node) string {
 	if u := s.specURL(n); u != "" {
 		return u
 	}
+	if !s.kept(n) || s.anchorOf[n] == nil {
+		if u := s.siblingURL(n); u != "" {
+			return u
+		}
+	}
+	return s.localURL(n)
+}
+
+// localURL is the link to a node within the site's own lens, or "".
+func (s *Site) localURL(n *resolve.Node) string {
 	if p := s.pageOf[n]; p != nil {
 		return s.href(p.File)
 	}
@@ -572,3 +616,26 @@ func (s *Site) owner(p *syntax.Node) *resolve.Node {
 
 // Backlinks returns the nodes that refer to n.
 func (s *Site) Backlinks(n *resolve.Node) []*resolve.Node { return s.backlinks[n] }
+
+// homeNode is the node the home page shows: the root, or the package
+// node a spec package's tree is written in.
+func (s *Site) homeNode() *resolve.Node {
+	r := s.Tree.Root
+	if len(r.Prose) > 0 {
+		return r
+	}
+	var pkg *resolve.Node
+	for _, c := range r.Children {
+		if !own(c) || c.Shape == resolve.ShapeSet || c.Shape == resolve.ShapeValue || c == s.Config.Node {
+			continue
+		}
+		if !resolve.IsPackageNode(c) || pkg != nil {
+			return r
+		}
+		pkg = c
+	}
+	if pkg == nil {
+		return r
+	}
+	return pkg
+}

@@ -29,6 +29,19 @@ function theme() {
   }
 }
 
+/** The lens switch: a plain link to the same page in another lens, which
+ * keeps the anchor the reader is at when it leads to the same page. */
+function lenses() {
+  for (const a of $$<HTMLAnchorElement>(".lens-switch a")) {
+    a.addEventListener("click", () => {
+      const hash = location.hash
+      if (!hash || a.hash) return
+      const here = document.body.dataset.page
+      if (here && a.pathname.endsWith("/" + here)) a.hash = hash
+    })
+  }
+}
+
 /** The navigation on narrow screens. */
 function nav() {
   for (const b of $$("[data-island=nav]")) {
@@ -145,6 +158,7 @@ function outline() {
 
 function start() {
   theme()
+  lenses()
   nav()
   copy()
   views()
