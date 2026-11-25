@@ -1,5 +1,12 @@
 # Heron
 
+[![CI](https://github.com/aiviarium/heron/actions/workflows/ci.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/ci.yml)
+[![Pages](https://github.com/aiviarium/heron/actions/workflows/pages.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/pages.yml)
+
+**Docs:** [aiviarium.github.io/heron](https://aiviarium.github.io/heron/), the project
+site (architecture, conformance, releases), and the spec it implements at
+[aiviarium.github.io/heron/spec](https://aiviarium.github.io/heron/spec/).
+
 The implementation of Heron: the `heron` binary, its standard packages and
 its frontend. What Heron does is specified apart from this repository, in
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs).
@@ -67,12 +74,27 @@ scripts/ci.sh                                   # the whole check, run before ev
 HERON_SPECS_DIR=../heron-specs/heron scripts/ci.sh
 scripts/demo.sh                                 # heron serve on a copy of examples/petstore
 scripts/spec-docs.sh                            # the spec package as its docs site
+scripts/pages.sh /tmp/site                      # the published site: project at /, spec at spec/
 ```
 
-There's no hosted CI: `scripts/ci.sh` is the check, and it passes from a
-fresh clone. It sets up the spec package first, then runs gofmt, vet, the
+`scripts/ci.sh` is the check, and it passes from a fresh clone. GitHub
+Actions runs the same script on every push and pull request to `main`
+(`.github/workflows/ci.yml`), with heron-specs checked out at the commit
+`heron.lock` pins and linked in through `HERON_SPECS_DIR`; a manual run with
+`spec = install` takes the lock-based `heron run setup` path instead. The
+script sets up the spec package first, then runs gofmt, vet, the
 generated-code checks, the Go, web and tree-sitter tests, the fixtures, the
 checks and lints of the repository's tree and the examples, conformance
 (every spec requirement proven, planned or untested; none missing) and the
 end-to-end scripts. `docs/PLAN.md` describes how the build was carried out
 and `docs/STATUS.md` where it stands.
+
+## The published site
+
+`.github/workflows/pages.yml` publishes, on every push to `main`, the
+project site at [aiviarium.github.io/heron](https://aiviarium.github.io/heron/)
+and the spec package's own site under
+[`/spec/`](https://aiviarium.github.io/heron/spec/), where the project tree's
+`implements { docs = ... }` links spec nodes to. `scripts/pages.sh <dir>`
+builds the same site locally. The repository's **Settings > Pages > Source**
+must be set to **GitHub Actions** for the deployment to run.

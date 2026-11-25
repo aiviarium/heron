@@ -1,0 +1,71 @@
+# The published site on GitHub Pages, https://aiviarium.github.io/heron/:
+# the project site (architecture, conformance, releases) at the root and the
+# spec package's own site under spec/, built by scripts/pages.sh. The
+# project tree's `implements { docs = ".../heron/spec/" }` links spec nodes
+# there. The spec is heron-specs at the commit heron.lock pins, as in CI.
+#
+# The repository's Settings > Pages > Source must be "GitHub Actions".
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer push doesn't cancel one in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: heron
+      - name: The spec commit heron.lock pins
+        id: lock
+        run: |
+          line=$(grep '"github.com/aiviarium/heron-specs/heron"' heron/heron.lock)
+          commit=$(sed -E 's/.*commit = "([0-9a-f]{40})".*/\1/' <<<"$line")
+          [ ${#commit} = 40 ] || { echo "no commit for heron-specs in heron.lock" >&2; exit 1; }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          repository: aiviarium/heron-specs
+          ref: ${{ steps.lock.outputs.commit }}
+          path: heron-specs
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: heron/go.mod
+          cache: true
+          cache-dependency-path: heron/go.sum
+      - uses: actions/configure-pages@v6
+      - name: Build the site
+        working-directory: heron
+        env:
+          HERON_SPECS_DIR: ${{ github.workspace }}/heron-specs/heron
+        run: |
+          scripts/spec-setup.sh
+          scripts/pages.sh "$RUNNER_TEMP/site"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
