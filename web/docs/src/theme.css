@@ -275,12 +275,14 @@ table.diag-index a.diag-message { text-decoration: none; }
 .conformance-summary { font-size: var(--h-font-size-prose); line-height: var(--h-font-line-prose); margin: 0 0 var(--h-space-1); }
 .conformance-version { margin: 0 0 var(--h-space-5); color: var(--h-text-secondary); }
 table.conformance-table { table-layout: fixed; }
-table.conformance-table th:nth-child(1) { width: 50%; }
-table.conformance-table th:nth-child(2) { width: 12%; }
-table.conformance-table th:nth-child(3) { width: 11%; }
+table.conformance-table th:nth-child(1) { width: 45%; }
+table.conformance-table th:nth-child(2) { width: 11%; }
+table.conformance-table th:nth-child(3) { width: 10%; }
 table.conformance-table td:first-child { overflow-wrap: break-word; }
-table.conformance-table td:nth-child(4) { font-size: 12px; color: var(--h-text-secondary); overflow-wrap: anywhere; }
-table.conformance-table td:nth-child(4) code { font-size: 12px; }
+table.conformance-table td:nth-child(4) { color: var(--h-text-secondary); overflow-wrap: normal; }
+table.conformance-table td:nth-child(4) code { display: block; font-size: 12px; line-height: 18px; }
+table.conformance-table td:nth-child(4) code.test { color: var(--h-text-secondary); }
+table.conformance-table td:nth-child(4) br { display: none; }
 table.conformance-table .spec-ref { text-decoration: none; }
 table.conformance-table .verify li { padding: 0; }
 
@@ -521,7 +523,7 @@ code.t { color: var(--h-type); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--h-space-3); margin: var(--h-space-8) 0; }
 .tile { display: flex; flex-direction: column; gap: var(--h-space-2); padding: var(--h-space-4) var(--h-space-5); border: 1px solid var(--h-border); border-radius: var(--h-radius-card); background: var(--h-bg-raised); transition: border-color var(--h-motion-fast) var(--h-motion-ease); }
 .tile:hover { border-color: var(--h-border-strong); }
-.tile-title { font-weight: var(--h-font-weight-semibold); color: var(--h-text); }
+.tile-title { font-weight: var(--h-font-weight-semibold); color: var(--h-text); font-size: var(--h-font-size-prose); letter-spacing: var(--h-font-tracking-heading); }
 .tile-text { color: var(--h-text); font-size: var(--h-font-size-prose); line-height: var(--h-font-line-prose); }
 .changelog { margin-top: var(--h-space-6); }
 .changelog .entry { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--h-space-6); padding: var(--h-space-6) 0; border-top: 1px solid var(--h-border-faint); }

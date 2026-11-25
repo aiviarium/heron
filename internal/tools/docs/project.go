@@ -315,7 +315,7 @@ func (s *Site) conformanceTable(c *Ctx, rep *project.Report, keep func(project.R
 			if i > 0 {
 				c.W(`<br>`)
 			}
-			c.W(`<code class="path">`, esc(p.Path), `</code>`)
+			c.W(`<code class="path">`, strings.ReplaceAll(esc(p.Path), "/", "/<wbr>"), `</code>`)
 			if p.Test != "" {
 				c.W(` <code class="test">`, esc(p.Test), `</code>`)
 			}

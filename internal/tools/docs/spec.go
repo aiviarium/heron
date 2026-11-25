@@ -250,11 +250,18 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 	if k := s.Checker.KindOf(n); k != nil {
 		parts = append(parts, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
 	}
+	short := func(t *resolve.Node) string {
+		// A target or subject on this page reads by its path below it.
+		if r := c.refText(t); r != t.Path() {
+			return r
+		}
+		return relPathOf(t)
+	}
 	for _, t := range s.targets(n) {
-		parts = append(parts, s.linkHTML(t, `<code>`+esc(relPathOf(t))+`</code>`, ""))
+		parts = append(parts, s.linkHTML(t, `<code>`+esc(short(t))+`</code>`, ""))
 	}
 	if by := s.ruleBy(n); by != nil {
-		parts = append(parts, s.linkHTML(by, `<code>`+esc(relPathOf(by))+`</code>`, ""))
+		parts = append(parts, s.linkHTML(by, `<code>`+esc(short(by))+`</code>`, ""))
 	}
 	if st := s.ruleStrength(n); st != "" {
 		parts = append(parts, `<code class="meta-strength">`+esc(st)+`</code>`)
