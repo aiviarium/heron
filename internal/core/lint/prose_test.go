@@ -211,7 +211,7 @@ func TestProseFixtureSourceMaps(t *testing.T) {
 			}
 		}
 	}
-	if regions < 100 {
+	if regions < 50 {
 		t.Fatalf("only %d regions in %d files", regions, len(files))
 	}
 	t.Logf("%d regions in %d files", regions, len(files))

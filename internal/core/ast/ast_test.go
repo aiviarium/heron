@@ -12,7 +12,7 @@ import (
 // TestViews: every node of every fixture has a typed view, and members,
 // expressions and types are covered by their sums where the tree puts them.
 func TestViews(t *testing.T) {
-	bs, err := fixtures.Load(filepath.Join("..", "..", "..", "fixtures"))
+	bs, err := fixtures.Load(filepath.Join("..", "..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestViews(t *testing.T) {
 		if !b.IsHeron() {
 			continue
 		}
-		tr := syntax.Parse(b.File, b.Content)
+		tr := syntax.Parse(b.Name(), b.Content)
 		tr.Root.Walk(func(n *syntax.Node) bool {
 			if ast.Cast(n) == nil {
 				t.Errorf("%s: no view for %s", b.File, n.Kind)

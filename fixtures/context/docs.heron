@@ -1,0 +1,5 @@
+// What the docs tool's configuration excerpt assumes: the docs block and
+// js(…) without their imports, and the api its layout lists.
+import = ["std/types@1", "std/http@1", "std/docs@1", "std/js@1"]
+
+store_api: api {}

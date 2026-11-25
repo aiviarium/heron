@@ -11,13 +11,15 @@ import (
 // SpecExample is a fenced code block in the `|` lines of an example node.
 type SpecExample struct {
 	File, Name string
-	Line       int
-	Content    string
+	// NameLine is the line of `name: example {`, Line the block's first.
+	NameLine, Line int
+	Lang           string // the fence's info word, or ""
+	Content        string
 }
 
 var (
 	exampleOpenRE = regexp.MustCompile(`^(\s*)([A-Za-z_][A-Za-z0-9_]*): example \{\s*$`)
-	proseFenceRE  = regexp.MustCompile("^(`{3,}|~{3,})[^`\\s]*$")
+	proseFenceRE  = regexp.MustCompile("^(`{3,}|~{3,})([^`\\s]*)$")
 )
 
 // SpecExamples returns the fenced code blocks held in the `|` lines of the
@@ -30,8 +32,8 @@ func SpecExamples(file, src string) []SpecExample {
 		if m == nil {
 			continue
 		}
-		indent, name := m[1], m[2]
-		var fence string
+		indent, name, nameLine := m[1], m[2], i+1
+		var fence, lang string
 		var body strings.Builder
 		start := 0
 		for i++; i < len(lines) && lines[i] != indent+"}"; i++ {
@@ -42,11 +44,12 @@ func SpecExamples(file, src string) []SpecExample {
 			text := strings.TrimPrefix(strings.TrimPrefix(t, "|"), " ")
 			switch {
 			case fence == "" && proseFenceRE.MatchString(text):
-				fence = proseFenceRE.FindStringSubmatch(text)[1]
+				fm := proseFenceRE.FindStringSubmatch(text)
+				fence, lang = fm[1], fm[2]
 				body.Reset()
-				start = i + 1
+				start = i + 2
 			case fence != "" && text == fence:
-				out = append(out, SpecExample{File: file, Name: name, Line: start, Content: body.String()})
+				out = append(out, SpecExample{File: file, Name: name, NameLine: nameLine, Line: start, Lang: lang, Content: body.String()})
 				fence = ""
 			case fence != "":
 				body.WriteString(text)
@@ -58,12 +61,16 @@ func SpecExamples(file, src string) []SpecExample {
 }
 
 // SpecFiles lists the Heron files of a spec tree, in every folder below
-// its root, sorted.
+// its root, sorted. Folders whose names start with a dot, such as a
+// package's rendered .heron/, are skipped.
 func SpecFiles(root string) ([]string, error) {
 	var out []string
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		if d.IsDir() && p != root && strings.HasPrefix(d.Name(), ".") {
+			return filepath.SkipDir
 		}
 		if !d.IsDir() && (strings.HasSuffix(p, ".heron") || strings.HasSuffix(p, ".heron.md")) {
 			out = append(out, p)

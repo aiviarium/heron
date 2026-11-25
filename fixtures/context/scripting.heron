@@ -1,5 +1,6 @@
 // What the Scripting tab's excerpts assume: the packages its tasks call,
-// and the pet store model from the Example tab.
+// and the pet store model from the design's Example tab, kept here since the
+// spec has no example of it.
 import = ["std/types@1", "std/process@1", "std/files@1", "std/json@1", "std/http@1"]
 
-include = ["../example/09.heron"]
+include = ["./petstore-model.heron"]

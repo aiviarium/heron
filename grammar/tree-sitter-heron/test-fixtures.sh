@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Parses the Go parser's fixtures with the tree-sitter grammar: every Heron
-# fixture of mode "heron", the fixtures' context files, and the repository's
-# own Heron trees (std/, spec/, examples/) must parse without an
+# example of the spec package of mode "heron" (extracted to a temporary
+# folder), the fixtures' context files, the spec package itself and the
+# repository's own Heron trees (std/, examples/, project/) must parse without an
 # ERROR or MISSING node. A prose file (.heron.md, mode heron-md) is Markdown
 # to editors, and a sketch (heron-sketch) elides parts on purpose, so both
 # are left out, as the "other" blocks are.
@@ -11,12 +12,16 @@ root=$(cd "$here/../.." && pwd)
 cd "$here"
 ts=(npx --no-install tree-sitter)
 
+fx=$(mktemp -d); trap 'rm -rf "$fx"' EXIT
+(cd "$root" && go run ./internal/core/fixtures/extract -out "$fx" >/dev/null)
+spec=$(cd "$root" && go run ./internal/core/fixtures/specdir)
+
 files=()
-while IFS= read -r f; do files+=("$root/fixtures/$f"); done < <(
-  node -e 'for (const e of require(process.argv[1])) if (e.mode === "heron") console.log(e.file)' "$root/fixtures/manifest.json")
+while IFS= read -r f; do files+=("$fx/$f"); done < <(
+  node -e 'for (const e of require(process.argv[1])) if (e.mode === "heron") console.log(e.out)' "$fx/manifest.json")
 while IFS= read -r f; do files+=("$f"); done < <(
-  find "$root/fixtures/context" "$root/std" "$root/spec" "$root/examples" \
-    "$root/internal/core/extension/protocol" -name '*.heron' -not -path '*/node_modules/*' | sort)
+  find "$root/fixtures/context" "$root/std" "$spec" "$root/examples" "$root/project" "$root/index.heron" \
+    -name '*.heron' -not -path '*/node_modules/*' -not -path '*/.heron/*' | sort)
 
 bad=0
 for f in "${files[@]}"; do
@@ -31,7 +36,7 @@ echo "tree-sitter: ${#files[@]} files, $bad with ERROR or MISSING nodes"
 
 # The queries compile against the grammar and match on a fixture.
 for q in queries/*.scm; do
-  if ! out=$("${ts[@]}" query "$q" "$root/fixtures/apis/01.heron" 2>&1); then
+  if ! out=$("${ts[@]}" query "$q" "$fx/language.apis.apis_and_ops.apis_example.heron" 2>&1); then
     echo "$q doesn't compile:"; grep -v -i 'warning\|config\|grammars\|^$' <<<"$out" | head -5; exit 1
   fi
   grep -q 'capture:' <<<"$out" || { echo "$q captures nothing"; exit 1; }

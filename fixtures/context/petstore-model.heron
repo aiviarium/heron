@@ -1,0 +1,76 @@
+Audited: interface {
+  created_at: Timestamp
+  created_by: String = "system"
+}
+
+Category: type {
+  id: Int
+  name: String
+}
+
+Pet: type(Audited) {
+  id: Int
+  name: String
+  category?: Category
+  /// Where the pet's photos are served from.
+  photo_urls: List(String)
+  tags: List(String) = []
+  status: PetStatus
+}
+
+PetStatus: enum {
+  AVAILABLE: Self
+  PENDING: Self
+  SOLD: Self
+}
+
+Order: type(Audited) {
+  id: Int
+  pet_id: Int
+  ship_date?: Timestamp
+  status: OrderStatus
+}
+
+OrderStatus: enum {
+  PLACED: Self
+  APPROVED: Self
+  DELIVERED: Self
+  CANCELLED: Self
+}
+
+OrderRequest: type {
+  pet_id: Int
+  /// A missing date ships the pet as soon as the order is approved.
+  ship_date?: Timestamp
+}
+
+/// Everything the store can refuse a request with.
+StoreError: interface(Error)
+
+@status(404)
+PetNotFound: type(StoreError) {
+  message: String = "No pet exists with this id."
+  pet_id: Int
+}
+
+@status(409)
+PetNotAvailable: type(StoreError) {
+  message: String = "The pet is not available for sale."
+  status: PetStatus
+}
+
+@status(404)
+OrderNotFound: type(StoreError) {
+  message: String = "No order exists with this id."
+  order_id: Int
+}
+
+@status(409)
+OrderNotCancellable: type(StoreError) {
+  message: String = "A delivered order can't be cancelled."
+}
+
+Page(T: Any): type {
+  items: List(T)
+  next?: String
+}

@@ -14,7 +14,7 @@ func TestFixturePrefixes(t *testing.T) {
 		src := b.Content
 		for i := 0; i <= len(src); i++ {
 			pre := src[:i]
-			tr := syntax.Parse(b.File, pre)
+			tr := syntax.Parse(b.Name(), pre)
 			if got := tr.Root.Text(); got != pre {
 				t.Fatalf("%s: prefix of %d bytes is not lossless:\n got %q\nwant %q", b.File, i, got, pre)
 			}
@@ -45,7 +45,7 @@ func checkSpans(t *testing.T, tr *syntax.Tree) {
 
 func FuzzParse(f *testing.F) {
 	for _, b := range loadFixtures(f) {
-		f.Add(b.File, b.Content)
+		f.Add(b.Name(), b.Content)
 	}
 	f.Add("x.heron", "a: b<c>(d = [1, {e = |f\n}]) {{ $g(h) <i j={k}>l</i> }}")
 	f.Fuzz(func(t *testing.T, name, src string) {

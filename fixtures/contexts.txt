@@ -1,0 +1,35 @@
+# The context each Heron example of the spec checks in: the names it
+# assumes, from fixtures/context/<context>.heron, which become the
+# outermost scope of the example's tree. An example whose tree includes or
+# imports files it doesn't show has them in fixtures/context/files/<key>/,
+# where fixture.txt names the example's own path. Keys are example node
+# paths of the spec package.
+
+language.apis.apis_and_ops.apis_example                          apis
+language.core_format.exports.export_example                      core-format
+language.core_format.files.entry_point_example                   core-format
+language.core_format.tour.format_tour                            core-format
+language.data.configuration.data_configuration                   data
+language.data.configuration.data_layering                        data
+language.data.types.data_types                                   data
+language.interop.declaring.interop_foreign_func                  interop
+language.interop.packaging.interop_transport                     interop
+language.markup.long_form.markup_documentation_page              markup
+language.markup.long_form.markup_page_structure                  markup
+language.markup.long_form.markup_prompt                          markup
+language.markup.long_form.markup_prose_file                      markup
+language.schemas.categories.std_doc_schema                       schemas
+language.schemas.extending_types.std_http_schema                 schemas
+language.schemas.extending_types.std_types_schema                schemas
+language.schemas.extensions.compliance_extension                 schemas
+language.schemas.kinds.std_scenarios_schema                      schemas
+language.scripting.funcs_and_templates.scripting_example         scripting
+language.scripting.processes_and_files.scripting_processes       scripting
+language.scripting.tasks.scripting_tasks                         scripting
+language.specifications.layout.specifications_feature_layout     specifications
+language.specifications.planning.specifications_planning         specifications
+language.specifications.projects.specifications_projects         specifications
+language.specifications.projects.specifications_versioning       specifications
+language.specifications.requirements.specifications_example      specifications
+tools.docs.extending.docs_configuration                          docs
+tools.server.api.base_api                                        server

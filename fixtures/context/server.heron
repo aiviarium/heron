@@ -1,0 +1,9 @@
+// What the server's base api excerpt assumes: the types its ops take and
+// return, declared in the full api description.
+import = ["std/types@1"]
+
+PreviewRequest: type
+Preview: type
+NodeResults: type
+Record: type
+LspMessage: type

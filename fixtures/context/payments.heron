@@ -4,7 +4,7 @@
 // the examples need.
 import = ["std/doc@1", "std/types@1", "std/http@1"]
 
-include = ["../data/03.heron"]
+include = ["./examples/language.data.types.data_types.heron"]
 
 Payment: type {
   id: String

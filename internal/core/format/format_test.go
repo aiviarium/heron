@@ -11,7 +11,7 @@ import (
 )
 
 func heronFixtures(t *testing.T) []fixtures.Block {
-	bs, err := fixtures.Load(filepath.Join("..", "..", "..", "fixtures"))
+	bs, err := fixtures.Load(filepath.Join("..", "..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestFixturesFormatToThemselves(t *testing.T) {
 	n := 0
 	bs := heronFixtures(t)
 	for _, b := range bs {
-		got := format.Source(b.File, b.Content)
+		got := format.Source(b.Name(), b.Content)
 		if got != b.Content {
 			t.Errorf("%s does not format to itself:\n%s", b.File, diff(b.Content, got))
 			continue
@@ -45,8 +45,8 @@ func TestFixturesFormatToThemselves(t *testing.T) {
 func TestIdempotent(t *testing.T) {
 	for _, b := range heronFixtures(t) {
 		for _, src := range []string{b.Content, scramble(b.Content)} {
-			once := format.Source(b.File, src)
-			twice := format.Source(b.File, once)
+			once := format.Source(b.Name(), src)
+			twice := format.Source(b.Name(), once)
 			if once != twice {
 				t.Errorf("%s: not idempotent:\n%s", b.File, diff(once, twice))
 			}

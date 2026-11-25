@@ -10,7 +10,7 @@ import (
 
 func repoRoot() string { return filepath.Join("..", "..", "..") }
 
-// Done means, criterion 1: every Heron code block of unit 1's tabs checks
+// Every Heron code block of the spec package's examples checks
 // clean against the standard packages, except blocks that show an error and
 // the pending ones, which must still fail so the list can't go stale.
 func TestFixturesCheckClean(t *testing.T) {
@@ -34,5 +34,5 @@ func TestFixturesCheckClean(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("%d of %d unit-1 Heron blocks check clean", clean, len(runs))
+	t.Logf("%d of %d Heron examples check clean", clean, len(runs))
 }

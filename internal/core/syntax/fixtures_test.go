@@ -12,7 +12,7 @@ import (
 
 func loadFixtures(t testing.TB) []fixtures.Block {
 	t.Helper()
-	bs, err := fixtures.Load(filepath.Join("..", "..", "..", "fixtures"))
+	bs, err := fixtures.Load(filepath.Join("..", "..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func loadFixtures(t testing.TB) []fixtures.Block {
 	return out
 }
 
-func fileName(b fixtures.Block) string { return b.File }
+func fileName(b fixtures.Block) string { return b.Name() }
 
 func diagString(src string, ds []syntax.Diagnostic) string {
 	var sb strings.Builder
