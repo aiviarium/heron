@@ -15,7 +15,9 @@ const path = require("node:path")
 const types = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2" }
 
 const dir = path.resolve(process.argv[2])
-const pages = fs.readdirSync(dir).filter((f) => f.endsWith(".html"))
+// Every page of every lens: the default lens at the root, the others in
+// their folders.
+const pages = fs.readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith(".html") && !f.startsWith("_assets"))
 const fail = []
 const url = (f) => "file://" + path.join(dir, f)
 
@@ -40,8 +42,8 @@ const url = (f) => "file://" + path.join(dir, f)
       const i = href.indexOf("#")
       const file = i < 0 ? href : href.slice(0, i)
       const frag = i < 0 ? "" : href.slice(i + 1)
-      const target = file || f
-      if (target.startsWith("_assets/")) continue
+      const target = file ? path.posix.normalize(path.posix.join(path.posix.dirname(f), file)) : f
+      if (target.includes("_assets/")) continue
       if (!ids[target]) fail.push(`${f}: link to missing page ${href}`)
       else if (frag && !ids[target].has(decodeURIComponent(frag))) fail.push(`${f}: link to missing anchor ${href}`)
     }

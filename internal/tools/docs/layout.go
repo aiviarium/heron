@@ -112,6 +112,17 @@ func (s *Site) home(c *Ctx) error {
 			c.W(`<div class="lead prose">`, h, `</div>`)
 		}
 		s.homeTiles(c)
+		// The nodes the root holds that have no page of their own still
+		// have their place here.
+		d := c.at(n, c.Level)
+		for _, ch := range s.inOrder(n.Children) {
+			if !s.shown(ch) || s.pageOf[ch] != nil {
+				continue
+			}
+			if err := d.Render(ch); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 	if n != s.Tree.Root {

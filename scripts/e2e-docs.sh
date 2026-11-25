@@ -24,6 +24,14 @@ mkdir -p "$tmp/spec"
 (cd "$tmp/spec" && "$tmp/heron" generate --entry "$spec" docs >/dev/null)
 test -f "$tmp/spec/.heron/docs/index.html"
 
+# A tree with every lens and the authored kinds: the user lens at the
+# root, dev/ and explore/ beside it.
+cp -r internal/tools/docs/testdata/lenses "$tmp/lenses"
+rm -rf "$tmp/lenses/.heron"
+(cd "$tmp/lenses" && "$tmp/heron" generate docs >/dev/null)
+test -f "$tmp/lenses/.heron/docs/dev/kite.store_api.get_note.html"
+test -f "$tmp/lenses/.heron/docs/explore/data.js"
+
 # A project that implements a sealed spec: its conformance and status
 # pages, with status badges.
 cp -r examples/shop-spec examples/shop-spec-2.1.2 examples/shop "$tmp/"
@@ -50,6 +58,7 @@ export NODE_PATH="${NODE_PATH:-/opt/node-tools/node_modules}"
 node web/docs/scripts/e2e.cjs "$tmp/petstore/.heron/docs"
 node web/docs/scripts/e2e.cjs "$tmp/spec/.heron/docs"
 node web/docs/scripts/e2e.cjs "$tmp/shop/.heron/docs"
+node web/docs/scripts/e2e.cjs "$tmp/lenses/.heron/docs"
 node web/docs/scripts/e2e.cjs "$d"
 
 if [ "${1:-}" = "--screenshots" ]; then
