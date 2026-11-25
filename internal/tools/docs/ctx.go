@@ -139,6 +139,11 @@ func (c *Ctx) Children() error {
 
 // shown reports whether a child renders as a node of its own.
 func (s *Site) shown(n *resolve.Node) bool {
+	if n == s.Config.Node && n != nil {
+		// The docs block configures the site; it isn't content of the
+		// page it's written on.
+		return false
+	}
 	if !own(n) && !s.inConfig(n) {
 		return false
 	}
