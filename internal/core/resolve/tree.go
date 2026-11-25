@@ -7,9 +7,9 @@ package resolve
 import (
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // Shape is how a node came to exist.

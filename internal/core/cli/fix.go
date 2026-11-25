@@ -5,7 +5,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/diag"
 )
 
 // autoFix is the first fix of a diagnostic that isn't a suggestion, or nil.

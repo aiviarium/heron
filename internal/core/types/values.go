@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // TypedStrings parse the string form of a type, keyed by the type's path in

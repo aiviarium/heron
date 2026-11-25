@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 const spec = `import = ["std/doc@1", "std/spec@1"]

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/eval"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // RunKind is the kind of the record every `heron run` leaves.

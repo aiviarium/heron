@@ -11,16 +11,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/eval"
-	"github.com/helightdev/specs-v0/internal/core/eval/host"
-	"github.com/helightdev/specs-v0/internal/core/records"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/setup"
-	"github.com/helightdev/specs-v0/internal/core/types"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/eval/host"
+	"github.com/aiviarium/heron/internal/core/records"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/setup"
+	"github.com/aiviarium/heron/internal/core/types"
 )
 
 func runCommand(r *registry.Registry) registry.Command {

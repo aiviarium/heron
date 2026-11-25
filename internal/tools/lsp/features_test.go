@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/tools/lsp/lsptest"
+	"github.com/aiviarium/heron/internal/tools/lsp/lsptest"
 )
 
 const indexSrc = `import = ["std/doc@1", "std/types@1"]

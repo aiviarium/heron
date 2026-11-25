@@ -19,11 +19,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/tools/server/api"
-	"github.com/helightdev/specs-v0/internal/tools/server/route"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/tools/server/api"
+	"github.com/aiviarium/heron/internal/tools/server/route"
 )
 
 // LSP serves one language-server session over a connection of whole

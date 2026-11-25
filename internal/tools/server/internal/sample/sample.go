@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/tools/server"
-	"github.com/helightdev/specs-v0/internal/tools/server/api"
+	"github.com/aiviarium/heron/internal/tools/server"
+	"github.com/aiviarium/heron/internal/tools/server/api"
 )
 
 //go:generate go run ../../apigen -base ../../api/server.heron -ext sample.heron -go sample_gen.go -pkg sample -ts sample.gen.ts

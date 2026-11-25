@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // Results are memoized per file and per resolved node by content hash: an

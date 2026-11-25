@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // The renderers of std/product: actors and personas, epics of stories

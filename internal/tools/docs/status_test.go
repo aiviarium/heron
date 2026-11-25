@@ -3,7 +3,7 @@ package docs
 import (
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // TestSpecRequirementStatus keeps the spec's implementation status honest:

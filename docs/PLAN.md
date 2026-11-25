@@ -428,7 +428,7 @@ registry and nothing else.
 spacing, type and motion; `go generate ./web/tokens` writes `tokens.css`
 and `src/index.ts`, and `TestGeneratedFilesAreCurrent` (run in
 `scripts/ci.sh`) keeps them current. Go embeds the CSS through
-`tokens.CSS()` (package `github.com/helightdev/specs-v0/web/tokens`); TS
+`tokens.CSS()` (package `github.com/aiviarium/heron/web/tokens`); TS
 imports `@heron/tokens` (values, `cssVar`, `valueVar`) and
 `@heron/tokens/tokens.css`.
 
@@ -471,7 +471,7 @@ render through one package. Build a site from a checked tree, then ask it
 for pages, nodes, files or fragments:
 
 ```go
-import "github.com/helightdev/specs-v0/internal/tools/docs"
+import "github.com/aiviarium/heron/internal/tools/docs"
 
 s := docs.New(res.Tree, res.Checker, docs.Options{
 	Registry: r,            // renderers registered by packages and later units
@@ -562,7 +562,7 @@ Every string the tools show that isn't from a spec is in
 `web/strings/strings.json`, keyed `<tool>.<group>.<name>` (`docs.*` for the
 renderer, `docs.island.*` for the islands, `app.*` for the app). Go reads it
 through `uistrings.Get/Format` (package
-`github.com/helightdev/specs-v0/web/strings`); TS imports the JSON. A
+`github.com/aiviarium/heron/web/strings`); TS imports the JSON. A
 missing key panics, and the docs test fails on visible text that's in
 neither the spec nor the catalogue.
 

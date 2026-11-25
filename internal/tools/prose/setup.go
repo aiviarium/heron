@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // ValeVersion is the Vale release setup installs when heron.lock pins none.

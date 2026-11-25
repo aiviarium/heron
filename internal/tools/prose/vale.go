@@ -21,12 +21,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/lint"
-	coreprose "github.com/helightdev/specs-v0/internal/core/lint/prose"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/lint"
+	coreprose "github.com/aiviarium/heron/internal/core/lint/prose"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // ValeName is the Vale provider's name; its findings are coded

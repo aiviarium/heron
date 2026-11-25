@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // ungram reads grammar/heron.ungram: its token kinds, and each

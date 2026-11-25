@@ -9,9 +9,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/lint/prose"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/lint/prose"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // Provider returns a provider named "Words" that flags each word of the

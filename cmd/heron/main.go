@@ -9,11 +9,11 @@ package main
 import (
 	"os"
 
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/extension"
-	"github.com/helightdev/specs-v0/internal/core/gen"
-	"github.com/helightdev/specs-v0/internal/core/project/release"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/extension"
+	"github.com/aiviarium/heron/internal/core/gen"
+	"github.com/aiviarium/heron/internal/core/project/release"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // units holds each installed unit's registrations, in unit order. Unit 1 is

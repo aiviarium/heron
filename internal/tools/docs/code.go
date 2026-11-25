@@ -4,9 +4,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // codeBlock writes a code block with a title bar and a copy button.

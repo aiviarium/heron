@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/syntax"
-	"github.com/helightdev/specs-v0/std"
+	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/std"
 )
 
 // FileID identifies a file canonically: one identity per file, whatever

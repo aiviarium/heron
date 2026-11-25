@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/std"
-	uistrings "github.com/helightdev/specs-v0/web/strings"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/std"
+	uistrings "github.com/aiviarium/heron/web/strings"
 )
 
 func site(t *testing.T, entry string) *Site {

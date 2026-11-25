@@ -4,10 +4,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
-	uistrings "github.com/helightdev/specs-v0/web/strings"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
+	uistrings "github.com/aiviarium/heron/web/strings"
 )
 
 // label returns a catalogue string.

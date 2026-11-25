@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/lint"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/lint"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 func repo(t *testing.T, files map[string]string) string {

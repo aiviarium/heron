@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/records"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/records"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 const tasksSrc = `import = ["std/types@1", "std/files@1", "std/process@1"]

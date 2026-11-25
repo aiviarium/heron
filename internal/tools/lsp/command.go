@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // Register installs `heron lsp`. The session lints with every lint and

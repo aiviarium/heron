@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/fixtures"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/fixtures"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // TestViews: every node of every fixture has a typed view, and members,

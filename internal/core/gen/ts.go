@@ -5,13 +5,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/extension"
-	"github.com/helightdev/specs-v0/internal/core/extension/protocol"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
-	"github.com/helightdev/specs-v0/internal/core/types"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/extension"
+	"github.com/aiviarium/heron/internal/core/extension/protocol"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/types"
 )
 
 // TS writes `.heron/types.ts`, the TS types of every type and enum the

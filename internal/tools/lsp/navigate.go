@@ -3,8 +3,8 @@ package lsp
 import (
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // tokenAt returns the token at an offset and its ancestors, innermost

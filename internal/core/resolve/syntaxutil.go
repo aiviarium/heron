@@ -3,7 +3,7 @@ package resolve
 import (
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // PathSegs returns the segments of a Path node: names, and the values of

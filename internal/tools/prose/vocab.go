@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/diag"
 )
 
 // Action is a code action a prose finding adds beyond its fixes, run as a

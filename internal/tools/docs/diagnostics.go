@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // The view of std/tech's diagnostic kind: a card on its section's page,

@@ -7,9 +7,9 @@ package main
 import (
 	"os"
 
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/lint/prose/words"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/lint/prose/words"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 func main() {

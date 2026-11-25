@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/fixtures"
+	"github.com/aiviarium/heron/internal/core/fixtures"
 )
 
 // The Heron inside spec/'s example nodes is checked as its fixture is: each

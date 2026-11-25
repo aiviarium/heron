@@ -12,13 +12,13 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/tools/docs"
+	"github.com/aiviarium/heron/internal/tools/server"
+	"github.com/aiviarium/heron/internal/tools/server/api"
+	"github.com/aiviarium/heron/internal/tools/server/internal/sample"
 	"github.com/coder/websocket"
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/tools/docs"
-	"github.com/helightdev/specs-v0/internal/tools/server"
-	"github.com/helightdev/specs-v0/internal/tools/server/api"
-	"github.com/helightdev/specs-v0/internal/tools/server/internal/sample"
 )
 
 // echoLSP is a test double for the language server: it answers every

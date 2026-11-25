@@ -5,7 +5,7 @@ import (
 	"html"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // Ctx is what a renderer receives: the site, the node it renders and the

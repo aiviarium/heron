@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/helightdev/specs-v0/web/tokens"
+	"github.com/aiviarium/heron/web/tokens"
 )
 
 // ThemeManifest is the file a theme package keeps at its root,

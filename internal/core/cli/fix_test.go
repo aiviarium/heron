@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/diag"
 )
 
 // `heron lint -fix` applies a diagnostic's first fix that isn't a

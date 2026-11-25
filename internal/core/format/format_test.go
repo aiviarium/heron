@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/fixtures"
-	"github.com/helightdev/specs-v0/internal/core/format"
+	"github.com/aiviarium/heron/internal/core/fixtures"
+	"github.com/aiviarium/heron/internal/core/format"
 )
 
 func heronFixtures(t *testing.T) []fixtures.Block {

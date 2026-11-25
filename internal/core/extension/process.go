@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/extension/protocol"
+	"github.com/aiviarium/heron/internal/core/extension/protocol"
 )
 
 // Process is one supervised extension process: started on first use,

@@ -12,9 +12,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/eval"
-	"github.com/helightdev/specs-v0/internal/core/gen"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/gen"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // IgnoreWriter writes setup's entries of the managed ignore block. The

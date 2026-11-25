@@ -2,7 +2,7 @@
 
 package ast
 
-import "github.com/helightdev/specs-v0/internal/core/syntax"
+import "github.com/aiviarium/heron/internal/core/syntax"
 
 // Member is one of: Declare, Value, Enter, TextNode, Scope, Invoke, Set, Let, Action, ProseLines, ProseBlock, CommentLine, Doc, ErrorNode.
 //

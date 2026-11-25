@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
-	"github.com/helightdev/specs-v0/internal/core/types"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/types"
 )
 
 func tokenType(name string) int {

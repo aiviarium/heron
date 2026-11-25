@@ -1,7 +1,7 @@
 package docs
 
 import (
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // taskNeeds returns the tasks among a node's children and the tasks each

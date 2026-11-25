@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 func checkDir(t *testing.T, dir string) *check.Result {

@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/extension/protocol"
-	"github.com/helightdev/specs-v0/internal/core/lint"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/extension/protocol"
+	"github.com/aiviarium/heron/internal/core/lint"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // The test binary doubles as an extension written in Go: with

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 func TestRunResourceLifecycle(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/ast"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // The renderers of std/tech: component pages with their contract and

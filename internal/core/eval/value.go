@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // Value is a Heron value at run time. It is one of:

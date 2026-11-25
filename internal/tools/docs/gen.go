@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/gen"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/gen"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // The built theme and islands, from web/docs (`pnpm --filter @heron/docs

@@ -1,4 +1,4 @@
-module github.com/helightdev/specs-v0
+module github.com/aiviarium/heron
 
 go 1.24.7
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 func env(dir string) (*registry.Env, *bytes.Buffer, *bytes.Buffer) {

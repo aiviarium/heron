@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/cli"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/tools/lsp"
-	"github.com/helightdev/specs-v0/internal/tools/lsp/lsptest"
-	"github.com/helightdev/specs-v0/internal/tools/prose"
+	"github.com/aiviarium/heron/internal/core/cli"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/tools/lsp"
+	"github.com/aiviarium/heron/internal/tools/lsp/lsptest"
+	"github.com/aiviarium/heron/internal/tools/prose"
 )
 
 // start runs a session in process and returns a client connected to it.

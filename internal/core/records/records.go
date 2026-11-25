@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // DefaultPath is where records go when nothing configures a location,

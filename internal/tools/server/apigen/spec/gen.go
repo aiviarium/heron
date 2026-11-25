@@ -97,7 +97,7 @@ func comment(b *bytes.Buffer, indent, doc string) {
 func Go(a *API, pkg string) ([]byte, error) {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "// %s\n\npackage %s\n\n", header, pkg)
-	b.WriteString("import (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/helightdev/specs-v0/internal/tools/server/route\"\n)\n\n")
+	b.WriteString("import (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/aiviarium/heron/internal/tools/server/route\"\n)\n\n")
 	b.WriteString("var (\n\t_ = context.Background\n\t_ = http.MethodGet\n)\n\n")
 	for _, r := range a.Records {
 		comment(&b, "", r.Doc)

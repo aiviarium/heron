@@ -3,7 +3,7 @@ package docs
 import (
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // changelog renders a section in the changelog layout: each child section

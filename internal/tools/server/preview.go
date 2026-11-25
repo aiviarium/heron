@@ -5,9 +5,9 @@ import (
 	"html"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/tools/server/api"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/tools/server/api"
 )
 
 func resolveID(p string) resolve.FileID {

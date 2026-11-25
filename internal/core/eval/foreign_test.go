@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/eval"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 const transportSrc = `import = ["std/schema@1", "std/types@1", "std/apis@1"]

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/eval"
-	"github.com/helightdev/specs-v0/internal/core/records"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/records"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // A sample record kind, as a later unit would register one: test runs.

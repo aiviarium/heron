@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/diag"
 )
 
 // ProseRegion is one block of the prose view: a paragraph, heading, list

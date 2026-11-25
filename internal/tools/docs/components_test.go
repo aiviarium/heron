@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-const modulePath = "github.com/helightdev/specs-v0"
+const modulePath = "github.com/aiviarium/heron"
 
 // TestSpecComponentUses keeps unit 1's components honest: every Go package
 // of internal/core (outside an internal/ folder and other than a command)

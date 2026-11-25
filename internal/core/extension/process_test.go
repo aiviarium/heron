@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/extension/protocol"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/extension/protocol"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // A process that speaks another major version of the protocol is stopped

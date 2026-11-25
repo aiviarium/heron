@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // native is a func of the standard packages that Go backs: what can't be

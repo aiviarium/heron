@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/eval"
 )
 
 func TestRunPassesArgumentsWithoutAShell(t *testing.T) {

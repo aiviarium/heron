@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/fixtures"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/fixtures"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // TB is the part of testing.TB the fixture runner uses, so tests of other

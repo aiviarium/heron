@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/tools/server/apigen/spec"
+	"github.com/aiviarium/heron/internal/tools/server/apigen/spec"
 )
 
 func main() {

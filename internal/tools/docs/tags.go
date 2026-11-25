@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	uistrings "github.com/helightdev/specs-v0/web/strings"
+	"github.com/aiviarium/heron/internal/core/registry"
+	uistrings "github.com/aiviarium/heron/web/strings"
 )
 
 // TagCall is a markup tag being rendered: its rendered content and its

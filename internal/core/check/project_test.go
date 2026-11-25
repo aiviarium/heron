@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/project"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/project"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // checkFiles writes files under a temp dir and checks the entry.

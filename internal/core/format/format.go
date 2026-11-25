@@ -11,7 +11,7 @@ package format
 import (
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // Source formats src, a file called name. Files with syntax errors are

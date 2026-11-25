@@ -4,7 +4,7 @@
 // view (with a nil N) or nil when a child is absent.
 package ast
 
-import "github.com/helightdev/specs-v0/internal/core/syntax"
+import "github.com/aiviarium/heron/internal/core/syntax"
 
 // Node is any typed view.
 type Node interface {

@@ -3,7 +3,7 @@ package syntax_test
 import (
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/syntax"
 )
 
 // TestFixturePrefixes: every prefix of every Heron fixture re-parses

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 type syncBuf struct {

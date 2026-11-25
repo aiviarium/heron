@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
-	"github.com/helightdev/specs-v0/internal/core/syntax"
-	"github.com/helightdev/specs-v0/internal/core/types"
-	"github.com/helightdev/specs-v0/std"
+	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/types"
+	"github.com/aiviarium/heron/std"
 )
 
 // completion offers what fits where the cursor is, from the schemas in

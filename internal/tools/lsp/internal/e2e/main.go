@@ -15,7 +15,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/tools/lsp/lsptest"
+	"github.com/aiviarium/heron/internal/tools/lsp/lsptest"
 )
 
 func main() {

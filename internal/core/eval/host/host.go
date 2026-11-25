@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/helightdev/specs-v0/internal/core/eval"
+	"github.com/aiviarium/heron/internal/core/eval"
 )
 
 // Caps returns the real capabilities, with log lines going to log.

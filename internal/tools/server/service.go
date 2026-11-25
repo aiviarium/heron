@@ -13,11 +13,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/gen"
-	"github.com/helightdev/specs-v0/internal/core/records"
-	"github.com/helightdev/specs-v0/internal/tools/server/api"
-	"github.com/helightdev/specs-v0/internal/tools/server/route"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/gen"
+	"github.com/aiviarium/heron/internal/core/records"
+	"github.com/aiviarium/heron/internal/tools/server/api"
+	"github.com/aiviarium/heron/internal/tools/server/route"
 )
 
 // service implements the base API's ops.

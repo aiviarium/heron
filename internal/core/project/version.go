@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // Scheme is the version scheme of a project that implements a spec. Both

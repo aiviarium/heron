@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/helightdev/specs-v0/web/tokens"
+	"github.com/aiviarium/heron/web/tokens"
 )
 
 func main() {

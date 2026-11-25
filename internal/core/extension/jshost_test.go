@@ -12,10 +12,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/helightdev/specs-v0/internal/core/check"
-	"github.com/helightdev/specs-v0/internal/core/diag"
-	"github.com/helightdev/specs-v0/internal/core/lint"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/lint"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 const sampleDir = "../../../web/samples/inventory"

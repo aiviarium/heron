@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/format"
-	"github.com/helightdev/specs-v0/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/format"
+	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 func fmtCommand() registry.Command {

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/helightdev/specs-v0/internal/core/lint"
-	"github.com/helightdev/specs-v0/internal/core/records"
-	"github.com/helightdev/specs-v0/internal/core/registry"
-	"github.com/helightdev/specs-v0/internal/core/setup"
+	"github.com/aiviarium/heron/internal/core/lint"
+	"github.com/aiviarium/heron/internal/core/records"
+	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/heron/internal/core/setup"
 )
 
 // Register installs unit 1's commands and core lints.

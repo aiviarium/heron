@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
 // RenderPage renders a page as a whole HTML document: the top bar, the
