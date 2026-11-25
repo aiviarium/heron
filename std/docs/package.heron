@@ -2,7 +2,7 @@
 // tools tab's "Styling and extending the docs": the theme, the layout each
 // section uses, the components each slot shows and the modules that render
 // kinds. A tree enters it once, as `docs { … }`.
-import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1"]
+import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1", "std/spec@1", "std/tech@1"]
 
 docs: package(version = "1.0", requires = ["std/doc@1"]) {
   /// The docs generator's configuration.
@@ -22,6 +22,11 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     depth?: Int
     accept(kind = layout)
     accept(kind = slot)
+    accept(kind = lens)
+    /// The lenses the site builds, in the order the lens switcher lists
+    /// them: the default one at the site's root and the others under their
+    /// prefix. Unset, the site builds `explore` alone, at its root.
+    lenses?: List(Ref(lens))
   }
 
   /// The docs of the tree, entered as `docs { … }`.
@@ -41,5 +46,112 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   slot(name: String, of?: Ref(Any)): kind {
     accept(prose)
     accept(category = block)
+  }
+
+  /// How a lens orders its navigation.
+  LensNav: enum {
+    /// The authored pages first, then the reference.
+    TASK: Self
+    /// The sections, by topic.
+    TOPIC: Self
+    /// The node tree, as written.
+    TREE: Self
+  }
+
+  /// A view of the site for one audience, built from the same tree as
+  /// every other: which kinds and categories it shows, which it sums up in
+  /// one line and which it leaves out, how its navigation is ordered and
+  /// where it's served. `@lens(…)` keeps a node or a prose block to some
+  /// lenses; explore shows everything.
+  lens: kind {
+    /// The lens's name in the switcher.
+    title: String
+    /// The lens served at the site's root; one per site.
+    default?: Bool
+    /// Kinds or categories rendered in full.
+    show?: List(Ref(Any))
+    /// Kinds rendered as one line, expandable.
+    summarize?: List(Ref(Any))
+    /// Kinds left out.
+    hide?: List(Ref(Any))
+    nav: LensNav
+    /// Authored pages shown first.
+    entry?: List(Ref(Any))
+    /// The URL path segment the lens is served under; "" for the default.
+    prefix: String
+  }
+
+  /// For the people who use what a tree describes: the authored pages
+  /// first, then the commands, examples, terms and errors they act on,
+  /// without the rules that bind an implementation or the tree's sections.
+  user: lens {
+    title = "User"
+    default = true
+    nav = LensNav.TASK
+    show = [authored, step, spec.example, doc.term, tech.command, tech.argument, tech.option, tech.exit, tech.diagnostic]
+    hide = [spec.rule, spec.condition, tech.production, tech.invariant]
+    prefix = ""
+  }
+
+  /// For the people who write specs of their own: sections by topic, the
+  /// examples, APIs and diagrams up front, and each rule summed up in one
+  /// line.
+  developer: lens {
+    title = "Developer"
+    nav = LensNav.TOPIC
+    summarize = [spec.rule, spec.quality, spec.guidance]
+    prefix = "dev"
+  }
+
+  /// Everything the tree holds, as the node tree.
+  explore: lens {
+    title = "Explore"
+    nav = LensNav.TREE
+    prefix = "explore"
+  }
+
+  /// Pages written for a lens's readers rather than derived from the
+  /// tree's structure. Each gets a page of its own; its examples are
+  /// checked as the spec's are, its links resolve, and `${path.field}`
+  /// shows the value of a spec node, failing the check once it's gone.
+  authored: category
+
+  /// A page that explains how to get something done with the system,
+  /// start to finish, in prose.
+  guide: kind(in = [authored, doc.block], heading = true) {
+    accept(prose)
+    accept(category = doc.block)
+    accept(kind = spec.example)
+  }
+
+  /// A page that walks through one task in numbered steps.
+  howto: kind(in = [authored, doc.block], heading = true) {
+    accept(prose)
+    accept(kind = step)
+    accept(category = doc.block)
+    accept(kind = spec.example)
+  }
+
+  /// One step of a how-to or a tutorial, numbered in the order written.
+  step: kind(heading = true) {
+    accept(prose)
+    accept(category = doc.block)
+    accept(kind = spec.example)
+  }
+
+  /// A page that explains an idea the reader needs before the reference
+  /// makes sense.
+  concept: kind(in = [authored, doc.block], heading = true) {
+    accept(prose)
+    accept(category = doc.block)
+    accept(kind = spec.example)
+  }
+
+  /// A page that teaches by building something, in numbered steps.
+  tutorial: kind(in = [authored, doc.block], heading = true) {
+    accept(prose)
+    accept(kind = step)
+    accept(category = doc.block)
+    accept(kind = spec.example)
   }
 }

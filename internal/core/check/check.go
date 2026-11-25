@@ -7,10 +7,15 @@ package check
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"hash"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
@@ -94,6 +99,20 @@ func (s *Session) Check(entry resolve.FileID) *Result {
 	// Project mode and the implementation version scheme, over the whole
 	// tree: a tree that implements a spec leaves the spec's kinds to it.
 	res.Diags = append(res.Diags, project.Check(t, c)...)
+	// The docs' lenses and authored pages (std/docs). Their diagnostics
+	// name a lens where the checker would only say the name is unknown.
+	lds, replaced := lens.Check(t, c, CheckExample)
+	if len(replaced) > 0 {
+		keep := res.Diags[:0]
+		for _, d := range res.Diags {
+			if d.Code == "unresolved" && replaced[fmt.Sprintf("%s:%d", d.File, d.Start)] {
+				continue
+			}
+			keep = append(keep, d)
+		}
+		res.Diags = keep
+	}
+	res.Diags = append(res.Diags, lds...)
 	res.Diags = res.Diags.Sort()
 	return res
 }
@@ -201,4 +220,54 @@ func (s *Session) Pos(file string, off int) (int, int) {
 		return syntax.LineCol(f.Src, off)
 	}
 	return 0, 0
+}
+
+// exampleMemo remembers each example source's result, so a watch loop or
+// the language server checks an authored page's examples once.
+var (
+	exampleMu   sync.Mutex
+	exampleMemo = map[[32]byte]exampleResult{}
+)
+
+type exampleResult struct {
+	msg  string
+	line int
+	ok   bool
+}
+
+// CheckExample checks the source of an authored page's example as the
+// entry point of a tree of its own, in a folder with no other file, where
+// only the standard packages resolve, and returns its first error.
+func CheckExample(src string) (string, int, bool) {
+	key := sha256.Sum256([]byte(src))
+	exampleMu.Lock()
+	if r, ok := exampleMemo[key]; ok {
+		exampleMu.Unlock()
+		return r.msg, r.line, r.ok
+	}
+	exampleMu.Unlock()
+	r := exampleResult{ok: true}
+	dir, err := os.MkdirTemp("", "heron-example-")
+	if err != nil {
+		return "", 0, true
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.Join(dir, "index.heron")
+	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+		return "", 0, true
+	}
+	if id, err := resolve.Canonical(path); err == nil {
+		res := NewSession().Check(id)
+		for _, d := range res.Diags {
+			if d.Severity == diag.Error {
+				line, _ := syntax.LineCol(src, d.Start)
+				r = exampleResult{msg: d.Message, line: line}
+				break
+			}
+		}
+	}
+	exampleMu.Lock()
+	exampleMemo[key] = r
+	exampleMu.Unlock()
+	return r.msg, r.line, r.ok
 }

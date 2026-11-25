@@ -515,11 +515,65 @@ func (c *Checker) insert(ins ast.Insert, sc *resolve.Scope, file *resolve.File, 
 	}
 	if p := ins.Path(); p.N != nil {
 		c.pathRef(p.N, sc, file, loc)
+		c.factPath(p.N, sc, file, loc)
 		c.argExprsIn(ins.Args(), sc, file, loc)
 	}
 	if e := ins.Expr(); e != nil {
 		c.expr(e, sc, file, loc)
+		if pe, ok := e.(ast.PathExpr); ok {
+			c.factPath(pe.Path().N, sc, file, loc)
+		}
 	}
+}
+
+// factPath checks an insertion's path strictly: past the nodes it names,
+// only its last name may be a field or a parameter of the node's kind, so
+// a page stops checking once the fact it inserts is gone.
+func (c *Checker) factPath(p *syntax.Node, sc *resolve.Scope, file *resolve.File, loc *locals) {
+	segs := resolve.PathSegs(p)
+	if len(segs) < 2 || sc == nil || loc.has(segs[0]) {
+		return
+	}
+	var heads []*resolve.Node
+	sc.Each(segs[0], file, off(p), func(b resolve.Binding) bool {
+		if b.Local != nil {
+			heads = nil
+			return false
+		}
+		heads = append(heads, b.Node)
+		return true
+	})
+	if len(heads) == 0 {
+		return
+	}
+	best, bestAt := heads[0], 0
+	for _, h := range heads {
+		// i is the first name past the nodes this candidate names.
+		n, i := h, 1
+		for ; i < len(segs); i++ {
+			ch := n.Child(segs[i])
+			if ch == nil {
+				break
+			}
+			n = ch
+		}
+		if i == len(segs) {
+			return
+		}
+		if i > bestAt {
+			best, bestAt = n, i
+		}
+	}
+	n := best
+	if bestAt == 0 {
+		bestAt = 1
+	}
+	if bestAt == len(segs)-1 {
+		if _, ok := c.Field(n, segs[bestAt]); ok {
+			return
+		}
+	}
+	c.errorf(file, p, "unresolved", "unknown name %s%s", strings.Join(segs[:bestAt+1], "."), c.closestField(n, segs[bestAt]))
 }
 
 // prose checks the links, inserts and tags of a text.
@@ -543,6 +597,9 @@ func (c *Checker) proseChildren(n *syntax.Node, sc *resolve.Scope, file *resolve
 			continue
 		}
 		switch ch.Kind {
+		case syntax.Annotation:
+			// An annotation on a prose block, such as `@lens(user)`.
+			c.annotation(resolve.Site{File: file, N: ch, Scope: sc})
 		case syntax.Link:
 			l := ast.Link{N: ch}
 			if l.Hash() != nil && l.Path().N != nil {

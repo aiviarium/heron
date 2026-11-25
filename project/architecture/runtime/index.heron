@@ -16,6 +16,7 @@ include = [
   "./registry.heron",
   "./gen.heron",
   "./project.heron",
+  "./lens.heron",
   "./extension.heron",
   "./setup.heron",
   "./cli.heron",

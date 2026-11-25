@@ -337,6 +337,9 @@ func (c *Checker) slot(n *resolve.Node, nt ast.NamedType, decl *resolve.Node, sc
 	c.Refs[nt.Path().N] = b.Node
 	if decl == nil {
 		decl = b.Node
+	} else if c.IsKind(decl) && decl != b.Node && len(b.Node.Overloads) == 0 && decl.Name == b.Node.Name {
+		// The enclosing kind's choice among kinds of one name.
+		c.Refs[nt.Path().N] = decl
 	}
 	switch {
 	case c.IsKind(decl):

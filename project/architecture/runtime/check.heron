@@ -5,7 +5,7 @@ check: component("internal/core/check", lang = "go") {
   | language server redoes only what an edit touches. It also runs the design's fixtures
   | as the [unit](#delivery.units)-1 done criterion asks.
 
-  uses = [architecture.runtime.diag, architecture.runtime.fixtures, architecture.runtime.project, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
+  uses = [architecture.runtime.diag, architecture.runtime.fixtures, architecture.runtime.lens, architecture.runtime.project, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
 
   stages: responsibility {{
     Resolves an [entry point](#heron.language.core_format.files.entry_point), type-checks each top-level node and the root, and returns

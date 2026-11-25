@@ -61,6 +61,15 @@ func (c *Checker) metaOf(n *resolve.Node) *meta {
 		}
 		if tt != nil {
 			m.t = c.typeOf(tt, n.Decl.Scope, n.Decl.File)
+			if nt, ok := tt.(ast.NamedType); ok && m.t.decl != nil && c.IsKind(m.t.decl) && n.Parent != nil && c.KindOf(n.Parent) != nil && !c.Accepts(n.Parent, m.t.decl) {
+				// Of the kinds the name could mean, the one the enclosing
+				// kind accepts wins, as for a call: std/docs's step in a
+				// how-to, where std/product's step is in scope too.
+				pred := func(x *resolve.Node) bool { return c.IsKind(x) && c.Accepts(n.Parent, x) }
+				if k := c.lookupPath(n.Decl.Scope, n.Decl.File, off(nt.N), resolve.PathSegs(nt.Path().N), pred); k != nil && pred(k) {
+					m.t.decl = k
+				}
+			}
 			if nt, ok := tt.(ast.NamedType); ok && m.t.decl != nil && c.IsKind(m.t.decl) {
 				m.t.decl = c.pick(m.t.decl, nt.Args(), n, n.Decl.Scope, n.Decl.File)
 			}

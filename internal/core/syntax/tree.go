@@ -148,3 +148,28 @@ func LineCol(src string, off int) (line, col int) {
 	col = off - strings.LastIndexByte(src[:off], '\n')
 	return line, col
 }
+
+// FenceLines returns the lines of a fenced code block, its opening line
+// first, with an empty string for each `|` line that holds nothing.
+func FenceLines(n *Node) []string {
+	var lines []string
+	open := false
+	for _, ch := range n.Children {
+		t, ok := ch.(*Token)
+		if !ok {
+			continue
+		}
+		switch t.Kind {
+		case Pipe:
+			lines = append(lines, "")
+			open = true
+		case FenceLine:
+			if !open {
+				lines = append(lines, "")
+			}
+			lines[len(lines)-1] = t.Text
+			open = false
+		}
+	}
+	return lines
+}

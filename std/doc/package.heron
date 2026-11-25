@@ -221,6 +221,11 @@ doc: package(version = "1.0") {
     accept(category = inline)
   }
 
+  /// Keeps a node or a prose block to some lenses of the docs (std/docs):
+  /// it shows only in those, and explore shows everything. Each name is a
+  /// lens the tree declares or std/docs ships.
+  lens(names<variadic>: Ref(Any)): annotation
+
   @highlight(token = "comment.doc")
   doc: annotation {
     accept(prose)
