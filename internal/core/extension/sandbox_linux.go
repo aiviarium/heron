@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -23,10 +24,43 @@ type sandboxSpec struct {
 	Command  []string `json:"command"`
 }
 
+// sandboxProbeEnv makes the binary only try the sandbox's first mount and
+// exit, so a host that allows the namespaces but not the mounts (such as a
+// hardened CI runner) is found before an extension starts.
+const sandboxProbeEnv = "HERON_EXTENSION_SANDBOX_PROBE"
+
 func init() {
+	if os.Getenv(sandboxProbeEnv) != "" {
+		if err := syscall.Mount("", "/", "", syscall.MS_REC|syscall.MS_PRIVATE, ""); err != nil {
+			os.Exit(126)
+		}
+		os.Exit(0)
+	}
 	if s := os.Getenv(sandboxEnv); s != "" {
 		os.Exit(sandboxMain(s))
 	}
+}
+
+var (
+	probeOnce sync.Once
+	probeOK   bool
+)
+
+// sandboxWorks runs the binary once inside the namespaces to see whether
+// the sandbox can set up its mounts here.
+func sandboxWorks(self string) bool {
+	probeOnce.Do(func() {
+		cmd := exec.Command(self)
+		cmd.Env = append(os.Environ(), sandboxProbeEnv+"=1")
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Cloneflags:                 syscall.CLONE_NEWUSER | syscall.CLONE_NEWNS,
+			UidMappings:                []syscall.SysProcIDMap{{ContainerID: 0, HostID: os.Getuid(), Size: 1}},
+			GidMappings:                []syscall.SysProcIDMap{{ContainerID: 0, HostID: os.Getgid(), Size: 1}},
+			GidMappingsEnableSetgroups: false,
+		}
+		probeOK = cmd.Run() == nil
+	})
+	return probeOK
 }
 
 // sandboxed wraps a command so it runs inside the namespaces. It returns
@@ -35,6 +69,9 @@ func sandboxed(cmd *exec.Cmd, writable []string, network bool) (bool, error) {
 	self, err := os.Executable()
 	if err != nil {
 		return false, err
+	}
+	if !sandboxWorks(self) {
+		return false, nil
 	}
 	spec, _ := json.Marshal(sandboxSpec{Writable: writable, Command: cmd.Args})
 	path, err := exec.LookPath(cmd.Path)
