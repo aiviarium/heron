@@ -1,0 +1,2 @@
+// What the Data tab's excerpts assume: the payments model.
+include = ["./payments.heron"]

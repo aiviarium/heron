@@ -1,0 +1,11 @@
+import = ["std/js@1"]
+
+tools: module = js("./tools/orders.ts")
+
+/// Writes every order of a pet to a CSV file and returns its path.
+export_orders(pet_id: Int): func(String) = tools.exportOrders
+
+export_pet_orders(pet_id: Int): task do {
+  let path = export_orders(pet_id = pet_id)
+  log("Wrote $path")
+}

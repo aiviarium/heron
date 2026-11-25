@@ -1,0 +1,20 @@
+checks: pipeline {
+  lint: phase do {
+    store_svc.lint()
+  }
+
+  @needs(lint)
+  unit: phase<default, fail_fast> do {
+    store_svc.test()
+  }
+
+  @needs(unit)
+  e2e: phase<speculative>
+
+  @needs<always>(unit, e2e)
+  report: phase do {
+    publish_report()
+  }
+
+  include = ["./specs/store/orders/scenarios.heron"]
+}

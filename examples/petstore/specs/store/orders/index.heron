@@ -1,0 +1,65 @@
+available: term(aliases = ["for sale"]) {{
+  A pet whose status is [AVAILABLE](#PetStatus.AVAILABLE). Only available pets can be ordered.
+}}
+
+ordering: section {
+  | Customers order a pet from the store. An order holds the pet until it's
+  | approved or cancelled, so two customers can never buy the same pet.
+
+  outOfScope {{ Orders for several pets at once. }}
+
+  only_available: rule(store.place_order) {
+    if {{ the pet isn't [available](#available) }}
+    must {{ reject the order with `PetNotAvailable` }}
+
+    example {{ a pet that is [PENDING](#PetStatus.PENDING): rejected }}
+    example {{ a pet that is [SOLD](#PetStatus.SOLD): rejected }}
+  }
+
+  hold_on_order: rule(store.place_order) {
+    when {{ an order for the pet is placed }}
+    must {{ set the pet to [PENDING](#PetStatus.PENDING) }}
+    then {{ it no longer shows up when searching for [available](#orders.available) pets }}
+  }
+
+  cancel_releases: rule(store.cancel_order) {
+    when {{ its order is cancelled before approval }}
+    must {{ set the pet back to [AVAILABLE](#PetStatus.AVAILABLE) }}
+  }
+
+  delivered_stays: rule(store.cancel_order) {
+    if {{ the order is already [DELIVERED](#OrderStatus.DELIVERED) }}
+    mustNot {{ cancel it }}
+    instead {{ reject it with `OrderNotCancellable` }}
+  }
+}
+
+single_sale: rule(Pet) {
+  must {{ a pet has at most one order that isn't cancelled }}
+}
+
+pet_lifecycle: states(Pet.status) {
+  initial = PetStatus.AVAILABLE
+  terminal = [PetStatus.SOLD]
+
+  held: transition(PetStatus.AVAILABLE, PetStatus.PENDING)
+  released: transition(PetStatus.PENDING, PetStatus.AVAILABLE)
+
+  sold: transition(PetStatus.PENDING, PetStatus.SOLD) {
+    when {{ the order is approved }}
+  }
+}
+
+order_latency: metric(Duration) {{ Time from receiving an order until its response is sent. }}
+
+order_speed: quality(store.place_order) {
+  should {{ place orders quickly }}
+  metric = order_latency
+  at_most = "200ms"
+  percentile = 99
+}
+
+guidance(store.place_order) {{
+  Lock the pet's row while placing the order; two orders for the same pet
+  arrive together more often than you'd think.
+}}

@@ -1,0 +1,45 @@
+// std/docs: how the docs generator is configured, from the Development
+// tools tab's "Styling and extending the docs": the theme, the layout each
+// section uses, the components each slot shows and the modules that render
+// kinds. A tree enters it once, as `docs { … }`.
+import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1"]
+
+docs: package(version = "1.0", requires = ["std/doc@1"]) {
+  /// The docs generator's configuration.
+  site: kind {
+    /// The theme package: `npm:<name>@<major>`, found in node_modules, or
+    /// a folder such as "./theme". Its tokens, fonts, logo and CSS go in a
+    /// `theme` layer after the built-in theme.
+    theme?: String
+    /// Modules whose renderers register per kind, such as
+    /// `js("./docs/renderers.ts")`. They run through the JS host when the
+    /// docs are generated; a kind none of them renders keeps its built-in
+    /// renderer, or the generic view of its fields and children.
+    renderers?: List(module)
+    /// How many levels of sections get pages of their own; 2 unless set.
+    /// Components, commands, epics, use cases and screens get pages at any
+    /// depth.
+    depth?: Int
+    accept(kind = layout)
+    accept(kind = slot)
+  }
+
+  /// The docs of the tree, entered as `docs { … }`.
+  docs<export>: site
+
+  /// The layout the pages of some sections use: "docs", "api",
+  /// "changelog" or "landing".
+  layout(name: String): kind {
+    /// The sections, apis or scopes whose pages, and the pages below them,
+    /// take the layout.
+    sections: List(Ref(Any))
+  }
+
+  /// Components a place on every page shows: the page "header", the
+  /// "sidebar", or "before" and "after" the content. With `of`, "before"
+  /// and "after" are in that kind's renderer, around each node of it.
+  slot(name: String, of?: Ref(Any)): kind {
+    accept(prose)
+    accept(category = block)
+  }
+}

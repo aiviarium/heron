@@ -1,0 +1,109 @@
+// std/types: records, enums, unions, interfaces, apis and the types the
+// Data and APIs tabs build on.
+import = ["std/schema@1"]
+
+types: package(version = "1.0") {
+  /// A record. Each member is `name<flags>?: Type = default`; its
+  /// positional arguments are the interfaces it implements.
+  type(implements<variadic>?: Ref(interface)): kind {
+    accept(kind = member, infer = true)
+    accept(kind = func)
+  }
+
+  /// A record that also accepts members it doesn't declare.
+  open: flag(on = [type])
+
+  /// A member of a type: the expression after `:` is its type.
+  member: kind(typed = true)
+
+  /// A parameter of an op, func or kind.
+  param: kind(typed = true)
+
+  /// A closed set of values; its params are the constructor for them.
+  enum(implements<variadic>?: Ref(interface)): kind {
+    accept(kind = variant, infer = true)
+  }
+
+  /// A value of an enum, of the enum's own type, or a variant of a union.
+  variant: kind(typed = true)
+
+  /// A tagged union with named variants.
+  union(implements<variadic>?: Ref(interface)): kind {
+    accept(kind = variant, infer = true)
+  }
+
+  /// Shared members and behaviour.
+  interface(implements<variadic>?: Ref(interface)): kind {
+    accept(kind = member, infer = true)
+    accept(kind = func)
+  }
+
+  /// A group of operations.
+  api: kind {
+    accept(prose)
+    accept(kind = op)
+  }
+
+  /// An operation: its inputs as parameters, its result type first.
+  op(returns?: Any): kind {
+    accept(prose)
+    accept(kind = example)
+  }
+
+  // An example sets its op's parameters as fields and states the outcome,
+  // or is only text, as in example {{ … }}.
+  example: kind(fields_from = op, modes = [structure]) {
+    accept(prose)
+    accept(binding = returns, max = 1)
+    accept(binding = throws, max = 1)
+  }
+
+  /// The errors an op, or every op of an api, may throw.
+  throws(errors<variadic>: Ref(Any)): annotation<repeatable>(on = [op, api, func])
+
+  /// The interface every error implements; only such a type can be thrown.
+  Error: interface {
+    message: String
+  }
+
+  /// A moment in time.
+  Timestamp: type
+
+  /// A length of time. A string such as "30d" or "200ms" is parsed as one.
+  Duration: type {
+    days?: Int
+    hours?: Int
+    minutes?: Int
+    seconds?: Int
+    millis?: Int
+  }
+
+  /// An amount in a currency. A string such as "40.00 EUR" is parsed as one.
+  Money: type {
+    amount: Decimal
+    currency: String
+  }
+
+  /// Every member of T made optional, for updates.
+  Patch(T: Any): type
+
+  /// Values streamed one after another.
+  Stream(T: Any): type
+
+  /// What `attempt(…)` returns: the value, or the error thrown.
+  Result(T: Any, E: Any): type {
+    value?: T
+    error?: E
+  }
+
+  u8 = Int(bits = 8, signed = false)
+  u16 = Int(bits = 16, signed = false)
+  u32 = Int(bits = 32, signed = false)
+  u64 = Int(bits = 64, signed = false)
+  i8 = Int(bits = 8)
+  i16 = Int(bits = 16)
+  i32 = Int(bits = 32)
+  i64 = Int(bits = 64)
+  f32 = Float(bits = 32)
+  f64 = Float(bits = 64)
+}

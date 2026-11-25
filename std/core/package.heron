@@ -1,0 +1,87 @@
+// std/core: what every file sees without an import. The Core format tab
+// names `variadic` and `export` as the core flags and `@doc` and `@display`
+// as the core annotations; funcs, macros and tasks are the code kinds of the
+// Core format and Scripting tabs, which use them without importing anything.
+// The primitive types, such as String and List, are built into the binary.
+import = ["std/schema@1", "std/types@1"]
+
+core: package(version = "1.0") {
+  /// A parameter that takes any number of positional arguments or one list.
+  variadic: flag
+
+  /// A package node that an import mounts at the importing tree's root.
+  export: flag
+
+  /// Documentation, joined from `///` lines.
+  doc: annotation {
+    accept(prose)
+  }
+
+  /// A display name of the node's own, for wording a name can't hold.
+  display(name: String): annotation
+
+  /// Lints that don't report on this node or anything inside it.
+  lint(allow: List(String)): annotation
+
+  /// A logical function: parameters for its inputs, its result type first.
+  func(returns?: Any): kind {
+    accept(code)
+  }
+
+  /// A func that may run while the tree is evaluated, cached by its inputs.
+  pure: flag(on = [func])
+
+  /// Produces source from a template.
+  macro: kind {
+    accept(code)
+  }
+
+  /// Something run on purpose, by path, with its params as options.
+  task(returns?: Any): kind {
+    accept(code)
+  }
+
+  /// Asks before the task runs.
+  confirm: flag(on = [task])
+
+  /// Also exposes the task to agent harnesses as a command.
+  command: flag(on = [task])
+
+  /// Runs other tasks first.
+  needs(tasks<variadic>: Ref(task)): annotation(on = [task])
+
+  /// Names the task that reverses this one.
+  undo(task: Ref(task)): annotation(on = [task])
+
+  /// Time comes only from the clock, so runs are replayable.
+  clock: Clock
+
+  Clock: type {
+    now: Timestamp
+  }
+
+  /// Writes a line to the run's log.
+  log(message: String): func
+
+  /// Wraps a call that may throw, returning its result or its error.
+  attempt(value: Any): func(Result(Any, Error))
+
+  /// Text that a conversion such as `Int(s)` or `Float(s)` can't read as the
+  /// number asked for.
+  ParseError: type(Error) {
+    message: String
+  }
+
+  /// Foreign code that failed other than by throwing an error its declaration
+  /// names, or whose process couldn't serve the call.
+  ForeignError: type(Error) {
+    message: String
+    code: Int
+  }
+
+  /// Adds generated source in a macro's body.
+  emit(source: String): func
+
+  /// Heron source, as a macro's template embeds it: `(heron)"""…"""`.
+  heron: language(grammar = "source.heron")
+}

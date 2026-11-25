@@ -1,0 +1,143 @@
+// The kinds of std/product and std/tech, each once, for the renderer tests.
+import = ["std/doc@1", "std/spec@1", "std/product@1", "std/tech@1"]
+
+people: section {
+  writer: actor {{ Someone who writes Heron. }}
+  ci: actor(kind = ActorKind.SYSTEM) {{ The build server. }}
+
+  maya: persona(of = people.writer) {
+    goals =| Ship a spec her team trusts.
+    | A staff engineer.
+  }
+}
+
+editing: epic<started>(owner = "tools") {
+  | Writing Heron in an editor.
+
+  see_errors: story<planned>(as = people.writer) {
+    want =| to see problems while I type
+    so =| I fix them before I commit
+
+    saved: criterion {
+      given {{ a file with a type error }}
+      given {{ the language server running }}
+      when {{ the writer saves the file }}
+      then {{ the error is underlined }}
+      verify("scripts/e2e-lsp.sh")
+    }
+  }
+
+  check_tree: usecase(people.writer, supporting = [people.ci]) {
+    goal =| A tree that checks clean.
+    precondition {{ The tree has an entry point. }}
+    run: step {{ The writer runs `heron check`. }}
+    parse: step {{ The tool parses every file. }}
+    report: step {{ The tool reports no diagnostics. }}
+    alternate(at = editing.check_tree.report, rejoins = editing.check_tree.run) {
+      step {{ The tool reports diagnostics. }}
+      step {{ The writer fixes them. }}
+    }
+    failure(at = editing.check_tree.parse) {
+      step {{ A file can't be read; the tool exits 2. }}
+    }
+    postcondition {{ Exit code 0. }}
+    postcondition(on_failure = true) {{ Exit code 2. }}
+  }
+
+  editing_done: done {
+    saved: criterion {
+      when {{ CI runs }}
+      then {{ every e2e script passes }}
+    }
+  }
+}
+
+unit_one: increment<delivered>(editing) {
+  | First cut.
+}
+
+runtime: section {
+  syntax: component(path = "internal/core/syntax", lang = "go") {
+    | The lossless parser.
+    uses = []
+
+    lossless: responsibility {{ Parse every byte into a tree that prints back exactly. }}
+
+    /// Parse reads one file.
+    surface(title = "parse.go") {{
+      func Parse(src []byte) *Node
+    }}
+
+    no_io: invariant {
+      mustNot {{ import `os` or any other package that does I/O }}
+      verify("scripts/ci.sh", test = "syntax and eval do no I/O")
+    }
+
+    raises("E0001") {{ An unterminated string. }}
+    obligation(path = "internal/core/syntax/fuzz_test.go") {{ Fuzz the parser. }}
+  }
+
+  resolve: component(path = "internal/core/resolve", lang = "go") {
+    uses = [runtime.syntax]
+  }
+}
+
+cli: section {
+  check: command("heron check") {
+    | Checks a tree.
+    usage = ["heron check [--json] [path…]"]
+    argument("path", type = String, optional = true, variadic = true) {{ An entry point or folder. }}
+    option("--json", type = Bool, default = false) {{ Print diagnostics as JSON lines. }}
+    exit(0) {{ No errors. }}
+    exit(1) {{ Errors. }}
+    example {{
+      ```sh
+      heron check spec
+      ```
+    }}
+  }
+}
+
+lang: section {
+  core: grammar(notation = "ebnf", source = "grammar/heron.ungram") {
+    start = lang.core.file
+    /// The implicit root of a file.
+    file: production {{ member* }}
+    member: production {{ (doc | annotation)* declare | comment }}
+    declare: production {{ name ":" type body? }}
+    name: token {{ [A-Za-z_][A-Za-z0-9_]* }}
+    comment: token {{ "//" [^\n]* }}
+  }
+}
+
+guarantees: section {
+  parse_all: rule(guarantees, by = runtime.syntax) {
+    must {{ read every file }}
+    verify("internal/core/syntax/parse_test.go", test = "TestParse")
+  }
+
+  writer_saves: rule(guarantees, by = people.writer) {
+    should {{ save before running a task }}
+  }
+}
+
+op_page: screen(route = "/docs/<op>") {
+  | An API op page.
+
+  top_bar: region {
+    | The logo, the sections, search and the theme switch.
+  }
+
+  body: region {
+    | The op's docs.
+
+    facts: region {{ The transition it performs and its limits. }}
+  }
+}
+
+tables: section {
+  | | Writing        | Means                |
+  | | -------------- | -------------------- |
+  | | `T \| null`    | the value or null    |
+  | | a \| b         | either               |
+}

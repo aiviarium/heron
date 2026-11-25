@@ -1,0 +1,51 @@
+import = ["std/schema@1", "std/doc@1", "std/types@1"]
+
+scenarios: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
+  slow: flag(on = [case])
+  skip: flag(on = [case])
+  generate: flag(on = [verification])
+
+  scenario(on?: Ref(Any)): kind {
+    accept(prose)
+    accept(kind = cases, max = 1)
+    accept(kind = before, max = 1)
+    accept(kind = verification, max = 1)
+  }
+
+  /// Verification directed by an agent; its prose says what to probe.
+  review(on?: Ref(Any)): kind {
+    accept(prose)
+  }
+
+  cases: kind {
+    accept(kind = case)
+    accept(kind = each)
+    accept(kind = csv)
+  }
+
+  case: kind(args_from = scenario)
+  each: kind(args_from = scenario)
+  csv(file: String): kind
+
+  before: kind {
+    accept(code)
+  }
+
+  verification: kind {
+    accept(code)
+  }
+
+  expect(value: Bool): func
+  judge(value: Any, rubric: Prose): func
+
+  /// The spec nodes a scenario, review or example covers.
+  covers(targets<variadic>: Ref(Any)): annotation<repeatable>(on = [scenario, review, types.example])
+
+  generated(by: String, reviewed_by?: String): annotation(on = [scenario, verification])
+
+  @insert(Insert.QUOTE)
+  sh: language(grammar = "source.shell", env = Env.PARAMS)
+
+  @insert(Insert.LITERAL)
+  js: language(grammar = "source.js", env = Env.VARIABLES)
+}

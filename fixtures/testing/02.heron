@@ -1,0 +1,37 @@
+refunds.{
+  setup do {
+    clock.freeze("2026-11-01T12:00:00Z")
+  }
+
+  after do {
+    card_sandbox.clear_pending()
+  }
+
+  @covers(payments.list_refunds)
+  list_refunds: scenario {
+    | Listing tolerates whatever else is in the store.
+
+    verification do {
+      let page = payments_service.list_refunds()
+      expect(page.items.size >= 1)
+    }
+  }
+
+  @covers(payments.create_refund, refund_window)
+  @state<clean, mutates>(captured_store)
+  @state<exclusive>(card_sandbox)
+  first_refund: scenario {
+    | The first refund on an untouched payment.
+
+    before do {
+      let payment = db.Payment.first(status = PaymentStatus.CAPTURED)
+    }
+
+    verification do {
+      let refund = payments_service.create_refund(
+        request = RefundRequest(payment_id = payment.id),
+      )
+      expect(refund.payment_id == payment.id)
+    }
+  }
+}

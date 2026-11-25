@@ -1,0 +1,13 @@
+store_svc.{
+  build: task do {
+    run("pnpm", args = ["--filter", "store", "build"])
+  }
+
+  test: task do {
+    run("pnpm", args = ["--filter", "store", "test"])
+  }
+
+  lint: task do {
+    run("pnpm", args = ["--filter", "store", "lint"])
+  }
+}

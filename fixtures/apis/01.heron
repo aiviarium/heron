@@ -1,0 +1,42 @@
+import = ["std/types@1", "std/http@1", "std/proto@1", "std/ws@1"]
+
+@http(base_path = "/v1")
+@proto(package = "acme.payments.v1")
+payments: api {
+  @http<post>("/refunds")
+  @throws(RefundError)
+  create_refund(@body request: RefundRequest): op(Refund) {
+    | Creates a refund for a captured payment, subject to the [refund window](#window).
+
+    partial_refund: example {
+      request = RefundRequest(payment_id = "pay_123", amount = "40.00 EUR")
+      returns = Refund(id = "re_1", payment_id = "pay_123", amount = "40.00 EUR")
+    }
+
+    too_late: example {
+      request = RefundRequest(payment_id = "pay_old")
+      throws = RefundWindowExpired
+    }
+  }
+
+  @http<get>("/payments/:payment_id/refunds")
+  list_refunds(@path payment_id: String, @query cursor?: String): op(Page(Refund))
+
+  @http<patch>("/refunds/:id")
+  update_refund(@path id: String, @body changes: Patch(RefundRequest)): op(Refund)
+
+  // One op, three protocols: server-sent events over HTTP, messages over a
+  // WebSocket, and a server stream over gRPC.
+  @http<get>("/payments/:payment_id/refunds/events")
+  @ws("/payments/:payment_id/events")
+  watch(@path payment_id: String): op(Stream(RefundEvent))
+
+  // Streams both ways: a WebSocket here, a bidirectional stream over gRPC.
+  @ws("/support/chat")
+  support_chat(messages: Stream(ChatMessage)): op(Stream(ChatMessage))
+}
+
+// No bindings: an in-language interface whose ops are methods.
+ledger: api {
+  balance(payment_id: String): op(Money)
+}

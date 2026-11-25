@@ -1,0 +1,40 @@
+// The payments model the Data, APIs and Specifications tabs share. The Data
+// tab's model block is included, so its declarations are reused as written;
+// the rest stand for names the tabs use but none declares, kept as small as
+// the examples need.
+import = ["std/doc@1", "std/types@1", "std/http@1"]
+
+include = ["../data/03.heron"]
+
+Payment: type {
+  id: String
+  status: PaymentStatus
+  amount: Money
+  refunded: Money
+  captured_at: Timestamp
+}
+
+PaymentStatus: enum {
+  PENDING: Self
+  CAPTURED: Self
+  PARTIALLY_REFUNDED: Self
+  REFUNDED: Self
+  FAILED: Self
+}
+
+RefundRequest: type {
+  payment_id: String
+  amount?: Money
+}
+
+/// The ways to pay that the Data tab's PaymentMethod union names.
+Card: type
+BankTransfer: type
+Wallet: type
+
+/// What the APIs tab's streams carry.
+RefundEvent: type
+ChatMessage: type
+
+/// The refund window the APIs tab's op links to.
+window: term =| The 30 days after capture in which a refund can be requested.

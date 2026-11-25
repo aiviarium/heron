@@ -1,0 +1,204 @@
+// Package check runs the stages of `heron check` over an entry point:
+// parse, resolve and type-check, with results memoized per file and per
+// resolved node by content hash, so a watch loop or the language server
+// redoes only what an edit touches.
+package check
+
+import (
+	"crypto/sha256"
+	"encoding/binary"
+	"hash"
+	"strings"
+
+	"github.com/helightdev/specs-v0/internal/core/diag"
+	"github.com/helightdev/specs-v0/internal/core/project"
+	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/helightdev/specs-v0/internal/core/types"
+)
+
+// Session holds what stays valid between checks: parsed files, resolved
+// packages and per-node results.
+type Session struct {
+	Loader   *resolve.Loader
+	Resolver *resolve.Resolver
+	memo     map[[32]byte]diag.List
+	// Recomputed counts the nodes type-checked rather than served from
+	// the memo, for tests of incrementality.
+	Recomputed int
+}
+
+// NewSession returns an empty session.
+func NewSession() *Session {
+	l := resolve.NewLoader()
+	return &Session{Loader: l, Resolver: resolve.New(l), memo: map[[32]byte]diag.List{}}
+}
+
+// Result is one check of an entry point.
+type Result struct {
+	Tree    *resolve.Tree
+	Checker *types.Checker
+	Diags   diag.List
+	// served lists the nodes whose diagnostics came from the memo, so the
+	// checker holds no facts (Refs, LocalUses) about them yet.
+	served []*resolve.Node
+}
+
+// Complete type-checks the nodes whose diagnostics were served from the
+// memo, discarding their diagnostics, so the checker's facts, such as Refs
+// and LocalUses, cover the whole tree. Lints and the language server's
+// queries need them; diagnostics alone don't.
+func (r *Result) Complete() {
+	for _, n := range r.served {
+		r.Checker.CheckNode(n)
+	}
+	r.served = nil
+}
+
+// Ensure checks a memo-served node, so the checker's facts cover it.
+func (r *Result) Ensure(n *resolve.Node) {
+	for i, x := range r.served {
+		if x == n {
+			r.Checker.CheckNode(x)
+			r.served = append(r.served[:i:i], r.served[i+1:]...)
+			return
+		}
+	}
+}
+
+// Check parses, resolves and type-checks the tree of an entry point.
+func (s *Session) Check(entry resolve.FileID) *Result {
+	t := s.Resolver.Resolve(entry)
+	c := types.New(t)
+	res := &Result{Tree: t, Checker: c}
+	res.Diags = append(res.Diags, t.Diags...)
+	res.Diags = append(res.Diags, t.PackageDiags()...)
+	iface := interfaceHash(t)
+	next := map[[32]byte]diag.List{}
+	nodes := append(append([]*resolve.Node(nil), t.Root.Children...), t.Root)
+	for _, n := range nodes {
+		key := nodeKey(n, iface)
+		ds, ok := s.memo[key]
+		if !ok {
+			s.Recomputed++
+			ds = c.CheckNode(n)
+		} else {
+			res.served = append(res.served, n)
+		}
+		next[key] = ds
+		res.Diags = append(res.Diags, ds...)
+	}
+	for k, v := range next {
+		s.memo[k] = v
+	}
+	// Project mode and the implementation version scheme, over the whole
+	// tree: a tree that implements a spec leaves the spec's kinds to it.
+	res.Diags = append(res.Diags, project.Check(t, c)...)
+	res.Diags = res.Diags.Sort()
+	return res
+}
+
+// interfaceHash covers what any node's check may depend on beyond its own
+// sites: every file's structure, without the prose, docs and code inside
+// bodies, which only their own node reads. A prose file's text is kept
+// whole, since its headings declare sections.
+func interfaceHash(t *resolve.Tree) [32]byte {
+	h := sha256.New()
+	files := append([]*resolve.File(nil), t.Files...)
+	seen := map[*resolve.Package]bool{}
+	var pkgs func(*resolve.Tree)
+	pkgs = func(t *resolve.Tree) {
+		for _, p := range t.Imports {
+			if seen[p] || p.Tree == nil {
+				continue
+			}
+			seen[p] = true
+			files = append(files, p.Tree.Files...)
+			pkgs(p.Tree)
+		}
+	}
+	pkgs(t)
+	if t.Context != nil && t.Context.File != nil {
+		files = append(files, t.Context.File)
+	}
+	for _, f := range files {
+		h.Write([]byte(f.ID))
+		h.Write([]byte{0})
+		if strings.HasSuffix(string(f.ID), ".heron.md") {
+			h.Write(f.Hash[:])
+			continue
+		}
+		writeStructure(h, f.Tree.Root)
+	}
+	var out [32]byte
+	copy(out[:], h.Sum(nil))
+	return out
+}
+
+func writeStructure(h hash.Hash, n *syntax.Node) {
+	switch n.Kind {
+	case syntax.ProseLines, syntax.ProseBlock, syntax.Doc, syntax.DoBlock, syntax.CommentLine:
+		h.Write([]byte{1})
+		return
+	}
+	for _, c := range n.Children {
+		switch c := c.(type) {
+		case *syntax.Token:
+			if !c.Kind.IsTrivia() {
+				h.Write([]byte(c.Text))
+				h.Write([]byte{0})
+			}
+		case *syntax.Node:
+			writeStructure(h, c)
+		}
+	}
+}
+
+// nodeKey identifies a node's check: the interface, and the text and
+// position of every site of the node and its descendants. Positions are in
+// the key because diagnostics carry them.
+func nodeKey(n *resolve.Node, iface [32]byte) [32]byte {
+	h := sha256.New()
+	h.Write(iface[:])
+	h.Write([]byte(n.Path()))
+	var site func(resolve.Site)
+	site = func(s resolve.Site) {
+		if s.N == nil || s.File == nil {
+			return
+		}
+		start, _ := s.N.Span()
+		h.Write([]byte(s.File.ID))
+		var b [8]byte
+		binary.LittleEndian.PutUint64(b[:], uint64(start))
+		h.Write(b[:])
+		h.Write([]byte(s.N.Text()))
+	}
+	var walk func(*resolve.Node, bool)
+	walk = func(n *resolve.Node, deep bool) {
+		site(n.Decl)
+		for _, l := range [][]resolve.Site{n.Sites, n.Prose, n.Code, n.Annotations, n.Docs, n.GroupAnnotations} {
+			for _, s := range l {
+				site(s)
+			}
+		}
+		site(n.ValueSite)
+		if deep {
+			for _, c := range n.Children {
+				walk(c, true)
+			}
+		}
+	}
+	walk(n, n.Shape != resolve.ShapeRoot)
+	var out [32]byte
+	copy(out[:], h.Sum(nil))
+	return out
+}
+
+// Pos maps a diagnostic's file and offset to a line and column, through
+// the files the session has loaded.
+func (s *Session) Pos(file string, off int) (int, int) {
+	if f := s.Loader.Cached(resolve.FileID(file)); f != nil {
+		return syntax.LineCol(f.Src, off)
+	}
+	return 0, 0
+}

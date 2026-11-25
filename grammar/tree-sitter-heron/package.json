@@ -1,0 +1,21 @@
+{
+  "name": "tree-sitter-heron",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The tree-sitter grammar of Heron, for editors",
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "test": "tree-sitter test"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "0.25.3"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.heron",
+      "file-types": ["heron"],
+      "highlights": "queries/highlights.scm",
+      "folds": "queries/folds.scm"
+    }
+  ]
+}

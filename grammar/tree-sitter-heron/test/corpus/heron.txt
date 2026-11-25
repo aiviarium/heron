@@ -1,0 +1,491 @@
+==================
+Directives and a declaration with docs and annotations
+==================
+
+import = ["std/doc@1"]
+
+/// The guide.
+@lint(allow = ["unused-let"])
+guide: section {
+  intro: section {{ Hello. }}
+}
+
+---
+
+(source_file
+  (set
+    (path
+      (identifier))
+    (array
+      (string)))
+  (doc
+    (doc_line
+      (text)))
+  (annotation
+    (path
+      (identifier))
+    (arguments
+      (named_argument
+        (identifier)
+        (array
+          (string)))))
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier)))
+    (struct_body
+      (declaration
+        (path
+          (identifier))
+        (named_type
+          (path
+            (identifier)))
+        (prose_block
+          (text))))))
+
+==================
+Values, union and optional types, parameters
+==================
+
+limit: Int | String = 3
+find(id: String, @query cursor?: String = "a"): op(Page(Pet))
+toolchain = { node = "22", pnpm = "10" }
+
+---
+
+(source_file
+  (value
+    (path
+      (identifier))
+    (union_type
+      (named_type
+        (path
+          (identifier)))
+      (named_type
+        (path
+          (identifier))))
+    (number))
+  (declaration
+    (path
+      (identifier))
+    (arguments
+      (parameter
+        (identifier)
+        (named_type
+          (path
+            (identifier))))
+      (parameter
+        (annotation
+          (path
+            (identifier)))
+        (identifier)
+        (named_type
+          (path
+            (identifier)))
+        (string)))
+    (named_type
+      (path
+        (identifier))
+      (arguments
+        (call
+          (path
+            (identifier))
+          (arguments
+            (path_expression
+              (path
+                (identifier))))))))
+  (set
+    (path
+      (identifier))
+    (map
+      (map_entry
+        (path
+          (identifier))
+        (string))
+      (map_entry
+        (path
+          (identifier))
+        (string)))))
+
+==================
+Scopes, enter, invoke, bare names and flags
+==================
+
+refunds.{
+  window = 30
+}
+repository {
+  ready
+}
+gauge: widget<large>(size = 3) {
+  rule(targets = [a]) {}
+}
+
+---
+
+(source_file
+  (scope
+    (path
+      (identifier))
+    (struct_body
+      (set
+        (path
+          (identifier))
+        (number))))
+  (enter
+    (path
+      (identifier))
+    (struct_body
+      (invoke
+        (path
+          (identifier)))))
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier))
+      (flags
+        (identifier))
+      (arguments
+        (named_argument
+          (identifier)
+          (number))))
+    (struct_body
+      (invoke
+        (path
+          (identifier))
+        (arguments
+          (named_argument
+            (identifier)
+            (array
+              (path_expression
+                (path
+                  (identifier))))))
+        (struct_body)))))
+
+==================
+Prose lines with links, inserts, tags and code
+==================
+
+x: section {
+  | See [the term](#a.b), $name.field and ${count + 1}.
+  | <toc depth={2} /> and `code`, \$ escaped, a [plain] bracket.
+  y =| A value.
+}
+
+---
+
+(source_file
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier)))
+    (struct_body
+      (prose_lines
+        (prose_line
+          (text)
+          (link
+            (text)
+            (path
+              (identifier)
+              (identifier)))
+          (text)
+          (insert
+            (identifier)
+            (member))
+          (text)
+          (insert
+            (binary
+              (path_expression
+                (path
+                  (identifier)))
+              (number)))
+          (text))
+        (prose_line
+          (text)
+          (tag
+            (identifier)
+            (attribute
+              (identifier)
+              (number)))
+          (text)
+          (backtick)
+          (text)
+          (escape)
+          (text)
+          (text)
+          (text)
+          (text)
+          (text)))
+      (set
+        (path
+          (identifier))
+        (prose_lines
+          (prose_line
+            (text)))))))
+
+==================
+Prose blocks and fences
+==================
+
+x: section {{
+  Text with } and a link [here](./other.heron.md).
+
+  ```heron
+  inner: section
+  ```
+}}
+
+---
+
+(source_file
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier)))
+    (prose_block
+      (text)
+      (text)
+      (text)
+      (link
+        (text)
+        (url))
+      (text)
+      (backtick))))
+
+==================
+Code blocks
+==================
+
+setup(update: Bool = false): task do {
+  let x: Int = 1
+  if not update and x == 1 {
+    run("pnpm", args = ["install"])
+  } else {
+    return x
+  }
+  for p in packages {
+    log("${p.name}")
+  }
+}
+
+---
+
+(source_file
+  (declaration
+    (path
+      (identifier))
+    (arguments
+      (parameter
+        (identifier)
+        (named_type
+          (path
+            (identifier)))
+        (boolean)))
+    (named_type
+      (path
+        (identifier)))
+    (do_block
+      (code
+        (let_statement
+          (identifier)
+          (named_type
+            (path
+              (identifier)))
+          (number))
+        (expression_statement
+          (if_expression
+            (binary
+              (unary
+                (path_expression
+                  (path
+                    (identifier))))
+              (binary
+                (path_expression
+                  (path
+                    (identifier)))
+                (number)))
+            (code
+              (expression_statement
+                (call
+                  (path
+                    (identifier))
+                  (arguments
+                    (string)
+                    (named_argument
+                      (identifier)
+                      (array
+                        (string)))))))
+            (code
+              (return_statement
+                (path_expression
+                  (path
+                    (identifier)))))))
+        (expression_statement
+          (for_expression
+            (identifier)
+            (path_expression
+              (path
+                (identifier)))
+            (code
+              (expression_statement
+                (call
+                  (path
+                    (identifier))
+                  (arguments
+                    (string)))))))))))
+
+==================
+Strings: interpolation, triple quotes and raw
+==================
+
+a = "x $name ${f("y")} \" z"
+b = """
+  A "quoted" word.
+  """
+c: Text = (sh)```
+  echo hi
+  ```
+
+---
+
+(source_file
+  (set
+    (path
+      (identifier))
+    (string))
+  (set
+    (path
+      (identifier))
+    (string))
+  (value
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier)))
+    (cast
+      (named_type
+        (path
+          (identifier)))
+      (backtick))))
+
+==================
+Verbatim bodies: the text of surface, production, token, code and math
+==================
+
+s: tech.surface {{
+  load(): Promise<Result> $x [a](#b) `c
+  <T>x</T> \}} }}
+surface(title = "a.ts") {{ <Result> ${x} }}
+production {{ "<" Path TagAttr* ">" }}
+e: code(lang = "ts") {{ Map<K> }}
+n: note {{ <b>x</b> }}
+x: code
+f(token: Int, code = 2)
+
+---
+
+(source_file
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier)
+        (identifier)))
+    (prose_block
+      (text)
+      (escape)))
+  (invoke
+    (path
+      (identifier))
+    (arguments
+      (named_argument
+        (identifier)
+        (string)))
+    (prose_block
+      (text)))
+  (text_node
+    (path
+      (identifier))
+    (prose_block
+      (text)))
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier))
+      (arguments
+        (named_argument
+          (identifier)
+          (string))))
+    (prose_block
+      (text)))
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier)))
+    (prose_block
+      (text)
+      (tag
+        (identifier))
+      (text)
+      (closing_tag
+        (path
+          (identifier)))
+      (text)))
+  (declaration
+    (path
+      (identifier))
+    (named_type
+      (path
+        (identifier))))
+  (invoke
+    (path
+      (identifier))
+    (arguments
+      (parameter
+        (identifier)
+        (named_type
+          (path
+            (identifier))))
+      (named_argument
+        (identifier)
+        (number)))))
+
+==================
+A code span that doesn't close on its doc line
+==================
+
+/// with `versioning.{ scheme =
+/// "SM" }`, a patch.
+x = 1
+
+---
+
+(source_file
+  (doc
+    (doc_line
+      (text)
+      (text)
+      (text))
+    (doc_line
+      (text)
+      (text)
+      (text)
+      (text)))
+  (set
+    (path
+      (identifier))
+    (number)))

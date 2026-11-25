@@ -1,0 +1,10 @@
+# Modes for code blocks that aren't plain Heron files. Every other block whose
+# fence says text, heron or nothing is Heron; other languages are "other".
+# Modes: heron, heron-error, heron-sketch (elides parts with …), heron-md, other.
+
+core-format/01      other         # the grammar, in EBNF
+markup/01           heron-md      # a prose file; its fences use ~~~
+devops/01           heron-sketch  # refunds.{ … } elides the body
+devops/02           other         # a commit message
+implementation/01   other         # the repository layout
+example/01          other         # the file tree

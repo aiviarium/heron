@@ -1,0 +1,20 @@
+petstore/
+├── index.heron                    // entry point: shared imports, repository, stages
+├── settings.heron                 // included last: budgets, commit rules, versioning
+├── projects.heron                 // the projects and how they group
+├── ci.heron                       // the checks pipeline
+├── heron.lock                     // generated: pinned packages and sources
+├── changelog.heron                // generated: every release, newest first
+├── specs/store/
+│   ├── index.heron                // the store spec's entry
+│   ├── model.heron                // pets, orders and errors
+│   ├── api.heron                  // the petstore api
+│   └── orders/
+│       ├── index.heron            // ordering: rules, lifecycle, qualities
+│       └── scenarios.heron        // scenarios for ordering
+├── services/store/
+│   └── tasks.heron                // build, test and lint for the service
+├── infra/
+│   └── resources.heron            // test resources
+└── agents/
+    └── index.heron                // harnesses, instructions, skills, workflows

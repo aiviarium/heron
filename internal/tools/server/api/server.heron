@@ -1,0 +1,23 @@
+// The server's API: the Server API block of the Development tools tab, as it
+// stands there, with the types it names and the editor's own ops. `apigen`
+// writes the Go handlers and the TS client from this tree; a later unit adds
+// its ops to `spec_server` from its own files, which apigen reads with these.
+import = ["std/types@1", "std/http@1", "std/ws@1"]
+
+include = ["./types.heron", "./editor.heron"]
+
+@http(base_path = "/api/v1")
+spec_server: api {
+  @http<post>("/preview")
+  preview(@body request: PreviewRequest): op(Preview)
+
+  @http<get>("/results")
+  results(@query path: String): op(NodeResults)
+
+  @http<get>("/records/:id")
+  get_record(@path id: String): op(Record)
+
+  // The language server, for Monaco and the preview.
+  @ws("/lsp")
+  lsp(messages: Stream(LspMessage)): op(Stream(LspMessage))
+}

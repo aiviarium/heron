@@ -1,0 +1,9 @@
+// What the Specifications tab's excerpts assume: the payments model, and
+// the projects and spec its project and planning examples name.
+import = ["std/spec@1"]
+
+include = [
+  "./payments.heron",
+  "../specifications/01.heron",
+  "../specifications/05.heron",
+]

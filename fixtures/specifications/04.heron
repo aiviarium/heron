@@ -1,0 +1,14 @@
+// planning/refunds.heron
+import = ["std/spec@1", "../refunds/"]
+
+open(refunds.refund_window, owner = "cf") {{
+  Do partial refunds reset the window?
+}}
+
+window_from_capture: decision<accepted>(refunds.refund_window) {
+  context =| The window could start at capture or at settlement.
+  choice =| The window starts at capture.
+  consequences =| Late settlements shorten the window customers effectively get.
+
+  alternative {{ Starting at settlement, rejected because settlement dates vary by bank. }}
+}

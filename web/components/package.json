@@ -1,0 +1,32 @@
+{
+  "name": "@heron/components",
+  "version": "0.1.0",
+  "description": "The shared UI: UI SDK's behaviours composed into Heron's components.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./components.css": "./src/components.css"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@heron/strings": "workspace:*",
+    "@heron/tokens": "workspace:*",
+    "@ui-sdk/core": "0.1.0-beta.16",
+    "@ui-sdk/solid": "0.1.0-beta.16"
+  },
+  "peerDependencies": {
+    "@solidjs/web": "^2.0.3",
+    "solid-js": "^2.0.3"
+  },
+  "devDependencies": {
+    "@solidjs/web": "2.0.3",
+    "@solidjs/vite-plugin": "3.0.1",
+    "jsdom": "^27.0.0",
+    "solid-js": "2.0.3",
+    "typescript": "~5.9.3",
+    "vite": "8.3.8",
+    "vitest": "^4.1.12"
+  }
+}

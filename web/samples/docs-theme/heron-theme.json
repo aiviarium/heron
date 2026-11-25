@@ -1,0 +1,8 @@
+{
+  "tokens": "./tokens.json",
+  "fonts": [
+    { "family": "Fraunces", "src": "./fonts/fraunces-latin-600-normal.woff2", "weight": "600" }
+  ],
+  "logo": "./logo.svg",
+  "css": ["./theme.css"]
+}

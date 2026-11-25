@@ -1,0 +1,3 @@
+// What the Interop tab's excerpts assume: its extension-point excerpt shows
+// std/apis's Transport and a binding without their imports.
+import = ["std/schema@1", "std/types@1", "std/js@1", "std/apis@1"]

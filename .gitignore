@@ -1,0 +1,6 @@
+node_modules/
+web/*/dist/
+web/samples/*/dist/
+.heron/
+internal/tools/server/frontend/dist/
+web/screenshots/

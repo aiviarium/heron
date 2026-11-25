@@ -1,0 +1,21 @@
+// std/files: files as a driver, from the Scripting tab.
+import = ["std/schema@1", "std/types@1"]
+
+files: package(version = "1.0", requires = ["std/types@1"]) {
+  /// A file that couldn't be read or written.
+  FileError: type(Error) {
+    message: String
+    path: String
+  }
+
+  /// Writes content to a file.
+  @throws(FileError)
+  write(path: String, content: Any): func
+
+  /// Reads a file's content.
+  @throws(FileError)
+  read(path: String): func(String)
+
+  /// A path that belongs to the current run and is removed after it.
+  temp(name: String): func(String)
+}

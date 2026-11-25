@@ -1,0 +1,10 @@
+json_reply(T: Any): promptlet {{
+  <output>Answer only with JSON matching $schema(T).</output>
+}}
+
+review_stance(reader: String = "developer"): promptlet(requires = [diff]) {{
+  <constraints>
+  Review the diff for a $reader. Lead with risk, then cost.
+  </constraints>
+  $body
+}}

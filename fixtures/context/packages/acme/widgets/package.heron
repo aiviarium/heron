@@ -1,0 +1,31 @@
+// acme/widgets: the made-up package the Core format tab's tour imports. The
+// tab says its kinds, flag and annotation "stand for whatever packages
+// define"; this is the smallest package that defines them.
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
+
+widgets: package(version = "1.0") {
+  /// A printed gauge or scale.
+  widget(size?: Int, unit?: String): kind {
+    label?: Prose
+    limits?: Set(Int)
+    owner?: Object
+    ticks?: List(Int)
+    accept(prose)
+    accept(kind = marker)
+  }
+
+  large: flag(on = [widget])
+
+  marker(color: Color): kind
+
+  Color: enum {
+    RED: Self
+    GREEN: Self
+  }
+
+  /// Where a node's data comes from.
+  source(file: String): annotation
+
+  /// Fails the task when the value is false.
+  expect(value: Bool): func
+}

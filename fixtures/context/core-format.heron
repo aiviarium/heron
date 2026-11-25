@@ -1,0 +1,7 @@
+// What the Core format tab's excerpts assume. The tour imports its packages
+// itself; the bindings excerpt shows std/ci's Development without the
+// package around it, and the tour casts with u8 from std/types.
+import = ["std/types@1"]
+
+/// std/ci's commit rules, which unit 3 owns; the excerpt only names them.
+Commits: type

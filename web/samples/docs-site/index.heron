@@ -1,0 +1,58 @@
+// A sample docs site for the Development tools tab's "Styling and
+// extending the docs": a theme package, layouts, slots, and components
+// rendered in TS through the JS host.
+import = ["std/doc@1", "std/docs@1", "std/js@1", "./components.heron"]
+
+guide: section {
+  | The guide to the sample site. Its pages show the theme, the layouts
+  | and the components a package renders.
+
+  setup: section {
+    | Set the sample up in three steps. The steps component is
+    | <status level="2">ready</status> to use.
+
+    install: steps(start = 1) {
+      step {{ Install the web workspace with pnpm. }}
+      step {{ Generate the docs in this folder. }}
+      step {{ Open index.html from the docs folder. }}
+    }
+  }
+
+  writing: section {
+    | Write prose with the components of the package, as tags or as blocks.
+  }
+}
+
+changes: section {
+  | What changed in each release of the sample.
+
+  v1_1: section {
+    | Adds the steps component and the status tag.
+  }
+
+  v1_0: section {
+    | The first release of the sample site.
+  }
+}
+
+docs {
+  theme = "npm:@heron/sample-docs-theme@1"
+
+  layout("landing") {
+    sections = [guide]
+  }
+
+  layout("changelog") {
+    sections = [changes]
+  }
+
+  slot("header") {
+    status(level = 1) {{ Sample }}
+  }
+
+  slot("after", of = components.steps) {
+    | Each step runs in the sample's folder.
+  }
+
+  renderers = [js("./docs/renderers.ts")]
+}

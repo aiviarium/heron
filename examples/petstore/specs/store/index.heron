@@ -1,0 +1,8 @@
+// std/http is needed only here, so it stays in this subtree.
+import = ["std/http@1"]
+
+include = [
+  "./model.heron",
+  "./api.heron",
+  "./orders/",         // orders/index.heron, mounted as orders
+]

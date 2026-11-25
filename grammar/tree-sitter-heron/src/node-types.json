@@ -1,0 +1,3072 @@
+[
+  {
+    "type": "action",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "do_block",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "annotation",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        },
+        {
+          "type": "path",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "arguments",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "named_argument",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parameter",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "array",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "assignment",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "attribute",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "binary",
+    "named": true,
+    "fields": {
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "!=",
+            "named": false
+          },
+          {
+            "type": "%",
+            "named": false
+          },
+          {
+            "type": "*",
+            "named": false
+          },
+          {
+            "type": "+",
+            "named": false
+          },
+          {
+            "type": "-",
+            "named": false
+          },
+          {
+            "type": "/",
+            "named": false
+          },
+          {
+            "type": "<",
+            "named": false
+          },
+          {
+            "type": "<=",
+            "named": false
+          },
+          {
+            "type": "==",
+            "named": false
+          },
+          {
+            "type": ">",
+            "named": false
+          },
+          {
+            "type": ">=",
+            "named": false
+          },
+          {
+            "type": "and",
+            "named": false
+          },
+          {
+            "type": "in",
+            "named": false
+          },
+          {
+            "type": "is",
+            "named": false
+          },
+          {
+            "type": "or",
+            "named": false
+          },
+          {
+            "type": "|",
+            "named": false
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "boolean",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "call",
+    "named": true,
+    "fields": {
+      "callee": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "cast",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "intersection_type",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "optional_type",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        },
+        {
+          "type": "union_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "closing_tag",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "path",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "code",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "assignment",
+          "named": true
+        },
+        {
+          "type": "expression_statement",
+          "named": true
+        },
+        {
+          "type": "let_statement",
+          "named": true
+        },
+        {
+          "type": "return_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "declaration",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "intersection_type",
+            "named": true
+          },
+          {
+            "type": "named_type",
+            "named": true
+          },
+          {
+            "type": "optional_type",
+            "named": true
+          },
+          {
+            "type": "union_type",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "do_block",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "struct_body",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "do_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "code",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "doc",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "doc_line",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "doc_line",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "closing_tag",
+          "named": true
+        },
+        {
+          "type": "escape",
+          "named": true
+        },
+        {
+          "type": "insert",
+          "named": true
+        },
+        {
+          "type": "link",
+          "named": true
+        },
+        {
+          "type": "tag",
+          "named": true
+        },
+        {
+          "type": "text",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "enter",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "do_block",
+          "named": true
+        },
+        {
+          "type": "struct_body",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "expression_statement",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "code",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "field_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "flags",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "for_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "code",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "identifier",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "if_expression",
+    "named": true,
+    "fields": {
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "backtick",
+            "named": true
+          },
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "cast",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "for_expression",
+            "named": true
+          },
+          {
+            "type": "if_expression",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "path_expression",
+            "named": true
+          },
+          {
+            "type": "prose_block",
+            "named": true
+          },
+          {
+            "type": "prose_lines",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "unary",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "code",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "insert",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "member",
+          "named": true
+        },
+        {
+          "type": "named_argument",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "intersection_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "intersection_type",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "optional_type",
+          "named": true
+        },
+        {
+          "type": "union_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "invoke",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "do_block",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "struct_body",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "let",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "intersection_type",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "optional_type",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        },
+        {
+          "type": "union_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "let_statement",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "intersection_type",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "optional_type",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        },
+        {
+          "type": "union_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "link",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "escape",
+          "named": true
+        },
+        {
+          "type": "insert",
+          "named": true
+        },
+        {
+          "type": "path",
+          "named": true
+        },
+        {
+          "type": "text",
+          "named": true
+        },
+        {
+          "type": "url",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "map",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "map_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "map_entry",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "named_argument",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "named_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        },
+        {
+          "type": "path",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "optional_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "intersection_type",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "optional_type",
+          "named": true
+        },
+        {
+          "type": "union_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "parameter",
+    "named": true,
+    "fields": {
+      "default": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "backtick",
+            "named": true
+          },
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "cast",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "for_expression",
+            "named": true
+          },
+          {
+            "type": "if_expression",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "path_expression",
+            "named": true
+          },
+          {
+            "type": "prose_block",
+            "named": true
+          },
+          {
+            "type": "prose_lines",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "unary",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "intersection_type",
+            "named": true
+          },
+          {
+            "type": "named_type",
+            "named": true
+          },
+          {
+            "type": "optional_type",
+            "named": true
+          },
+          {
+            "type": "union_type",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "annotation",
+          "named": true
+        },
+        {
+          "type": "doc",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "parenthesized",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "path",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "path_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "path",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "prose_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "closing_tag",
+          "named": true
+        },
+        {
+          "type": "escape",
+          "named": true
+        },
+        {
+          "type": "insert",
+          "named": true
+        },
+        {
+          "type": "link",
+          "named": true
+        },
+        {
+          "type": "tag",
+          "named": true
+        },
+        {
+          "type": "text",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "prose_line",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "closing_tag",
+          "named": true
+        },
+        {
+          "type": "escape",
+          "named": true
+        },
+        {
+          "type": "insert",
+          "named": true
+        },
+        {
+          "type": "link",
+          "named": true
+        },
+        {
+          "type": "tag",
+          "named": true
+        },
+        {
+          "type": "text",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "prose_lines",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "prose_line",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "return_statement",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "scope",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "struct_body",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "set",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "backtick",
+            "named": true
+          },
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "cast",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "for_expression",
+            "named": true
+          },
+          {
+            "type": "if_expression",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "path_expression",
+            "named": true
+          },
+          {
+            "type": "prose_block",
+            "named": true
+          },
+          {
+            "type": "prose_lines",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "unary",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "source_file",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "action",
+          "named": true
+        },
+        {
+          "type": "annotation",
+          "named": true
+        },
+        {
+          "type": "declaration",
+          "named": true
+        },
+        {
+          "type": "doc",
+          "named": true
+        },
+        {
+          "type": "enter",
+          "named": true
+        },
+        {
+          "type": "invoke",
+          "named": true
+        },
+        {
+          "type": "let",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "scope",
+          "named": true
+        },
+        {
+          "type": "set",
+          "named": true
+        },
+        {
+          "type": "text_node",
+          "named": true
+        },
+        {
+          "type": "value",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "struct_body",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "action",
+          "named": true
+        },
+        {
+          "type": "annotation",
+          "named": true
+        },
+        {
+          "type": "declaration",
+          "named": true
+        },
+        {
+          "type": "doc",
+          "named": true
+        },
+        {
+          "type": "enter",
+          "named": true
+        },
+        {
+          "type": "invoke",
+          "named": true
+        },
+        {
+          "type": "let",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "scope",
+          "named": true
+        },
+        {
+          "type": "set",
+          "named": true
+        },
+        {
+          "type": "text_node",
+          "named": true
+        },
+        {
+          "type": "value",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tag",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "attribute",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "text_node",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "prose_block",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "unary",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "array",
+          "named": true
+        },
+        {
+          "type": "backtick",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "boolean",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "cast",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "for_expression",
+          "named": true
+        },
+        {
+          "type": "if_expression",
+          "named": true
+        },
+        {
+          "type": "map",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "parenthesized",
+          "named": true
+        },
+        {
+          "type": "path_expression",
+          "named": true
+        },
+        {
+          "type": "prose_block",
+          "named": true
+        },
+        {
+          "type": "prose_lines",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "unary",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "union_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "intersection_type",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "optional_type",
+          "named": true
+        },
+        {
+          "type": "union_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "value",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "intersection_type",
+            "named": true
+          },
+          {
+            "type": "named_type",
+            "named": true
+          },
+          {
+            "type": "optional_type",
+            "named": true
+          },
+          {
+            "type": "union_type",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "backtick",
+            "named": true
+          },
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "cast",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "for_expression",
+            "named": true
+          },
+          {
+            "type": "if_expression",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "path_expression",
+            "named": true
+          },
+          {
+            "type": "prose_block",
+            "named": true
+          },
+          {
+            "type": "prose_lines",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "unary",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "flags",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "!=",
+    "named": false
+  },
+  {
+    "type": "#",
+    "named": false
+  },
+  {
+    "type": "$",
+    "named": false
+  },
+  {
+    "type": "${",
+    "named": false
+  },
+  {
+    "type": "%",
+    "named": false
+  },
+  {
+    "type": "&",
+    "named": false
+  },
+  {
+    "type": "(",
+    "named": false
+  },
+  {
+    "type": ")",
+    "named": false
+  },
+  {
+    "type": "*",
+    "named": false
+  },
+  {
+    "type": "+",
+    "named": false
+  },
+  {
+    "type": ",",
+    "named": false
+  },
+  {
+    "type": "-",
+    "named": false
+  },
+  {
+    "type": ".",
+    "named": false
+  },
+  {
+    "type": "/",
+    "named": false
+  },
+  {
+    "type": "///",
+    "named": false
+  },
+  {
+    "type": "/>",
+    "named": false
+  },
+  {
+    "type": ":",
+    "named": false
+  },
+  {
+    "type": "<",
+    "named": false
+  },
+  {
+    "type": "</",
+    "named": false
+  },
+  {
+    "type": "<=",
+    "named": false
+  },
+  {
+    "type": "=",
+    "named": false
+  },
+  {
+    "type": "==",
+    "named": false
+  },
+  {
+    "type": ">",
+    "named": false
+  },
+  {
+    "type": ">=",
+    "named": false
+  },
+  {
+    "type": "?",
+    "named": false
+  },
+  {
+    "type": "@",
+    "named": false
+  },
+  {
+    "type": "[",
+    "named": false
+  },
+  {
+    "type": "]",
+    "named": false
+  },
+  {
+    "type": "](",
+    "named": false
+  },
+  {
+    "type": "and",
+    "named": false
+  },
+  {
+    "type": "backtick",
+    "named": true
+  },
+  {
+    "type": "code",
+    "named": false
+  },
+  {
+    "type": "comment",
+    "named": true,
+    "extra": true
+  },
+  {
+    "type": "do",
+    "named": false
+  },
+  {
+    "type": "else",
+    "named": false
+  },
+  {
+    "type": "escape",
+    "named": true
+  },
+  {
+    "type": "false",
+    "named": false
+  },
+  {
+    "type": "for",
+    "named": false
+  },
+  {
+    "type": "if",
+    "named": false
+  },
+  {
+    "type": "in",
+    "named": false
+  },
+  {
+    "type": "is",
+    "named": false
+  },
+  {
+    "type": "let",
+    "named": false
+  },
+  {
+    "type": "math",
+    "named": false
+  },
+  {
+    "type": "member",
+    "named": true
+  },
+  {
+    "type": "not",
+    "named": false
+  },
+  {
+    "type": "number",
+    "named": true
+  },
+  {
+    "type": "or",
+    "named": false
+  },
+  {
+    "type": "production",
+    "named": false
+  },
+  {
+    "type": "return",
+    "named": false
+  },
+  {
+    "type": "string",
+    "named": true
+  },
+  {
+    "type": "surface",
+    "named": false
+  },
+  {
+    "type": "text",
+    "named": true
+  },
+  {
+    "type": "token",
+    "named": false
+  },
+  {
+    "type": "true",
+    "named": false
+  },
+  {
+    "type": "url",
+    "named": true
+  },
+  {
+    "type": "{",
+    "named": false
+  },
+  {
+    "type": "{{",
+    "named": false
+  },
+  {
+    "type": "|",
+    "named": false
+  },
+  {
+    "type": "}",
+    "named": false
+  },
+  {
+    "type": "}}",
+    "named": false
+  }
+]

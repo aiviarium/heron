@@ -1,0 +1,68 @@
+import = ["std/agents@1"]  // std/agents stays in the agents subtree
+
+harnesses = [generic, claude, codex]
+environment = dev
+
+orders.{
+  instructions = {{
+    Run `pnpm --filter store test` before you finish.
+    Never change a pet's status outside the order operations; go through
+    `place_order`, `approve_order` or `cancel_order` instead.
+  }}
+}
+
+debug_loop: skill {
+  when {{ a test fails only sometimes }}
+  | Reproduce the failure first, then change one thing at a time and rerun.
+  | Never mark the test as skipped; report why it's flaky instead.
+}
+
+github: mcpServer {
+  command = "github-mcp-server"
+  args = ["stdio"]
+  env = { GITHUB_TOKEN = env("GITHUB_TOKEN") }
+}
+
+dev: environment {
+  tools = [store_svc.test, store_svc.lint, github.issues, github.pulls]
+  network = ["registry.npmjs.org", "api.github.com"]
+  deny = [run("git push *")]
+
+  before do {
+    if tool.args.contains("--force") {
+      deny("Force operations need a person.")
+    }
+  }
+}
+
+review_change(diff: Diff): func(Review) do {
+  return delegate(
+    returns = Review,
+    context = [orders],
+    prompt =| Report each rule $data(diff) breaks, with the line that shows it.
+  )
+}
+
+fix_flaky(
+  /// The test that fails only sometimes.
+  test: String,
+): task<command>(Report) do {
+  return delegate<isolated>(
+    returns = Report,
+    context = [orders],
+    skills = [debug_loop],
+    prompt =| Make $data(test) pass 50 runs in a row.
+  )
+}
+
+@covers(debug_loop)
+debug_loop_triggers(message: String, loads: Bool): scenario {
+  cases {
+    case(message = "this test passes locally but fails in CI", loads = true)
+    case(message = "rename the orders module", loads = false)
+  }
+
+  verification do {
+    expect(triggered(debug_loop, message) == loads)
+  }
+}

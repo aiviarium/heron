@@ -1,0 +1,7 @@
+{
+  "name": "@heron/sample-docs-theme",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A sample docs theme package: tokens, a font, a logo and CSS that `docs { theme = \"npm:@heron/sample-docs-theme@1\" }` puts in the theme layer.",
+  "files": ["heron-theme.json", "tokens.json", "theme.css", "logo.svg", "fonts"]
+}

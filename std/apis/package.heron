@@ -1,0 +1,19 @@
+// std/apis: the extension point transports implement, from the Interop and
+// APIs tabs. A transport that needs code implements Transport, usually in
+// TS, and is bound with js(…), so a new protocol never needs a new build.
+import = ["std/schema@1", "std/types@1"]
+
+apis: package(version = "1.0", requires = ["std/types@1"]) {
+  /// A protocol that carries an api's ops.
+  Transport: interface {
+    /// Sends one request of an op and returns its response.
+    send(op: Ref(op), request: Any): func(Response)
+  }
+
+  /// What a transport returns for one request.
+  Response: type<open>
+
+  /// A transport bound to its implementation, as in
+  /// `grpc: transport = js("@acme/heron-grpc")`.
+  transport: kind
+}

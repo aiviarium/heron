@@ -1,0 +1,14 @@
+// std/proto: binds apis to gRPC services and types to protobuf messages,
+// from the Data and APIs tabs.
+import = ["std/schema@1", "std/types@1"]
+
+proto: package(version = "1.0", requires = ["std/types@1"]) {
+  /// The protobuf package that names an api's service.
+  proto(package: String): annotation(on = [types.api])
+
+  /// A member's or parameter's field number.
+  field(number: Int): annotation(on = [types.member, types.param])
+
+  /// Field numbers that are never reused.
+  reserved(numbers<variadic>: Int): annotation(on = [types.type])
+}

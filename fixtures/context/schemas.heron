@@ -1,0 +1,8 @@
+// What the Schemas tab's excerpts assume. The std/types excerpt is shown
+// without its imports, and the std/doc one without NoteKind.
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
+
+/// The Testing tab's resource kind and a type of one, which unit 3 owns;
+/// the extension example only declares a resource with them.
+resource(type: Any): kind
+Secrets: type

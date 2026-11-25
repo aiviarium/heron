@@ -1,0 +1,30 @@
+development.work.max_open = 3
+development.work.selection.speculative = true
+development.work.selection.budget = 20000
+
+development.integration.selection.speculative = true
+development.integration.selection.budget = 60000
+
+development.{
+  commits.{
+    format = ConventionalCommits(
+      types = ["feat", "fix", "refactor", "test", "docs", "spec", "chore"],
+    )
+    granularity = PerBehaviour()
+    attribution = CoAuthoredAttribution()
+    subject_max = 72
+    spec_refs = true
+
+    guidance =| The body says why the change was needed, not what the diff already shows.
+  }
+}
+
+petstore.versioning.{
+  bumps = FromCommits(breaking = "major", feat = "minor", fix = "patch")
+  channels = { integration = "beta", staging = "rc" }
+  tag = "%project%@%version%"
+}
+
+develop.{
+  test_first = true
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@heron/docs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The docs theme and islands: search, hover cards, Try it, diagram pan and zoom, and the version switch.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build && node scripts/embed.mjs",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@heron/tokens": "workspace:*",
+    "@solidjs/web": "2.0.3",
+    "@ui-sdk/core": "0.1.0-beta.16",
+    "@ui-sdk/solid": "0.1.0-beta.16",
+    "solid-js": "2.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@solidjs/babel-plugin": "^2.0.0",
+    "@solidjs/vite-plugin": "3.0.1",
+    "typescript": "~5.9.3",
+    "vite": "8.3.8"
+  }
+}

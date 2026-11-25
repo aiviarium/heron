@@ -1,0 +1,43 @@
+// A project that uses the inventory package's TS parts like built-in ones.
+import = ["std/types@1", "../package.heron"]
+
+/// A shelf of the warehouse.
+Shelf: type {
+  label: String
+  items: List(inventory.Item)
+}
+
+/// TODO: say what a bin holds.
+Bin: type {
+  shelf: Shelf
+}
+
+/// Prints how many of an item the store holds.
+stock(sku: String): task do {
+  let n = inventory.count(sku = sku)
+  log("$sku: $n")
+}
+
+/// Prints the slug of a name.
+slug(name: String): task do {
+  log(inventory.slugify(text = name))
+}
+
+/// Looks an item up through the shelf api, which the memory transport carries.
+find(sku: String): task do {
+  let r = inventory.shelf.find(sku = sku)
+  log("${r.op}: ${r.found}")
+}
+
+/// Prints an item's description, which TS builds by calling back into Heron.
+describe(sku: String): task do {
+  log(inventory.describe(sku = sku))
+}
+
+/// The slug of the home page, computed while the tree is evaluated.
+home_slug: String = inventory.slugify(text = "Pet Store Home")
+
+/// Prints the home page's slug.
+home: task do {
+  log(home_slug)
+}

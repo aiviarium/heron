@@ -1,0 +1,528 @@
+// Package project reads the implementation side of a detached spec: a tree
+// whose root `implements` a spec package (std/project), the proofs and
+// statuses it gives the spec's requirements, its releases and its version.
+// It checks project mode, where the spec kinds belong to the spec alone,
+// and the implementation version scheme, and computes the conformance
+// report.
+package project
+
+import (
+	"strings"
+
+	"github.com/helightdev/specs-v0/internal/core/ast"
+	"github.com/helightdev/specs-v0/internal/core/diag"
+	"github.com/helightdev/specs-v0/internal/core/resolve"
+	"github.com/helightdev/specs-v0/internal/core/syntax"
+	"github.com/helightdev/specs-v0/internal/core/types"
+)
+
+// The std/project kinds, by declaration path.
+const (
+	KindImplements = "project.implements"
+	KindProves     = "project.proves"
+	KindStatus     = "project.status"
+	KindRelease    = "project.release"
+	KindVerify     = "spec.verify"
+)
+
+// SpecKinds are the kinds a project leaves to its spec: what the system
+// must do, for whom, in which words, and its design. Each names what it is
+// in a project-mode error.
+var SpecKinds = map[string]string{
+	"spec.rule":         "rule",
+	"spec.quality":      "quality",
+	"spec.metric":       "metric",
+	"spec.states":       "lifecycle",
+	"spec.transition":   "transition",
+	"spec.outOfScope":   "out-of-scope note",
+	"product.actor":     "actor",
+	"product.persona":   "persona",
+	"product.epic":      "epic",
+	"product.story":     "story",
+	"product.criterion": "criterion",
+	"product.usecase":   "use case",
+	"tech.diagnostic":   "diagnostic",
+	"tech.command":      "command",
+	"tech.grammar":      "grammar",
+	"tech.production":   "production",
+	"tech.token":        "token",
+	"tech.screen":       "screen",
+	"tech.region":       "screen region",
+	"doc.term":          "term",
+	"types.api":         "api",
+}
+
+// RequirementKinds are the spec kinds a proof or a status may name.
+var RequirementKinds = map[string]bool{
+	"spec.rule":         true,
+	"spec.quality":      true,
+	"spec.transition":   true,
+	"product.criterion": true,
+	"tech.diagnostic":   true,
+	"tech.invariant":    true,
+}
+
+// Project is a tree's `implements` node and what hangs off it.
+type Project struct {
+	Tree    *resolve.Tree
+	Checker *types.Checker
+	// Node is the implements node at the root.
+	Node *resolve.Node
+	// Spec is the node `implements` names, normally a spec package's
+	// package node, and Package the package it belongs to, if any.
+	Spec    *resolve.Node
+	Package *resolve.Package
+	// At is the spec version implemented, as written.
+	At string
+	// Version is the project's own version, as written, or "".
+	Version     string
+	VersionSite resolve.Site
+	// Scheme is the version scheme its versioning config chooses.
+	Scheme Scheme
+	// Since is the path of an earlier spec version, as written, and Docs
+	// the base URL of the spec's rendered site.
+	Since, Docs string
+	// The tree's own proofs, statuses and releases, in tree order.
+	Proofs   []*resolve.Node
+	Statuses []*resolve.Node
+	Releases []*resolve.Node
+}
+
+// Find returns the project a tree's root declares with `implements`, or
+// nil when the tree implements no spec.
+func Find(t *resolve.Tree, c *types.Checker) *Project {
+	var p *Project
+	for _, n := range t.Root.Children {
+		if KindPath(c, n) == KindImplements {
+			p = &Project{Tree: t, Checker: c, Node: n}
+			break
+		}
+	}
+	if p == nil {
+		return nil
+	}
+	n := p.Node
+	args := KindArgs(n)
+	if es := ArgExprs(args); len(es) > 0 {
+		p.Spec = RefTarget(c, es[0].Syntax(), n.Decl)
+	} else if e := NamedArg(args, "spec"); e != nil {
+		p.Spec = RefTarget(c, e.Syntax(), n.Decl)
+	}
+	if p.Spec != nil {
+		p.Package = PackageOf(p.Spec)
+	}
+	p.At, _ = ArgString(args, 1, "at")
+	if v := n.Child("version"); v != nil && v.Value != nil {
+		p.Version, _ = resolve.StringValue(v.Value.Syntax())
+		p.VersionSite = v.ValueSite
+	}
+	if v := n.Child("since"); v != nil && v.Value != nil {
+		p.Since, _ = resolve.StringValue(v.Value.Syntax())
+	}
+	if v := n.Child("docs"); v != nil && v.Value != nil {
+		p.Docs, _ = resolve.StringValue(v.Value.Syntax())
+	}
+	p.Scheme = schemeOf(n)
+	Own(t, func(x *resolve.Node) bool {
+		switch KindPath(c, x) {
+		case KindProves:
+			p.Proofs = append(p.Proofs, x)
+		case KindStatus:
+			p.Statuses = append(p.Statuses, x)
+		case KindRelease:
+			p.Releases = append(p.Releases, x)
+		}
+		return true
+	})
+	return p
+}
+
+// SpecVersion is the version the spec package declares, or "".
+func (p *Project) SpecVersion() string {
+	if p.Package != nil {
+		return p.Package.Version
+	}
+	return ""
+}
+
+// SpecName is how messages and reports name the spec: its package node's
+// name, or the path implements names.
+func (p *Project) SpecName() string {
+	if p.Package != nil && p.Package.Node != nil {
+		return p.Package.Node.Name
+	}
+	if p.Spec != nil {
+		return p.Spec.Path()
+	}
+	return "the spec"
+}
+
+// Check reports what project mode and the version scheme rule out in a
+// tree: a spec kind declared in a project, an `implements` not at the
+// root or not naming a spec, a proof or status naming no spec requirement,
+// and versions that don't follow the scheme or the implemented spec.
+func Check(t *resolve.Tree, c *types.Checker) diag.List {
+	var ds diag.List
+	// An implements anywhere but the root is an error, project or not.
+	roots := 0
+	Own(t, func(n *resolve.Node) bool {
+		if KindPath(c, n) != KindImplements {
+			return true
+		}
+		if n.Parent != t.Root {
+			errAt(&ds, n.Decl, "project", "implements stands at the root of a project's tree, not inside %s", n.Parent.Path())
+		} else if roots++; roots > 1 {
+			errAt(&ds, n.Decl, "project", "a tree implements one spec; this is a second implements")
+		}
+		return true
+	})
+	p := Find(t, c)
+	if p == nil {
+		return ds
+	}
+	switch {
+	case p.Spec == nil:
+		errAt(&ds, p.Node.Decl, "project", "implements names no spec package it can find; import the spec and name its package node")
+	case p.Package == nil:
+		errAt(&ds, p.Node.Decl, "project", "implements names %s, which this tree declares; it names a spec package the tree imports", p.Spec.Path())
+	}
+	// Project mode: the spec's kinds stay in the spec.
+	Own(t, func(n *resolve.Node) bool {
+		k := KindPath(c, n)
+		what, ok := SpecKinds[k]
+		if !ok {
+			return true
+		}
+		name := n.Path()
+		if n.Name == "" {
+			name = "this " + what
+		}
+		errAt(&ds, n.Decl, "project-mode", "%s is a %s, which is spec content: this tree implements %s, so rules, stories, terms and the other spec kinds belong in the spec package, and the project only refers to them", name, what, p.SpecName())
+		return false
+	})
+	for _, n := range append(append([]*resolve.Node(nil), p.Proofs...), p.Statuses...) {
+		for _, e := range ArgExprs(KindArgs(n)) {
+			target := RefTarget(c, e.Syntax(), n.Decl)
+			if target == nil {
+				continue // the checker reports an unresolved name
+			}
+			if PackageOf(target) == nil {
+				errAt(&ds, siteOf(n, e), "project", "%s is the project's own; a proof or status names a requirement of the spec", target.Path())
+				continue
+			}
+			if !RequirementKinds[KindPath(c, target)] {
+				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or status names a rule, criterion, transition, diagnostic, invariant or quality", target.Path())
+			}
+		}
+	}
+	for _, n := range p.Proofs {
+		if len(childrenOfKind(c, n, KindVerify)) == 0 {
+			errAt(&ds, n.Decl, "project", "a proof holds the verify(path, test) that proves its requirements")
+		}
+	}
+	ds = append(ds, p.checkVersions()...)
+	return ds
+}
+
+// Requirement is one spec requirement and where the project has it.
+type Requirement struct {
+	Node *resolve.Node
+	// Path is its path inside the spec package, as "checkout.pay_once".
+	Path string
+	Kind string
+	// Proofs are the verify nodes of the proofs that name it.
+	Proofs []*resolve.Node
+	// Status is "proven", "planned", "untested" or "missing".
+	Status string
+}
+
+// Requirements lists the spec's requirements in tree order with their
+// standing in the project: proven by a test, planned, untested, or missing
+// when no proof names it and no status covers it.
+func (p *Project) Requirements() []*Requirement {
+	if p.Package == nil || p.Package.Tree == nil {
+		return nil
+	}
+	c := p.Checker
+	byNode := map[*resolve.Node]*Requirement{}
+	var out []*Requirement
+	for _, n := range SpecRequirements(p.Package, c) {
+		r := &Requirement{Node: n, Path: RelPath(p.Package, n), Kind: KindPath(c, n), Status: "missing"}
+		byNode[n] = r
+		out = append(out, r)
+	}
+	for _, s := range p.Statuses {
+		st := ""
+		for _, f := range KindFlags(s) {
+			if f == "planned" || f == "untested" {
+				st = f
+			}
+		}
+		for _, e := range ArgExprs(KindArgs(s)) {
+			if r := byNode[RefTarget(c, e.Syntax(), s.Decl)]; r != nil && st != "" {
+				r.Status = st
+			}
+		}
+	}
+	for _, pr := range p.Proofs {
+		vs := childrenOfKind(c, pr, KindVerify)
+		for _, e := range ArgExprs(KindArgs(pr)) {
+			if r := byNode[RefTarget(c, e.Syntax(), pr.Decl)]; r != nil {
+				r.Proofs = append(r.Proofs, vs...)
+				if len(r.Proofs) > 0 {
+					r.Status = "proven"
+				}
+			}
+		}
+	}
+	return out
+}
+
+// SpecRequirements are a spec package's requirement nodes, in tree order.
+func SpecRequirements(pkg *resolve.Package, c *types.Checker) []*resolve.Node {
+	var out []*resolve.Node
+	if pkg == nil || pkg.Tree == nil {
+		return nil
+	}
+	var walk func(n *resolve.Node)
+	walk = func(n *resolve.Node) {
+		for _, ch := range n.Children {
+			if ch.Shape == resolve.ShapeMounted {
+				continue
+			}
+			if RequirementKinds[KindPath(c, ch)] {
+				out = append(out, ch)
+			}
+			walk(ch)
+		}
+	}
+	walk(pkg.Tree.Root)
+	return out
+}
+
+// RelPath is a node's path inside its package, without the package node's
+// name, as "checkout.pay_once" for shop.checkout.pay_once.
+func RelPath(pkg *resolve.Package, n *resolve.Node) string {
+	path := n.Path()
+	if pkg != nil && pkg.Node != nil {
+		path = strings.TrimPrefix(path, pkg.Node.Name+".")
+	}
+	return path
+}
+
+// --- tree helpers ---
+
+// KindPath is the declaration path of a node's standard kind, such as
+// "spec.rule", or "" for a node of no standard kind.
+func KindPath(c *types.Checker, n *resolve.Node) string {
+	k := c.KindOf(n)
+	if k == nil || k.Decl.File == nil || !k.Decl.File.ID.IsStd() {
+		return ""
+	}
+	return k.Path()
+}
+
+// PackageOf returns the imported package a node belongs to, through
+// mounted nodes' origins, or nil for a node of the tree itself.
+func PackageOf(n *resolve.Node) *resolve.Package {
+	for n.Origin != nil {
+		n = n.Origin
+	}
+	r := n
+	for r.Parent != nil {
+		r = r.Parent
+	}
+	return r.Package
+}
+
+// Own calls f for each node of the tree's own, in tree order, skipping
+// mounted package nodes; f returns false to skip a node's children.
+func Own(t *resolve.Tree, f func(*resolve.Node) bool) {
+	var walk func(n *resolve.Node)
+	walk = func(n *resolve.Node) {
+		for _, ch := range n.Children {
+			if ch.Shape == resolve.ShapeMounted || ch.Decl.File != nil && ch.Decl.File.ID.IsStd() {
+				continue
+			}
+			if f(ch) {
+				walk(ch)
+			}
+		}
+	}
+	walk(t.Root)
+}
+
+func childrenOfKind(c *types.Checker, n *resolve.Node, kind string) []*resolve.Node {
+	var out []*resolve.Node
+	for _, ch := range n.Children {
+		if KindPath(c, ch) == kind {
+			out = append(out, ch)
+		}
+	}
+	return out
+}
+
+// KindArgs returns the arguments a node's kind slot is written with.
+func KindArgs(n *resolve.Node) ast.Args {
+	if n.Decl.N == nil {
+		return ast.Args{}
+	}
+	switch n.Decl.N.Kind {
+	case syntax.Declare:
+		if t, ok := (ast.Declare{N: n.Decl.N}).Type().(ast.NamedType); ok {
+			return t.Args()
+		}
+	case syntax.Value:
+		if t, ok := (ast.Value{N: n.Decl.N}).Type().(ast.NamedType); ok {
+			return t.Args()
+		}
+	case syntax.Invoke:
+		return ast.Invoke{N: n.Decl.N}.Args()
+	}
+	return ast.Args{}
+}
+
+// KindFlags returns the flags on a node's kind slot, as <planned>.
+func KindFlags(n *resolve.Node) []string {
+	if n.Decl.N == nil {
+		return nil
+	}
+	var fl ast.Flags
+	switch n.Decl.N.Kind {
+	case syntax.Declare:
+		if t, ok := (ast.Declare{N: n.Decl.N}).Type().(ast.NamedType); ok {
+			fl = t.Flags()
+		}
+	case syntax.Invoke:
+		fl = ast.Invoke{N: n.Decl.N}.Flags()
+	}
+	if fl.N == nil {
+		return nil
+	}
+	var out []string
+	for _, t := range fl.Idents() {
+		out = append(out, t.Text)
+	}
+	return out
+}
+
+// ArgString returns a positional (index ≥ 0) or named string argument.
+func ArgString(args ast.Args, index int, name string) (string, bool) {
+	if args.N == nil {
+		return "", false
+	}
+	pos := 0
+	for _, a := range args.Args() {
+		switch a := a.(type) {
+		case ast.PositionalArg:
+			if pos == index {
+				return resolve.StringValue(a.Expr().Syntax())
+			}
+			pos++
+		case ast.NamedArg:
+			if name != "" && a.Ident() != nil && a.Ident().Text == name {
+				return resolve.StringValue(a.Expr().Syntax())
+			}
+		}
+	}
+	return "", false
+}
+
+// ArgExprs returns the positional argument expressions.
+func ArgExprs(args ast.Args) []ast.Expr {
+	if args.N == nil {
+		return nil
+	}
+	var out []ast.Expr
+	for _, a := range args.Args() {
+		if pa, ok := a.(ast.PositionalArg); ok {
+			out = append(out, pa.Expr())
+		}
+	}
+	return out
+}
+
+// NamedArg returns a named argument's expression.
+func NamedArg(args ast.Args, name string) ast.Expr {
+	if args.N == nil {
+		return nil
+	}
+	for _, a := range args.Args() {
+		if na, ok := a.(ast.NamedArg); ok && na.Ident() != nil && na.Ident().Text == name {
+			return na.Expr()
+		}
+	}
+	return nil
+}
+
+// RefTarget resolves a path expression to a node, through the checker's
+// references and then the scope it was written in.
+func RefTarget(c *types.Checker, p *syntax.Node, site resolve.Site) *resolve.Node {
+	if p == nil {
+		return nil
+	}
+	if n := c.Refs[p]; n != nil {
+		return n
+	}
+	var path *syntax.Node
+	if p.Kind == syntax.Path {
+		path = p
+	} else {
+		p.Walk(func(x *syntax.Node) bool {
+			if path == nil && x.Kind == syntax.Path {
+				path = x
+			}
+			return path == nil
+		})
+	}
+	if path == nil {
+		return nil
+	}
+	if n := c.Refs[path]; n != nil {
+		return n
+	}
+	segs := resolve.PathSegs(path)
+	if site.Scope == nil || len(segs) == 0 {
+		return nil
+	}
+	var out *resolve.Node
+	site.Scope.Each(segs[0], site.File, -1, func(b resolve.Binding) bool {
+		n := b.Node
+		for _, seg := range segs[1:] {
+			if n == nil {
+				break
+			}
+			n = n.Child(seg)
+		}
+		if n != nil {
+			out = n
+			return false
+		}
+		return true
+	})
+	return out
+}
+
+// RefsOf returns the nodes a node's positional kind arguments name.
+func RefsOf(c *types.Checker, n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	for _, e := range ArgExprs(KindArgs(n)) {
+		if t := RefTarget(c, e.Syntax(), n.Decl); t != nil {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+func siteOf(n *resolve.Node, e ast.Expr) resolve.Site {
+	return resolve.Site{File: n.Decl.File, N: e.Syntax(), Scope: n.Decl.Scope}
+}
+
+func errAt(ds *diag.List, s resolve.Site, code, format string, args ...any) {
+	start, end := s.Span()
+	file := ""
+	if s.File != nil {
+		file = string(s.File.ID)
+	}
+	ds.Errorf(file, start, end, code, format, args...)
+}

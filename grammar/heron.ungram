@@ -1,0 +1,124 @@
+// The node kinds of Heron's lossless syntax tree, and the tokens they hold.
+//
+// This file is the single description the parser and the typed views share:
+// `go generate ./internal/core/ast` writes the kind enum for
+// internal/core/syntax and the typed views for internal/core/ast from it.
+// The surface grammar it implements is the one on the Core format tab
+// (docs/design/01-core-format.md); this file describes the tree, not the text.
+//
+// Notation:
+//   token A B C              declares token kinds
+//   Name = A | B | C         a sum: every alternative is a node kind (or sum)
+//   Name = elem elem …       a node kind with its children, in order
+//   elem = [label:]Kind[?|*] a child node or token; ? optional, * repeated
+// Labels name accessors; they're needed when a kind occurs twice.
+
+// Trivia and errors.
+token Whitespace Newline Comment Error
+
+// Words and literals.
+token Ident Number
+token KwLet KwDo KwIf KwElse KwFor KwIn KwReturn KwNot KwAnd KwOr KwIs KwTrue KwFalse
+
+// Punctuation.
+token LBrace RBrace LBrace2 RBrace2 LParen RParen LBracket RBracket
+token FlagOpen FlagClose Comma Colon Dot Question Eq At
+token EqEq NotEq Lt LtEq Gt GtEq Plus Minus Star Slash Percent Bar Amp
+
+// Strings: a quote run opens and closes; text, escapes and inserts between.
+token Quote StringText Escape Dollar DollarBrace Raw
+
+// Prose: line prefixes, text, and the forms inside text.
+token Pipe DocPrefix Text CodeSpan FenceLine
+token LinkOpen LinkMid LinkClose Hash Url
+token TagOpen TagCloseOpen TagEnd TagSelfEnd
+token HeadingMark HeadingId
+
+// Files.
+File = Member*
+ProseFile = ProseItem*
+
+// Members of a structure body.
+Member = Declare | Value | Enter | TextNode | Scope | Invoke | Set | Let | Action
+       | ProseLines | ProseBlock | CommentLine | Doc | ErrorNode
+
+Declare = Doc? Annotation* Path Flags? Params? Question? Colon Type Body?
+Value = Doc? Annotation* Path Flags? Params? Question? Colon Type Eq Expr
+Enter = Doc? Annotation* Path Body
+TextNode = Doc? Annotation* Path ProseBlock
+Scope = Doc? Annotation* Path? Dot StructBody
+Invoke = Doc? Annotation* Path Flags? Args? Body? Eq? Expr?
+Set = Doc? Annotation* Path Eq Expr
+Let = Doc? KwLet Ident Colon? Type? Eq Expr
+Action = Doc? Annotation* DoBlock
+CommentLine = Comment
+ErrorNode = Error*
+
+Doc = DocLine*
+DocLine = DocPrefix Inline*
+Annotation = At Path Flags? Args?
+
+Path = Ident* StringLit*
+Flags = FlagOpen Ident* Comma* FlagClose
+Params = LParen Param* Comma* RParen
+Param = Doc? Annotation* Ident Flags? Question? Colon Type Eq? default:Expr?
+Args = LParen Arg* Comma* RParen
+Arg = PositionalArg | NamedArg
+PositionalArg = Expr
+NamedArg = Ident Eq Expr
+
+Body = StructBody | ProseBlock | DoBlock
+StructBody = LBrace Member* RBrace
+DoBlock = KwDo Code
+Code = LBrace Stmt* RBrace
+
+// Statements of a code block.
+Stmt = LetStmt | AssignStmt | ReturnStmt | ExprStmt | CommentLine | ErrorNode
+LetStmt = KwLet Ident Colon? Type? Eq Expr
+AssignStmt = Path Eq Expr
+ReturnStmt = KwReturn Expr?
+ExprStmt = Expr Code?
+
+// Expressions.
+Expr = Literal | StringLit | PathExpr | CallExpr | FieldExpr | ArrayExpr | MapExpr
+     | ParenExpr | CastExpr | BinaryExpr | UnaryExpr | IfExpr | ForExpr
+     | ProseLines | ProseBlock | ErrorNode
+Literal = Number? KwTrue? KwFalse? Raw?
+StringLit = Quote StringPart* Quote
+StringPart = Insert
+PathExpr = Path
+CallExpr = callee:Expr Flags? Args
+FieldExpr = Expr Dot Ident
+ArrayExpr = LBracket Expr* Comma* RBracket
+MapExpr = LBrace MapEntry* Comma* RBrace
+MapEntry = Path Eq Expr
+ParenExpr = LParen Expr RParen
+CastExpr = LParen Type RParen Expr
+BinaryExpr = lhs:Expr rhs:Expr
+UnaryExpr = KwNot? Minus? Expr
+IfExpr = KwIf cond:Expr then:Code KwElse? else:Code? elseIf:IfExpr?
+ForExpr = KwFor Ident KwIn Expr Code
+
+// Types.
+Type = NamedType | OptionalType | UnionType | IntersectionType | ErrorNode
+NamedType = Path Flags? Args?
+OptionalType = Type Question
+UnionType = lhs:Type Bar rhs:Type
+IntersectionType = lhs:Type Amp rhs:Type
+
+// Prose: `|` lines, `{{ }}` blocks and the forms inside text.
+ProseLines = ProseLine*
+ProseLine = Pipe Inline*
+ProseBlock = LBrace2 Inline* RBrace2
+Inline = Link | Insert | Tag | Fence
+Link = LinkOpen Inline* LinkMid Hash? Path? Url? Insert* LinkClose
+Insert = Dollar? DollarBrace? Path? Flags? Args? Expr? RBrace?
+Tag = TagOpen Path TagAttr* TagEnd? TagSelfEnd? Inline* TagClose?
+TagClose = TagCloseOpen Path TagEnd
+TagAttr = Ident Eq? StringLit? LBrace? Expr? RBrace?
+Fence = FenceLine*
+
+// Prose files (.heron.md).
+ProseItem = Heading | HeronFence | Inline
+Heading = HeadingMark Inline* HeadingId?
+HeronFence = FenceLine Member* FenceLine

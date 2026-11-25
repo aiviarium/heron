@@ -1,0 +1,59 @@
+file       = member*                                        // the implicit root of a file
+member     = (doc | annotation)* (declare | value | enter | scope | invoke | textnode | set | let | action | prose)
+           | comment
+
+declare    = name flags? params? "?"? ":" type flags? args? body?   // a node of a stated kind, declared once
+value      = name flags? params? "?"? ":" type "=" expr             // a typed value or a one-expression func
+enter      = path ("{" member* "}" | "do" code)           // amends a node that exists; never creates
+textnode   = path "{{" text "}}"                            // a node of that kind holding only text
+scope      = path? "." body                                 // amends or creates; .{ … } alone groups in place
+invoke     = path flags? args (body | "=" prose)?          // a call; adds what it yields, so a kind call adds a node
+set        = path "=" expr                                  // sets something that exists
+let        = "let" name (":" type)? "=" expr                // a local: visible below, never emitted
+action     = "do" code                                      // the node's code
+prose      = ("|" text newline)+                            // the node's text, or a prose value
+           | "{{" text "}}"                                // the same text without prefixes
+
+body       = "{" member* "}"                                // structure
+           | "{{" text "}}"                                // a body that is all prose
+           | "do" code                                      // a body that is all code
+
+annotation = "@" call
+doc        = ("///" text newline)+                          // joins into the next member's @doc
+comment    = "//" text
+
+code       = "{" stmt* "}"
+stmt       = "let" name (":" type)? "=" expr                // the whole statement set
+           | path "=" expr                                  // a field of a node; locals never change
+           | "if" expr code ("else" (code | stmt))?
+           | "for" name "in" expr code
+           | "return" expr?
+           | expr code?                                     // a call, with an optional trailing block
+
+expr       = literal | path | call | array | map | prose | embed | "(" expr ")"
+           | expr op expr | ("not" | "-") expr
+           | "if" expr code "else" code | "for" name "in" expr code
+           | "(" type ")" expr                              // cast or tag
+op         = "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/" | "%"
+           | "and" | "or" | "in" | "is"
+type       = path args? | type "|" type | type "&" type | type "?"
+call       = (expr ".")? name flags? args?
+args       = "(" (arg ("," arg)* ","?)? ")"
+arg        = expr | name "=" expr
+flags      = "<" name ("," name)* ">"                       // directly after a name or kind, no space
+params     = "(" param ("," param)* ","? ")"                // param: (doc | annotation)* value-or-declare
+array      = "[" (expr ("," expr)* ","?)? "]"
+map        = "{" (name "=" expr ("," | newline))* "}"       // in value position
+literal    = number | "true" | "false" | string | raw
+string     = '"'×k … '"'×k                                  // k = 1 or k ≥ 3; $name and ${expr} interpolate
+raw        = "`"×k … "`"×k                                  // no interpolation
+embed      = "(" type ")" (string | raw)                    // a typed string: (sh)"…", (sql)```…```
+
+text       = (plain | mark | link | insert | tag)*          // inline Markdown plus three forms
+link       = "[" text "](" ("#" path | url) ")"
+insert     = "$" path args? | "${" expr "}"                 // nothing follows a call
+tag        = "<" path attr* ("/>" | ">" text "</" path ">") // a node of that kind; may span | lines
+attr       = name ("=" string | "=" "{" expr "}")?
+
+reserved   = "do" | "let" | "if" | "else" | "for" | "in" | "return"   // in code only; in structure they're names,
+                                                            // so a rule's `if {{ … }}` needs no escape

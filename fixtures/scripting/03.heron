@@ -1,0 +1,17 @@
+import = ["std/types@1", "std/http@1"]
+
+@throws(StoreError)
+place(pet: Pet): func(Order) = store.place_order(request = OrderRequest(pet_id = pet.id))
+
+// Adds a list and a get op for a resource, wherever an api body invokes it.
+resource_ops(name: String, path: String): macro = (heron)"""
+  @http<get>("$path")
+  list_${name}s(@query cursor?: String): op(Page(${name.pascal}))
+
+  @http<get>("$path/:id")
+  get_$name(@path id: Int): op(${name.pascal})
+"""
+
+store: api {
+  resource_ops(name = "category", path = "/categories")
+}

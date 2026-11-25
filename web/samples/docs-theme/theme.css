@@ -1,0 +1,14 @@
+/* The sample theme's CSS: headings take the display font, tiles round a
+   little more, and the logo is the theme's own. Values are tokens. */
+.page-title, h2.h, .entry-head .h, .tile-title { font-family: var(--h-font-display); font-weight: 600; letter-spacing: -0.01em; }
+.logo img.mark { display: block; }
+.tile { border-radius: var(--h-radius-card); }
+
+/* Components a package renders, such as the sample site's steps and
+   status badge, are styled by the theme too. */
+.steps { margin: var(--h-space-4) 0; padding-left: var(--h-space-6); max-width: var(--h-size-measure); font-size: var(--h-font-size-prose); }
+.steps .step { padding: var(--h-space-2) 0 var(--h-space-2) var(--h-space-2); border-bottom: 1px solid var(--h-border-faint); }
+.steps .step::marker { color: var(--h-accent); font-family: var(--h-font-mono); font-size: var(--h-font-size-code); }
+.steps .step p { margin: 0; }
+.status-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 var(--h-space-2); border: 1px solid var(--h-accent-line); border-radius: var(--h-radius-control); color: var(--h-accent); font-size: var(--h-font-size-label); font-weight: var(--h-font-weight-medium); vertical-align: 1px; }
+.status-badge[data-level="1"] { color: var(--h-status-warn); border-color: currentColor; }

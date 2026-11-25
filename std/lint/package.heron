@@ -1,0 +1,48 @@
+// std/lint: the configuration of `heron lint` and the spec-aware prose
+// lints, from the Development tools tab. Importing the package turns the
+// prose lints on; Go implements them as a prose provider named Spec, so a
+// finding is coded Spec.<Rule> and `@lint(allow = ["Spec"])` silences them.
+import = ["std/schema@1", "std/types@1"]
+
+lint: package(version = "1.0", requires = ["std/types@1"]) {
+  /// How Vale lints the prose view of the tree.
+  Vale: type {
+    /// The Vale configuration, relative to the file that sets it. Without
+    /// it, the nearest .vale.ini above the entry point is used.
+    config?: String
+
+    /// The lowest alert level reported: "suggestion", "warning" or "error".
+    min_level?: String
+
+    /// Vale's scopes, applied to the projected document, that aren't
+    /// linted, such as "code".
+    skip?: List(String)
+  }
+
+  /// The lint configuration of a tree.
+  Lint: type {
+    vale?: Vale
+  }
+
+  /// The tree's lint configuration, entered as `lint { … }`.
+  lint<export>: Lint
+
+  /// The rules of the spec-aware prose lints, as their findings name them.
+  Rule: enum {
+    /// A word a `term` defines, used without linking to it.
+    UnlinkedTerm: Self
+    /// An alias a `term` rules out, used instead of the term.
+    Synonym: Self
+    /// One word defined by two terms, so it's used in two senses.
+    TwoSenses: Self
+    /// A `must` or `mustNot` whose prose says "should" or "may".
+    MustSaysShould: Self
+    /// A vague word, such as "fast" or "appropriate", in a rule that has
+    /// no metric.
+    VagueWord: Self
+    /// Prose that names a node or op without linking it.
+    UnlinkedNode: Self
+    /// A link to a file that doesn't exist.
+    DeadLink: Self
+  }
+}

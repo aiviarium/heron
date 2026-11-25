@@ -1,0 +1,14 @@
+// A sample unit's ops, added to `spec_server` from its own file, as a later
+// unit adds its routes. apigen writes sample_gen.go and sample.gen.ts from
+// it, and the server's tests mount them on the shell.
+import = ["std/types@1", "std/http@1"]
+
+spec_server {
+  /// Answers with the name it was given.
+  @http<get>("/sample/echo/:name")
+  sample_echo(@path name: String, @query times: Int): op(SampleEcho)
+}
+
+SampleEcho: type {
+  text: String
+}

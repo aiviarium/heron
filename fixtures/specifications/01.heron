@@ -1,0 +1,14 @@
+payments_svc: project(path = "services/payments") {
+  implements = [payments]
+  paths = { refunds = "src/refunds/**" }
+  depends_on = [shared_types, ledger]
+  owners = ["@acme/payments"]
+}
+
+shared_types: project(path = "packages/types") {
+  owners = ["@acme/platform"]
+}
+
+ledger: project<external>(path = "vendor/ledger") {
+  source = git("https://github.com/acme/ledger", ref = "v2.3.1")
+}

@@ -1,0 +1,24 @@
+// The editor's own ops, added to `spec_server` the way a later unit adds
+// its ops: by entering the api from another file.
+spec_server {
+  @http<get>("/workspace")
+  workspace(): op(Workspace)
+
+  @http<get>("/file")
+  read_file(@query path: String): op(FileText)
+
+  @http<post>("/file")
+  write_file(@body request: FileText): op(Saved)
+
+  @http<post>("/problems")
+  problems(@body request: TreeRequest): op(Problems)
+
+  @http<post>("/run")
+  run_task(@body request: RunRequest): op(Stream(RunEvent))
+
+  @http<post>("/outline")
+  outline(@body request: OutlineRequest): op(Outline)
+
+  @http<post>("/generated")
+  generated(@body request: TreeRequest): op(GeneratedFiles)
+}

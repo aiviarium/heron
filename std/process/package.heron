@@ -1,0 +1,32 @@
+// std/process: processes as a driver, from the Scripting tab. Arguments are
+// a list, so nothing is parsed or quoted by a shell.
+import = ["std/schema@1", "std/types@1"]
+
+process: package(version = "1.0", requires = ["std/types@1"]) {
+  @insert(Insert.QUOTE)
+  sh: language(grammar = "source.shell", env = Env.PARAMS)
+
+  /// A finished process.
+  Process: type {
+    exit: Int
+    stdout: String
+    stderr: String
+  }
+
+  /// A process that exited with a non-zero status.
+  ProcessError: type(Error) {
+    message: String
+    exit: Int
+  }
+
+  /// Starts a command, or runs a script given as an embed, and waits for it.
+  @throws(ProcessError)
+  run(
+    command: Any,
+    args?: List(Any),
+    env?: Map(String, Any),
+    cwd?: String,
+    stdin?: Any,
+    stdout?: String,
+  ): func(Process)
+}

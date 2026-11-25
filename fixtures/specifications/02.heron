@@ -1,0 +1,17 @@
+acme: project(path = ".") {
+  members = [payments_spec, payments_svc, shared_types]
+
+  versioning.{
+    scheme = "%major%.%minor%.%patch%[-%pre%.%pre_n%]"
+  }
+
+  releases.{
+    changelog = "changelog.heron"
+  }
+}
+
+payments_spec: project(path = "specs/payments") {
+  versioning.{
+    bumps = FromSpec(breaking = "major", added = "minor", clarified = "patch")
+  }
+}

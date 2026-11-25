@@ -1,0 +1,44 @@
+import = ["std/doc@1", "std/types@1", "std/http@1"]
+
+Audited: interface {
+  created_at: Timestamp
+  created_by: String = "system"
+
+  age(): func(Duration) do {
+    return clock.now - created_at
+  }
+}
+
+Refund: type(Audited) {
+  id: String
+  payment_id: String
+  /// What was refunded, never more than the payment's refundable amount.
+  amount: Money
+}
+
+/// Everything a refund request can be refused with.
+RefundError: interface(Error)
+
+@status(422)
+RefundWindowExpired: type(RefundError) {
+  message: String = "The 30-day refund window has passed."
+  captured_at: Timestamp
+}
+
+@status(404)
+PaymentNotFound: type(RefundError) {
+  message: String = "No payment exists with this id."
+  payment_id: String
+}
+
+PaymentMethod: union {
+  card: Card
+  bank: BankTransfer
+  /// Paid out of the customer's balance.
+  wallet: Wallet
+}
+
+Page(T: Any): type {
+  items: List(T)
+  next?: String
+}

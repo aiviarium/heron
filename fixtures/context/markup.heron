@@ -1,0 +1,9 @@
+// What the Markup tab's excerpts assume: std/doc, and the nodes its pages
+// link to but don't declare.
+import = ["std/doc@1"]
+
+window: term =| The 30 days after capture in which a refund can be requested.
+
+exceptions: section {{
+  Refunds support handles by hand.
+}}

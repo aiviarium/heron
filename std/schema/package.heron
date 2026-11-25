@@ -1,0 +1,134 @@
+// std/schema: the kinds a package's schema is written with, from the Schemas
+// tab. Schemas are Heron files that import std/schema, so the format
+// describes its own packages.
+//
+// std/schema types its kinds' parameters with std/types, which is itself
+// declared with std/schema; that one import cycle is allowed, since names
+// resolve lazily.
+import = ["std/types@1"]
+
+schema: package(version = "1.0") {
+  /// The root of a schema file, with its version and the packages it
+  /// requires. A package's body holds anything a file can. A sealed
+  /// package, such as a spec published for implementers, is locked:
+  /// importers refer to its nodes but can't amend, scope or set into them.
+  package(version?: String, requires?: List(String), sealed?: Bool): kind
+
+  /// An open set of kinds that bodies accept.
+  category: kind
+
+  /// A node kind, valid in structure and, through its categories, as a tag
+  /// in prose. Its params are its kind arguments, and its body says what it
+  /// accepts: kinds, prose or code.
+  kind(
+    in?: List(Ref(category)),
+    heading?: Bool,
+    typed?: Bool,
+    args_from?: Ref(kind),
+    fields_from?: Ref(kind),
+    modes?: List(Mode),
+  ): kind {
+    accept(kind = accept)
+  }
+
+  /// Inside a kind: a kind or category its body takes, or prose, code, text
+  /// of a type, or a binding of the kind it takes its fields from.
+  accept(
+    mode?: Mode,
+    kind?: Ref(kind),
+    category?: Ref(category),
+    text?: Any,
+    binding?: Ref(Any),
+    max?: Int,
+    infer?: Bool,
+  ): kind
+
+  /// A flag and the kinds it attaches to.
+  flag(on?: List(Ref(Any)), group?: String): kind
+
+  /// An annotation, its params and what it attaches to.
+  annotation(on?: List(Ref(Any))): kind {
+    accept(kind = accept)
+  }
+
+  /// An embedded language and the grammar to inject.
+  language(grammar: String, env?: Env): kind
+
+  /// An external program that implements what `@extern(…)` declarations
+  /// name. It runs with limits: the files it may write, the hosts it may
+  /// reach and the commands it may run, which are none unless it declares
+  /// them. Its version and checksum pin it like any dependency.
+  extension(
+    command: List(String),
+    files?: List(String),
+    network?: List(String),
+    commands?: List(String),
+    version?: String,
+    checksum?: String,
+  ): kind
+
+  /// A resource whose instances a driver provides: setup, reset, snapshot,
+  /// restore, fork and teardown, as the Testing tab's lifecycle has them.
+  /// Its argument is the type of an instance.
+  resource(type?: Any): kind {
+    accept(code)
+  }
+
+  /// A generation adapter: it reads the resolved tree and writes files for
+  /// a target of `heron generate`.
+  generator(target: String): kind
+
+  /// The built-in categories.
+  flow: category
+  phrasing: category
+
+  /// A reference to a node of kind K, checked and highlighted as a link.
+  Ref(K: Any): type
+
+  /// The three modes the parser reads a body in.
+  Mode: enum {
+    structure: Self
+    prose: Self
+    code: Self
+  }
+
+  /// How values inserted into an embed of a language are made safe.
+  Insert: enum {
+    QUOTE: Self
+    LITERAL: Self
+  }
+
+  /// How an embedded language's code sees values.
+  Env: enum {
+    PARAMS: Self
+    VARIABLES: Self
+  }
+
+  /// Text taken exactly as written, as in a code block.
+  Verbatim: type
+
+  /// A kind with several signatures; a call takes the first that fits.
+  overload: flag(on = [kind])
+
+  /// An annotation that may stand several times on one node.
+  repeatable: flag(on = [annotation])
+
+  /// Overrides the default token class of a kind, flag or annotation.
+  highlight(token: String): annotation(on = [kind, flag, annotation, language])
+
+  /// Above a language: how inserted values are made safe. `@insert<raw>`
+  /// above a node opts out.
+  insert(mode?: Insert): annotation
+
+  /// Opts a node out of making inserted values safe.
+  raw: flag(on = [insert])
+
+  /// A check over the node tree, written in Heron or implemented by an
+  /// extension, run by `heron lint`.
+  lint: kind {
+    accept(code)
+  }
+
+  /// Binds a declaration to the extension that implements it.
+  extern(by: Ref(extension)): annotation
+}

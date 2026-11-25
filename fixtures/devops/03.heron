@@ -1,0 +1,13 @@
+// changelog.heron, written by heron run release, newest first
+release(project = payments_svc, version = "1.5.0", date = "2026-11-22") {
+  implements = { payments_spec = "2.1.0" }
+
+  feat {{
+    Refund requests after the 30-day window are rejected, as
+    [the late-request rule](#refund_window.late_rejected) requires.
+  }}
+}
+
+release(project = payments_spec, version = "2.1.0", date = "2026-11-20") {
+  feat {{ Adds [the late-request rule](#refund_window.late_rejected). }}
+}

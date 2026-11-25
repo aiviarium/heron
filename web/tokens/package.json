@@ -1,0 +1,12 @@
+{
+  "name": "@heron/tokens",
+  "version": "0.1.0",
+  "description": "Heron's design tokens: CSS variables and their values, generated from tokens.json.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./tokens.css",
+    "./tokens.json": "./tokens.json"
+  },
+  "files": ["src", "tokens.css", "tokens.json"]
+}

@@ -1,0 +1,37 @@
+/// A Postgres database with the migrations applied. Its snapshots come from
+/// the store driver, so a dirty instance is restored instead of rebuilt.
+StoreDb: type(Snapshot) {
+  url: String
+}
+
+Server: type {
+  url: String
+}
+
+start_db(migrations: String, seed: String = ""): func(StoreDb) do {
+  let out = run("./scripts/start-db", args = ["--migrations", migrations, "--seed", seed])
+  return json.decode(StoreDb, out.stdout)
+}
+
+start_store(db: StoreDb): func(Server) do {
+  let out = run("./scripts/start-store", env = { DATABASE_URL = db.url })
+  return json.decode(Server, out.stdout)
+}
+
+@gas(340)
+stocked_store: resource(StoreDb) {
+  setup do {
+    return start_db(
+      migrations = "./migrations",
+      seed = "./seeds/pets.json",
+    )
+  }
+}
+
+// Setup returns a client of the api; the api's examples check it afterwards.
+store_service: resource(store) {
+  setup do {
+    let server = start_store(db = stocked_store)
+    return store.client(base = server.url)
+  }
+}

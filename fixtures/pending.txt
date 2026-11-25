@@ -1,0 +1,18 @@
+# Heron blocks of unit 1's tabs that can't check clean yet. Each names the
+# rule of spec/ that says why: deferred_blocks_check (spec/delivery/
+# roadmap.heron) for blocks that wait for units 3 and 4, or the rule that
+# states an erratum of the design. The fixture test fails when a block listed here
+# starts checking clean, so the list can't go stale.
+
+data/01         deferred_blocks_check        # std/ci (DevOps)
+data/02         deferred_blocks_check        # std/ci and std/env (DevOps)
+markup/04       deferred_blocks_check        # a prompt (Agents)
+example/02      deferred_blocks_check        # std/ci, std/scenarios: stages, checks, approval
+example/03      deferred_blocks_check        # std/ci: commit rules and version bumps
+example/05      deferred_blocks_check        # std/ci: the checks pipeline
+example/07      deferred_blocks_check        # std/ci: release records
+example/10      example_tab_erratum          # erratum: should write orders.pet_lifecycle and #orders.ordering
+example/12      deferred_blocks_check        # std/scenarios
+example/14      deferred_blocks_check        # std/scenarios: resources
+example/15      deferred_blocks_check        # std/agents
+specifications/04  planning_example_erratum  # a decision record: the kind is gone from std/spec

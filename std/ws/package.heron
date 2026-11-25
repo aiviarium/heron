@@ -1,0 +1,8 @@
+// std/ws: binds apis and ops to WebSockets, from the APIs tab. Each op
+// becomes a message type on the socket.
+import = ["std/schema@1", "std/types@1"]
+
+ws: package(version = "1.0", requires = ["std/types@1"]) {
+  /// Opens a socket at a path, on an api or an op.
+  ws(path: String): annotation(on = [types.api, types.op])
+}

@@ -1,0 +1,9 @@
+/// Seeds a local store with available pets.
+seed_local(count: Int = 20): task do {
+  run("./scripts/seed-pets", args = ["--count", count])
+}
+
+@needs(seed_local)
+demo: task<confirm> do {
+  run("pnpm", args = ["dev"])
+}

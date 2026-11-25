@@ -1,0 +1,247 @@
+// std/spec: projects, features, requirements, context for implementors and
+// planning, from the Specifications tab.
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
+
+spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
+  // --- Projects ---
+
+  /// One unit of the system, such as a service, a library or an app.
+  project(path: String): kind {
+    /// The spec subtrees the project implements.
+    implements?: List(Ref(Any))
+    /// Narrows a subtree to part of the project, by file pattern.
+    paths?: Map(String, String)
+    depends_on?: List(Ref(project))
+    /// Who answers for the project; reviews route by it.
+    owners?: List(String)
+    /// The projects this one groups.
+    members?: List(Ref(project))
+    /// Where an external project's code comes from.
+    source?: Source
+    versioning?: Versioning
+    releases?: Releases
+    /// Tasks live next to what they act on, as the Example tab's
+    /// services/store/tasks.heron puts build, test and lint in a project.
+    accept(kind = task)
+  }
+
+  /// Code the system uses but doesn't own, pinned with a source.
+  external: flag(on = [project])
+
+  /// Puts every member of a group on the group's one version.
+  shared: flag
+
+  /// A checked-out source: the url, the ref as written and the commit it
+  /// resolved to.
+  Source: type {
+    url: String
+    ref?: String
+    commit?: String
+  }
+
+  /// Returns a source for a git repository at a ref.
+  git(url: String, ref?: String): func(Source)
+
+  /// How a project's versions are formed.
+  Versioning: type {
+    scheme?: String
+    bumps?: Bumps
+  }
+
+  /// What raises a version.
+  Bumps: interface
+
+  /// Versions that follow the spec: what each kind of spec change bumps.
+  FromSpec: type(Bumps) {
+    breaking?: String
+    added?: String
+    clarified?: String
+  }
+
+  /// Where a project's releases are recorded.
+  Releases: type {
+    changelog?: String
+  }
+
+  // --- Features ---
+
+  security: flag(on = [section])
+  privacy: flag(on = [section])
+  operations: flag(on = [section])
+
+  /// Something a reader could expect the feature to cover that's left out.
+  outOfScope: kind(in = [block]) {
+    accept(prose)
+  }
+
+  // --- Requirements ---
+
+  /// One behaviour in one strength node, and when it applies. `by` names
+  /// whose behaviour it states, such as an actor or a component; without
+  /// it the subject is the system.
+  rule(targets<variadic>?: Ref(Any), by?: Ref(Any)): kind(in = [block]) {
+    accept(prose)
+    accept(category = strength, max = 1)
+    // Each condition appears at most once; conditions other packages add
+    // repeat freely.
+    accept(kind = when, max = 1)
+    accept(kind = while, max = 1)
+    accept(kind = where, max = 1)
+    accept(kind = spec.if, max = 1)
+    accept(kind = unless, max = 1)
+    accept(kind = then, max = 1)
+    accept(kind = instead, max = 1)
+    accept(category = condition)
+    accept(kind = example)
+    accept(kind = verify)
+  }
+
+  /// The strengths a requirement states its behaviour with.
+  strength: category
+
+  /// The nodes that say when a requirement applies and what follows.
+  condition: category
+
+  must: kind(in = [strength]) {
+    accept(prose)
+  }
+
+  should: kind(in = [strength]) {
+    accept(prose)
+  }
+
+  may: kind(in = [strength]) {
+    accept(prose)
+  }
+
+  mustNot: kind(in = [strength]) {
+    accept(prose)
+  }
+
+  shouldNot: kind(in = [strength]) {
+    accept(prose)
+  }
+
+  /// A trigger.
+  when: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// A state.
+  while: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// An optional feature.
+  where: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// An unwanted situation.
+  if: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// An exception.
+  unless: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// A consequence the system guarantees once the rule applies.
+  then: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// Under a negative strength, the intended alternative.
+  instead: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  /// A key or boundary example of a requirement, or a code block of the
+  /// section it stands in.
+  example: kind(in = [block]) {
+    accept(prose)
+  }
+
+  /// The test or script that proves its parent holds: a file, and the test
+  /// or step in it.
+  verify(path: String, test?: String): kind {
+    accept(prose)
+  }
+
+  // --- Lifecycles ---
+
+  /// The lifecycle of an enum field.
+  states(field: Ref(Any)): kind(in = [block]) {
+    initial?: Any
+    terminal?: List(Any)
+    accept(prose)
+    accept(kind = transition)
+  }
+
+  /// One allowed change of a lifecycle.
+  transition(from: Any, to: Any): kind {
+    accept(prose)
+    // Each condition appears at most once; conditions other packages add
+    // repeat freely.
+    accept(kind = when, max = 1)
+    accept(kind = while, max = 1)
+    accept(kind = where, max = 1)
+    accept(kind = spec.if, max = 1)
+    accept(kind = unless, max = 1)
+    accept(kind = then, max = 1)
+    accept(kind = instead, max = 1)
+    accept(category = condition)
+    accept(kind = verify)
+  }
+
+  /// The transitions an op may cause.
+  performs(transitions<variadic>: Ref(transition)): annotation(on = [op])
+
+  // --- Qualities ---
+
+  /// What is measured, its type and its definition.
+  metric(type: Any): kind(in = [block]) {
+    accept(prose)
+  }
+
+  /// A bound on a metric.
+  quality(targets<variadic>?: Ref(Any)): kind(in = [block]) {
+    metric?: Ref(metric)
+    at_least?: Any
+    at_most?: Any
+    percentile?: Float
+    accept(category = strength, max = 1)
+    // Each condition appears at most once; conditions other packages add
+    // repeat freely.
+    accept(kind = when, max = 1)
+    accept(kind = while, max = 1)
+    accept(kind = where, max = 1)
+    accept(kind = spec.if, max = 1)
+    accept(kind = unless, max = 1)
+    accept(kind = then, max = 1)
+    accept(kind = instead, max = 1)
+    accept(category = condition)
+    accept(kind = applies, max = 1)
+    accept(kind = verify)
+  }
+
+  /// The scope of a quality.
+  applies: kind {
+    accept(prose)
+  }
+
+  // --- Context for implementors ---
+
+  /// Hints for implementors, such as internal APIs; never a requirement.
+  guidance(targets<variadic>?: Ref(Any)): kind(in = [block]) {
+    accept(prose)
+  }
+
+  // --- Planning ---
+
+  /// A question still to answer about its targets.
+  open(targets<variadic>?: Ref(Any), owner?: String): kind(in = [block]) {
+    accept(prose)
+  }
+}

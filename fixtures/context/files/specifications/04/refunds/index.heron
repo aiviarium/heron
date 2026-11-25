@@ -1,0 +1,7 @@
+// The refunds spec the planning example imports, reduced to the section it
+// targets.
+import = ["std/doc@1"]
+
+refund_window: section {{
+  Customers can request a refund within 30 days of capture.
+}}

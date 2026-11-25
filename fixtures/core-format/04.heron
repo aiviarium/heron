@@ -1,0 +1,53 @@
+title = "Format tour"
+import = ["std/doc@1", "acme/widgets@1"]
+
+let docs = "https://example.com/docs"
+
+overview: section {
+  | Prose lines start with `|` and use Markdown inline, with **bold**, *italic* and `code`.
+  | A [term](#tour_term) links to a node, $gauge.size inserts a value,
+  | and [this page](${docs}/gauges) points elsewhere.
+  |
+  | <note kind="tip">Tags are nodes too, written inside the text.</note>
+
+  tour_term: term =| A word the glossary defines once.
+
+  details: section {{
+    A body that is all prose needs no prefixes.
+    It ends at the closing brace on its own line.
+  }}
+}
+
+/// A gauge with a printed label.
+@source(file = "gauges.csv")
+gauge: widget<large>(size = 3, unit = "mm") {
+  | Prose inside a structural node is its own text.
+
+  label =| Printed under the gauge.
+  marker(color = Color.RED)
+  limits = (Set)[(u8)10, (u8)20]
+  owner = { team = "core", contact = `ops@core.example` }
+}
+
+scale(steps: Int = 10): widget {
+  ticks = [0, steps / 2, steps]
+}
+
+is_large(size: Int): func(Bool) = size > 5
+
+// This comment is kept and belongs to the next member.
+check_gauge: task do {
+  let size = gauge.size
+
+  if is_large(size) {
+    log("$gauge.label is large: ${size} mm")
+  }
+
+  for limit in gauge.limits {
+    expect(limit <= 20)
+  }
+}
+
+gauge {
+  owner.team = "platform"
+}

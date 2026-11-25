@@ -1,0 +1,82 @@
+import = [
+  "std/doc@1",
+  "std/types@1",
+  "std/scenarios@1",
+  "std/process@1",
+  "std/json@1",
+]
+
+refund_window: section {{
+  Customers can request a refund within *30 days* of capture.
+  Older requests are rejected with `RefundWindowExpired` and create nothing.
+}}
+
+@covers(payments.create_refund, refund_window)
+late_request(days_ago: Int): scenario {
+  | A late request fails loudly and creates nothing.
+
+  cases {
+    each(days_ago = [31, 45, 365])
+  }
+
+  before do {
+    let payment = fixture.Payment(
+      status = PaymentStatus.CAPTURED,
+      captured_at = clock.now - Duration(days = days_ago),
+    )
+  }
+
+  verification do {
+    let result = attempt(
+      payments_service.create_refund(
+        request = RefundRequest(payment_id = payment.id),
+      ),
+    )
+
+    check("rejected") {
+      expect(result.error is RefundWindowExpired)
+      expect(db.Refund.count(payment_id = payment.id) == 0)
+      judge(
+        result.error.message,
+        rubric =| Names the 30-day limit and tells the customer how to reach support.
+      )
+    }
+  }
+}
+
+@covers(payments.create_refund, refund_window)
+refund_in_parts(days_ago: Int): scenario {
+  | Two partial refunds inside the window together refund the whole payment.
+
+  cases {
+    each(days_ago = [1, 10, 29])
+  }
+
+  @timeout("60s")
+  before do {
+    let out = run(
+      "./scripts/seed-payment",
+      args = ["--amount", "100.00 EUR", "--captured-days-ago", days_ago],
+    )
+    let payment = json.decode(Payment, out.stdout)
+  }
+
+  verification do {
+    for amount in [(Money)"40.00 EUR", (Money)"60.00 EUR"] {
+      payments_service.create_refund(
+        request = RefundRequest(payment_id = payment.id, amount = amount),
+      )
+    }
+
+    let refreshed = db.Payment.get(payment.id)
+    expect(refreshed.refundable == "0.00 EUR")
+    expect(refreshed.status == PaymentStatus.REFUNDED)
+  }
+}
+
+@covers(refund_window)
+window_gaps: review {{
+  Look for paths that create a refund without checking the capture date,
+  such as retries, partial refunds and admin tools. Report each one with
+  a request that reproduces it.
+}}

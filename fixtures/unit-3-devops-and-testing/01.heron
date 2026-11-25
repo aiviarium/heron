@@ -1,0 +1,18 @@
+spec_server.{
+  @http<post>("/runs")
+  submit_run(@body plan: TestPlan): op(Run)
+
+  @http<get>("/runs")
+  list_runs(@query branch?: String, @query cursor?: String): op(Page(Run))
+
+  @http<get>("/runs/:id")
+  get_run(@path id: String): op(Run)
+
+  @http<get>("/runs/:id/events")
+  @ws("/runs/:id/events")
+  watch_run(@path id: String): op(Stream(RunEvent))
+
+  // Workers report results and measurements and receive shards.
+  @ws("/workers")
+  work(messages: Stream(WorkerMessage)): op(Stream(Assignment))
+}

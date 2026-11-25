@@ -1,0 +1,22 @@
+// The components the sample site's prose and slots use. Their renderers
+// are written in TS (docs/renderers.ts) and registered by the docs block.
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
+
+components: package(version = "1.0") {
+  /// Steps to follow in order, numbered from `start`.
+  steps(start: Int = 1): kind(in = [doc.block]) {
+    accept(kind = step)
+  }
+
+  /// One step.
+  step: kind {
+    accept(prose)
+    accept(category = doc.inline)
+  }
+
+  /// How ready something is, from 1 (a draft) to 3 (stable); a tag in
+  /// prose, or a block in a slot.
+  status(level: Int): kind(in = [doc.block, doc.inline]) {
+    accept(prose)
+  }
+}

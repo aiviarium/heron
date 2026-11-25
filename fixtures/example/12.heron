@@ -1,0 +1,65 @@
+@phase(e2e) .{
+  @covers(ordering.only_available)
+  unavailable_pet(status: PetStatus): scenario {
+    | An order for a pet that isn't available fails loudly and changes nothing.
+
+    cases {
+      each(status = [PetStatus.PENDING, PetStatus.SOLD])
+    }
+
+    before do {
+      let pet = fixture.Pet(status = status)
+    }
+
+    verification do {
+      let result = attempt(
+        store_service.place_order(request = OrderRequest(pet_id = pet.id)),
+      )
+
+      check("rejected") {
+        expect(result.error is PetNotAvailable)
+        expect(db.Order.count(pet_id = pet.id) == 0)
+        judge(
+          result.error.message,
+          rubric =| Says the pet isn't available and suggests searching for available pets.
+        )
+      }
+    }
+  }
+
+  @covers(ordering.hold_on_order, ordering.cancel_releases, single_sale)
+  @state<clean, mutates>(stocked_store)
+  order_then_cancel(pets: Int): scenario {
+    | Ordering holds a pet, and cancelling puts it back on sale.
+
+    cases {
+      each(pets = [1, 5, 20])
+    }
+
+    @timeout("60s")
+    before do {
+      let out = run(
+        "./scripts/seed-pets",
+        args = ["--count", pets, "--status", "available"],
+      )
+      let seeded = json.decode(List(Pet), out.stdout)
+    }
+
+    verification do {
+      for pet in seeded {
+        let order = store_service.place_order(request = OrderRequest(pet_id = pet.id))
+        expect(db.Pet.get(pet.id).status == PetStatus.PENDING)
+
+        store_service.cancel_order(order_id = order.id)
+        expect(db.Pet.get(pet.id).status == PetStatus.AVAILABLE)
+      }
+    }
+  }
+}
+
+@covers(ordering)
+double_sale_paths: review {{
+  Look for paths that sell a pet without checking that it's available, such as
+  retries, concurrent orders and admin tools. Report each one with a request
+  that reproduces it.
+}}

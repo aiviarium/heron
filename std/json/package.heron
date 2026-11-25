@@ -1,0 +1,25 @@
+// std/json: JSON encoding, from the Data and Scripting tabs.
+import = ["std/schema@1", "std/types@1"]
+
+json: package(version = "1.0", requires = ["std/types@1"]) {
+  /// JSON text, as an embedded language.
+  json: language(grammar = "source.json")
+
+  /// Text that isn't JSON, or isn't the shape of the type asked for.
+  DecodeError: type(Error) {
+    message: String
+  }
+
+  /// A value JSON can't hold.
+  EncodeError: type(Error) {
+    message: String
+  }
+
+  /// Reads JSON text as a value of a type.
+  @throws(DecodeError)
+  decode(type: Any, text: String): func(Any)
+
+  /// Writes a value as JSON text.
+  @throws(EncodeError)
+  encode(value: Any): func(String)
+}

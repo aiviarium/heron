@@ -1,0 +1,36 @@
+import = ["std/schema@1"]
+
+// An excerpt: the full component list is on the Markup tab.
+doc: package(version = "1.0") {
+  block: category
+  inline: category
+
+  section: kind(in = [block], heading = true) {
+    accept(prose)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  /// A code block. Triple backticks in prose are its shorthand.
+  code(lang?: String, title?: String): kind(in = [block, inline]) {
+    accept(text = Verbatim)
+  }
+
+  note(kind: NoteKind = NoteKind.NOTE): kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  kbd: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  term: kind(in = [block]) {
+    accept(prose)
+  }
+
+  @highlight(token = "comment.doc")
+  doc: annotation {
+    accept(prose)
+  }
+}

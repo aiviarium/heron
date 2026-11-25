@@ -1,0 +1,7 @@
+feat(refunds): reject refunds after the 30-day window
+
+Late requests now fail with REFUND_WINDOW_EXPIRED instead of creating
+a refund that support had to reverse by hand.
+
+Spec: refund_window.late_rejected, refund_window.late_creates_nothing
+Co-Authored-By: Claude <noreply@anthropic.com>

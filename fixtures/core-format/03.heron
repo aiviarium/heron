@@ -1,0 +1,16 @@
+// payments/index.heron: the entry point
+version = "0.3"
+
+import = ["std/doc@1", "std/types@1"]
+
+include = [
+  "./model.heron",
+  "./api.heron",
+  "./disputes/",        // follows the folder: disputes/index.heron mounted as disputes
+]
+
+// The matched files are mounted under refunds and see its names.
+// std/doc and std/types reach them from here, so they import neither.
+refunds.{
+  include = ["./refunds/*.heron"]
+}

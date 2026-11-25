@@ -1,0 +1,228 @@
+// std/doc: sections, terms and the components documentation needs, from the
+// Markup tab. Markdown's forms in prose become these nodes, so the tree is
+// the same whichever form is written.
+import = ["std/schema@1", "std/types@1"]
+
+doc: package(version = "1.0") {
+  /// Kinds that stand on lines of their own, or as children in structure.
+  block: category
+
+  /// Kinds that sit inside a sentence; valid only as tags.
+  inline: category
+
+  /// A titled part; nesting sets the level. A heading in a prose file is one.
+  section: kind(in = [block], heading = true) {
+    accept(prose)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  /// A word the glossary defines once.
+  term(aliases?: List(String)): kind(in = [block]) {
+    accept(prose)
+  }
+
+  /// A paragraph.
+  p: kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  em: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  strong: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  strike: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  /// A list; `1.` items make it ordered.
+  list(ordered: Bool = false): kind(in = [block]) {
+    accept(kind = item)
+  }
+
+  /// A list item; `- [ ]` and `- [x]` set done.
+  item(done?: Bool): kind {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  /// A quotation, with an optional source.
+  quote(cite?: String): kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  /// A code block. Triple backticks in prose are its shorthand.
+  code(lang?: String, title?: String): kind(in = [block, inline]) {
+    accept(text = Verbatim)
+  }
+
+  /// A table from an array of records, or from a pipe table.
+  table(rows?: List(Any)): kind(in = [block]) {
+    accept(kind = row)
+  }
+
+  row: kind {
+    accept(kind = cell)
+  }
+
+  cell: kind {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  /// An image with alt text and a caption.
+  figure(caption?: String): kind(in = [block]) {
+    accept(prose)
+    accept(kind = image)
+    accept(kind = caption, max = 1)
+  }
+
+  image(src: String, alt?: String): kind(in = [block, inline])
+
+  caption: kind {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  /// A link to a node or a page.
+  link<overload>(uri: String): kind(in = [inline]) {
+    accept(prose)
+  }
+
+  link<overload>(target: Ref(Any)): kind(in = [inline]) {
+    accept(prose)
+  }
+
+  divider: kind(in = [block])
+
+  /// What a callout says.
+  NoteKind: enum {
+    NOTE: Self
+    TIP: Self
+    WARNING: Self
+    DANGER: Self
+  }
+
+  /// Callouts.
+  note(kind: NoteKind = NoteKind.NOTE): kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  tip: kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  warning: kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  danger: kind(in = [block]) {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  /// A collapsible block.
+  details: kind(in = [block]) {
+    accept(kind = title, max = 1)
+    accept(prose)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  title: kind {
+    accept(prose)
+    accept(category = inline)
+  }
+
+  /// Alternatives, such as one example per language.
+  tabs: kind(in = [block]) {
+    accept(kind = tab)
+  }
+
+  tab(title: String): kind {
+    accept(prose)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  /// A glossary built from terms in scope.
+  definitions(of?: Ref(Any)): kind(in = [block])
+
+  /// A lifecycle, flow or dependency graph drawn from nodes.
+  diagram(of: Ref(Any)): kind(in = [block])
+
+  /// A table of contents for the enclosing section.
+  toc(depth?: Int): kind(in = [block])
+
+  /// Another node's text, by reference.
+  excerpt(of: Ref(Any)): kind(in = [block])
+
+  /// A formula.
+  math: kind(in = [block, inline]) {
+    accept(text = Verbatim)
+  }
+
+  /// Marked wording with no styling of its own; a name makes it a passage
+  /// coverage can point at.
+  span(name?: String): kind(in = [inline]) {
+    accept(prose)
+  }
+
+  /// A key or shortcut.
+  kbd: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  /// An abbreviation and what it stands for.
+  abbr(title: String): kind(in = [inline]) {
+    accept(prose)
+  }
+
+  sub: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  sup: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  /// A note collected at the end of the section.
+  footnote: kind(in = [inline]) {
+    accept(prose)
+  }
+
+  /// Shows a block when its test holds, with an optional else.
+  if(test: Bool): kind(in = [block, inline]) {
+    accept(prose)
+    accept(kind = else, max = 1)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  else: kind {
+    accept(prose)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  /// Repeats a block for each item, with index and last available inside.
+  for(each: List(Any), as?: String): kind(in = [block, inline]) {
+    accept(prose)
+    accept(category = block)
+    accept(category = inline)
+  }
+
+  @highlight(token = "comment.doc")
+  doc: annotation {
+    accept(prose)
+  }
+}
