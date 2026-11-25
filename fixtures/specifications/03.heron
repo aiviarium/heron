@@ -1,7 +1,0 @@
-// refunds/index.heron
-include = [
-  "./window.heron",      // refund_window and its requirements
-  "./scenarios.heron",
-  "./terms.heron",
-  "./guidance.heron",
-]

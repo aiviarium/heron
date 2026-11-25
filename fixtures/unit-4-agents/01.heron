@@ -1,4 +1,0 @@
-spec_server.{
-  @http<post>("/prompts/steps")
-  step_prompt(@body request: PromptStepRequest): op(PromptStep)
-}

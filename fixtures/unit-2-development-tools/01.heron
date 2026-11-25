@@ -1,9 +1,0 @@
-lint {
-  vale {
-    config = "./.vale.ini"
-    min_level = "warning"
-
-    // Vale's scopes, applied to the projected document.
-    skip = ["code"]
-  }
-}

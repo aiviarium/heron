@@ -1,0 +1,4 @@
+// The project tree: the components that realize the spec, the tests that
+// prove its requirements, where the rest stands, and the releases. It is
+// built apart and integrated here; until then this placeholder keeps the
+// root's include resolving.

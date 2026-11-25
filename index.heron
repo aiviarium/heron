@@ -1,0 +1,22 @@
+// The Heron implementation's tree: the spec it implements, imported as a
+// sealed package from aiviarium/heron-specs at the version heron.lock pins,
+// and the project tree that says how this repository realizes it. Nothing
+// here amends the spec; `heron run setup` installs it before the tree checks.
+import = [
+  "std/repo@1",
+  "git+https://github.com/aiviarium/heron-specs//heron@v0",
+]
+
+include = [
+  "./project/",
+]
+
+repository {
+  /// Installs the spec package heron.lock pins (all pins move to the newest
+  /// v0 tag with --update) and writes the generated files. For local work
+  /// against a sibling checkout of the spec, scripts/spec-setup.sh links
+  /// the checkout HERON_SPECS_DIR names in its place instead.
+  setup(update: Bool = false): task do {
+    install_packages(update = update)
+  }
+}

@@ -1,9 +1,0 @@
-docs {
-  theme = "npm:@acme/heron-theme@2"
-
-  layout("api") {
-    sections = [store_api]
-  }
-
-  renderers = [js("./docs/renderers.ts")]
-}

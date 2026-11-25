@@ -1,7 +1,0 @@
-fix_login: prompt {{
-  Fix the flaky login test with $debug_loop. Keep the public API of `auth/`.
-  If the test can't be made stable, say why it's flaky instead of skipping it.
-
-  <context>CI started failing after the session cache change.</context>
-  $json_reply(T = Report)
-}}

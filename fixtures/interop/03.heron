@@ -1,8 +1,0 @@
-// std/apis declares the point
-Transport: interface {
-  /// Sends one request of an op and returns its response.
-  send(op: Ref(op), request: Any): func(Response)
-}
-
-// a package binds an implementation
-grpc: transport = js("@acme/heron-grpc")

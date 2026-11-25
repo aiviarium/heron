@@ -1,6 +1,0 @@
-Development: type {
-  commits: Commits
-}
-
-/// The repository's one development process.
-development<export>: Development
