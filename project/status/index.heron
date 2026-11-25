@@ -254,4 +254,3 @@ lenses_untested: status<untested>(
   | Built in the docs theme and the navigation, and reviewed on the screenshots of every
   | lens, with no test that measures the rendered pages yet.
 }
-
