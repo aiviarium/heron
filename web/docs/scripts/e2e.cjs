@@ -4,6 +4,9 @@
 // and anchor, and drives every island the site has: search, hover cards,
 // Try it, the diagram's pan and zoom and table switch, example tabs, the
 // theme switch and the version switch.
+// Playwright from the web workspace (pnpm), else a global install on NODE_PATH;
+// its browsers from PLAYWRIGHT_BROWSERS_PATH, or PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+// when set.
 const { chromium } = require("playwright")
 const fs = require("node:fs")
 const http = require("node:http")
@@ -17,7 +20,7 @@ const fail = []
 const url = (f) => "file://" + path.join(dir, f)
 
 ;(async () => {
-  const browser = await chromium.launch()
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   page.on("pageerror", (e) => fail.push(`script error on ${page.url()}: ${e.message}`))
   page.on("console", (m) => m.type() === "error" && fail.push(`console error on ${page.url()}: ${m.text()}`))

@@ -1,6 +1,9 @@
 // The acceptance tests' harness: the real `heron serve` on a fresh git copy
 // of examples/petstore, and Chromium with an empty profile, failing on any
 // console error, failed request or page error.
+// Playwright from the web workspace (pnpm), else a global install on NODE_PATH;
+// its browsers from PLAYWRIGHT_BROWSERS_PATH, or PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+// when set.
 const { chromium } = require("playwright");
 const { spawn, execFileSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -45,7 +48,7 @@ async function run(name, fn, opts = {}) {
   const heron = process.env.HERON || path.join(repo, ".heron-e2e-bin/heron");
   const { dir, ws } = sample();
   const server = await serve(heron, ws);
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined });
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: opts.scale ?? 1, colorScheme: opts.colorScheme ?? "dark" });
   const page = await context.newPage();
   const errors = [];

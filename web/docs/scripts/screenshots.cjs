@@ -2,6 +2,9 @@
 //   node web/docs/scripts/screenshots.cjs <petstore site> <spec site> <out dir> [<themed site>]
 // The themed site (web/samples/docs-site) is shot in dark only. Uses the
 // preinstalled Chromium through Playwright.
+// Playwright from the web workspace (pnpm), else a global install on NODE_PATH;
+// its browsers from PLAYWRIGHT_BROWSERS_PATH, or PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+// when set.
 const { chromium } = require("playwright")
 const path = require("node:path")
 
@@ -16,7 +19,7 @@ const shots = [
 if (themed) shots.push({ name: "themed", site: themed, page: "guide.setup.html", themes: ["dark"] })
 
 ;(async () => {
-  const browser = await chromium.launch()
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined })
   for (const theme of ["dark", "light"]) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: theme })
     const page = await ctx.newPage()

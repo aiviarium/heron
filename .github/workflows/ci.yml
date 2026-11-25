@@ -1,0 +1,100 @@
+# scripts/ci.sh on GitHub: the whole check, as it runs locally. This file
+# only installs what the script expects to find (Go, Node, pnpm, Vale,
+# go-check-sumtype, Playwright's Chromium) and puts the spec package where
+# scripts/spec-setup.sh reads it.
+#
+# The spec: aiviarium/heron-specs checked out at the commit heron.lock pins,
+# linked in through HERON_SPECS_DIR, so CI doesn't depend on the lock's tag
+# being on GitHub. Run it by hand with spec = install to take the lock-based
+# path instead (`heron run setup` fetches the pinned tag from git).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Where the spec package comes from"
+        type: choice
+        options: [checkout, install]
+        default: checkout
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: heron
+
+      - name: The spec commit heron.lock pins
+        id: lock
+        run: |
+          line=$(grep '"github.com/aiviarium/heron-specs/heron"' heron/heron.lock)
+          commit=$(sed -E 's/.*commit = "([0-9a-f]{40})".*/\1/' <<<"$line")
+          [ ${#commit} = 40 ] || { echo "no commit for heron-specs in heron.lock" >&2; exit 1; }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "heron-specs at $commit"
+      - uses: actions/checkout@v7
+        if: inputs.spec != 'install'
+        with:
+          repository: aiviarium/heron-specs
+          ref: ${{ steps.lock.outputs.commit }}
+          path: heron-specs
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: heron/go.mod
+          cache: true
+          cache-dependency-path: heron/go.sum
+      # pnpm at the version web/package.json's packageManager names (10.x).
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: heron/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: heron/web/pnpm-lock.yaml
+
+      # Tools ci.sh runs from PATH. Vale needs a newer Go than heron does, so
+      # its toolchain is fetched for that install. tree-sitter-cli is the
+      # grammar's devDependency, which ci.sh installs with npm ci.
+      - name: Install Vale and go-check-sumtype
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go install github.com/vale-cli/vale/v3/cmd/vale@v3.28.1
+          go install github.com/alecthomas/go-check-sumtype/cmd/go-check-sumtype@v0.3.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      # The e2e scripts load Playwright from the web workspace; its Chromium
+      # and the system libraries it needs.
+      - name: Install the web workspace and Playwright's Chromium
+        working-directory: heron/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      # Some tests and e2e scripts commit in scratch repositories.
+      - name: Git identity
+        run: |
+          git config --global user.name "heron ci"
+          git config --global user.email "ci@example.invalid"
+
+      - name: scripts/ci.sh
+        working-directory: heron
+        env:
+          HERON_SPECS_DIR: ${{ inputs.spec != 'install' && format('{0}/heron-specs/heron', github.workspace) || '' }}
+        run: scripts/ci.sh

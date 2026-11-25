@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local CI: the whole check, run before every push. No hosted CI is used.
+# The whole check, run before every push and by .github/workflows/ci.yml.
 #
 # The spec package comes first: scripts/spec-setup.sh runs `heron run setup`,
 # which installs the version heron.lock pins from aiviarium/heron-specs, or,

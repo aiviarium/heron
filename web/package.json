@@ -6,5 +6,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }
