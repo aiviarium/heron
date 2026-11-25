@@ -59,7 +59,6 @@ product: package(version = "1.0", requires = ["std/doc@1", "std/spec@1", "std/te
     accept(kind = given)
     accept(kind = spec.when, max = 1)
     accept(kind = spec.then)
-    accept(kind = spec.verify)
   }
 
   /// A state a criterion starts from.

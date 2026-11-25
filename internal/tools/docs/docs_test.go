@@ -370,7 +370,6 @@ func TestProductAndTechKinds(t *testing.T) {
 		"runtime.syntax.html": {
 			`<dt>Used by</dt><dd><a class="ref" href="runtime.resolve.html"><code>resolve</code></a></dd>`,
 			`<code>syntax</code> <strong class="strength">must not</strong> import`,
-			`<code class="test">syntax and eval do no I/O</code>`,
 			`<ul class="implements"><li><a class="ref" href="guarantees.html">Guarantees</a> <span class="count">1 rule</span></li></ul>`,
 		},
 		"lang.html": {

@@ -22,7 +22,7 @@ const (
 	KindProves     = "project.proves"
 	KindStatus     = "project.status"
 	KindRelease    = "project.release"
-	KindVerify     = "spec.verify"
+	KindVerify     = "project.verify"
 )
 
 // SpecKinds are the kinds a project leaves to its spec: what the system

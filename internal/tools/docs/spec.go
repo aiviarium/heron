@@ -442,7 +442,7 @@ func renderTransition(c *Ctx) error {
 // verifyList is the list of a node's verify children: each test or script
 // by its file and name, with its prose, or "".
 func (c *Ctx) verifyList(n *resolve.Node) string {
-	vs := c.Site.childrenOfKind(n, "spec.verify")
+	vs := c.Site.childrenOfKind(n, "project.verify")
 	if len(vs) == 0 {
 		return ""
 	}

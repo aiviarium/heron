@@ -23,7 +23,6 @@ editing: epic<started>(owner = "tools") {
       given {{ the language server running }}
       when {{ the writer saves the file }}
       then {{ the error is underlined }}
-      verify("scripts/e2e-lsp.sh")
     }
   }
 
@@ -70,7 +69,6 @@ runtime: section {
 
     no_io: invariant {
       mustNot {{ import `os` or any other package that does I/O }}
-      verify("scripts/ci.sh", test = "syntax and eval do no I/O")
     }
 
     raises("E0001") {{ An unterminated string. }}
@@ -113,7 +111,6 @@ lang: section {
 guarantees: section {
   parse_all: rule(guarantees, by = runtime.syntax) {
     must {{ read every file }}
-    verify("internal/core/syntax/parse_test.go", test = "TestParse")
   }
 
   writer_saves: rule(guarantees, by = people.writer) {

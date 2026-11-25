@@ -263,7 +263,7 @@ func inside(x, n *resolve.Node) bool {
 func (c *Ctx) otherChildren(n *resolve.Node, prefix string, skip ...string) error {
 	for _, ch := range n.Children {
 		k := c.Site.kindPath(ch)
-		if strings.HasPrefix(k, prefix) || k == "spec.verify" || k == "" || !c.Site.shown(ch) || contains(skip, k) {
+		if strings.HasPrefix(k, prefix) || k == "project.verify" || k == "" || !c.Site.shown(ch) || contains(skip, k) {
 			continue
 		}
 		if ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue {

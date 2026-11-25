@@ -37,7 +37,15 @@ project: package(version = "1.0", requires = ["std/doc@1", "std/spec@1", "std/te
   /// name one requirement.
   proves(requirements<variadic>: Ref(Any)): kind(in = [block]) {
     accept(prose)
-    accept(kind = spec.verify)
+    accept(kind = verify)
+  }
+
+  /// The test or script that proves the requirements of the proof it
+  /// stands in: a file, relative to the repository's root, and the test or
+  /// step in it. Test links live only here, on the implementation's side;
+  /// no spec kind takes one.
+  verify(path: String, test?: String): kind {
+    accept(prose)
   }
 
   /// Where spec requirements stand in this project while no test proves

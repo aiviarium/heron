@@ -1,8 +1,9 @@
 // std/tech: the technical shape of a system, for the people and agents who
 // build it: components with their contracts, a tool's commands, and a
-// language's grammar. Requirements on them are std/spec's rules, and
-// `verify` links any of them to the test that proves it.
-import = ["std/schema@1", "std/types@1", "std/doc@1", "std/spec@1"]
+// language's grammar. Requirements on them are std/spec's rules; a
+// project's `proves` and `verify` (std/project) link them to their tests,
+// and a project's own components and invariants take `verify` directly.
+import = ["std/schema@1", "std/types@1", "std/doc@1", "std/spec@1", "std/project@1"]
 
 tech: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
   // --- Components ---
@@ -18,8 +19,10 @@ tech: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
     accept(kind = invariant)
     accept(kind = raises)
     accept(kind = obligation)
-    accept(kind = spec.verify)
     accept(category = block)
+    // A project's own components carry the tests that prove their
+    // contract; a spec, which never names a test, has none.
+    accept(kind = project.verify)
   }
 
   /// One thing a component owns. What no responsibility names belongs
@@ -40,7 +43,7 @@ tech: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
   invariant: kind(in = [block]) {
     accept(prose)
     accept(category = strength, max = 1)
-    accept(kind = spec.verify)
+    accept(kind = project.verify)
   }
 
   /// An error a component returns or reports, by its name or code.
@@ -75,7 +78,6 @@ tech: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
     related?: String
     accept(prose)
     accept(kind = spec.example)
-    accept(kind = spec.verify)
   }
 
   // --- Commands ---
@@ -91,7 +93,6 @@ tech: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
     accept(kind = option)
     accept(kind = exit)
     accept(kind = spec.example)
-    accept(kind = spec.verify)
     accept(kind = command)
     accept(category = block)
   }

@@ -33,7 +33,6 @@ refunds: section {
     unless {{ the payment is under review }}
     then {{ the ticket stays open }}
     example {{ day 31 is rejected }}
-    verify("internal/desk/desk_test.go", test = "TestWindow")
   }
 
   never_twice: rule<planned>(Ticket) {
@@ -97,7 +96,7 @@ func TestSpecKindsRender(t *testing.T) {
 	}
 	for path, wants := range map[string][]string{
 		// The conditions lead, the subject and strength carry the behaviour, unless closes.
-		"refunds.window":       {"When a refund is requested, if the", ">desk</code></a> <strong class=\"strength\">must</strong> reject the request, unless the payment is under review.", "<dt>Then</dt>", "day 31 is rejected", `<code class="path">internal/desk/desk_test.go</code> <code class="test">TestWindow</code>`},
+		"refunds.window":       {"When a refund is requested, if the", ">desk</code></a> <strong class=\"strength\">must</strong> reject the request, unless the payment is under review.", "<dt>Then</dt>", "day 31 is rejected"},
 		"refunds.never_twice":  {`<span class="status status-planned">planned</span>`, "A ticket <strong class=\"strength\">must not</strong> refund a ticket twice.", "<dt>Instead</dt>"},
 		"refunds.held":         {"A ticket <strong class=\"strength\">must</strong> hold."},
 		"refunds.capture_date": {`<dt class="term-name">`, "The day a payment was captured."},

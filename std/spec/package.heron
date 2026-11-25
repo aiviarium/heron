@@ -93,7 +93,6 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = instead, max = 1)
     accept(category = condition)
     accept(kind = example)
-    accept(kind = verify)
   }
 
   /// The strengths a requirement states its behaviour with.
@@ -163,12 +162,6 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// The test or script that proves its parent holds: a file, and the test
-  /// or step in it.
-  verify(path: String, test?: String): kind {
-    accept(prose)
-  }
-
   // --- Lifecycles ---
 
   /// The lifecycle of an enum field.
@@ -192,7 +185,6 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = then, max = 1)
     accept(kind = instead, max = 1)
     accept(category = condition)
-    accept(kind = verify)
   }
 
   /// The transitions an op may cause.
@@ -223,7 +215,6 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = instead, max = 1)
     accept(category = condition)
     accept(kind = applies, max = 1)
-    accept(kind = verify)
   }
 
   /// The scope of a quality.
