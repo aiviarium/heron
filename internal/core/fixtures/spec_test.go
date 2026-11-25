@@ -3,6 +3,7 @@ package fixtures
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -58,4 +59,42 @@ func TestFixturesAreTheSpecExamples(t *testing.T) {
 		}
 	}
 	t.Logf("%d code blocks of examples", len(blocks))
+}
+
+// verifyRE finds the file and test a `verify(…)` of the project tree names.
+var verifyRE = regexp.MustCompile(`verify\("([^"]+)"(?:,\s*test\s*=\s*"([^"]+)")?`)
+
+// TestProjectVerifyPathsExist fails when a verify link of the project tree
+// names a file that isn't in the repository, or a Go test its file doesn't
+// declare.
+func TestProjectVerifyPathsExist(t *testing.T) {
+	r := root()
+	files, err := SpecFiles(filepath.Join(r, "project"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rel, _ := filepath.Rel(r, f)
+		for _, m := range verifyRE.FindAllStringSubmatch(string(src), -1) {
+			n++
+			target, err := os.ReadFile(filepath.Join(r, m[1]))
+			if err != nil {
+				t.Errorf("%s: verify names %s, which doesn't exist", rel, m[1])
+				continue
+			}
+			if strings.HasSuffix(m[1], ".go") && strings.HasPrefix(m[2], "Test") &&
+				!strings.Contains(string(target), "func "+m[2]+"(") {
+				t.Errorf("%s: verify names %s in %s, which doesn't declare it", rel, m[2], m[1])
+			}
+		}
+	}
+	if n == 0 {
+		t.Skip("the project tree has no verify links yet")
+	}
+	t.Logf("%d verify links", n)
 }
