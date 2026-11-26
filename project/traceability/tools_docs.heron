@@ -305,6 +305,11 @@ tools_docs: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
   }
 
+  proves(heron.tools.docs.standard_lenses.user_lens.errors_gathered) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+    verify("internal/tools/docs/lenses_test.go", test = "TestDiagnosticsCompact")
+  }
+
   proves(heron.tools.docs.standard_lenses.user_lens.diagnostics_as_errors) {
     verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
   }

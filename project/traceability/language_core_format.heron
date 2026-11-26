@@ -147,6 +147,7 @@ language_core_format: section {
 
   proves(heron.language.core_format.naming.display_names) {
     verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
   }
 
   proves(heron.language.core_format.naming.diagnostics.unknown_name) {
