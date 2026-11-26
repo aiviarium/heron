@@ -61,13 +61,13 @@ the package from `$HERON_SPECS_DIR` directly. Unset it and run
 ## Versions
 
 The product version is the spec version: this build implements the Heron
-spec 0.2.0, so Heron is 0.2.0. The implementation's own builds of one spec
+spec 0.3.0, so Heron is 0.3.0. The implementation's own builds of one spec
 version follow a `+`, as build metadata, so they never claim a different
-spec: `0.2.0+build1`, `0.2.0+build2`, and so on, the counter starting again
+spec: `0.3.0+build1`, `0.3.0+build2`, and so on, the counter starting again
 when the spec version changes. Where a release needs an ordered
 implementation patch, the project's `versioning` can use the 4-part scheme
-`SM.Sm.Sp.IP` instead, as `0.2.0.1`, with build metadata still after `+`.
-The project tree's `implements(heron, at = "0.2.0")` names the spec version
+`SM.Sm.Sp.IP` instead, as `0.3.0.1`, with build metadata still after `+`.
+The project tree's `implements(heron, at = "0.3.0")` names the spec version
 and `version` the project version; releases are tagged `v<version>`.
 
 ## Checking it

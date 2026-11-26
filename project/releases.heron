@@ -4,4 +4,6 @@ releases: section {
   first: release("0.1.0+build1") {{ The first build against the 0.1.0 spec. }}
 
   lenses: release("0.2.0+build1") {{ The 0.2.0 spec: the docs' lenses, the authored pages and the rendering baseline. }}
+
+  prose_files: release("0.3.0+build1") {{ The 0.3.0 spec: short links, kind elements in prose files, `@lens` on any element and prose coloured as text in editors. }}
 }

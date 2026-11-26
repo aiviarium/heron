@@ -12,13 +12,13 @@ import = [
 
 /// The Heron implementation: the `heron` binary, its standard packages and its frontend.
 @display("Heron implementation")
-heron_impl: implements(heron, at = "0.2.0") {
-  version = "0.2.0+build1"
+heron_impl: implements(heron, at = "0.3.0") {
+  version = "0.3.0+build1"
   // The spec's own site, at the root of GitHub Pages with the project site
   // under project/ (.github/workflows/pages.yml): links to spec nodes go there.
   docs = "https://aiviarium.github.io/heron/"
 
-  | This repository implements the Heron spec at 0.2.0. Its versions start with the spec
+  | This repository implements the Heron spec at 0.3.0. Its versions start with the spec
   | version, and the build counter after `+` counts its releases of that spec version.
 }
 
