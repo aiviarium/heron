@@ -36,7 +36,8 @@
       "try": "Try it"
     },
     "badge": {
-      "required": "required"
+      "required": "required",
+      "outdated": "outdated"
     },
     "col": {
       "name": "Name",
@@ -112,7 +113,6 @@
       "variants": "Variants"
     },
     "label": {
-      "acceptance": "Acceptance criteria",
       "base_path": "Base path",
       "breadcrumb": "Breadcrumb",
       "default": "default",
@@ -160,7 +160,37 @@
       "related_site": "Related site",
       "reported_by": "Reported by",
       "lens": "Lens",
-      "for_example": "For example"
+      "for_example": "For example",
+      "realized_by": "Realized by",
+      "illustrated_by": "Illustrated by",
+      "served_by": "Served by",
+      "refined_by": "Refined by",
+      "relied_on_by": "Relied on by",
+      "derived_by": "Derived by",
+      "derived": "derived",
+      "measure": "Measure",
+      "serves": "Serves",
+      "illustrates": "Illustrates",
+      "refines": "Refines",
+      "relies": "Relies on",
+      "derives": "Derives from",
+      "adds": "Adds",
+      "changes": "Changes",
+      "plays": "Plays",
+      "extensions": "Extensions",
+      "success": "Success",
+      "minimal": "Minimal guarantee",
+      "level": "Level",
+      "stimulus": "Stimulus",
+      "environment": "Environment",
+      "nongoal": "Not a goal",
+      "assumption": "Assumption",
+      "rationale": "Rationale",
+      "reason": "Reason",
+      "fields": "Fields",
+      "scenarios": "Scenarios",
+      "flow": "Flow",
+      "actor": "Actor"
     },
     "lang": {
       "curl": "cURL",
@@ -210,8 +240,10 @@
       "and": "And"
     },
     "usecase": {
-      "rejoins": "Rejoins at {step}",
-      "ends": "Ends"
+      "fails": "Fails",
+      "succeeds": "Succeeds",
+      "back_to": "Back to {step}",
+      "includes": "Includes {usecase}"
     },
     "conformance": {
       "summary": "{project} implements {spec} at {at}: {proven} proven, {planned} planned, {untested} untested, {missing} missing of {total} requirements",
@@ -229,7 +261,12 @@
       "practice": "practice",
       "practices": "Practices",
       "practices_count": "({practices} practices of people and agents, not counted)",
-      "practices_note": "Requirements on the people and agents who author and build the system, by their subject; no test of the code proves them"
+      "practices_note": "Requirements on the people and agents who author and build the system, by their subject; no test of the code proves them",
+      "outdated_count": "{outdated} proven at an earlier revision only, counted as not proven",
+      "gap_unrealized": "Behaviour no contract entry realizes",
+      "gap_unrealized_note": "Rules on a part or the system, and use case steps a part takes, that no entry or error names with @realizes; listed for reading, nothing fails",
+      "gap_uncited": "Tests that cite no requirement",
+      "gap_uncited_note": "Tests of the project that no verify names; listed, never failed"
     },
     "project": {
       "implements": "Implements {spec} at {at}",

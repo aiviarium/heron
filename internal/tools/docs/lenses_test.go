@@ -303,8 +303,8 @@ func TestRuleAsProse(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	sync := f["explore/kite.sync.html"]
 	mustHave(t, "rules", sync,
-		`When a note changed in the folder and in the store, the <a class="ref subject"`,
-		`<strong class="strength">must</strong> keep both copies, the store&#39;s under a <code>.conflict</code> suffix, unless the two copies are equal.`,
+		`While the two copies differ, when a note changed in the folder and in the store, the <a class="ref subject"`,
+		`<strong class="strength">must</strong> keep both copies, the store&#39;s under a <code>.conflict</code> suffix.`,
 		`copy every note whose content changed since the last sync, so a note that only moved`,
 		`<strong class="strength">must not</strong> delete a note from the store, and must instead move it`,
 		`<span class="rule-example">For example, removing <code>ideas.md</code> locally moves it to <code>trash/ideas.md</code>.</span>`)
@@ -322,7 +322,8 @@ func TestRuleAsProse(t *testing.T) {
 			t.Errorf("a chip for a target on the rule's page: %s", c)
 		}
 	}
-	mustHave(t, "dev home", f["dev/index.html"], `<p class="sentence"><span class="rule-targets"><a class="ref chip" href="kite.store_api.get_note.html">kite.store_api.get_note</a></span>When the store answers 404`)
+	// A rule the op realizes is listed on the op's page.
+	mustHave(t, "dev op", f["dev/kite.store_api.get_note.html"], `When the store answers 404`)
 	// The formal parts are in the markup for the hover card.
 	mustHave(t, "dev rules", dev, `class="rule-meta"`)
 }
@@ -375,7 +376,7 @@ func TestDiagnosticsCompact(t *testing.T) {
 // title, and a tree's own user lens replaces std/docs's.
 func TestOwnLenses(t *testing.T) {
 	dir := t.TempDir()
-	src := `import = ["std/doc@1", "std/spec@1", "std/tech@1", "std/docs@1"]
+	src := `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
 
 cli: section {
   sync: command("kite sync") {{ Syncs a folder. }}
@@ -388,7 +389,7 @@ start: guide {
 support: lens {
   title = "Support"
   nav = LensNav.TASK
-  show = [tech.command, tech.diagnostic]
+  show = [spec.command, spec.error]
   prefix = "support"
 }
 
@@ -396,7 +397,7 @@ user: lens {
   title = "User"
   default = true
   nav = LensNav.TASK
-  show = [tech.command]
+  show = [spec.command]
   prefix = ""
 }
 
@@ -465,4 +466,25 @@ func TestElementsRender(t *testing.T) {
 		`<a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window"><code>window</code></a> and <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window"><code>window</code></a>.`,
 		`Fish &amp; chips.`, `<div class="rule" id="refunds.late"><p class="sentence">The <a class="ref subject" href="people.html#people.desk">desk</a> <strong class="strength">must</strong> refuse a refund after the`)
 	mustNotHave(t, "refunds", ex, "&amp;amp;", `tag-ref`)
+}
+
+// A use case with two extensions or more gets a flow diagram in the
+// developer and explore lenses, never in the user lens.
+func TestUseCaseFlowDiagram(t *testing.T) {
+	_, f := lensFiles(t, kite)
+	var dev, user string
+	for path, h := range f {
+		if strings.Contains(h, `id="kite.sync_notes"`) {
+			switch {
+			case strings.HasPrefix(path, "dev/"):
+				dev = h
+			case !strings.HasPrefix(path, "explore/"):
+				user = h
+			}
+		}
+	}
+	mustHave(t, "dev use case", dev, `<figure class="uc-flow">`, `<span class="uc-num">2b</span>`)
+	if strings.Contains(user, `uc-flow`) {
+		t.Error("a flow diagram in the user lens")
+	}
 }

@@ -14,22 +14,19 @@ import (
 
 func addTechRenderers() {
 	for k, f := range map[string]RenderFunc{
-		"tech.component":      renderComponent,
-		"tech.command":        renderCommand,
-		"tech.grammar":        renderGrammar,
-		"tech.production":     renderGrammarPart,
-		"tech.token":          renderGrammarPart,
-		"tech.invariant":      renderInvariant,
-		"tech.responsibility": renderStepAlone,
-		"tech.surface":        renderSurface,
-		"tech.raises":         renderStepAlone,
-		"tech.obligation":     renderStepAlone,
-		"tech.argument":       renderStepAlone,
-		"tech.option":         renderStepAlone,
-		"tech.exit":           renderStepAlone,
-		"tech.screen":         renderScreen,
-		"tech.diagnostic":     renderDiagnostic,
-		"tech.region":         renderRegion,
+		"project.component":      renderComponent,
+		"spec.command":           renderCommand,
+		"grammar.grammar":        renderGrammar,
+		"grammar.production":     renderGrammarPart,
+		"grammar.token":          renderGrammarPart,
+		"project.property":       renderInvariant,
+		"project.responsibility": renderStepAlone,
+		"project.exports":        renderSurface,
+		"spec.argument":          renderStepAlone,
+		"spec.option":            renderStepAlone,
+		"spec.screen":            renderScreen,
+		"spec.error":             renderDiagnostic,
+		"spec.region":            renderRegion,
 	} {
 		builtins[k] = f
 	}
@@ -96,7 +93,7 @@ func arrayItems(e ast.Expr) []ast.Expr {
 func (s *Site) usedBy(n *resolve.Node) []*resolve.Node {
 	var out []*resolve.Node
 	s.Tree.Walk(func(x *resolve.Node) {
-		if !own(x) || s.kindPath(x) != "tech.component" {
+		if !own(x) || s.kindPath(x) != "project.component" {
 			return
 		}
 		for _, u := range s.componentUses(x) {
@@ -144,7 +141,7 @@ func renderComponent(c *Ctx) error {
 	)
 	c.factList(facts)
 	c.Prose(n)
-	if rs := s.childrenOfKind(n, "tech.responsibility"); len(rs) > 0 {
+	if rs := s.childrenOfKind(n, "project.responsibility"); len(rs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".responsibilities", label("docs.heading.responsibilities"), "")
 		c.W(`<ul class="responsibilities">`)
 		for _, r := range rs {
@@ -156,13 +153,13 @@ func renderComponent(c *Ctx) error {
 		}
 		c.W(`</ul>`)
 	}
-	if ss := s.childrenOfKind(n, "tech.surface"); len(ss) > 0 {
+	if ss := s.childrenOfKind(n, "project.exports"); len(ss) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".surface", label("docs.heading.surface"), "")
 		for _, sf := range ss {
 			c.renderSurfaceOf(sf, lang)
 		}
 	}
-	if is := s.childrenOfKind(n, "tech.invariant"); len(is) > 0 {
+	if is := s.childrenOfKind(n, "project.property"); len(is) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".invariants", label("docs.heading.invariants"), "")
 		for _, i := range is {
 			if err := c.Render(i); err != nil {
@@ -170,32 +167,9 @@ func renderComponent(c *Ctx) error {
 			}
 		}
 	}
-	if es := s.childrenOfKind(n, "tech.raises"); len(es) > 0 {
-		c.Heading(c.Level+1, Anchor(n)+".errors", label("docs.nav.errors"), "")
-		c.W(`<div class="table-wrap"><table><thead><tr><th>`, esc(label("docs.col.name")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
-		for _, e := range es {
-			name, _ := argString(kindArgs(e), 0, "name")
-			c.W(`<tr id="`, attr(Anchor(e)), `"><td><code>`, esc(name), `</code></td><td>`, s.proseHTML(e), `</td></tr>`)
-		}
-		c.W(`</tbody></table></div>`)
-	}
-	obs := s.childrenOfKind(n, "tech.obligation")
-	if v := c.verifyList(n); len(obs) > 0 || v != "" {
+	if v := c.verifyList(n); v != "" {
 		c.Heading(c.Level+1, Anchor(n)+".tests", label("docs.heading.tests"), "")
-		if len(obs) > 0 {
-			c.W(`<ul class="verify">`)
-			for _, o := range obs {
-				c.W(`<li id="`, attr(Anchor(o)), `">`)
-				if p, ok := argString(kindArgs(o), 0, "path"); ok {
-					c.W(`<code class="path">`, esc(p), `</code> `)
-				}
-				c.W(`<span class="verify-note">`, s.inlineHTML(o), `</span></li>`)
-			}
-			c.W(`</ul>`)
-		}
-		if v != "" {
-			c.W(v)
-		}
+		c.W(v)
 	}
 	if groups := s.implementedBy(n); len(groups) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".implements", label("docs.heading.implements"), "")
@@ -215,7 +189,7 @@ func renderComponent(c *Ctx) error {
 		}
 		c.W(`</ul>`)
 	}
-	if err := c.otherChildren(n, "tech."); err != nil {
+	if err := c.otherChildren(n, "project."); err != nil {
 		return err
 	}
 	c.W(`</section>`)
@@ -323,7 +297,7 @@ func renderInvariant(c *Ctx) error {
 			continue
 		}
 		subj := esc(label("docs.rule.subject"))
-		if p := n.Parent; p != nil && s.kindPath(p) == "tech.component" {
+		if p := n.Parent; p != nil && s.kindPath(p) == "project.component" {
 			subj = `<code>` + esc(p.Name) + `</code>`
 		}
 		out := capitalise(subj) + ` <strong class="strength">` + esc(kindWords(strings.TrimPrefix(k, "spec."))) + `</strong> ` + s.inlineHTML(ch)
@@ -360,7 +334,7 @@ func renderCommand(c *Ctx) error {
 		}
 	}
 	c.Prose(n)
-	if as := s.childrenOfKind(n, "tech.argument"); len(as) > 0 {
+	if as := s.childrenOfKind(n, "spec.argument"); len(as) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".arguments", label("docs.heading.arguments"), "")
 		small := len(as) < 3
 		if small {
@@ -390,7 +364,7 @@ func renderCommand(c *Ctx) error {
 			c.W(`</tbody></table></div>`)
 		}
 	}
-	if os := s.childrenOfKind(n, "tech.option"); len(os) > 0 {
+	if os := s.childrenOfKind(n, "spec.option"); len(os) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".options", label("docs.heading.options"), "")
 		small := len(os) < 3
 		if small {
@@ -429,30 +403,23 @@ func renderCommand(c *Ctx) error {
 			c.W(`</tbody></table></div>`)
 		}
 	}
-	if es := s.childrenOfKind(n, "tech.exit"); len(es) > 0 {
+	errs := s.childrenOfKind(n, "spec.error")
+	errs = append(errs, s.argRefList(n, "errors")...)
+	if len(errs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".exit", label("docs.heading.exit_codes"), "")
-		small := len(es) < 3
-		if small {
-			c.W(`<ul class="lines">`)
-		} else {
-			c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.code")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
-		}
-		for _, e := range es {
+		c.W(`<ul class="lines">`)
+		for _, e := range errs {
 			code := ""
-			if es := argExprs(kindArgs(e)); len(es) > 0 {
-				code = strings.TrimSpace(es[0].Syntax().Text())
+			if x := namedArg(kindArgs(e), "exit"); x != nil {
+				code = strings.TrimSpace(x.Syntax().Text())
 			}
-			if small {
-				c.W(`<li id="`, attr(Anchor(e)), `"><p class="line-head"><code>`, esc(code), `</code> `, stripP(s.proseHTML(e)), `</p></li>`)
-				continue
+			title := ""
+			if t := e.Child("title"); t != nil && t.Value != nil {
+				title, _ = resolve.StringValue(t.Value.Syntax())
 			}
-			c.W(`<tr id="`, attr(Anchor(e)), `"><td><code>`, esc(code), `</code></td><td>`, s.proseHTML(e), `</td></tr>`)
+			c.W(`<li id="`, attr(Anchor(e)), `"><p class="line-head"><code>`, esc(code), `</code> `, esc(title), `</p></li>`)
 		}
-		if small {
-			c.W(`</ul>`)
-		} else {
-			c.W(`</tbody></table></div>`)
-		}
+		c.W(`</ul>`)
 	}
 	if exs := s.childrenOfKind(n, "spec.example"); len(exs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".examples", label("docs.label.examples"), "")
@@ -464,7 +431,7 @@ func renderCommand(c *Ctx) error {
 		c.Heading(c.Level+1, Anchor(n)+".tests", label("docs.heading.tests"), "")
 		c.W(v)
 	}
-	subs := s.childrenOfKind(n, "tech.command")
+	subs := s.childrenOfKind(n, "spec.command")
 	if len(subs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".commands", label("docs.heading.subcommands"), "")
 		for _, sc := range subs {
@@ -491,7 +458,7 @@ func renderCommand(c *Ctx) error {
 			c.W(`</ul>`)
 		}
 	}
-	if err := c.otherChildren(n, "tech.", "spec.example"); err != nil {
+	if err := c.otherChildren(n, "spec.argument", "spec.option", "spec.error", "spec.command", "spec.example"); err != nil {
 		return err
 	}
 	c.W(`</section>`)
@@ -537,7 +504,7 @@ func (s *Site) grammarNames(g *resolve.Node) map[string]*resolve.Node {
 	add := func(g *resolve.Node) {
 		for _, ch := range g.Children {
 			switch s.kindPath(ch) {
-			case "tech.production", "tech.token":
+			case "grammar.production", "grammar.token":
 				if out[ch.Name] == nil {
 					out[ch.Name] = ch
 				}
@@ -560,7 +527,7 @@ func (s *Site) grammarsBySource() map[string][]*resolve.Node {
 	if s.grammarSources == nil {
 		s.grammarSources = map[string][]*resolve.Node{}
 		s.Tree.Walk(func(n *resolve.Node) {
-			if s.kindPath(n) != "tech.grammar" {
+			if s.kindPath(n) != "grammar.grammar" {
 				return
 			}
 			if src, ok := argString(kindArgs(n), 1, "source"); ok && src != "" {
@@ -687,7 +654,7 @@ func renderGrammar(c *Ctx) error {
 	names := s.grammarNames(n)
 	usedBy := map[*resolve.Node][]*resolve.Node{}
 	for _, ch := range n.Children {
-		if s.kindPath(ch) != "tech.production" {
+		if s.kindPath(ch) != "grammar.production" {
 			continue
 		}
 		seen := map[*resolve.Node]bool{}
@@ -698,8 +665,8 @@ func renderGrammar(c *Ctx) error {
 			}
 		}
 	}
-	groups := []struct{ kind, key string }{{"tech.production", "docs.heading.productions"}, {"tech.token", "docs.heading.tokens"}}
-	both := len(s.childrenOfKind(n, "tech.production")) > 0 && len(s.childrenOfKind(n, "tech.token")) > 0
+	groups := []struct{ kind, key string }{{"grammar.production", "docs.heading.productions"}, {"grammar.token", "docs.heading.tokens"}}
+	both := len(s.childrenOfKind(n, "grammar.production")) > 0 && len(s.childrenOfKind(n, "grammar.token")) > 0
 	for _, group := range groups {
 		parts := s.childrenOfKind(n, group.kind)
 		if len(parts) == 0 {
@@ -707,7 +674,7 @@ func renderGrammar(c *Ctx) error {
 		}
 		// A grammar of one group needs no heading under its own.
 		if both {
-			c.Heading(c.Level+1, Anchor(n)+"."+strings.TrimPrefix(group.kind, "tech.")+"s", label(group.key), "")
+			c.Heading(c.Level+1, Anchor(n)+"."+strings.TrimPrefix(group.kind, "grammar.")+"s", label(group.key), "")
 		}
 		width := 0
 		for _, p := range parts {
@@ -744,7 +711,7 @@ func renderGrammar(c *Ctx) error {
 		}
 		c.W(`</div>`)
 	}
-	if err := c.otherChildren(n, "tech."); err != nil {
+	if err := c.otherChildren(n, "grammar."); err != nil {
 		return err
 	}
 	c.W(`</section>`)
@@ -772,7 +739,7 @@ func renderScreen(c *Ctx) error {
 		c.factList([][2]string{{label("docs.label.route"), `<code class="path">` + esc(r) + `</code>`}})
 	}
 	c.Prose(n)
-	if rs := c.Site.childrenOfKind(n, "tech.region"); len(rs) > 0 {
+	if rs := c.Site.childrenOfKind(n, "spec.region"); len(rs) > 0 {
 		c.W(`<div class="regions">`)
 		for _, r := range rs {
 			if err := c.Render(r); err != nil {
@@ -781,7 +748,7 @@ func renderScreen(c *Ctx) error {
 		}
 		c.W(`</div>`)
 	}
-	if err := c.otherChildren(n, "tech."); err != nil {
+	if err := c.otherChildren(n, "spec.region"); err != nil {
 		return err
 	}
 	c.W(`</section>`)

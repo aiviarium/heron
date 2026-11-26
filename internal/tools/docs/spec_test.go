@@ -8,54 +8,53 @@ import (
 )
 
 // specSrc holds one of each kind std/spec gives a specification.
-const specSrc = `import = ["std/doc@1", "std/types@1", "std/spec@1", "std/tech@1", "std/product@1", "std/http@1"]
+const specSrc = `import = ["std/doc@1", "std/types@1", "std/spec@1", "std/http@1"]
 
 Status: enum {
   OPEN: Self
   SHUT: Self
 }
 
+@realizes(refunds.never_twice, refunds.held)
 Ticket: type {
   status: Status
 }
 
-desk: component(path = "internal/desk", lang = "go")
+desk: part {{ The support desk. }}
 
 refunds: section {
   | Refunds of captured payments.
 
   capture_date: term {{ The day a payment was captured. }}
 
-  window: rule(Ticket, by = desk) {
-    when {{ a refund is requested }}
+  window: rule(by = desk) {
     if {{ the capture date is past }}
     must {{ reject the request }}
-    unless {{ the payment is under review }}
+    while {{ the payment is under no review }}
     then {{ the ticket stays open }}
     example {{ day 31 is rejected }}
   }
 
-  never_twice: rule<planned>(Ticket) {
+  never_twice: rule {
     mustNot {{ refund a ticket twice }}
     instead {{ answer with the first refund }}
   }
 
-  held: rule(Ticket) {
+  held: rule {
     must {{ hold }}
   }
 
-  later: outOfScope {{ Partial refunds. }}
+  later: nongoal {{ Partial refunds. }}
 
   hints: guidance(Ticket) {{ Use the ledger client. }}
 
-  latency: metric(Duration) {{ The time from request to answer. }}
+  quick: quality(measure = "Answers within two seconds.") {{ Refunds feel quick. }}
 
-  fast_answers: quality(Ticket) {
-    metric = latency
-    at_most = "2s"
-    percentile = 0.99
-    should {{ answer within two seconds }}
-    applies {{ in production }}
+  fast_answers: scenario(serves = [refunds.quick]) {
+    stimulus =| a refund is requested
+    environment =| production
+    response =| the request is answered
+    measure =| within two seconds at the 99th percentile
   }
 
   ticket_life: states(Ticket.status) {
@@ -95,14 +94,15 @@ func TestSpecKindsRender(t *testing.T) {
 		return f.HTML
 	}
 	for path, wants := range map[string][]string{
-		// The conditions lead, the subject and strength carry the behaviour, unless closes.
-		"refunds.window":       {"When a refund is requested, if the", ">desk</code></a> <strong class=\"strength\">must</strong> reject the request, unless the payment is under review, so the ticket stays open. <span class=\"rule-example\">For example, day 31 is rejected.</span>"},
-		"refunds.never_twice":  {`<span class="status status-planned">planned</span>`, "A ticket <strong class=\"strength\">must not</strong> refund a ticket twice, and must instead answer with the first refund."},
+		// The conditions lead, the subject and strength carry the behaviour.
+		"refunds.window":       {"While the payment is under no review, if the capture date is past", "desk</a> <strong class=\"strength\">must</strong> reject the request, so the ticket stays open. <span class=\"rule-example\">For example, day 31 is rejected.</span>"},
+		"refunds.never_twice":  {"A ticket <strong class=\"strength\">must not</strong> refund a ticket twice, and must instead answer with the first refund."},
 		"refunds.held":         {"A ticket <strong class=\"strength\">must</strong> hold."},
 		"refunds.capture_date": {`<dt class="term-name">`, "The day a payment was captured."},
-		"refunds.later":        {"Out of scope", "Partial refunds."},
+		"refunds.later":        {"Not a goal", "Partial refunds."},
 		"refunds.hints":        {"Guidance", "Use the ledger client."},
-		"refunds.fast_answers": {`<code class="chip chip-fact"><a class="ref code-ref" href="refunds.html#refunds.latency"><span class="tk-name">latency</span></a> ≤ 2s p<span class="tk-num">0.99</span></code>`, `<span class="rule-extra">Applies: `, "<strong class=\"strength\">should</strong> answer within two seconds"},
+		"refunds.fast_answers": {`<dt>Measure</dt><dd>within two seconds at the 99th percentile</dd>`, `<dt>Serves</dt><dd><a class="ref" href="refunds.html#refunds.quick">Quick</a></dd>`},
+		"refunds.quick":        {`<dt>Measure</dt><dd>Answers within two seconds.</dd>`, `Served by <span class="derived-mark">derived</span></span> <a class="ref" href="refunds.html#refunds.fast_answers">Fast answers</a>`},
 		"refunds.ticket_life":  {"<svg", "<code>shut</code>", "<code>OPEN</code>", "<code>SHUT</code>", ">close</code>"},
 		"which_days":           {"Open question", `<span class="owner">finance</span>`, "Business days"},
 	} {

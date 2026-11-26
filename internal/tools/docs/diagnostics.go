@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -48,8 +49,9 @@ func messageHTML(m string) string {
 	return b.String()
 }
 
-// placeholders escapes text and marks each ‹placeholder› in it.
+// placeholders escapes text and marks each `{placeholder}` in it.
 func placeholders(m string) string {
+	m = placeholderRe.ReplaceAllString(m, "‹$1›")
 	var b strings.Builder
 	for {
 		i := strings.Index(m, "‹")
@@ -72,7 +74,7 @@ func placeholders(m string) string {
 
 // diagnosticBadges are a diagnostic's code and severity, as text.
 func diagnosticBadges(n *resolve.Node) string {
-	code, _ := argString(kindArgs(n), 0, "code")
+	code, _ := argString(kindArgs(n), 0, "id")
 	sev := diagnosticSeverity(n)
 	return `<code class="diag-code">` + esc(code) + `</code> <span class="sev sev-` + attr(sev) + `">` + esc(sev) + `</span>`
 }
@@ -85,9 +87,9 @@ func renderDiagnostic(c *Ctx) error {
 	s := c.Site
 	if s.Opts.Lens != nil && s.Opts.Lens.Name == "user" {
 		// The error a person meets: code and message, and the fix.
-		code, _ := argString(kindArgs(n), 0, "code")
+		code, _ := argString(kindArgs(n), 0, "id")
 		c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line"><code class="diag-code">`, esc(code), `</code>`)
-		if m := fieldString(n, "message"); m != "" {
+		if m := fieldString(n, "title"); m != "" {
 			c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 		}
 		c.W(`</p>`)
@@ -98,7 +100,7 @@ func renderDiagnostic(c *Ctx) error {
 		return nil
 	}
 	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, diagnosticBadges(n), statusBadge(n))
-	if m := fieldString(n, "message"); m != "" {
+	if m := fieldString(n, "title"); m != "" {
 		c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 	}
 	if n.Name != "" {
@@ -112,6 +114,11 @@ func renderDiagnostic(c *Ctx) error {
 	if k := s.Checker.KindOf(n); k != nil {
 		meta = append(meta, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
 	}
+	for _, pr := range []struct{ arg, key string }{{"status", "docs.label.status"}, {"exit", "docs.col.code"}} {
+		if e := namedArg(kindArgs(n), pr.arg); e != nil {
+			meta = append(meta, esc(pr.arg)+` <code>`+esc(strings.TrimSpace(e.Syntax().Text()))+`</code>`)
+		}
+	}
 	if r := fieldString(n, "related"); r != "" {
 		meta = append(meta, esc(label("docs.label.related_site"))+` <span class="diag-related">`+messageHTML(r)+`</span>`)
 	}
@@ -121,7 +128,7 @@ func renderDiagnostic(c *Ctx) error {
 	if len(meta) > 0 {
 		c.W(`<span class="rule-meta">`, strings.Join(meta, `<span class="dot"> · </span>`), `</span>`)
 	}
-	if h := s.proseHTML(n); h != "" {
+	if h := s.proseHTML(n) + c.derivedLists(n); h != "" {
 		c.W(`<div class="diag-doc">`, h, `</div>`)
 	}
 	if exs := s.childrenOfKind(n, "spec.example"); len(exs) == 1 {
@@ -144,12 +151,12 @@ func renderDiagnostic(c *Ctx) error {
 // each linked to the section that specifies it.
 func (s *Site) diagnosticsPage(c *Ctx) error {
 	ds := append([]*resolve.Node(nil), s.diagnostics...)
-	code := func(n *resolve.Node) string { v, _ := argString(kindArgs(n), 0, "code"); return v }
+	code := func(n *resolve.Node) string { v, _ := argString(kindArgs(n), 0, "id"); return v }
 	sort.SliceStable(ds, func(i, j int) bool {
 		if a, b := code(ds[i]), code(ds[j]); a != b {
 			return a < b
 		}
-		return fieldString(ds[i], "message") < fieldString(ds[j], "message")
+		return fieldString(ds[i], "title") < fieldString(ds[j], "title")
 	})
 	// One entry per code: a code with one diagnostic on one line with its
 	// message, a code with more as the code once and each message under
@@ -163,7 +170,7 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 		groups = append(groups, []*resolve.Node{d})
 	}
 	message := func(d *resolve.Node) string {
-		m := messageHTML(fieldString(d, "message"))
+		m := messageHTML(fieldString(d, "title"))
 		if s.anchorOf[d] == c.Page {
 			// The entry is the diagnostic's place.
 			return `<span class="diag-message">` + m + `</span>`
@@ -203,3 +210,5 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 	c.W(`</ul>`)
 	return nil
 }
+
+var placeholderRe = regexp.MustCompile(`\{([A-Za-z_][A-Za-z0-9_]*)\}`)

@@ -59,7 +59,7 @@ func TestSpecGrammarIsUngram(t *testing.T) {
 	gotTokens, gotProds := map[string]bool{}, map[string]string{}
 	grammars := 0
 	s.Tree.Walk(func(n *resolve.Node) {
-		if s.kindPath(n) != "tech.grammar" {
+		if s.kindPath(n) != "grammar.grammar" {
 			return
 		}
 		if src, _ := argString(kindArgs(n), 1, "source"); src != source {
@@ -68,9 +68,9 @@ func TestSpecGrammarIsUngram(t *testing.T) {
 		grammars++
 		for _, ch := range n.Children {
 			switch s.kindPath(ch) {
-			case "tech.token":
+			case "grammar.token":
 				gotTokens[ch.Name] = true
-			case "tech.production":
+			case "grammar.production":
 				if _, dup := gotProds[ch.Name]; dup {
 					t.Errorf("production %s is in the spec twice", ch.Name)
 				}
@@ -120,7 +120,7 @@ func sortedKeys[V any](m map[string]V) []string {
 // the diagnostics index lists it by code with a link to its section.
 func TestDiagnosticsRender(t *testing.T) {
 	s := site(t, entries["spec"])
-	n := s.Tree.Find("heron.language.core_format.conflicts.diagnostics.declared_twice")
+	n := s.Tree.Find("heron.language.core_format.conflicts.errors.declared_twice")
 	if n == nil {
 		t.Fatal("no declared_twice diagnostic")
 	}

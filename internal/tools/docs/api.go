@@ -195,6 +195,10 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 	var rules []*resolve.Node
 	s.Tree.Walk(func(x *resolve.Node) {
 		if own(x) && s.kindPath(x) == "spec.rule" {
+			if s.entryRealizes(op, x) {
+				rules = append(rules, x)
+				return
+			}
 			for _, t := range s.targets(x) {
 				if t == op {
 					rules = append(rules, x)
@@ -732,7 +736,11 @@ func renderOp(c *Ctx) error {
 	// Rules on the op.
 	var rules []*resolve.Node
 	s.Tree.Walk(func(x *resolve.Node) {
-		if own(x) && s.kept(x) && (s.kindPath(x) == "spec.rule" || s.kindPath(x) == "spec.quality") {
+		if own(x) && s.kept(x) && s.kindPath(x) == "spec.rule" {
+			if s.entryRealizes(n, x) {
+				rules = append(rules, x)
+				return
+			}
 			for _, t := range s.targets(x) {
 				if t == n {
 					rules = append(rules, x)

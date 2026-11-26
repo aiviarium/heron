@@ -1,7 +1,6 @@
 package docs
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
@@ -14,21 +13,20 @@ import (
 
 func addProductRenderers() {
 	for k, f := range map[string]RenderFunc{
-		"product.actor":         renderActor,
-		"product.persona":       renderPersona,
-		"product.epic":          renderEpic,
-		"product.story":         renderStory,
-		"product.criterion":     renderCriterion,
-		"product.usecase":       renderUsecase,
-		"product.increment":     renderIncrement,
-		"product.milestone":     renderIncrement,
-		"product.done":          renderDone,
-		"product.step":          renderStepAlone,
-		"product.given":         renderStepAlone,
-		"product.alternate":     renderStepAlone,
-		"product.failure":       renderStepAlone,
-		"product.precondition":  renderStepAlone,
-		"product.postcondition": renderStepAlone,
+		"spec.actor":        renderActor,
+		"spec.persona":      renderPersona,
+		"spec.goal":         renderGoal,
+		"spec.quality":      renderGoal,
+		"spec.nongoal":      renderNote,
+		"spec.assumption":   renderNote,
+		"spec.part":         renderPart,
+		"spec.scenario":     renderScenario,
+		"spec.usecase":      renderUsecase,
+		"spec.given":        renderStepAlone,
+		"project.story":     renderStory,
+		"project.increment": renderIncrement,
+		"project.milestone": renderIncrement,
+		"project.done":      renderDone,
 	} {
 		builtins[k] = f
 	}
@@ -63,12 +61,12 @@ func (s *Site) argRefs(n *resolve.Node, name string) []*resolve.Node {
 	if e == nil {
 		return nil
 	}
-	arr, ok := e.(ast.ArrayExpr)
-	if !ok {
-		return nil
+	exprs := []ast.Expr{e}
+	if arr, ok := e.(ast.ArrayExpr); ok {
+		exprs = arr.Exprs()
 	}
 	var out []*resolve.Node
-	for _, x := range arr.Exprs() {
+	for _, x := range exprs {
 		if t := s.refTarget(x.Syntax(), n.Decl); t != nil {
 			out = append(out, t)
 		}
@@ -136,7 +134,7 @@ func renderPersona(c *Ctx) error {
 	s := c.Site
 	c.W(`<article class="card-block persona" id="`, attr(Anchor(n)), `">`)
 	c.W(`<div class="card-head"><a class="anchor card-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
-	if a := s.argRef(n, 0, "of"); a != nil {
+	if a := s.argRef(n, 0, "plays"); a != nil {
 		c.W(`<span class="mark">`, s.linkHTML(a, esc(displayName(s, a)), ""), `</span>`)
 	}
 	c.W(`</div>`)
@@ -172,18 +170,10 @@ func renderWork(c *Ctx, class string, facts [][2]string) error {
 	return nil
 }
 
-func renderEpic(c *Ctx) error {
-	var facts [][2]string
-	if o, ok := argString(kindArgs(c.Node), 0, "owner"); ok {
-		facts = append(facts, [2]string{label("docs.label.owner"), `<code>` + esc(o) + `</code>`})
-	}
-	return renderWork(c, "epic", facts)
-}
-
 func renderIncrement(c *Ctx) error {
 	n := c.Node
 	key := "docs.label.delivers"
-	if c.Site.kindPath(n) == "product.milestone" {
+	if c.Site.kindPath(n) == "project.milestone" {
 		key = "docs.label.reached_by"
 	}
 	var ts []*resolve.Node
@@ -208,49 +198,35 @@ func renderStory(c *Ctx) error {
 	s := c.Site
 	c.W(`<article class="card-block story" id="`, attr(Anchor(n)), `">`)
 	c.W(`<div class="card-head"><a class="anchor card-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`, statusBadge(n), `</div>`)
-	var parts []string
-	if a := s.argRef(n, 0, "as"); a != nil {
-		words := subjectWords(s, a)
-		parts = append(parts, strings.Replace(esc(articled("docs.story.as", "actor", words)), "\x00", s.linkHTML(a, esc(words), ""), 1))
+	var serves []*resolve.Node
+	if g := s.argRef(n, -1, "serves"); g != nil {
+		serves = append(serves, g)
 	}
-	if w := s.fieldInline(n, "want"); w != "" {
-		parts = append(parts, strings.Replace(esc(label("docs.story.want", "want", "\x00")), "\x00", w, 1))
-	}
-	if so := s.fieldInline(n, "so"); so != "" {
-		if len(parts) > 0 {
-			parts[len(parts)-1] += ","
-		}
-		parts = append(parts, strings.Replace(esc(label("docs.story.so", "so", "\x00")), "\x00", so, 1))
-	}
-	if len(parts) > 0 {
-		out := strings.Join(parts, " ")
-		if !strings.HasSuffix(stripTags(out), ".") {
-			out += "."
-		}
-		c.W(`<p class="sentence">`, out, `</p>`)
-	}
+	c.factList([][2]string{
+		{label("docs.label.serves"), c.refLinks(serves)},
+		{label("docs.label.adds"), c.refLinks(s.argRefs(n, "adds"))},
+		{label("docs.label.changes"), c.refLinks(s.argRefs(n, "changes"))},
+	})
 	c.Prose(n)
-	if crit := s.childrenOfKind(n, "product.criterion"); len(crit) > 0 {
-		c.W(`<div class="label">`, esc(label("docs.label.acceptance")), `</div>`)
-		for _, cr := range crit {
-			if err := c.Render(cr); err != nil {
-				return err
-			}
-		}
+	if err := c.childrenOrLinks(); err != nil {
+		return err
 	}
 	c.W(`</article>`)
 	return nil
 }
 
-// gwtLine is one line of a criterion: its keyword and its text.
+// gwtLine is one line of a scenario: its keyword and its text.
 func gwtLine(key, h string) string {
 	return `<p class="gwt"><span class="gwt-key">` + esc(label(key)) + `</span> ` + h + `</p>`
 }
 
-func renderCriterion(c *Ctx) error {
+// renderScenario shows an outcome scenario as its given, when and then,
+// with the rule or path it illustrates, or a quality scenario as its
+// stimulus, environment, response and measure with the quality it serves.
+func renderScenario(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="criterion" id="`, attr(Anchor(n)), `">`)
+	c.W(`<div class="criterion scenario" id="`, attr(Anchor(n)), `">`)
 	if n.Name != "" {
 		c.W(`<a class="anchor criterion-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
 	}
@@ -264,23 +240,82 @@ func renderCriterion(c *Ctx) error {
 			c.W(gwtLine(key, s.inlineHTML(ch)))
 		}
 	}
-	lines("product.given", "docs.gwt.given")
+	lines("spec.given", "docs.gwt.given")
 	lines("spec.when", "docs.gwt.when")
 	lines("spec.then", "docs.gwt.then")
+	var rows [][2]string
+	for _, f := range []string{"stimulus", "environment", "response", "measure"} {
+		if h := s.fieldInline(n, f); h != "" {
+			rows = append(rows, [2]string{label("docs.label." + f), h})
+		}
+	}
+	if t := s.argRef(n, 0, "illustrates"); t != nil {
+		rows = append(rows, [2]string{label("docs.label.illustrates"), s.linkHTML(t, esc(displayName(s, t)), "")})
+	}
+	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.argRefs(n, "serves"))})
+	c.factList(rows)
 	c.W(c.verifyList(n))
+	c.W(c.derivedLists(n))
 	c.W(`</div>`)
 	return nil
+}
+
+// renderGoal shows a goal or a quality: its text, its measure and source,
+// and what serves it, derived from the links below it.
+func renderGoal(c *Ctx) error {
+	n := c.Node
+	s := c.Site
+	c.W(`<div class="term goal" id="`, attr(Anchor(n)), `">`)
+	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></dt><dd>`)
+	c.Prose(n)
+	var rows [][2]string
+	if m, ok := argString(kindArgs(n), 0, "measure"); ok {
+		rows = append(rows, [2]string{label("docs.label.measure"), esc(m)})
+	}
+	if src, ok := argString(kindArgs(n), 1, "source"); ok {
+		rows = append(rows, [2]string{label("docs.label.source"), esc(src)})
+	}
+	c.factList(rows)
+	c.W(c.derivedLists(n))
+	c.W(`</dd></div>`)
+	return nil
+}
+
+// renderNote shows a nongoal or an assumption as a callout.
+func renderNote(c *Ctx) error {
+	n := c.Node
+	key := "docs.label.nongoal"
+	if c.Site.kindPath(n) == "spec.assumption" {
+		key = "docs.label.assumption"
+	}
+	c.W(`<aside class="callout callout-note" id="`, attr(Anchor(n)), `"><div class="label">`, esc(label(key)), `</div>`)
+	c.Prose(n)
+	c.W(c.derivedLists(n))
+	c.W(`</aside>`)
+	return nil
+}
+
+// renderPart shows a part with its prose and the rules that bind it.
+func renderPart(c *Ctx) error {
+	n := c.Node
+	if c.isPage() || len(n.Children) > 0 {
+		c.W(`<section class="node part" id="`, attr(Anchor(n)), `">`)
+		c.title("")
+		c.Prose(n)
+		c.W(c.derivedLists(n))
+		if err := c.childrenOrLinks(); err != nil {
+			return err
+		}
+		c.W(`</section>`)
+		return nil
+	}
+	return renderActor(c)
 }
 
 func renderDone(c *Ctx) error {
 	n := c.Node
 	c.W(`<aside class="callout callout-done" id="`, attr(Anchor(n)), `"><div class="label">`, esc(label("docs.label.done")), `</div>`)
 	c.Prose(n)
-	for _, cr := range c.Site.childrenOfKind(n, "product.criterion") {
-		if err := c.Render(cr); err != nil {
-			return err
-		}
-	}
 	c.W(`</aside>`)
 	return nil
 }
@@ -294,121 +329,22 @@ func renderStepAlone(c *Ctx) error {
 	return nil
 }
 
-// flowNumbers numbers a use case's steps: main steps 1, 2, 3; the flows
-// that branch off step 3 3a, 3b, in order; their steps 3a1, 3a2.
-func (s *Site) flowNumbers(uc *resolve.Node) (map[*resolve.Node]string, []*resolve.Node) {
-	num := map[*resolve.Node]string{}
-	var branches []*resolve.Node
-	i := 0
-	for _, ch := range uc.Children {
-		if s.kindPath(ch) == "product.step" {
-			i++
-			num[ch] = strconv.Itoa(i)
+// argRefList are the nodes a field set to a list of references names, as
+// a command's `errors = [window_expired]`.
+func (s *Site) argRefList(n *resolve.Node, field string) []*resolve.Node {
+	ch := n.Child(field)
+	if ch == nil || ch.Value == nil {
+		return nil
+	}
+	exprs := []ast.Expr{ch.Value}
+	if arr, ok := ch.Value.(ast.ArrayExpr); ok {
+		exprs = arr.Exprs()
+	}
+	var out []*resolve.Node
+	for _, x := range exprs {
+		if t := s.refTarget(x.Syntax(), ch.ValueSite); t != nil {
+			out = append(out, t)
 		}
 	}
-	letters := map[string]int{}
-	for _, ch := range uc.Children {
-		k := s.kindPath(ch)
-		if k != "product.alternate" && k != "product.failure" {
-			continue
-		}
-		at := "0"
-		if t := s.argRef(ch, 0, "at"); t != nil && num[t] != "" {
-			at = num[t]
-		}
-		l := letters[at]
-		letters[at]++
-		id := at + string(rune('a'+l))
-		num[ch] = id
-		j := 0
-		for _, st := range ch.Children {
-			if s.kindPath(st) == "product.step" {
-				j++
-				num[st] = id + strconv.Itoa(j)
-			}
-		}
-		branches = append(branches, ch)
-	}
-	return num, branches
-}
-
-func renderUsecase(c *Ctx) error {
-	n := c.Node
-	s := c.Site
-	c.W(`<section class="node usecase" id="`, attr(Anchor(n)), `">`)
-	c.title(statusBadge(n))
-	var actor string
-	if a := s.argRef(n, 0, "actor"); a != nil {
-		actor = s.linkHTML(a, esc(displayName(s, a)), "")
-	}
-	c.factList([][2]string{
-		{label("docs.label.primary_actor"), actor},
-		{label("docs.label.supporting_actors"), c.refLinks(s.argRefs(n, "supporting"))},
-		{label("docs.label.goal"), s.fieldInline(n, "goal")},
-	})
-	c.Prose(n)
-	conds := func(key string, onFailure bool) {
-		var items []string
-		for _, ch := range n.Children {
-			k := s.kindPath(ch)
-			if k == "product.precondition" && key == "docs.heading.preconditions" ||
-				k == "product.postcondition" && key != "docs.heading.preconditions" && postOnFailure(ch) == onFailure {
-				items = append(items, `<li id="`+attr(Anchor(ch))+`">`+s.inlineHTML(ch)+`</li>`)
-			}
-		}
-		if len(items) > 0 {
-			c.W(`<div class="label">`, esc(label(key)), `</div><ul class="conds">`, strings.Join(items, ""), `</ul>`)
-		}
-	}
-	conds("docs.heading.preconditions", false)
-	num, branches := s.flowNumbers(n)
-	steps := func(parent *resolve.Node) {
-		c.W(`<ol class="flow">`)
-		for _, st := range parent.Children {
-			if s.kindPath(st) != "product.step" {
-				continue
-			}
-			c.W(`<li id="`, attr(Anchor(st)), `"><span class="step-no">`, esc(num[st]), `</span><span class="step-text">`, s.inlineHTML(st), `</span></li>`)
-		}
-		c.W(`</ol>`)
-	}
-	c.W(`<div class="label">`, esc(label("docs.heading.main_flow")), `</div>`)
-	steps(n)
-	for _, kind := range []string{"product.alternate", "product.failure"} {
-		key := "docs.heading.alternate_flows"
-		if kind == "product.failure" {
-			key = "docs.heading.failure_flows"
-		}
-		first := true
-		for _, b := range branches {
-			if s.kindPath(b) != kind {
-				continue
-			}
-			if first {
-				c.W(`<div class="label">`, esc(label(key)), `</div>`)
-				first = false
-			}
-			c.W(`<div class="branch" id="`, attr(Anchor(b)), `"><div class="branch-head"><span class="step-no">`, esc(num[b]), `</span>`)
-			if h := s.inlineHTML(b); h != "" {
-				c.W(`<span class="step-text">`, h, `</span>`)
-			}
-			c.W(`</div>`)
-			steps(b)
-			if r := s.argRef(b, -1, "rejoins"); r != nil && num[r] != "" {
-				c.W(`<p class="mark">`, strings.Replace(esc(label("docs.usecase.rejoins", "step", "\x00")), "\x00", s.linkHTML(r, esc(num[r]), ""), 1), `</p>`)
-			} else if kind == "product.alternate" {
-				c.W(`<p class="mark">`, esc(label("docs.usecase.ends")), `</p>`)
-			}
-			c.W(`</div>`)
-		}
-	}
-	conds("docs.heading.postconditions", false)
-	conds("docs.heading.failure_postconditions", true)
-	c.W(`</section>`)
-	return nil
-}
-
-func postOnFailure(n *resolve.Node) bool {
-	e := namedArg(kindArgs(n), "on_failure")
-	return e != nil && strings.TrimSpace(e.Syntax().Text()) == "true"
+	return out
 }

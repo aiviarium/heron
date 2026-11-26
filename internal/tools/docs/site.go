@@ -100,6 +100,7 @@ type Site struct {
 
 	pageOf    map[*resolve.Node]*Page
 	anchorOf  map[*resolve.Node]*Page // the page a node is shown on
+	back      map[*resolve.Node]map[string][]*resolve.Node
 	backlinks map[*resolve.Node][]*resolve.Node
 	ownerOf   map[*syntax.Node]*resolve.Node
 	cards     map[string]card
@@ -192,7 +193,7 @@ func (s *Site) classify() {
 		switch k := s.kindPath(n); {
 		case k == "doc.term":
 			s.terms = append(s.terms, n)
-		case k == "tech.diagnostic":
+		case k == "spec.error":
 			s.diagnostics = append(s.diagnostics, n)
 		case k == "types.api":
 			s.apis = append(s.apis, n)
@@ -251,11 +252,11 @@ func (s *Site) isError(n *resolve.Node) bool {
 // a component, a command, an epic, a use case and a screen are each read on
 // their own.
 var pageKinds = map[string]bool{
-	"tech.component":  true,
-	"tech.command":    true,
-	"product.epic":    true,
-	"product.usecase": true,
-	"tech.screen":     true,
+	"project.component": true,
+	"spec.command":      true,
+	"spec.goal":         true,
+	"spec.usecase":      true,
+	"spec.screen":       true,
 }
 
 // isPageNode reports whether a node gets a page of its own.

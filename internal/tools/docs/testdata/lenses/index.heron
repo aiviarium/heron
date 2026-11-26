@@ -1,6 +1,6 @@
 // A small product spec with authored pages and every lens, for the lens
 // and authored-kind tests and the docs screenshots.
-import = ["std/schema@1", "std/doc@1", "std/types@1", "std/http@1", "std/spec@1", "std/product@1", "std/tech@1", "std/docs@1"]
+import = ["std/schema@1", "std/doc@1", "std/types@1", "std/http@1", "std/spec@1", "std/docs@1"]
 
 kite: package(version = "1.4.0") {
   @lens(user)
@@ -11,7 +11,7 @@ kite: package(version = "1.4.0") {
   | The spec of Kite 1.4: what a sync copies, its errors and its command line.
 
   system: section {
-    syncer: actor(kind = ActorKind.SYSTEM) {{ The part of Kite that copies notes to the store. }}
+    syncer: part {{ The part of Kite that copies notes to the store. }}
     writer: actor {{ Someone who keeps notes in a folder. }}
   }
 
@@ -94,7 +94,7 @@ kite: package(version = "1.4.0") {
     keeps_both: rule(conflict, by = kite.system.syncer) {
       when {{ a note changed in the folder and in the store }}
       must {{ keep both copies, the store's under a `.conflict` suffix }}
-      unless {{ the two copies are equal }}
+      while {{ the two copies differ }}
     }
 
     logs_each: rule(sync, by = kite.system.syncer) {
@@ -125,18 +125,21 @@ kite: package(version = "1.4.0") {
     @lens(developer)
     | Spec writers: every rule here names the syncer, so the conformance report groups them.
 
-    unreadable: diagnostic("unreadable", by = kite.system.syncer) {
-      message = "can't read ‹file›"
+    unreadable: error("unreadable", by = kite.system.syncer) {
+      title = "can't read {file}"
+      file: field(String)
       | A note Kite can't read, such as one without read permission.
     }
 
-    unlistable: diagnostic("unreadable", by = kite.system.syncer) {
-      message = "can't list <‹folder›>"
+    unlistable: error("unreadable", by = kite.system.syncer) {
+      title = "can't list <{folder}>"
+      folder: field(String)
       | A folder Kite can't list, so none of its notes sync.
     }
 
-    store_down: diagnostic("store-unreachable", severity = Severity.warning, by = kite.system.syncer) {
-      message = "the store at ‹address› doesn't answer"
+    store_down: error("store-unreachable", severity = Severity.warning, by = kite.system.syncer) {
+      title = "the store at {address} doesn't answer"
+      address: field(String)
       | The store didn't answer within the timeout; Kite retries at the next interval.
     }
   }
@@ -161,6 +164,7 @@ kite: package(version = "1.4.0") {
   store_api: api {
     @http<get>("/notes/:id")
     @throws(NoteNotFound)
+    @realizes(gone_notes)
     get_note(@path id: String): op(Note) {
       | Returns one note, with the time it last changed.
 
@@ -176,7 +180,7 @@ kite: package(version = "1.4.0") {
     }
   }
 
-  gone_notes: rule(store_api.get_note, by = kite.system.syncer) {
+  gone_notes: rule(by = kite.system.syncer) {
     when {{ the store answers 404 }}
     must {{ report the note as gone and keep the local copy }}
   }
@@ -194,14 +198,31 @@ kite: package(version = "1.4.0") {
         | Lists what a sync would copy without copying it.
       }
 
-      exit(0) {{ The sync finished. }}
-      exit(1) {{ A note couldn't be copied. }}
+      | Exits 0 when the sync finished.
 
-      exits_nonzero: rule(sync, by = kite.system.syncer) {
+      @realizes(cli.sync.exits_nonzero)
+      exit_1: error("kite sync exit 1", exit = 1, by = kite.system.syncer) {
+        title = "a note couldn't be copied"
+      }
+
+      exits_nonzero: rule(by = kite.system.syncer) {
         must {{ exit with status 1 when any note couldn't be copied }}
       }
     }
   }
+
+  sync_notes: usecase(actor = kite.system.writer, success = "The store holds every note.") {{
+    A writer syncs their notes.
+
+    1. [kite.system.writer] runs `kite sync`.
+    2. [kite.system.syncer] copies the changed notes.
+    3. [kite.system.syncer] logs what it copied.
+
+    - 2a. The store doesn't answer:
+      [kite.system.syncer] retries at the next interval. Back to 2.
+    - 2b. A note can't be read:
+      [kite.system.syncer] skips it and reports it. Fails.
+  }}
 }
 
 docs {

@@ -1,57 +1,58 @@
-// The kinds of std/product and std/tech, each once, for the renderer tests.
-import = ["std/doc@1", "std/spec@1", "std/product@1", "std/tech@1"]
+// The kinds of std/spec's layers, std/grammar and std/project, each once,
+// for the renderer tests.
+import = ["std/doc@1", "std/spec@1", "std/grammar@1", "std/project@1"]
+
+trust: goal(measure = "Nine trees in ten check clean on the first CI run.", source = "authors") {{ Authors ship a spec their team trusts. }}
 
 people: section {
   writer: actor {{ Someone who writes Heron. }}
   ci: actor(kind = ActorKind.SYSTEM) {{ The build server. }}
 
-  maya: persona(of = people.writer) {
+  maya: persona(plays = people.writer) {
     goals =| Ship a spec her team trusts.
     | A staff engineer.
   }
+
+  no_hosting: nongoal {{ Hosting the docs. }}
 }
 
-editing: epic<started>(owner = "tools") {
+checker: part {{ Reads a tree and reports what breaks it. }}
+
+editing: section {
   | Writing Heron in an editor.
 
-  see_errors: story<planned>(as = people.writer) {
-    want =| to see problems while I type
-    so =| I fix them before I commit
+  check_tree: usecase(actor = people.writer, success = "A tree that checks clean.", minimal = "No file changes.") {{
+    The writer checks a tree.
 
-    saved: criterion {
-      given {{ a file with a type error }}
-      given {{ the language server running }}
-      when {{ the writer saves the file }}
-      then {{ the error is underlined }}
-    }
+    1. [people.writer] runs `heron check`.
+    2. [checker] parses every file.
+    3. [checker] reports no errors.
+
+    - 2a. A file can't be read:
+      [checker] exits 2. Fails.
+    - 3a. The tree has errors:
+      [people.writer] fixes them. Back to 1.
+  }}
+
+  @realizes(editing.check_tree.2a)
+  unreadable: error("unreadable", exit = 2, by = checker) {
+    title = "can't read {path}"
+    path: field(String)
   }
 
-  check_tree: usecase(people.writer, supporting = [people.ci]) {
-    goal =| A tree that checks clean.
-    precondition {{ The tree has an entry point. }}
-    run: step {{ The writer runs `heron check`. }}
-    parse: step {{ The tool parses every file. }}
-    report: step {{ The tool reports no diagnostics. }}
-    alternate(at = editing.check_tree.report, rejoins = editing.check_tree.run) {
-      step {{ The tool reports diagnostics. }}
-      step {{ The writer fixes them. }}
-    }
-    failure(at = editing.check_tree.parse) {
-      step {{ A file can't be read; the tool exits 2. }}
-    }
-    postcondition {{ Exit code 0. }}
-    postcondition(on_failure = true) {{ Exit code 2. }}
-  }
-
-  editing_done: done {
-    saved: criterion {
-      when {{ CI runs }}
-      then {{ every e2e script passes }}
-    }
+  saved: scenario(illustrates = guarantees.parse_all) {
+    given {{ a file with a type error }}
+    given {{ the language server running }}
+    when {{ the writer saves the file }}
+    then {{ the error is underlined }}
   }
 }
 
-unit_one: increment<delivered>(editing) {
+see_errors: story<planned>(adds = [guarantees.parse_all], serves = trust) {
+  done {{ The team has tried it. }}
+}
+
+unit_one: increment<delivered>(see_errors) {
   | First cut.
 }
 
@@ -63,16 +64,13 @@ runtime: section {
     lossless: responsibility {{ Parse every byte into a tree that prints back exactly. }}
 
     /// Parse reads one file.
-    surface(title = "parse.go") {{
+    exports(title = "parse.go") {{
       func Parse(src []byte) *Node
     }}
 
-    no_io: invariant {
+    no_io: property {
       mustNot {{ import `os` or any other package that does I/O }}
     }
-
-    raises("E0001") {{ An unterminated string. }}
-    obligation(path = "internal/core/syntax/fuzz_test.go") {{ Fuzz the parser. }}
   }
 
   resolve: component(path = "internal/core/resolve", lang = "go") {
@@ -84,10 +82,9 @@ cli: section {
   check: command("heron check") {
     | Checks a tree.
     usage = ["heron check [--json] [path…]"]
+    errors = [editing.unreadable]
     argument("path", type = String, optional = true, variadic = true) {{ An entry point or folder. }}
     option("--json", type = Bool, default = false) {{ Print diagnostics as JSON lines. }}
-    exit(0) {{ No errors. }}
-    exit(1) {{ Errors. }}
     example {{
       ```sh
       heron check spec
@@ -109,11 +106,11 @@ lang: section {
 }
 
 guarantees: section {
-  parse_all: rule(guarantees, by = runtime.syntax) {
+  parse_all: rule(by = checker, serves = [trust], rationale = "A file left unread hides its errors.") {
     must {{ read every file }}
   }
 
-  writer_saves: rule(guarantees, by = people.writer) {
+  writer_saves: rule(by = people.writer) {
     should {{ save before running a task }}
   }
 }

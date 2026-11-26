@@ -13,7 +13,7 @@ var (
 	strengthKinds = map[string]bool{"spec.must": true, "spec.should": true, "spec.may": true, "spec.mustNot": true, "spec.shouldNot": true}
 	// Conditions that open the sentence, in the order std/spec declares
 	// them; unless closes it.
-	leadConditions = []string{"spec.when", "spec.while", "spec.where", "spec.if"}
+	leadConditions = []string{"spec.where", "spec.while", "spec.when", "spec.if"}
 )
 
 // ruleStrength returns the kind name of a rule's or quality's strength
@@ -55,12 +55,26 @@ func (s *Site) childrenOfKind(n *resolve.Node, kind string) []*resolve.Node {
 // parser", the type a rule on a type is about, or the system.
 func (s *Site) subject(n *resolve.Node) string {
 	if by := s.ruleBy(n); by != nil {
-		if s.kindPath(by) == "tech.component" {
+		if s.kindPath(by) == "project.component" {
 			return s.linkHTML(by, `<code>`+esc(by.Name)+`</code>`, "subject")
 		}
 		return strings.Replace(esc(label("docs.rule.subject_named", "name", "\x00")), "\x00", s.linkHTML(by, esc(subjectWords(s, by)), "subject"), 1)
 	}
-	for _, t := range s.targets(n) {
+	// A rule's targets, or else the one type that realizes it: the type
+	// whose instances it holds of.
+	cands := s.targets(n)
+	if len(cands) == 0 {
+		var types []*resolve.Node
+		for _, x := range s.specLinks()[n]["realized_by"] {
+			if s.isTypeDecl(x) {
+				types = append(types, x)
+			}
+		}
+		if len(types) == 1 {
+			cands = types
+		}
+	}
+	for _, t := range cands {
 		if s.isTypeDecl(t) {
 			words := kindWords(t.Name)
 			key := "docs.rule.subject_type_a"
@@ -89,7 +103,7 @@ func (s *Site) personSubject(n *resolve.Node) bool {
 		return false
 	}
 	k := s.kindPath(by)
-	return k == "product.actor" || k == "product.persona"
+	return k == "spec.actor" || k == "spec.persona"
 }
 
 // subjectWords is how a subject reads inside a sentence: an actor or a
@@ -297,6 +311,11 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 	if st := s.ruleStrength(n); st != "" {
 		parts = append(parts, `<code class="meta-strength">`+esc(st)+`</code>`)
 	}
+	for _, l := range []struct{ arg, key string }{{"serves", "docs.label.serves"}, {"derives", "docs.label.derives"}, {"relies", "docs.label.relies"}} {
+		if ts := s.argRefs(n, l.arg); len(ts) > 0 {
+			parts = append(parts, esc(label(l.key))+` `+c.refLinks(ts))
+		}
+	}
 	if len(parts) == 0 {
 		return ""
 	}
@@ -306,10 +325,16 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 // ruleRest writes what follows a requirement's paragraph: its prose and
 // what verifies it.
 func (c *Ctx) ruleRest(n *resolve.Node) {
+	for _, arg := range []struct{ name, key string }{{"rationale", "docs.label.rationale"}, {"reason", "docs.label.reason"}} {
+		if v, ok := argString(kindArgs(n), -1, arg.name); ok && v != "" {
+			c.W(`<p class="rationale"><span class="field-label">`, esc(label(arg.key)), `</span> `, esc(v), `</p>`)
+		}
+	}
 	c.Prose(n)
 	if v := c.verifyList(n); v != "" {
 		c.W(v)
 	}
+	c.W(c.derivedLists(n))
 }
 
 // renderRule writes a requirement as one sentence in the body font, its

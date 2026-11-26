@@ -99,7 +99,7 @@ func displayName(s *Site, n *resolve.Node) string {
 			return t
 		}
 	}
-	if s.kindPath(n) == "tech.command" {
+	if s.kindPath(n) == "spec.command" {
 		// A command reads as it's typed, as `heron check`.
 		if v, ok := argString(kindArgs(n), 0, "name"); ok {
 			return v

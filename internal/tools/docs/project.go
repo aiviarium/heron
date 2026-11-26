@@ -33,6 +33,29 @@ func (s *Site) conformancePage(c *Ctx) error {
 		c.W(`<p>`, esc(label("docs.conformance.practices_note")), `</p>`)
 		s.conformanceTable(c, rep, func(row project.Row) bool { return row.Status == "practice" })
 	}
+	if n := rep.Counts["outdated"]; n > 0 {
+		c.W(`<p class="conformance-outdated">`, esc(label("docs.conformance.outdated_count", "outdated", strconv.Itoa(n))), `</p>`)
+	}
+	// The gap report: one list per gap, each entry linked.
+	for _, g := range []struct {
+		id, key string
+		items   []string
+	}{{"gap-unrealized", "unrealized", rep.Gaps.Unrealized}, {"gap-uncited", "uncited", rep.Gaps.UncitedTests}} {
+		if len(g.items) == 0 {
+			continue
+		}
+		c.Heading(2, g.id, label("docs.conformance.gap_"+g.key), "")
+		c.W(`<p>`, esc(label("docs.conformance.gap_"+g.key+"_note")), `</p><ul class="gap-list">`)
+		for _, it := range g.items {
+			inner := `<code>` + esc(it) + `</code>`
+			if n := s.specNode(it); n != nil {
+				c.W(`<li>`, s.linkHTML(n, inner, "spec-ref"), `</li>`)
+			} else {
+				c.W(`<li>`, inner, `</li>`)
+			}
+		}
+		c.W(`</ul>`)
+	}
 	if ch := rep.Changes; ch != nil {
 		title := label("docs.conformance.changes", "spec", rep.Spec, "from", ch.From, "to", ch.To)
 		c.Heading(2, "changes", title, "")

@@ -344,7 +344,10 @@ func TestNestedSignatureDedented(t *testing.T) {
 // The kinds of std/product and std/tech render as their views: a story's
 // sentence and criteria, a use case's numbered flows, a command's tables,
 // a component's contract and a grammar's linked productions.
-func TestProductAndTechKinds(t *testing.T) {
+// The layers' kinds render as the spec says: goals with their measure and
+// what serves them, use cases as Cockburn writes them, errors with their
+// projections, rules with their rationale and derived lists.
+func TestLayeredKinds(t *testing.T) {
 	s := site(t, entries["kinds"])
 	files, err := s.Files()
 	if err != nil {
@@ -352,25 +355,25 @@ func TestProductAndTechKinds(t *testing.T) {
 	}
 	want := map[string][]string{
 		"editing.html": {
-			`As a <a class="ref" href="people.html#people.writer">writer</a>, I want to see problems while I type, so that I fix them before I commit.`,
 			`<span class="gwt-key">And</span> the language server running`,
-			`<div class="label">Done when</div>`,
+			`<dt>Illustrates</dt><dd><a class="ref" href="guarantees.html#guarantees.parse_all">`,
+			`<span class="diag-message">can&#39;t read <span class="ph">‹path›</span></span>`,
+			`exit <code>2</code>`,
 		},
 		"editing.check_tree.html": {
-			`<span class="step-no">3a1</span>`,
-			`<span class="step-no">2a</span>`,
-			`Rejoins at <a class="ref" href="editing.check_tree.html#editing.check_tree.run">1</a>`,
-			`<li id="editing.check_tree.#8">Exit code 2.</li>`,
+			`<li id="editing.check_tree.2"><a class="ref" href="index.html#checker">checker</a> parses every file.</li>`,
+			`<span class="uc-num">2a</span> A file can&#39;t be read</dt>`,
+			`<p class="mark uc-outcome">Back to 1</p>`,
+			`<p class="mark uc-outcome">Fails</p>`,
 		},
 		"cli.check.html": {
 			`<h1 class="page-title">heron check</h1>`,
 			`<p class="line-head"><code>[&lt;path&gt;…]</code>`,
 			`<p class="line-head"><code>--json</code> <code><span class="tk-type">Bool</span></code><span class="sep">, </span>default <code><span class="tk-kw">false</span></code></p>`,
+			`<code>2</code> can&#39;t read {path}`,
 		},
 		"runtime.syntax.html": {
 			`<dt>Used by</dt><dd><a class="ref" href="runtime.resolve.html"><code>resolve</code></a></dd>`,
-			`<code>syntax</code> <strong class="strength">must not</strong> import`,
-			`<ul class="implements"><li><a class="ref" href="guarantees.html">Guarantees</a> <span class="count">1 rule</span></li></ul>`,
 		},
 		"lang.html": {
 			`<a class="code-ref tk-name" href="#lang.core.member">member</a><span class="tk-punct">*</span>`,
@@ -381,15 +384,21 @@ func TestProductAndTechKinds(t *testing.T) {
 			`<div class="region" id="op_page.body.facts"><a class="anchor region-name" href="#op_page.body.facts">Facts</a>`,
 		},
 		"index.html": {
-			`<span class="status status-delivered">delivered</span></h2><dl class="facts"><div class="fact"><dt>Delivers</dt><dd><a class="ref" href="editing.html">Editing</a></dd></div></dl>`,
+			`<dt>Adds</dt><dd><a class="ref" href="guarantees.html#guarantees.parse_all">Parse all</a></dd>`,
 		},
 		"people.html": {
 			`<a class="anchor" href="#people.ci">Ci</a><span class="aliases">system</span>`,
 			`<article class="card-block persona" id="people.maya">`,
 		},
 		"guarantees.html": {
-			`<a class="ref subject" href="runtime.syntax.html"><code>syntax</code></a> <strong class="strength">must</strong> read every file.`,
+			`<a class="ref subject" href="index.html#checker">checker</a> <strong class="strength">must</strong> read every file.`,
+			`<p class="rationale"><span class="field-label">Rationale</span> A file left unread hides its errors.</p>`,
+			`<span class="derived-label">Illustrated by <span class="derived-mark">derived</span></span> <a class="ref" href="editing.html#editing.saved">Saved</a>`,
 			`The <a class="ref subject" href="people.html#people.writer">writer</a> <strong class="strength">should</strong>`,
+		},
+		"trust.html": {
+			`<dt>Measure</dt><dd>Nine trees in ten check clean on the first CI run.</dd>`,
+			`<span class="derived-label">Served by <span class="derived-mark">derived</span></span>`,
 		},
 	}
 	got := map[string]string{}
