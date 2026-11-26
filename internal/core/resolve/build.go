@@ -26,6 +26,12 @@ type Resolver struct {
 	// declared elsewhere.
 	Context *Scope
 
+	// Built, when set, completes a package's tree once it's built and
+	// before any tree sees it: the checker reads its kind elements'
+	// attributes there, so a package's nodes never change after load and
+	// concurrent checks may share them.
+	Built func(*Package)
+
 	packages map[string]*pkgEntry
 	inflight map[string]*Package
 	stack    []string
@@ -714,6 +720,9 @@ func (b *builder) pkg(spec string, from *File, site Site) *Package {
 			p.Sealed = KindArg(c, "sealed") == "true"
 			break
 		}
+	}
+	if b.r.Built != nil {
+		b.r.Built(p)
 	}
 	if major > 0 && p.Version != "" {
 		if mv, _ := strconv.Atoi(strings.SplitN(p.Version, ".", 2)[0]); mv != major {

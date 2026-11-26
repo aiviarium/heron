@@ -98,32 +98,35 @@ func (c *Checker) element(n *resolve.Node) {
 	}
 }
 
-// ElementArgs reads the attributes of every kind element in a tree and the
-// packages it imports as their kinds' arguments, where no check has read
-// them yet: a package's nodes and nodes whose diagnostics came from a memo,
-// so a requirement written as an element has its targets and `by` wherever
-// it's read.
+// ElementArgs reads the attributes of a tree's kind elements as their
+// kinds' arguments, where no check has read them yet, as for nodes whose
+// diagnostics came from a memo. It changes the tree's own nodes only,
+// never a package's: those are read once, by PackageBuilt, when the
+// package is built.
 func (c *Checker) ElementArgs(t *resolve.Tree) {
-	seen := map[*resolve.Tree]bool{}
-	var tree func(t *resolve.Tree)
-	tree = func(t *resolve.Tree) {
-		if t == nil || seen[t] {
+	own := map[*resolve.File]bool{}
+	for _, f := range t.Files {
+		own[f] = true
+	}
+	t.Walk(func(n *resolve.Node) {
+		if n.Shape != resolve.ShapeElement || n.ElementArgs.N != nil || n.Decl.N == nil || !own[n.Decl.File] {
 			return
 		}
-		seen[t] = true
-		t.Walk(func(n *resolve.Node) {
-			if n.Shape != resolve.ShapeElement || n.ElementArgs.N != nil || n.Decl.N == nil {
-				return
-			}
-			if k := c.metaOf(n).decl; k != nil {
-				n.ElementArgs = c.elementArgs(ast.Tag{N: n.Decl.N}, c.KindParams(k, n), n.Decl.Scope, n.Decl.File)
-			}
-		})
-		for _, p := range t.Imports {
-			tree(p.Tree)
+		if k := c.metaOf(n).decl; k != nil {
+			n.ElementArgs = c.elementArgs(ast.Tag{N: n.Decl.N}, c.KindParams(k, n), n.Decl.Scope, n.Decl.File)
 		}
+	})
+}
+
+// PackageBuilt completes a package as it's built, before any tree imports
+// it: its kind elements' attributes are read as their kinds' arguments,
+// so a requirement written as an element has its targets and `by`
+// wherever it's read, and the package's nodes stay unchanged after.
+func PackageBuilt(p *resolve.Package) {
+	if p.Tree == nil {
+		return
 	}
-	tree(t)
+	New(p.Tree).ElementArgs(p.Tree)
 }
 
 // elementArgs writes an element's attributes as the arguments of its kind:

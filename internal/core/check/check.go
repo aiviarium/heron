@@ -36,7 +36,9 @@ type Session struct {
 // NewSession returns an empty session.
 func NewSession() *Session {
 	l := resolve.NewLoader()
-	return &Session{Loader: l, Resolver: resolve.New(l), memo: map[[32]byte]diag.List{}}
+	r := resolve.New(l)
+	r.Built = types.PackageBuilt
+	return &Session{Loader: l, Resolver: r, memo: map[[32]byte]diag.List{}}
 }
 
 // Result is one check of an entry point.
@@ -73,7 +75,13 @@ func (r *Result) Ensure(n *resolve.Node) {
 
 // Check parses, resolves and type-checks the tree of an entry point.
 func (s *Session) Check(entry resolve.FileID) *Result {
-	t := s.Resolver.Resolve(entry)
+	return s.checkTree(s.Resolver.Resolve(entry))
+}
+
+// checkTree type-checks a resolved tree. It reads the packages the tree
+// imports and never changes them, so trees sharing a package can be
+// checked at once.
+func (s *Session) checkTree(t *resolve.Tree) *Result {
 	c := types.New(t)
 	res := &Result{Tree: t, Checker: c}
 	res.Diags = append(res.Diags, t.Diags...)
@@ -96,8 +104,9 @@ func (s *Session) Check(entry resolve.FileID) *Result {
 	for k, v := range next {
 		s.memo[k] = v
 	}
-	// Requirements written as elements, in packages and in nodes the memo
-	// served, read their attributes before conformance and the docs do.
+	// Requirements written as elements in nodes the memo served read their
+	// attributes before conformance and the docs do; a package's were read
+	// when it was built.
 	c.ElementArgs(t)
 	// Project mode and the implementation version scheme, over the whole
 	// tree: a tree that implements a spec leaves the spec's kinds to it.

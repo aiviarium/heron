@@ -415,6 +415,9 @@ func KindArgs(n *resolve.Node) ast.Args {
 		return ast.Invoke{N: n.Decl.N}.Args()
 	case syntax.Tag:
 		// A kind element's attributes, as its kind's arguments.
+		for n.ElementArgs.N == nil && n.Origin != nil {
+			n = n.Origin // a mounted node's were read in its package
+		}
 		return n.ElementArgs
 	}
 	return ast.Args{}

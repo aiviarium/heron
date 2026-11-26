@@ -78,6 +78,9 @@ export HERON_REQUIRE_VALE=1
 step "go test"
 go test ./...
 
+step "race: checks sharing a package run at once"
+go test -race -count=1 -run 'TestConcurrentChecksSharePackage' ./internal/core/check/
+
 step "fuzz the parser briefly"
 go test -run XXX -fuzz FuzzParse -fuzztime 10s ./internal/core/syntax/ >/dev/null
 

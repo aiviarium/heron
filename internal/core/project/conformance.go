@@ -116,12 +116,15 @@ func (p *Project) changes() *Changes {
 		ch.Err = err.Error()
 		return ch
 	}
-	old := resolve.New(resolve.NewLoader()).Resolve(id)
+	or := resolve.New(resolve.NewLoader())
+	or.Built = types.PackageBuilt
+	old := or.Resolve(id)
 	if old.Entry == nil {
 		ch.Err = "cannot read " + p.Since
 		return ch
 	}
 	oc := types.New(old)
+	oc.ElementArgs(old)
 	var pkgNode *resolve.Node
 	for _, n := range old.Root.Children {
 		if resolve.IsPackageNode(n) {
