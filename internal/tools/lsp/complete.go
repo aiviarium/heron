@@ -69,6 +69,24 @@ func isWordByte(b byte) bool {
 
 var linkDest = regexp.MustCompile(`\]\(#([A-Za-z0-9_.]*)$`)
 
+// shortLinkStart is a short link being typed: `[`, a backtick or not, and
+// a path so far.
+var shortLinkStart = regexp.MustCompile(`(?:^|[^\\\]])\[` + "`?" + `([A-Za-z0-9_.]*)$`)
+
+// closesShortLink reports whether what follows the cursor's word ends a
+// short link, `]` not followed by `(`, or the line: `[the order](#x)`'s
+// text is a link's words, not a name.
+func (c *completer) closesShortLink() bool {
+	o := c.off
+	for o < len(c.src) && (isWordByte(c.src[o]) || c.src[o] == '.' || c.src[o] == '`') {
+		o++
+	}
+	if o >= len(c.src) || c.src[o] == '\n' || c.src[o] == '\r' {
+		return true
+	}
+	return c.src[o] == ']' && (o+1 >= len(c.src) || c.src[o+1] != '(')
+}
+
 func (c *completer) items() []CompletionItem {
 	// The word being typed, and what stands before it.
 	ps := c.off
@@ -102,6 +120,9 @@ func (c *completer) items() []CompletionItem {
 			return c.names(c.scope(anc), func(resolve.Binding) bool { return true }, edit)
 		case linkDest.MatchString(c.src[lineStart:c.off]):
 			m := linkDest.FindStringSubmatch(c.src[lineStart:c.off])[1]
+			return c.pathItems(anc, m, edit)
+		case shortLinkStart.MatchString(c.src[lineStart:c.off]) && c.closesShortLink():
+			m := shortLinkStart.FindStringSubmatch(c.src[lineStart:c.off])[1]
 			return c.pathItems(anc, m, edit)
 		case strings.HasSuffix(before, "<") || strings.HasSuffix(before, "</"):
 			return c.names(c.scope(anc), func(b resolve.Binding) bool { return b.Node != nil && c.c.IsKind(b.Node) }, edit)

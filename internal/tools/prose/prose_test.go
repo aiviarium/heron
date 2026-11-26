@@ -284,6 +284,11 @@ func TestSpecLints(t *testing.T) {
 			if len(f.fixes) != 1 || f.fixes[0] != "[capture date](#capture_date)" {
 				t.Errorf("synonym fix: %v", f.fixes)
 			}
+		case "Spec.UnlinkedNode":
+			// The name names one node: the fix wraps it as a short link.
+			if len(f.fixes) != 1 || f.fixes[0] != "[place_order]" {
+				t.Errorf("unlinked node fix: %v", f.fixes)
+			}
 		}
 	}
 	// Without std/lint, none of them run.

@@ -97,3 +97,12 @@ func diff(a, b string) string {
 	}
 	return sb.String()
 }
+
+// The formatter keeps every link as written: a short link isn't expanded
+// and a node link isn't shortened.
+func TestLinksKept(t *testing.T) {
+	src := "a: section {\n  | See [b], [`a.b`] and [the b](#a.b).\n\n  b: section {}\n}\n"
+	if got := format.Source("t.heron", src); got != src {
+		t.Errorf("links changed:\n%s", diff(src, got))
+	}
+}

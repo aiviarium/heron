@@ -397,7 +397,9 @@ func (f *specFacts) region(i int, r *registry.ProseRegion) []registry.ProseFindi
 		}
 		var fix *registry.ProseFix
 		if len(ns) == 1 {
-			fix = &registry.ProseFix{Title: "Link to " + ns[0].Path(), Start: w.s, End: w.e, New: fmt.Sprintf("[%s](#%s)", w.text, ns[0].Path())}
+			// One node of that name: a short link resolves to it, so
+			// wrapping the name in brackets is no guess.
+			fix = &registry.ProseFix{Title: "Link as [" + w.text + "]", Start: w.s, End: w.e, New: "[" + w.text + "]"}
 		}
 		add(w.s, w.e, "UnlinkedNode", fmt.Sprintf("%s names a node without linking it", w.text), fix)
 	}

@@ -362,6 +362,8 @@ func (p *projector) inline(e syntax.Elem) {
 	switch n.Kind {
 	case syntax.Insert:
 		p.mask(p.file.Src[s:end], s, "insert")
+	case syntax.ShortLink:
+		p.mask(p.file.Src[s:end], s, "link")
 	case syntax.Link:
 		url := false
 		for _, c := range n.Children {

@@ -232,6 +232,17 @@ func TestCompletion(t *testing.T) {
 	if l := complete(t, f.c, f.indexURI, lsptest.At(src, "(#O", 0, 2), "#"); !l.has("Order") {
 		t.Errorf("after #: %v", l.labels())
 	}
+	// In a short link: node paths, and the names below a path.
+	src = strings.Replace(indexSrc, "and $greeting.", "and [Ord].", 1)
+	f.c.Replace(f.indexURI, src)
+	if l := complete(t, f.c, f.indexURI, lsptest.At(src, "[Ord]", 0, 4), ""); !l.has("Order") {
+		t.Errorf("in a short link: %v", l.labels())
+	}
+	src = strings.Replace(indexSrc, "and $greeting.", "and [`Order.", 1)
+	f.c.Replace(f.indexURI, src)
+	if l := complete(t, f.c, f.indexURI, lsptest.At(src, "[`Order.", 0, 8), "."); !l.has("id") {
+		t.Errorf("in a short link's path: %v", l.labels())
+	}
 	// Kinds and types after a colon.
 	src = indexSrc + "intro: \n"
 	f.c.Replace(f.indexURI, src)
@@ -308,5 +319,45 @@ func TestFormattingTokensSymbolsFolding(t *testing.T) {
 	}
 	if len(folds) == 0 {
 		t.Fatal("no folding ranges")
+	}
+}
+
+// Definition and hover on a short link's path answer for the node it
+// resolves to, by suffix too.
+func TestShortLinkDefinitionAndHover(t *testing.T) {
+	const src = `import = ["std/doc@1"]
+
+checkout: section {
+  /// The sum of an order's lines.
+  total: term {{ The sum of an order's lines. }}
+}
+
+refunds: section {
+  | A refund never exceeds the [total], nor [` + "`checkout.total`" + `].
+}
+`
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "index.heron"), src)
+	c := start(t, dir)
+	uri := lsptest.FileURI(filepath.Join(dir, "index.heron"))
+	c.Open(uri, src)
+	noDiagnostics(t, c, "short links")
+	for _, at := range []lsptest.Position{lsptest.At(src, "[total]", 0, 2), lsptest.At(src, "checkout.total`", 0, 10)} {
+		var locs []location
+		if err := c.Call("textDocument/definition", pos(uri, at), &locs); err != nil {
+			t.Fatal(err)
+		}
+		if len(locs) != 1 || locs[0].Range.Start.Line != 4 {
+			t.Fatalf("definition of a short link at %+v: %+v", at, locs)
+		}
+		var h struct {
+			Contents struct{ Value string }
+		}
+		if err := c.Call("textDocument/hover", pos(uri, at), &h); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(h.Contents.Value, "The sum of an order's lines.") {
+			t.Errorf("hover on a short link: %s", h.Contents.Value)
+		}
 	}
 }

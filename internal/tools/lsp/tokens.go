@@ -113,7 +113,7 @@ func classify(t *syntax.Token, parent *syntax.Node, c *types.Checker, sites map[
 		return tokenType("keyword"), 0
 	case syntax.At:
 		return tokenType("decorator"), 0
-	case syntax.Dollar, syntax.DollarBrace, syntax.Hash, syntax.LinkOpen, syntax.LinkMid, syntax.LinkClose,
+	case syntax.Dollar, syntax.DollarBrace, syntax.Hash, syntax.LinkOpen, syntax.LinkMid, syntax.LinkClose, syntax.LinkTick, syntax.ShortLinkEnd,
 		syntax.TagOpen, syntax.TagCloseOpen, syntax.TagEnd, syntax.TagSelfEnd, syntax.LBrace2, syntax.RBrace2:
 		return tokenType("operator"), 0
 	case syntax.CodeSpan, syntax.FenceLine:

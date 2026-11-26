@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/lens"
@@ -161,7 +162,7 @@ func (s *Site) inlineHTML(n *resolve.Node) string {
 // container linearises a prose container's children.
 func (p *proseBuf) container(n *syntax.Node) {
 	switch n.Kind {
-	case syntax.Link, syntax.Insert, syntax.Tag, syntax.Fence:
+	case syntax.Link, syntax.ShortLink, syntax.Insert, syntax.Tag, syntax.Fence:
 		p.inlineNode(n)
 		return
 	}
@@ -221,6 +222,8 @@ func (p *proseBuf) inlineNode(n *syntax.Node) {
 	switch n.Kind {
 	case syntax.Link:
 		p.place(p.link(ast.Link{N: n}), false)
+	case syntax.ShortLink:
+		p.place(p.shortLink(ast.ShortLink{N: n}), false)
 	case syntax.Insert:
 		p.place(p.insert(ast.Insert{N: n}), false)
 	case syntax.Tag:
@@ -235,6 +238,48 @@ func (p *proseBuf) sub(children []syntax.Elem) string {
 	q := &proseBuf{s: p.s, site: p.site}
 	q.container(&syntax.Node{Kind: syntax.ProseLine, Children: children})
 	return q.inline(strings.Join(strings.Fields(q.b.String()), " "))
+}
+
+// shortLink renders `[name]` as a link reading as the node does inside a
+// sentence, and “[`name`]“ as a link whose text is the path as code.
+func (p *proseBuf) shortLink(l ast.ShortLink) string {
+	path := l.Path().N
+	if path == nil {
+		return ""
+	}
+	name := strings.Join(resolve.PathSegs(path), ".")
+	code := len(l.LinkTicks()) > 0
+	t := p.s.refTarget(path, p.site)
+	text := esc(name)
+	switch {
+	case code:
+		text = `<code>` + esc(name) + `</code>`
+	case t != nil:
+		text = esc(sentenceWords(p.s, t))
+	}
+	if t == nil {
+		return `<span class="ref ref-broken">` + text + `</span>`
+	}
+	if strength := p.s.ruleStrength(t); strength != "" {
+		text += ` <span class="lvl">` + esc(kindWords(strength)) + `</span>`
+	}
+	return p.s.proseLinkHTML(t, text)
+}
+
+// sentenceWords is a node as it reads inside a sentence: a term by its
+// word, any other node by its display name with its first letter in lower
+// case, keeping a type's name and a name written in capitals.
+func sentenceWords(s *Site, n *resolve.Node) string {
+	if s.kindPath(n) == "doc.term" {
+		return termName(s, n)
+	}
+	d := displayName(s, n)
+	r := []rune(d)
+	if len(r) == 0 || s.isTypeDecl(n) || len(r) > 1 && unicode.IsUpper(r[1]) {
+		return d
+	}
+	r[0] = unicode.ToLower(r[0])
+	return string(r)
 }
 
 func (p *proseBuf) link(l ast.Link) string {
