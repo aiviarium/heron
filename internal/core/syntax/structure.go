@@ -348,8 +348,11 @@ func (p *parser) doc() {
 // before `.{` and before a `.` that isn't followed by a name.
 func (p *parser) path(strs bool) {
 	m := p.mark()
+	first := true
 	for {
 		if n := p.identLen(); n > 0 {
+			p.tok(Ident, n)
+		} else if n := p.segLenAt(p.pos); !first && n > 0 {
 			p.tok(Ident, n)
 		} else if strs && p.peek(0) == '"' {
 			p.stringLit()
@@ -357,8 +360,9 @@ func (p *parser) path(strs bool) {
 			p.err("expected a name")
 			break
 		}
-		if p.peek(0) == '.' && (p.identLenAt(p.pos+1) > 0 || (strs && p.peek(1) == '"')) {
+		if p.peek(0) == '.' && (p.segLenAt(p.pos+1) > 0 || (strs && p.peek(1) == '"')) {
 			p.tok(Dot, 1)
+			first = false
 			continue
 		}
 		break

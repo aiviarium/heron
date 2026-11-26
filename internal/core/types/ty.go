@@ -224,8 +224,10 @@ func (c *Checker) lookupWanted(sc *resolve.Scope, file *resolve.File, at int, se
 			first = resolve.Binding{Node: n}
 		}
 		if pred(n) {
-			match = resolve.Binding{Node: n}
-			return false
+			if match.Node == nil || isRetired(match.Node) && !isRetired(n) {
+				match = resolve.Binding{Node: n}
+			}
+			return isRetired(match.Node)
 		}
 		return true
 	})
@@ -260,8 +262,12 @@ func (c *Checker) lookupPath(sc *resolve.Scope, file *resolve.File, at int, segs
 			first = n
 		}
 		if pred == nil || pred(n) {
-			match = n
-			return false
+			// A retired kind gives way to a live one of the same name in
+			// another import, as std/spec's component to std/project's.
+			if match == nil || isRetired(match) && !isRetired(n) {
+				match = n
+			}
+			return isRetired(match)
 		}
 		return true
 	})
@@ -269,6 +275,21 @@ func (c *Checker) lookupPath(sc *resolve.Scope, file *resolve.File, at int, segs
 		return match
 	}
 	return first
+}
+
+// isRetired reports whether a declaration carries @retired.
+func isRetired(n *resolve.Node) bool {
+	for _, a := range n.Annotations {
+		if a.N == nil {
+			continue
+		}
+		if p := (ast.Annotation{N: a.N}).Path().N; p != nil {
+			if segs := resolve.PathSegs(p); len(segs) > 0 && segs[len(segs)-1] == "retired" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (c *Checker) walkSegs(n *resolve.Node, segs []string) *resolve.Node {

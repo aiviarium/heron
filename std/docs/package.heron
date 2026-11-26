@@ -2,7 +2,7 @@
 // tools tab's "Styling and extending the docs": the theme, the layout each
 // section uses, the components each slot shows and the modules that render
 // kinds. A tree enters it once, as `docs { … }`.
-import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1", "std/spec@1", "std/tech@1"]
+import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1", "std/spec@1", "std/grammar@1"]
 
 docs: package(version = "1.0", requires = ["std/doc@1"]) {
   /// The docs generator's configuration.
@@ -92,8 +92,8 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     title = "User"
     default = true
     nav = LensNav.TASK
-    show = [authored, step, spec.example, doc.term, tech.command, tech.argument, tech.option, tech.exit, tech.diagnostic]
-    hide = [spec.rule, spec.condition, tech.production, tech.invariant]
+    show = [authored, step, spec.goal, spec.nongoal, spec.example, doc.term, spec.command, spec.argument, spec.option, spec.error]
+    hide = [spec.rule, spec.condition, production]
     depth = 2
     prefix = ""
   }
@@ -104,7 +104,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   developer: lens {
     title = "Developer"
     nav = LensNav.TOPIC
-    summarize = [spec.rule, spec.quality, spec.guidance]
+    summarize = [spec.rule, spec.constraint, spec.guidance]
     prefix = "dev"
   }
 

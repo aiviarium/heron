@@ -33,7 +33,7 @@ func messages(res *check.Result) string {
 	return strings.Join(out, "\n")
 }
 
-const tree = `import = ["std/doc@1", "std/spec@1", "std/tech@1", "std/docs@1"]
+const tree = `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
 
 intro: section {
   | Everyone reads this.
@@ -243,8 +243,8 @@ func TestAuthoredExamplesCheck(t *testing.T) {
 // use case's, with both packages imported in either order.
 func TestStepResolvesByParent(t *testing.T) {
 	for _, imports := range []string{
-		`["std/doc@1", "std/spec@1", "std/product@1", "std/docs@1"]`,
-		`["std/docs@1", "std/doc@1", "std/spec@1", "std/product@1"]`,
+		`["std/doc@1", "std/spec@1", "std/docs@1"]`,
+		`["std/docs@1", "std/doc@1", "std/spec@1"]`,
 	} {
 		src := "import = " + imports + `
 shopper: actor {{ Someone who buys. }}
@@ -254,10 +254,9 @@ pay: howto {
   open: step {{ Open the cart. }}
 }
 
-buy: usecase(shopper) {
-  goal =| An order paid for.
-  s1: step {{ The shopper opens the cart. }}
-}
+buy: usecase(actor = shopper, success = "An order paid for.") {{
+  1. [shopper] opens the cart.
+}}
 `
 		res := checkSrc(t, src)
 		if res.Diags.HasErrors() {
@@ -267,9 +266,8 @@ buy: usecase(shopper) {
 		if k1 == nil || k1.Path() != "docs.step" {
 			t.Errorf("%s: how-to step is %v", imports, k1)
 		}
-		k2 := res.Checker.KindOf(res.Tree.Root.Child("buy").Child("s1"))
-		if k2 == nil || k2.Path() != "product.step" {
-			t.Errorf("%s: use-case step is %v", imports, k2)
+		if st := res.Tree.Root.Child("buy").Child("1"); st == nil || st.Shape != resolve.ShapeStep {
+			t.Errorf("%s: use-case step is %v", imports, st)
 		}
 	}
 }
@@ -363,7 +361,7 @@ s: section {
 // insertion of a fact that's gone and a link that resolves nowhere are
 // errors.
 func TestAuthoredPageChecks(t *testing.T) {
-	base := `import = ["std/doc@1", "std/spec@1", "std/tech@1", "std/docs@1"]
+	base := `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
 
 cli: section {
   sync: command("kite sync") {

@@ -1,8 +1,11 @@
-// std/spec: projects, features, requirements, context for implementors and
-// planning, from the Specifications tab.
+// std/spec: the kinds a specification is written in, in its three layers:
+// the intent (why a product exists and for whom), the specification (what
+// must hold of it from outside) and the contract (the exact surface a
+// consumer relies on), with the links between them, projects, lifecycles
+// and planning. It holds what std/product and std/tech held.
 import = ["std/schema@1", "std/types@1", "std/doc@1"]
 
-spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
+spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Projects ---
 
   /// One unit of the system, such as a service, a library or an app.
@@ -20,8 +23,6 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     source?: Source
     versioning?: Versioning
     releases?: Releases
-    /// Tasks live next to what they act on, as the Example tab's
-    /// services/store/tasks.heron puts build, test and lint in a project.
     accept(kind = task)
   }
 
@@ -63,36 +64,105 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     changelog?: String
   }
 
-  // --- Features ---
+  // --- Context ---
 
   security: flag(on = [section])
   privacy: flag(on = [section])
   operations: flag(on = [section])
 
-  /// Something a reader could expect the feature to cover that's left out.
-  outOfScope: kind(in = [block]) {
+  // --- Intent ---
+
+  /// What kind of party an actor is.
+  ActorKind: enum {
+    /// A person using the system.
+    PERSON: Self
+    /// Another program, called by or calling the system.
+    SYSTEM: Self
+    /// An AI agent acting for a person.
+    AGENT: Self
+  }
+
+  /// What a product is for, in the words of the people it's for, with an
+  /// optional measure of success and who asked for it. Validated, never
+  /// proven by a test.
+  goal(measure?: String, source?: String): kind(in = [block], layer = Layer.INTENT) {
     accept(prose)
   }
 
-  // --- Requirements ---
+  /// A role that crosses the system's boundary.
+  actor(kind: ActorKind = ActorKind.PERSON): kind(in = [block], layer = Layer.INTENT) {
+    accept(prose)
+  }
+
+  /// An archetype of a person who plays an actor.
+  persona(plays: Ref(actor)): kind(in = [block], layer = Layer.INTENT) {
+    /// What the persona wants to get done.
+    goals?: Prose
+    /// What gets in their way today.
+    pains?: Prose
+    accept(prose)
+  }
+
+  /// Something the product could plausibly do and deliberately doesn't.
+  nongoal: kind(in = [block], layer = Layer.INTENT) {
+    accept(prose)
+  }
+
+  /// What the spec relies on an actor or the environment to do.
+  assumption: kind(in = [block], layer = Layer.INTENT) {
+    accept(prose)
+  }
+
+  /// One of the few qualities that matter most; its quality scenarios
+  /// measure it.
+  quality(measure?: String): kind(in = [block], layer = Layer.INTENT) {
+    accept(prose)
+  }
+
+  // --- Specification ---
 
   /// One behaviour in one strength node, and when it applies. `by` names
-  /// whose behaviour it states, such as an actor or a component; without
-  /// it the subject is the system.
-  rule(targets<variadic>?: Ref(Any), by?: Ref(Any)): kind(in = [block]) {
+  /// whose behaviour it states, an actor or a part; without it the subject
+  /// is the system. `serves` names the goals it's for, `derives` the rules
+  /// it's derived from, `relies` the assumptions it depends on.
+  rule(
+    targets<variadic>?: Ref(Any),
+    by?: Ref(Any),
+    serves?: List(Ref(Any)),
+    derives?: List(Ref(rule)),
+    relies?: List(Ref(assumption)),
+    rationale?: String,
+    rev?: Int,
+  ): kind(in = [block], layer = Layer.SPECIFICATION) {
     accept(prose)
     accept(category = strength, max = 1)
-    // Each condition appears at most once; conditions other packages add
-    // repeat freely.
-    accept(kind = when, max = 1)
-    accept(kind = while, max = 1)
     accept(kind = where, max = 1)
+    accept(kind = while)
+    accept(kind = when, max = 1)
     accept(kind = spec.if, max = 1)
-    accept(kind = unless, max = 1)
     accept(kind = then, max = 1)
     accept(kind = instead, max = 1)
     accept(category = condition)
     accept(kind = example)
+  }
+
+  /// A limit on the solution with a reason from outside it.
+  constraint(targets<variadic>?: Ref(Any), reason?: String, serves?: List(Ref(Any)), rev?: Int): kind(in = [block], layer = Layer.SPECIFICATION) {
+    accept(prose)
+    accept(category = strength, max = 1)
+    accept(kind = where, max = 1)
+    accept(kind = while)
+    accept(kind = when, max = 1)
+    accept(kind = spec.if, max = 1)
+    accept(kind = then, max = 1)
+    accept(kind = example)
+  }
+
+  /// A party inside the boundary that rules bind, named by its role as
+  /// seen from outside. No architecture.
+  part: kind(in = [block], layer = Layer.SPECIFICATION) {
+    accept(prose)
+    accept(category = block)
   }
 
   /// The strengths a requirement states its behaviour with.
@@ -141,11 +211,6 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// An exception.
-  unless: kind(in = [condition]) {
-    accept(prose)
-  }
-
   /// A consequence the system guarantees once the rule applies.
   then: kind(in = [condition]) {
     accept(prose)
@@ -156,16 +221,50 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// A key or boundary example of a requirement, or a code block of the
-  /// section it stands in.
-  example: kind(in = [block]) {
+  /// An outcome scenario, one case of one rule or one path of a use case,
+  /// in given, when and then; or a quality scenario, with stimulus,
+  /// environment, response and measure, serving a quality.
+  scenario(illustrates?: Ref(Any), serves?: List(Ref(Any)), rev?: Int): kind(in = [block], layer = Layer.SPECIFICATION) {
+    stimulus?: Prose
+    environment?: Prose
+    response?: Prose
+    measure?: Prose
+    accept(prose)
+    accept(kind = given)
+    accept(kind = when, max = 1)
+    accept(kind = then)
+  }
+
+  /// A state a scenario starts from.
+  given: kind {
+    accept(prose)
+  }
+
+  /// A use case's goal level.
+  UseCaseLevel: enum {
+    SUMMARY: Self
+    USER: Self
+    SUBFUNCTION: Self
+  }
+
+  /// How an actor reaches one goal with the product: its body is the main
+  /// path as a numbered list and its extensions as items numbered `2a.`.
+  usecase(
+    actor: Ref(actor),
+    serves?: List(Ref(Any)),
+    level?: UseCaseLevel,
+    success?: String,
+    minimal?: String,
+    relies?: List(Ref(assumption)),
+    rev?: Int,
+  ): kind(in = [block], layer = Layer.SPECIFICATION) {
     accept(prose)
   }
 
   // --- Lifecycles ---
 
   /// The lifecycle of an enum field.
-  states(field: Ref(Any)): kind(in = [block]) {
+  states(field: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION) {
     initial?: Any
     terminal?: List(Any)
     accept(prose)
@@ -173,15 +272,12 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// One allowed change of a lifecycle.
-  transition(from: Any, to: Any): kind {
+  transition(from: Any, to: Any): kind(layer = Layer.SPECIFICATION) {
     accept(prose)
-    // Each condition appears at most once; conditions other packages add
-    // repeat freely.
-    accept(kind = when, max = 1)
-    accept(kind = while, max = 1)
     accept(kind = where, max = 1)
+    accept(kind = while)
+    accept(kind = when, max = 1)
     accept(kind = spec.if, max = 1)
-    accept(kind = unless, max = 1)
     accept(kind = then, max = 1)
     accept(kind = instead, max = 1)
     accept(category = condition)
@@ -190,37 +286,90 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
   /// The transitions an op may cause.
   performs(transitions<variadic>: Ref(transition)): annotation(on = [op])
 
-  // --- Qualities ---
+  // --- Contract ---
 
-  /// What is measured, its type and its definition.
-  metric(type: Any): kind(in = [block]) {
+  /// The rules, use cases, steps or extensions a contract entry, an error
+  /// or a project's component exists for.
+  realizes(targets<variadic>: Ref(Any)): annotation
+
+  /// How serious a diagnostic is, as an editor shows it.
+  Severity: enum {
+    error: Self
+    warning: Self
+    info: Self
+    hint: Self
+  }
+
+  /// One problem the product reports, with one identity on every surface:
+  /// its `title` with a `{name}` for each field, and its projections:
+  /// `status` on an API, `exit` on a command line, `severity` as a
+  /// diagnostic. `by` is the part that reports it.
+  error(id: String, severity: Severity = Severity.error, status?: Int, exit?: Int, by?: Ref(Any), rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
+    /// The message, with `{name}` for each field filled in where it happens.
+    title: String
+    /// The message reported at the related site.
+    related?: String
+    accept(prose)
+    accept(kind = field)
+    accept(kind = example)
+  }
+
+  /// A value an error carries, as data and in its message.
+  field(type: Any): kind(layer = Layer.CONTRACT) {
     accept(prose)
   }
 
-  /// A bound on a metric.
-  quality(targets<variadic>?: Ref(Any)): kind(in = [block]) {
-    metric?: Ref(metric)
-    at_least?: Any
-    at_most?: Any
-    percentile?: Float
-    accept(category = strength, max = 1)
-    // Each condition appears at most once; conditions other packages add
-    // repeat freely.
-    accept(kind = when, max = 1)
-    accept(kind = while, max = 1)
-    accept(kind = where, max = 1)
-    accept(kind = spec.if, max = 1)
-    accept(kind = unless, max = 1)
-    accept(kind = then, max = 1)
-    accept(kind = instead, max = 1)
-    accept(category = condition)
-    accept(kind = applies, max = 1)
-  }
-
-  /// The scope of a quality.
-  applies: kind {
+  /// A concrete case with exact inputs and outputs; `refines` names the
+  /// outcome scenario it pins down. As a rule's child, a key or boundary
+  /// case of the rule.
+  example(refines?: Ref(scenario)): kind(in = [block], layer = Layer.CONTRACT) {
     accept(prose)
   }
+
+  /// A command of a command-line tool, an entry of its surface: usage
+  /// lines, arguments and options as its inputs, the errors it exits with,
+  /// examples and subcommands.
+  command(name: String, rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
+    /// One line per form, as `heron check [--json] [path…]`.
+    usage?: List(String)
+    /// The errors it reports, each with its `exit`.
+    errors?: List(Ref(error))
+    accept(prose)
+    accept(kind = argument)
+    accept(kind = option)
+    accept(kind = example)
+    accept(kind = command)
+    accept(kind = error)
+    accept(category = block)
+  }
+
+  /// A positional argument of a command.
+  argument(name: String, type?: Any, optional?: Bool, variadic?: Bool): kind(layer = Layer.CONTRACT) {
+    accept(prose)
+  }
+
+  /// A named option of a command, as `--json` or `-o`.
+  option(name: String, type?: Any, default?: Any, short?: String, env?: String): kind(layer = Layer.CONTRACT) {
+    accept(prose)
+  }
+
+  /// A view of an app or a site and its regions. `route` is where it's
+  /// served.
+  screen(route?: String, rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
+    accept(prose)
+    accept(kind = region)
+    accept(category = block)
+  }
+
+  /// One region of a screen and what it holds, nested as the layout nests.
+  region: kind(in = [block], layer = Layer.CONTRACT) {
+    accept(prose)
+    accept(kind = region)
+    accept(category = block)
+  }
+
+  /// An entry of a surface that's no longer to be used.
+  deprecated: flag(on = [command, screen, region, op, error])
 
   // --- Context for implementors ---
 
@@ -233,6 +382,73 @@ spec: package(version = "1.0", requires = ["std/doc@1", "std/types@1"]) {
 
   /// A question still to answer about its targets.
   open(targets<variadic>?: Ref(Any), owner?: String): kind(in = [block]) {
+    accept(prose)
+  }
+
+  // --- Retired: each says what to write instead ---
+
+  @retired("write a rule with no condition")
+  invariant: kind(in = [block]) {
+    accept(prose)
+    accept(category = strength)
+  }
+
+  @retired("write a rule whose by is a part")
+  obligation(path?: String): kind(in = [block]) {
+    accept(prose)
+  }
+
+  @retired("write a scenario that illustrates one rule or path")
+  criterion: kind(in = [block]) {
+    accept(prose)
+    accept(kind = given)
+    accept(kind = when)
+    accept(kind = then)
+  }
+
+  @retired("write a part; a project's code units are std/project's components")
+  component(path?: String, lang?: String): kind(in = [block]) {
+    uses?: List(Ref(Any))
+    accept(prose)
+    accept(category = block)
+  }
+
+  @retired("write while with the state the rule applies in, or a rule of its own")
+  unless: kind(in = [condition]) {
+    accept(prose)
+  }
+
+  @retired("open the area with its goals")
+  epic(owner?: String): kind(in = [block]) {
+    accept(prose)
+    accept(category = block)
+  }
+
+  @retired("write an error with its projection")
+  raises(name?: String): kind(in = [block]) {
+    accept(prose)
+  }
+
+  @retired("write an error with its projection")
+  diagnostic(code?: String, severity?: Severity, by?: Ref(Any)): kind(in = [block]) {
+    message?: String
+    related?: String
+    accept(prose)
+    accept(kind = example)
+  }
+
+  @retired("write an error with its exit projection")
+  exit(code?: Int): kind {
+    accept(prose)
+  }
+
+  @retired("write a quality scenario with a measure")
+  metric(type?: Any): kind(in = [block]) {
+    accept(prose)
+  }
+
+  @retired("write a nongoal")
+  outOfScope: kind(in = [block]) {
     accept(prose)
   }
 }

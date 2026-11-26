@@ -2,11 +2,12 @@
 // package of its own, authored and versioned apart from the code and
 // usually sealed; a project imports it at a version and adds only what is
 // about its implementation: the components that realize the spec's parts,
-// the tests that prove its requirements, where the rest stands, and its
-// releases. A project refers to the spec and never restates it.
-import = ["std/schema@1", "std/types@1", "std/doc@1", "std/spec@1", "std/tech@1"]
+// the tests that prove its requirements at a revision, where the rest
+// stands, its releases, and its delivery: stories, increments and
+// milestones. A project refers to the spec and never restates it.
+import = ["std/schema@1", "std/types@1", "std/doc@1", "std/spec@1"]
 
-project: package(version = "1.0", requires = ["std/doc@1", "std/spec@1", "std/tech@1"]) {
+project: package(version = "1.1", requires = ["std/doc@1", "std/spec@1"]) {
   /// The spec package this tree implements, at the spec version it
   /// implements (SM.Sm.Sp), copied exactly from the spec package. Declared
   /// at the root, it puts the tree in project mode, which leaves spec kinds
@@ -28,14 +29,47 @@ project: package(version = "1.0", requires = ["std/doc@1", "std/spec@1", "std/te
     accept(prose)
   }
 
-  /// Names the spec subjects, such as the system's parts or the actors it
-  /// serves, that a component realizes.
-  realizes(subjects<variadic>: Ref(Any)): annotation(on = [tech.component])
+  // --- Architecture ---
 
-  /// Links spec requirements (rules, criteria, diagnostics or qualities)
-  /// to the tests that prove them, by the spec's paths. Several proofs may
-  /// name one requirement.
-  proves(requirements<variadic>: Ref(Any)): kind(in = [block]) {
+  /// A unit of the implementation's code with one contract, such as a Go
+  /// or TS package, at a path from the repository root. `@realizes` names
+  /// the spec's parts it builds. Architecture, never a spec kind.
+  component(path: String, lang?: String): kind(in = [block]) {
+    /// The components it may import; any other import breaks the contract.
+    uses?: List(Ref(component))
+    accept(prose)
+    accept(kind = responsibility)
+    accept(kind = exports)
+    accept(kind = property)
+    accept(category = block)
+    accept(kind = verify)
+  }
+
+  /// A property a component holds at every call, with the tests that
+  /// verify it: architecture's contract, never a spec's rule.
+  property: kind(in = [block]) {
+    accept(prose)
+    accept(category = spec.strength, max = 1)
+    accept(kind = verify)
+  }
+
+  /// One thing a component owns.
+  responsibility: kind {
+    accept(prose)
+  }
+
+  /// Part of the exported interface of a component, as code in the
+  /// component's language unless `lang` names another; `title` names the
+  /// file or group it comes from.
+  exports(lang?: String, title?: String): kind {
+    accept(text = Verbatim)
+  }
+
+  /// Links spec requirements (rules, scenarios, use cases, errors or
+  /// contract entries) to the tests that prove them, by the spec's paths,
+  /// at the revision `rev` (1 when left out). Several proofs may name one
+  /// requirement.
+  proves(requirements<variadic>: Ref(Any), rev?: Int): kind(in = [block]) {
     accept(prose)
     accept(kind = verify)
   }
@@ -56,8 +90,8 @@ project: package(version = "1.0", requires = ["std/doc@1", "std/spec@1", "std/te
     accept(prose)
   }
 
-  /// Not built yet.
-  planned: flag(on = [status], group = "implementation_status")
+  /// Not built yet; on a story, an increment or a milestone, not started.
+  planned: flag(on = [status, story, increment, milestone], group = "implementation_status")
   /// Built, with no test proving it yet.
   untested: flag(on = [status], group = "implementation_status")
 
@@ -66,4 +100,37 @@ project: package(version = "1.0", requires = ["std/doc@1", "std/spec@1", "std/te
   release(version: String, date?: String): kind(in = [block]) {
     accept(prose)
   }
+
+  // --- Delivery ---
+
+  /// One change to the spec, small enough to build in one increment: the
+  /// spec items it adds and changes and the goal it advances. It states no
+  /// behaviour; its `done` holds what delivery alone needs.
+  story(adds?: List(Ref(Any)), changes?: List(Ref(Any)), serves?: Ref(Any)): kind(in = [block]) {
+    accept(prose)
+    accept(kind = done, max = 1)
+  }
+
+  /// A shippable slice of the system that delivers stories.
+  increment(delivers<variadic>?: Ref(Any)): kind(in = [block]) {
+    accept(prose)
+    accept(kind = done, max = 1)
+    accept(category = block)
+  }
+
+  /// A point in time the work is measured against.
+  milestone(reached_by<variadic>?: Ref(Any)): kind(in = [block]) {
+    accept(prose)
+    accept(kind = done, max = 1)
+  }
+
+  /// What done means for its parent, beyond its spec items being proven.
+  done: kind(in = [block]) {
+    accept(prose)
+  }
+
+  /// Where a piece of delivery work stands.
+  started: flag(on = [story, increment, milestone], group = "status")
+  delivered: flag(on = [story, increment, milestone], group = "status")
+  deferred: flag(on = [story, increment, milestone], group = "status")
 }

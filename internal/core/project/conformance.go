@@ -26,6 +26,18 @@ type Report struct {
 	// of the code.
 	Counts  map[string]int `json:"counts"`
 	Changes *Changes       `json:"changes,omitempty"`
+	// Gaps are what the links leave open: behaviour no contract entry
+	// realizes and tests that cite no requirement. They're for reading and
+	// fail nothing.
+	Gaps Gaps `json:"gaps"`
+}
+
+// Gaps lists the requirements no contract entry realizes, among the rules
+// whose subject is a part or the system and the use case steps a part
+// takes, and the tests of the project that no verify names.
+type Gaps struct {
+	Unrealized   []string `json:"unrealized"`
+	UncitedTests []string `json:"uncited_tests"`
 }
 
 // Row is one requirement of the report.
@@ -57,7 +69,7 @@ type Changes struct {
 }
 
 // Statuses in report order. Practices come last, in a group of their own.
-var Statuses = []string{"proven", "planned", "untested", "missing", "practice"}
+var Statuses = []string{"proven", "outdated", "planned", "untested", "missing", "practice"}
 
 // Obligations is the number of requirements the code must meet: every
 // requirement but the practices.
@@ -87,6 +99,7 @@ func (p *Project) Conformance() *Report {
 	if p.Since != "" {
 		r.Changes = p.changes()
 	}
+	r.Gaps = p.gaps()
 	return r
 }
 
@@ -207,6 +220,9 @@ func (r *Report) Markdown() []byte {
 	}
 	fmt.Fprintf(&b, "%d requirements: %d proven, %d planned, %d untested, %d missing.",
 		r.Obligations(), r.Counts["proven"], r.Counts["planned"], r.Counts["untested"], r.Counts["missing"])
+	if n := r.Counts["outdated"]; n > 0 {
+		fmt.Fprintf(&b, " %d outdated, proven at an earlier revision only.", n)
+	}
 	if n := r.Counts["practice"]; n > 0 {
 		fmt.Fprintf(&b, " %d practices of people and agents, not counted.", n)
 	}
@@ -215,6 +231,21 @@ func (r *Report) Markdown() []byte {
 	if r.Counts["practice"] > 0 {
 		b.WriteString("\n## Practices\n\nRequirements on the people and agents who author and build, by their `by`; no test of the code proves them.\n\n")
 		r.markdownTable(&b, func(row Row) bool { return row.Status == "practice" })
+	}
+	for _, g := range []struct {
+		title, about string
+		items        []string
+	}{
+		{"Behaviour no contract entry realizes", "Rules on a part or the system, and use case steps a part takes, that no entry or error names with @realizes.", r.Gaps.Unrealized},
+		{"Tests that cite no requirement", "Tests of the project that no verify names; listed, never failed.", r.Gaps.UncitedTests},
+	} {
+		if len(g.items) == 0 {
+			continue
+		}
+		fmt.Fprintf(&b, "\n## %s\n\n%s\n\n", g.title, g.about)
+		for _, it := range g.items {
+			fmt.Fprintf(&b, "- `%s`\n", it)
+		}
 	}
 	if ch := r.Changes; ch != nil {
 		fmt.Fprintf(&b, "\n## Changes from %s %s to %s\n\n", r.Spec, orDash(ch.From), orDash(ch.To))

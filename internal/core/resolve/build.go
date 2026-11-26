@@ -88,6 +88,7 @@ func (r *Resolver) resolveTree(entry FileID, prelude bool, self *Package, ctx *S
 	t.Entry = f
 	t.Root.Decl = Site{File: f}
 	b.file(f, t.Root, outer)
+	useCaseSteps(t)
 	return t
 }
 
@@ -583,6 +584,12 @@ func (b *builder) imports(site Site, e ast.Expr, sc *Scope) {
 		if !dup {
 			sc.Imports = append(sc.Imports, p)
 			b.t.Imports = append(b.t.Imports, p)
+		}
+		if b.t.ImportSites == nil {
+			b.t.ImportSites = map[*Package]Site{}
+		}
+		if _, ok := b.t.ImportSites[p]; !ok {
+			b.t.ImportSites[p] = ent.site
 		}
 		b.mount(p, ent.site)
 	}

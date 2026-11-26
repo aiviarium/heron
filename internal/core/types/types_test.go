@@ -264,21 +264,20 @@ ping(): op
 // The kinds of std/spec, std/product and std/tech check their bodies,
 // their fields and the variants a lifecycle names.
 func TestSpecKinds(t *testing.T) {
-	base := "import = [\"std/doc@1\", \"std/types@1\", \"std/spec@1\", \"std/product@1\", \"std/tech@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"
+	base := "import = [\"std/doc@1\", \"std/types@1\", \"std/spec@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"
 	for src, want := range map[string]string{
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.GONE)\n}\n":                          "Status has no member GONE",
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.SHUT) {\n    must {{ x }}\n  }\n}\n": "transition doesn't accept must",
 		"d: decision<accepted> {\n  choice =| x\n}\n":                                                     "unknown kind or type decision",
-		"q: quality {\n  must {{ a }}\n  should {{ b }}\n}\n":                                             "quality accepts at most 1 strength node",
-		"c: criterion {\n  when {{ a }}\n  when {{ b }}\n}\n":                                             "criterion accepts at most 1 when",
-		"e: epic {\n  a: done\n  b: done\n}\n":                                                            "epic accepts at most 1 done",
+		"q: constraint(reason = \"x\") {\n  must {{ a }}\n  should {{ b }}\n}\n":                          "constraint accepts at most 1 strength node",
+		"c: scenario {\n  when {{ a }}\n  when {{ b }}\n}\n":                                              "scenario accepts at most 1 when",
 		"a: actor(kind = ActorKind.ROBOT) {{ x }}\n":                                                      "ActorKind has no member ROBOT",
-		"s: story(as = nobody) {\n  want =| w\n}\n":                                                       "unknown name nobody",
+		"s: persona(plays = nobody) {\n  goals =| w\n}\n":                                                 "unknown name nobody",
 		"p: project(path = \".\") {\n  depends_on = [nobody]\n}\n":                                        "unknown name nobody",
 		"p: project(path = \".\") {\n  owner = \"x\"\n}\n":                                                "p (a project) has no field owner",
 		"p: project(path = \".\") {\n  t: task do {\n    log(\"x\")\n  }\n}\n":                            "",
 		"r: rule(Status) {{ The system must keep a status. }}\n":                                          "",
-		"g: grammar {\n  r: rule {\n    must {{ x }}\n  }\n}\n":                                           "",
+		"g: part {\n  r: rule {\n    must {{ x }}\n  }\n}\n":                                              "",
 	} {
 		got := check(t, base+src)
 		found := want == "" && len(got) == 0

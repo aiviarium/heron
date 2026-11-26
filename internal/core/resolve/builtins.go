@@ -13,6 +13,10 @@ var BuiltinTypes = []string{
 // ShapeBuiltin marks a primitive type.
 const ShapeBuiltin Shape = ShapeElement + 1
 
+// ShapeStep marks a step or an extension of a use case, named by its
+// number, as `3` or `2a`.
+const ShapeStep Shape = ShapeElement + 2
+
 var (
 	builtinsOnce  sync.Once
 	builtinsScope *Scope

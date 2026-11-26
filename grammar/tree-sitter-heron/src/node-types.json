@@ -3011,6 +3011,10 @@
     "named": true
   },
   {
+    "type": "exports",
+    "named": false
+  },
+  {
     "type": "false",
     "named": false
   },

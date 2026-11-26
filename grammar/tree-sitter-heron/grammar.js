@@ -23,12 +23,12 @@ const PREC = {
 
 const IDENT = /[A-Za-z_][A-Za-z0-9_]*/;
 
-// The standard kinds that take their text as Verbatim: std/tech's surface,
+// The standard kinds that take their text as Verbatim: std/project's exports,
 // production and token, and std/doc's code and math. As the Go parser
 // does, a `{{ }}` body of a node whose `:` slot or callee names one, by its
 // last segment, is text: no tags, inserts, links or code spans. The names
 // are keywords only where a name may stand, and read as identifiers.
-const VERBATIM = ['surface', 'production', 'token', 'code', 'math'];
+const VERBATIM = ['exports', 'surface', 'production', 'token', 'code', 'math'];
 
 const commaSep = (rule) => optional(seq(rule, repeat(seq(',', rule)), optional(',')));
 
@@ -108,7 +108,10 @@ module.exports = grammar({
     // A path whose last segment names a verbatim kind.
     _verbatim_path: ($) => seq(repeat(seq($._name, '.')), alias($._verbatim_kind, $.identifier)),
 
-    path: ($) => seq($._name, repeat(seq('.', $._name))),
+    // After a dot, a segment may be a use case's step, as `.3` or `.2a`.
+    path: ($) => seq($._name, repeat(seq('.', choice($._name, alias($._step, $.identifier))))),
+
+    _step: (_) => token.immediate(/[0-9]+[a-z]?/),
 
     // A member's path may have string segments, as in `"std/ci" = { … }`.
     _member_path: ($) =>
@@ -360,7 +363,7 @@ module.exports = grammar({
     // same way, `[name](`, so `[name](#path)` stays a link.
     short_link: ($) => choice($._short_name, $._short_code),
 
-    _short_name: (_) => token(prec(3, /\[[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*\]/)),
+    _short_name: (_) => token(prec(3, /\[[A-Za-z_][A-Za-z0-9_]*(\.([A-Za-z_][A-Za-z0-9_]*|[0-9]+[a-z]?))*\]/)),
 
     _short_code: (_) => token(prec(3, /\[`[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*`\]/)),
 

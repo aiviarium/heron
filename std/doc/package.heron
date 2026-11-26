@@ -18,7 +18,7 @@ doc: package(version = "1.0") {
   }
 
   /// A word the glossary defines once.
-  term(aliases?: List(String)): kind(in = [block]) {
+  term(aliases?: List(String), context?: String): kind(in = [block], layer = Layer.SPECIFICATION) {
     accept(prose)
   }
 

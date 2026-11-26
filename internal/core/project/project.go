@@ -29,37 +29,40 @@ const (
 // must do, for whom, in which words, and its design. Each names what it is
 // in a project-mode error.
 var SpecKinds = map[string]string{
-	"spec.rule":         "rule",
-	"spec.quality":      "quality",
-	"spec.metric":       "metric",
-	"spec.states":       "lifecycle",
-	"spec.transition":   "transition",
-	"spec.outOfScope":   "out-of-scope note",
-	"product.actor":     "actor",
-	"product.persona":   "persona",
-	"product.epic":      "epic",
-	"product.story":     "story",
-	"product.criterion": "criterion",
-	"product.usecase":   "use case",
-	"tech.diagnostic":   "diagnostic",
-	"tech.command":      "command",
-	"tech.grammar":      "grammar",
-	"tech.production":   "production",
-	"tech.token":        "token",
-	"tech.screen":       "screen",
-	"tech.region":       "screen region",
-	"doc.term":          "term",
-	"types.api":         "api",
+	"spec.goal":          "goal",
+	"spec.actor":         "actor",
+	"spec.persona":       "persona",
+	"spec.nongoal":       "nongoal",
+	"spec.assumption":    "assumption",
+	"spec.quality":       "quality",
+	"spec.rule":          "rule",
+	"spec.constraint":    "constraint",
+	"spec.part":          "part",
+	"spec.scenario":      "scenario",
+	"spec.usecase":       "use case",
+	"spec.states":        "lifecycle",
+	"spec.transition":    "transition",
+	"spec.error":         "error",
+	"spec.command":       "command",
+	"spec.screen":        "screen",
+	"spec.region":        "screen region",
+	"grammar.grammar":    "grammar",
+	"grammar.production": "production",
+	"grammar.token":      "token",
+	"doc.term":           "term",
+	"types.api":          "api",
 }
 
-// RequirementKinds are the spec kinds a proof or a status may name.
+// RequirementKinds are the spec kinds a proof or a status may name: the
+// requirements of the specification and the contract layers. Intent is
+// validated, never proven.
 var RequirementKinds = map[string]bool{
-	"spec.rule":         true,
-	"spec.quality":      true,
-	"spec.transition":   true,
-	"product.criterion": true,
-	"tech.diagnostic":   true,
-	"tech.invariant":    true,
+	"spec.rule":       true,
+	"spec.constraint": true,
+	"spec.scenario":   true,
+	"spec.usecase":    true,
+	"spec.transition": true,
+	"spec.error":      true,
 }
 
 // Project is a tree's `implements` node and what hangs off it.
@@ -227,6 +230,8 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 // Requirement is one spec requirement and where the project has it.
 type Requirement struct {
 	Node *resolve.Node
+	// Outdated are the verify nodes of proofs at an earlier revision.
+	Outdated []*resolve.Node
 	// Path is its path inside the spec package, as "checkout.pay_once".
 	Path string
 	Kind string
@@ -268,8 +273,17 @@ func (p *Project) Requirements() []*Requirement {
 	}
 	for _, pr := range p.Proofs {
 		vs := childrenOfKind(c, pr, KindVerify)
+		at := Revision(pr)
 		for _, e := range ArgExprs(KindArgs(pr)) {
 			if r := byNode[RefTarget(c, e.Syntax(), pr.Decl)]; r != nil {
+				// A proof of an earlier revision proved an earlier meaning.
+				if at < Revision(r.Node) {
+					r.Outdated = append(r.Outdated, vs...)
+					if r.Status != "proven" && len(vs) > 0 {
+						r.Status = "outdated"
+					}
+					continue
+				}
 				r.Proofs = append(r.Proofs, vs...)
 				if len(r.Proofs) > 0 {
 					r.Status = "proven"
@@ -300,9 +314,9 @@ func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
 		return false
 	}
 	switch KindPath(c, by) {
-	case "product.persona":
+	case "spec.persona":
 		return true
-	case "product.actor":
+	case "spec.actor":
 		kind := NamedArg(KindArgs(by), "kind")
 		if kind == nil {
 			return true
@@ -351,6 +365,10 @@ func RelPath(pkg *resolve.Package, n *resolve.Node) string {
 // "spec.rule", or "" for a node of no standard kind.
 func KindPath(c *types.Checker, n *resolve.Node) string {
 	k := c.KindOf(n)
+	// A kind of the tree's own that extends a standard kind counts as it.
+	for i := 0; k != nil && (k.Decl.File == nil || !k.Decl.File.ID.IsStd()) && i < 8; i++ {
+		k = c.Extends(k)
+	}
 	if k == nil || k.Decl.File == nil || !k.Decl.File.ID.IsStd() {
 		return ""
 	}
@@ -566,4 +584,23 @@ func errAt(ds *diag.List, s resolve.Site, code, format string, args ...any) {
 		file = string(s.File.ID)
 	}
 	ds.Errorf(file, start, end, code, format, args...)
+}
+
+// Revision is a requirement's or a proof's `rev`, 1 when it's left out.
+func Revision(n *resolve.Node) int {
+	e := NamedArg(KindArgs(n), "rev")
+	if e == nil {
+		return 1
+	}
+	v := 0
+	for _, ch := range strings.TrimSpace(e.Syntax().Text()) {
+		if ch < '0' || ch > '9' {
+			return 1
+		}
+		v = v*10 + int(ch-'0')
+	}
+	if v < 1 {
+		return 1
+	}
+	return v
 }

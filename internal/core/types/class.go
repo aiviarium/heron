@@ -306,7 +306,7 @@ func (c *Checker) refList(decl *resolve.Node, name string) []*resolve.Node {
 		want = c.IsCategory
 	case "on":
 		want = c.isKindOrCategory
-	case "args_from", "fields_from":
+	case "args_from", "fields_from", "extends":
 		want = c.IsKind
 	}
 	var out []*resolve.Node
@@ -897,6 +897,32 @@ func (c *Checker) acceptsMode(k *resolve.Node, mode string) bool {
 		if a.mode == mode {
 			return true
 		}
+	}
+	return false
+}
+
+// DeclArgs are the arguments a declaration's kind slot passes.
+func DeclArgs(n *resolve.Node) []ast.Arg { return declArgs(n) }
+
+// DeclNamedArg is the expression of a named argument of a declaration's
+// kind slot, or nil.
+func DeclNamedArg(n *resolve.Node, name string) ast.Expr { return namedArg(n, name) }
+
+// Extends is the kind a kind extends with `extends`, or nil.
+func (c *Checker) Extends(k *resolve.Node) *resolve.Node {
+	if k == nil {
+		return nil
+	}
+	return c.refArg(k, "extends")
+}
+
+// IsKindOrExtends reports whether kind k is want or extends it.
+func (c *Checker) IsKindOrExtends(k, want *resolve.Node) bool {
+	for i := 0; k != nil && i < 8; i++ {
+		if k == want {
+			return true
+		}
+		k = c.Extends(k)
 	}
 	return false
 }

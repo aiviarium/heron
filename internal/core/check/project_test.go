@@ -53,8 +53,8 @@ first: release("1.0.0+build1", date = "2026-11-01") {{ The first release. }}
 // std/product's.
 func TestProjectKindsCheck(t *testing.T) {
 	for _, imports := range []string{
-		`["std/doc@1", "std/spec@1", "std/project@1", "std/tech@1", "std/product@1"]`,
-		`["std/project@1", "std/product@1", "std/doc@1", "std/spec@1", "std/tech@1"]`,
+		`["std/doc@1", "std/spec@1", "std/project@1"]`,
+		`["std/project@1", "std/doc@1", "std/spec@1"]`,
 	} {
 		res := checkFiles(t, map[string]string{"index.heron": "import = " + imports + "\n" + projectKinds}, "index.heron")
 		var msgs []string
@@ -67,7 +67,7 @@ func TestProjectKindsCheck(t *testing.T) {
 	}
 }
 
-const shopSpec = `import = ["std/doc@1", "std/spec@1", "std/product@1", "std/tech@1"]
+const shopSpec = `import = ["std/doc@1", "std/spec@1"]
 
 shop: package(version = "2.1.3", sealed = true) {
   buyer: actor {{ Someone who buys. }}
@@ -102,7 +102,7 @@ func wantDiagContaining(t *testing.T, res *check.Result, sub string) {
 	t.Errorf("no diagnostic containing %q in %v", sub, diagStrings(res))
 }
 
-const projectHead = `import = ["std/doc@1", "std/spec@1", "std/tech@1", "std/product@1", "std/project@1", "../shop/"]
+const projectHead = `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "2.1.3") {
   version = "2.1.3+build1"
@@ -113,13 +113,13 @@ app: implements(shop, at = "2.1.3") {
 // declares is an error naming what it is; project-side kinds are fine.
 func TestProjectMode(t *testing.T) {
 	cases := map[string]string{
-		"rule":       "extra: rule {\n  must {{ do more }}\n}\n",
-		"story":      "s: story(as = shop.buyer) {\n  want = {{ more }}\n}\n",
-		"term":       "word: term {{ A word. }}\n",
-		"actor":      "admin: actor {{ An admin. }}\n",
-		"diagnostic": "d: diagnostic(\"E1\") {\n  message = \"bad\"\n}\n",
-		"nested":     "notes: section {\n  r: rule {\n    must {{ x }}\n  }\n}\n",
-		"command":    "c: command(\"shop\") {}\n",
+		"rule":    "extra: rule {\n  must {{ do more }}\n}\n",
+		"goal":    "g: goal {{ More. }}\n",
+		"term":    "word: term {{ A word. }}\n",
+		"actor":   "admin: actor {{ An admin. }}\n",
+		"error":   "d: error(\"E1\") {\n  title = \"bad\"\n}\n",
+		"nested":  "notes: section {\n  r: rule {\n    must {{ x }}\n  }\n}\n",
+		"command": "c: command(\"shop\") {}\n",
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -271,6 +271,75 @@ app: implements(shop, at = "` + at + `") {
 		res := checkFiles(t, map[string]string{"shop/index.heron": shopSpec, "app/index.heron": src}, "app/index.heron")
 		if ds := diagStrings(res); len(ds) > 0 {
 			t.Errorf("%s: %v", name, ds)
+		}
+	}
+}
+
+// A proof at an earlier revision than its requirement's is outdated and
+// counts as no proof; intent is never a requirement; the gap report lists
+// behaviour no contract entry realizes.
+func TestConformanceRevisionsAndGaps(t *testing.T) {
+	spec := `import = ["std/doc@1", "std/spec@1"]
+
+shop: package(version = "1.0.0", sealed = true) {
+  pay_fast: goal {{ Paying takes one step. }}
+
+  payments: part {{ Takes the buyer's money. }}
+
+  pay_once: rule(by = payments, rev = 2) {
+    must {{ charge an order at most once }}
+  }
+
+  receipt: rule(by = payments) {
+    must {{ send a receipt }}
+  }
+
+  @realizes(receipt)
+  no_receipt: error("shop.NO_RECEIPT", by = payments) {
+    title = "no receipt for {order}"
+    order: field(String)
+  }
+}
+`
+	app := `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
+
+app: implements(shop, at = "1.0.0") {
+  version = "1.0.0+build1"
+}
+
+proves(shop.pay_once) {
+  verify("pay_test.go", test = "TestPayOnce")
+}
+
+proves(shop.receipt, shop.no_receipt) {
+  verify("receipt_test.go", test = "TestReceipt")
+}
+`
+	res := checkFiles(t, map[string]string{"shop/index.heron": spec, "app/index.heron": app}, "app/index.heron")
+	if ds := diagStrings(res); len(ds) > 0 {
+		t.Fatal(ds)
+	}
+	rep := project.Find(res.Tree, res.Checker).Conformance()
+	got := map[string]string{}
+	for _, r := range rep.Rows {
+		got[r.Path] = r.Status
+	}
+	want := map[string]string{"pay_once": "outdated", "receipt": "proven", "no_receipt": "proven"}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s: %q, want %q (all: %v)", k, got[k], v, got)
+		}
+	}
+	if _, ok := got["pay_fast"]; ok {
+		t.Errorf("a goal is a requirement: %v", got)
+	}
+	if strings.Join(rep.Gaps.Unrealized, ",") != "pay_once" {
+		t.Errorf("unrealized: %v", rep.Gaps.Unrealized)
+	}
+	md := string(rep.Markdown())
+	for _, s := range []string{"1 outdated, proven at an earlier revision only", "## Behaviour no contract entry realizes", "- `pay_once`"} {
+		if !strings.Contains(md, s) {
+			t.Errorf("markdown lacks %q:\n%s", s, md)
 		}
 	}
 }

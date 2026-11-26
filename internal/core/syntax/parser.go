@@ -141,6 +141,29 @@ func (p *parser) runeAt(off int) (rune, int) {
 	return utf8.DecodeRuneInString(p.src[off:])
 }
 
+// segLenAt is the length of a path segment after a dot: a name, or a use
+// case step's number with an optional letter, as the `3` and `2a` of
+// `request_refund.3` and `request_refund.2a`.
+func (p *parser) segLenAt(off int) int {
+	if n := p.identLenAt(off); n > 0 {
+		return n
+	}
+	n := 0
+	for off+n < len(p.src) && p.src[off+n] >= '0' && p.src[off+n] <= '9' {
+		n++
+	}
+	if n == 0 {
+		return 0
+	}
+	if off+n < len(p.src) && p.src[off+n] >= 'a' && p.src[off+n] <= 'z' {
+		n++
+	}
+	if r, w := p.runeAt(off + n); w > 0 && isIdentChar(r) {
+		return 0
+	}
+	return n
+}
+
 func (p *parser) identLenAt(off int) int {
 	r, w := p.runeAt(off)
 	if w == 0 || !isIdentStart(r) {

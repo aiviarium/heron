@@ -5,7 +5,7 @@ import = ["std/schema@1"]
 types: package(version = "1.0") {
   /// A record. Each member is `name<flags>?: Type = default`; its
   /// positional arguments are the interfaces it implements.
-  type(implements<variadic>?: Ref(interface)): kind {
+  type(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
     accept(kind = member, infer = true)
     accept(kind = func)
   }
@@ -20,7 +20,7 @@ types: package(version = "1.0") {
   param: kind(typed = true)
 
   /// A closed set of values; its params are the constructor for them.
-  enum(implements<variadic>?: Ref(interface)): kind {
+  enum(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
     accept(kind = variant, infer = true)
   }
 
@@ -28,24 +28,24 @@ types: package(version = "1.0") {
   variant: kind(typed = true)
 
   /// A tagged union with named variants.
-  union(implements<variadic>?: Ref(interface)): kind {
+  union(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
     accept(kind = variant, infer = true)
   }
 
   /// Shared members and behaviour.
-  interface(implements<variadic>?: Ref(interface)): kind {
+  interface(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
     accept(kind = member, infer = true)
     accept(kind = func)
   }
 
   /// A group of operations.
-  api: kind {
+  api: kind(layer = Layer.CONTRACT) {
     accept(prose)
     accept(kind = op)
   }
 
   /// An operation: its inputs as parameters, its result type first.
-  op(returns?: Any): kind {
+  op(returns?: Any): kind(layer = Layer.CONTRACT) {
     accept(prose)
     accept(kind = example)
   }

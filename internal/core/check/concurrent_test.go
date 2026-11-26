@@ -11,7 +11,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-const sharedSpec = `import = ["std/doc@1", "std/spec@1", "std/product@1"]
+const sharedSpec = `import = ["std/doc@1", "std/spec@1"]
 
 shop: package(version = "1.0.0", sealed = true) {
   buyer: actor {{ Someone who buys. }}
@@ -22,7 +22,7 @@ shop: package(version = "1.0.0", sealed = true) {
 }
 `
 
-const sharedApp = `import = ["std/doc@1", "std/spec@1", "std/product@1", "std/project@1", "../shop/"]
+const sharedApp = `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "1.0.0") {
   version = "1.0.0+build1"

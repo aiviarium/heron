@@ -298,12 +298,12 @@ func (p *parser) proseBlock() {
 }
 
 // verbatimKinds are the standard kinds that take their text as Verbatim:
-// std/tech's surface, production and token, and std/doc's code and math.
+// std/project's exports, std/grammar's production and token, and std/doc's code and math.
 // The parser knows no kinds, so it knows them by name: a `{{ }}` body of a
 // node whose `:` slot or callee names one, by its last segment, is read
 // as text, with no inserts, links, tags, code spans or fences in it. The
 // tree-sitter grammar reads the same names the same way.
-var verbatimKinds = map[string]bool{"surface": true, "production": true, "token": true, "code": true, "math": true}
+var verbatimKinds = map[string]bool{"exports": true, "surface": true, "production": true, "token": true, "code": true, "math": true}
 
 // lastSegment is the last name of a dotted path.
 func lastSegment(path string) string {
@@ -322,8 +322,15 @@ func (p *parser) pathLenAt(off int) int {
 			break
 		}
 		o += n
-		if o < len(p.src) && p.src[o] == '.' && p.identLenAt(o+1) > 0 {
+		if o < len(p.src) && p.src[o] == '.' && p.segLenAt(o+1) > 0 {
 			o++
+			for p.identLenAt(o) == 0 && p.segLenAt(o) > 0 {
+				o += p.segLenAt(o)
+				if !(o < len(p.src) && p.src[o] == '.' && p.segLenAt(o+1) > 0) {
+					break
+				}
+				o++
+			}
 			continue
 		}
 		break
@@ -627,8 +634,12 @@ func (p *parser) shortLinkLen() (int, bool) {
 			return 0, false
 		}
 		o += n
-		if p.byteAt(o) == '.' && p.identLenAt(o+1) > 0 {
+		if p.byteAt(o) == '.' && p.segLenAt(o+1) > 0 {
 			o++
+			if p.identLenAt(o) == 0 {
+				o += p.segLenAt(o)
+				break
+			}
 			continue
 		}
 		break

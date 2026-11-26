@@ -29,7 +29,7 @@ const (
 )
 
 func (s Shape) String() string {
-	return [...]string{"root", "declared", "value", "anonymous", "scope", "set", "implicit", "mounted", "heading", "element", "builtin"}[s]
+	return [...]string{"root", "declared", "value", "anonymous", "scope", "set", "implicit", "mounted", "heading", "element", "builtin", "step"}[s]
 }
 
 // Site is a member in a file, with the scope it was read in.
@@ -428,6 +428,9 @@ type Tree struct {
 	// file it names (a package's entry file, a folder's index.heron), for
 	// go-to-definition from the string.
 	Targets map[*syntax.Node]FileID
+	// ImportSites is where the tree imports each package, at its import
+	// string.
+	ImportSites map[*Package]Site
 	// Elements maps each kind element that declares a node to the node.
 	Elements map[*syntax.Node]*Node
 }
