@@ -135,6 +135,9 @@ func TestUnknownLens(t *testing.T) {
 		{"@lens(developer)\n  devnote", "@lens(intro)\n  devnote", "intro is a section, not a lens"},
 		{"lenses = [user, explore]", "lenses = [user, intro]", "intro is a section, not a lens"},
 		{"lenses = [user, explore]", "lenses = [user, nobody]", "unknown lens nobody"},
+		// `@lens` on an element that declares no node is a mark too.
+		{"| Everyone reads this.", `| Everyone <em @lens="usr">reads</em> this.`, "unknown lens usr; the lenses in scope are"},
+		{"| Everyone reads this.", `| Everyone <em @lens="intro">reads</em> this.`, "intro is a section, not a lens"},
 	} {
 		res := checkSrc(t, strings.Replace(withLenses("lenses = [user, explore]"), c.from, c.to, 1))
 		if !strings.Contains(messages(res), c.want) {

@@ -228,6 +228,15 @@ language_markup: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestLensMarksRender")
   }
 
+  proves(heron.language.markup.lens_marks.element_marks) {
+    verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementLensMarks")
+  }
+
+  proves(heron.language.markup.lens_marks.element_marks_shown) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementLensMarks")
+  }
+
   proves(heron.language.markup.lens_marks.mark_checked_on_prose) {
     verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
   }

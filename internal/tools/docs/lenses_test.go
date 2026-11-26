@@ -178,6 +178,44 @@ func TestLensMarksRender(t *testing.T) {
 	mustNotHave(t, "dev home", f["dev/index.html"], "Kite syncs a folder")
 }
 
+// `@lens` on an element that declares no node marks its content as a
+// mark marks a prose run: a prose file's item that is such an element is a
+// marked run, and one inside a sentence shows only in its lenses; explore
+// shows every one with its lenses beside it.
+func TestElementLensMarks(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, src string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("index.heron", `import = ["std/doc@1", "std/docs@1"]
+
+include = ["./guide.heron.md"]
+
+docs {
+  lenses = [user, developer, explore]
+}
+`)
+	write("guide.heron.md", `# Refunds {#refunds}
+
+Everyone reads this.
+
+<p @lens="user">Open the payment and press **Refund**.</p>
+
+<p @lens="developer, explore">A refund moves the payment to `+"`refunded`"+`.</p>
+
+Inline <em @lens="user">user-only words</em> in a sentence.
+`)
+	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
+	dev := f["dev/refunds.html"]
+	mustHave(t, "dev", dev, "A refund moves the payment", "Inline", "in a sentence")
+	mustNotHave(t, "dev", dev, "Open the payment", "user-only words")
+	ex := f["explore/refunds.html"]
+	mustHave(t, "explore", ex, "Open the payment", "A refund moves the payment", "user-only words",
+		`<div class="marked"> <span class="lens-mark">User</span>`, `<span class="marked"> <span class="lens-mark">User</span>`)
+}
+
 // The developer lens lists sections as topics and sums each rule up as
 // its sentence, which opens in place; a page reads as its prose, its
 // rules, its terms, its sections and its diagnostics last, while explore

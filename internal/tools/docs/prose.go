@@ -243,7 +243,26 @@ func (p *proseBuf) inlineNode(n *syntax.Node) {
 			// A node of its own, rendered as one.
 			return
 		}
+		var mark string
+		if n != p.site.N {
+			// `@lens` on an element marks its content as a mark marks a
+			// prose run; a prose file's item is a run, shown or not
+			// before it gets here.
+			if r := lens.ElementRestriction(p.s.Checker, resolve.Site{File: p.site.File, N: n, Scope: p.site.Scope}); r != nil {
+				if !p.s.explore() && !p.s.Opts.Lens.Allows(r) {
+					return
+				}
+				mark = p.s.markTags(r)
+			}
+		}
 		h, block := p.tag(ast.Tag{N: n})
+		if mark != "" {
+			if block {
+				h = `<div class="marked">` + mark + h + `</div>`
+			} else {
+				h = `<span class="marked">` + mark + h + `</span>`
+			}
+		}
 		p.place(h, block)
 	case syntax.Fence:
 		p.place(p.fence(n), true)

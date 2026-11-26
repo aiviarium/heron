@@ -278,10 +278,14 @@ func Restriction(c *types.Checker, n *resolve.Node) []*resolve.Node {
 }
 
 // ProseRestriction returns the lenses `@lens(…)` keeps a prose block to,
-// or nil when it carries none.
+// or nil when it carries none. A prose file's item that is an element,
+// as `<p @lens="user">…</p>`, is a block marked by its `@lens` attribute.
 func ProseRestriction(c *types.Checker, site resolve.Site) []*resolve.Node {
 	if site.N == nil {
 		return nil
+	}
+	if site.N.Kind == syntax.Tag {
+		return ElementRestriction(c, site)
 	}
 	var out []*resolve.Node
 	found := false
@@ -300,6 +304,36 @@ func ProseRestriction(c *types.Checker, site resolve.Site) []*resolve.Node {
 	}
 	if out == nil {
 		out = []*resolve.Node{}
+	}
+	return out
+}
+
+// ElementMarks are the `@lens` attributes of an element, read as the
+// annotations `@lens(names…)`.
+func ElementMarks(site resolve.Site) []resolve.Site {
+	var out []resolve.Site
+	for _, a := range resolve.ElementAnnotations(site.File, site.N, site.Scope, func(name string) bool { return name == "lens" }) {
+		if p := (ast.Annotation{N: a.N}).Path().N; p != nil {
+			if segs := resolve.PathSegs(p); len(segs) == 1 && segs[0] == "lens" {
+				out = append(out, a)
+			}
+		}
+	}
+	return out
+}
+
+// ElementRestriction returns the lenses an element's `@lens` attribute
+// keeps its content to, or nil when it has none: on an element that
+// declares no node it marks the content as a mark marks a prose run.
+func ElementRestriction(c *types.Checker, site resolve.Site) []*resolve.Node {
+	marks := ElementMarks(site)
+	if len(marks) == 0 {
+		return nil
+	}
+	out := []*resolve.Node{}
+	for _, a := range marks {
+		ls, _ := annotationLenses(c, a)
+		out = append(out, ls...)
 	}
 	return out
 }
@@ -524,6 +558,22 @@ func Check(t *resolve.Tree, c *types.Checker, examples ExampleChecker) (diag.Lis
 					mark(resolve.Site{File: p.File, N: x, Scope: p.Scope})
 				}
 			}
+			// `@lens` on an element that declares no node marks its
+			// content, and is checked as a mark on a prose run.
+			p.N.Walk(func(x *syntax.Node) bool {
+				if x.Kind == syntax.Tag && t.ElementNode(x) != nil && x != p.N {
+					// A node of its own, whose text is checked with it.
+					return false
+				}
+				if x.Kind == syntax.Tag && t.ElementNode(x) == nil {
+					for _, a := range ElementMarks(resolve.Site{File: p.File, N: x, Scope: p.Scope}) {
+						for _, e := range project.ArgExprs(ast.Annotation{N: a.N}.Args()) {
+							lensName(e, a)
+						}
+					}
+				}
+				return true
+			})
 		}
 		if IsAuthored(c, n) && examples != nil {
 			checkExamples(c, n, examples, &ds)
