@@ -184,12 +184,18 @@ func (s *Site) document(p *Page, f *Fragment) string {
 		title += " · " + s.title()
 	}
 	b.WriteString(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">`)
+	// The canvas takes the theme's scheme before the stylesheet arrives.
+	b.WriteString(`<meta name="color-scheme" content="dark light">`)
 	b.WriteString(`<title>` + esc(title) + `</title>`)
-	b.WriteString(`<script>try{var t=localStorage.getItem("heron-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>`)
-	b.WriteString(`<link rel="stylesheet" href="` + a + `docs.css">`)
+	b.WriteString(themeScript)
+	b.WriteString(`<link rel="stylesheet" href="` + a + `docs.css?v=` + assetVersion("docs.css") + `">`)
 	if s.Theme != nil {
-		b.WriteString(`<link rel="stylesheet" href="` + a + `theme/theme.css">`)
+		b.WriteString(`<link rel="stylesheet" href="` + a + `theme/theme.css?v=` + contentVersion(s.Theme.CSS) + `">`)
 	}
+	// The page paints whole: never before its frame, the navigation and
+	// the right column, are parsed, so nothing pops in after first paint.
+	b.WriteString(`<link rel="expect" href="#` + layoutID + `" blocking="render">`)
+	b.WriteString(speculationRules)
 	lensName := ""
 	if s.Opts.Lens != nil {
 		lensName = s.Opts.Lens.Name
@@ -204,7 +210,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	if p.Layout == "landing" {
 		cls += " no-sidebar"
 	}
-	b.WriteString(`<div class="` + cls + `">`)
+	b.WriteString(`<div class="` + cls + `" id="` + layoutID + `">`)
 	if p.Layout != "landing" {
 		s.sidebar(&b, p)
 	}
@@ -238,7 +244,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	}
 	b.WriteString(`</aside></div>`)
 	b.WriteString(`<script src="` + attr(s.Opts.Data) + `" defer></script>`)
-	b.WriteString(`<script src="` + a + `docs.js" defer></script>`)
+	b.WriteString(`<script src="` + a + `docs.js?v=` + assetVersion("docs.js") + `" defer></script>`)
 	b.WriteString(`</body></html>`)
 	return b.String()
 }
@@ -396,12 +402,30 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 	b.WriteString(navScrollScript)
 }
 
-// navScrollScript puts the navigation back where the last page of the same
-// lens's site left it, before the page paints, or else scrolls the current
-// page's entry into view. docs.js saves the position as a page is left.
-const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo");` +
-	`try{var v=l&&sessionStorage.getItem("heron-nav:"+l.href);if(v!==null&&v!==undefined){n.scrollTop=+v;return}}catch(e){}` +
-	`var a=n.querySelector('[aria-current="page"]');if(a)a.scrollIntoView({block:"nearest"})})()</script>`
+// navScrollScript puts the navigation back where the last page of the
+// same lens's site left it, before the page paints: the entry that was
+// followed stays where it was on screen, even when the tree around it
+// opens or closes, and otherwise the scroll position is kept. The current
+// page's entry is then scrolled into view if it isn't. docs.js saves the
+// position, and the entry followed, as a page is left.
+const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo"),a=n.querySelector('[aria-current="page"]'),v=null;` +
+	`try{v=l&&JSON.parse(sessionStorage.getItem("heron-nav:"+l.href))}catch(e){}` +
+	`if(typeof v==="number")v={t:v};` +
+	`if(v&&typeof v==="object"){if(a&&v.h&&v.h===a.getAttribute("href")&&typeof v.y==="number")n.scrollTop+=a.getBoundingClientRect().top-n.getBoundingClientRect().top-v.y;else if(typeof v.t==="number")n.scrollTop=v.t}` +
+	`if(a){var r=a.getBoundingClientRect(),b=n.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom)a.scrollIntoView({block:"nearest"})}})()</script>`
+
+// themeScript applies the reader's chosen theme before the stylesheet
+// and the first paint; without one the system's preference holds.
+const themeScript = `<script>try{var t=localStorage.getItem("heron-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}</script>`
+
+// speculationRules prefetches a page of the site when the reader is about
+// to follow a link to it (on hover or pointer down), so the next page is
+// there when the click lands. Browsers without speculation rules ignore it.
+const speculationRules = `<script type="speculationrules">{"prefetch":[{"source":"document","where":{"and":[{"selector_matches":"a[href]"},{"not":{"selector_matches":"[href^='#'],[href^='http:'],[href^='https:'],[href^='mailto:'],[download],[target]"}}]},"eagerness":"moderate"}]}</script>`
+
+// layoutID is the id of a page's frame, which the page's render-blocking
+// link waits for.
+const layoutID = "h-layout"
 
 // within reports whether page p is q or below it.
 func (s *Site) within(p, q *Page) bool {

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"path"
 	"strings"
@@ -72,8 +74,7 @@ func (b *specBrowser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		name := strings.TrimPrefix(p, "_assets/")
 		for _, a := range docs.Assets() {
 			if a.Path == name {
-				w.Header().Set("Content-Type", a.Type)
-				_, _ = w.Write(a.Content)
+				serveCached(w, r, a.Type, a.Content)
 				return
 			}
 		}
@@ -88,6 +89,15 @@ func (b *specBrowser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if p == "_assets/data.js" {
 			body, ctype = b.site.DataJS(), "text/javascript; charset=utf-8"
+			return nil
+		}
+		if name, ok := strings.CutPrefix(p, "_assets/"); ok {
+			// A theme package's files.
+			for _, a := range b.site.Assets() {
+				if a.Path == name {
+					body, ctype = a.Content, a.Type
+				}
+			}
 			return nil
 		}
 		if p == "" || p == "." {
@@ -109,7 +119,28 @@ func (b *specBrowser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Type", ctype)
-	w.Header().Set("Cache-Control", "no-cache")
+	serveCached(w, r, ctype, body)
+}
+
+// serveCached writes a docs response with an ETag of its content, so a
+// browser revalidates it with a 304 rather than fetching it again. An
+// asset requested with its content's version (?v=) never changes at that
+// URL, so it's kept for good.
+func serveCached(w http.ResponseWriter, r *http.Request, ctype string, body []byte) {
+	sum := sha256.Sum256(body)
+	// Weak: the same content is sent gzipped or not.
+	tag := `W/"` + hex.EncodeToString(sum[:12]) + `"`
+	h := w.Header()
+	h.Set("ETag", tag)
+	if r.URL.Query().Get("v") != "" && strings.Contains(r.URL.Path, "/_assets/") {
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		h.Set("Cache-Control", "no-cache")
+	}
+	if match := r.Header.Get("If-None-Match"); match != "" && strings.Contains(match, tag[2:]) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	h.Set("Content-Type", ctype)
 	_, _ = w.Write(body)
 }

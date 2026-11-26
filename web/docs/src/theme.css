@@ -6,7 +6,7 @@
 @layer heron {
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--h-size-topbar) + var(--h-space-4)); }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--h-size-topbar) + var(--h-space-4)); scrollbar-gutter: stable; }
 body {
   margin: 0;
   background: var(--h-bg-page);
@@ -93,7 +93,7 @@ kbd { font-size: var(--h-font-size-label); color: var(--h-text-faint); border: 1
    measure, so every block of a page has the same two edges; what's wider
    scrolls inside its own frame. A data page, the conformance matrix, is
    wider as a whole. */
-.page { min-width: 0; width: 100%; padding: var(--h-space-8) 0 var(--h-space-16); max-width: var(--h-size-measure); justify-self: center; }
+.page { min-width: 0; width: 100%; padding: var(--h-space-8) 0 var(--h-space-16); max-width: var(--h-size-measure); justify-self: start; }
 body[data-layout="conformance"] .page { max-width: none; justify-self: stretch; }
 .aside { position: sticky; top: var(--h-size-topbar); align-self: start; max-height: calc(100vh - var(--h-size-topbar)); overflow: auto; padding: var(--h-space-8) 0 var(--h-space-8); scrollbar-width: thin; }
 
@@ -516,6 +516,19 @@ code.t { color: var(--h-type); }
 .field input:focus-visible, .field textarea:focus-visible { outline: var(--h-size-focus) solid var(--h-accent); outline-offset: 0; }
 .result { border: 1px solid var(--h-border); border-radius: var(--h-radius-card); overflow: hidden; animation: fade var(--h-motion-base) var(--h-motion-ease); }
 .result pre { max-height: 300px; }
+
+/* Moving between pages: the browser keeps the top bar and the navigation
+   in place and cross-fades the rest, so the chrome never repaints. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
+.topbar { view-transition-name: h-topbar; }
+.sidebar { view-transition-name: h-sidebar; }
+::view-transition-group(root), ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--h-motion-fast); animation-timing-function: var(--h-motion-ease); }
+::view-transition-group(h-topbar), ::view-transition-group(h-sidebar),
+::view-transition-old(h-topbar), ::view-transition-new(h-topbar),
+::view-transition-old(h-sidebar), ::view-transition-new(h-sidebar) { animation: none; }
+::view-transition-old(h-topbar), ::view-transition-old(h-sidebar) { display: none; }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { opacity: 0; translate: -50% 6px; } }

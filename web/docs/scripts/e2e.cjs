@@ -19,6 +19,7 @@ const dir = path.resolve(process.argv[2])
 // their folders.
 const pages = fs.readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith(".html") && !f.startsWith("_assets"))
 const fail = []
+const sidebarOf = (f) => (fs.readFileSync(path.join(dir, f), "utf8").match(/<nav class="sidebar"[\s\S]*?<\/nav>/) || [""])[0]
 const url = (f) => "file://" + path.join(dir, f)
 
 ;(async () => {
@@ -96,9 +97,52 @@ const url = (f) => "file://" + path.join(dir, f)
   const kept = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
   if (kept !== after) fail.push("theme: the chosen theme doesn't hold on the next load")
 
+  // No flash between pages: in each theme, chosen against the system's or
+  // following it, the first frame a page paints already has the page's
+  // theme, the frame doesn't move, and the browser keeps the chrome in
+  // place with a view transition.
+  const linkTo = pages.includes("index.html") && sidebarOf("index.html") ? "index.html" : pages.find((f) => (sidebarOf(f).match(/<a href="[^"#:]+"/g) || []).length > 3) ?? pages[0]
+  for (const [scheme, chosen] of [["dark", null], ["light", null], ["light", "dark"], ["dark", "light"]]) {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, reducedMotion: "no-preference" })
+    await ctx.addInitScript(() => {
+      const m = (window.__frames = [])
+      addEventListener("pagereveal", (e) => { window.__vt = !!e.viewTransition })
+      const f = () => {
+        if (document.body) m.push({ bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector("main")?.getBoundingClientRect().left })
+        if (m.length < 5) requestAnimationFrame(f)
+      }
+      requestAnimationFrame(f)
+    })
+    const p = await ctx.newPage()
+    await p.goto(served(linkTo))
+    if (chosen) await p.evaluate((c) => localStorage.setItem("heron-theme", c), chosen)
+    await p.reload()
+    for (let i = 0; i < 3; i++) {
+      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      const from = await p.evaluate(() => document.querySelector("main").getBoundingClientRect().left)
+      const next = await p.evaluate((i) => {
+        const as = [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))
+        const a = as[(i * 5 + 2) % as.length]
+        if (a) a.dataset.e2e = "next"
+        return !!a
+      }, i)
+      if (!next) break
+      await Promise.all([p.waitForNavigation(), p.click("a[data-e2e=next]")])
+      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      await p.waitForTimeout(50)
+      const r = await p.evaluate(() => ({ first: window.__frames[0], bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector("main").getBoundingClientRect().left, vt: window.__vt, page: document.body.dataset.page }))
+      const want = chosen ?? scheme
+      const dark = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, b) => a + +b, 0) < 384
+      if (!r.first || r.first.bg !== r.bg) fail.push(`theme flash: ${r.page} paints ${r.first?.bg} first, then ${r.bg} (${scheme} system, ${chosen ?? "no"} choice)`)
+      if (dark(r.bg) !== (want === "dark")) fail.push(`theme: ${r.page} is ${r.bg} in the ${want} theme`)
+      if (Math.abs(r.x - from) > 1) fail.push(`frame shift: the page moves ${r.x - from} px going to ${r.page}`)
+      if (!r.vt) fail.push(`view transition: none going to ${r.page}`)
+    }
+    await ctx.close()
+  }
+
   // The navigation lists pages alone: no page's navigation links to an
   // anchor, and what's on a page is in its outline, nested two levels.
-  const sidebarOf = (f) => (fs.readFileSync(path.join(dir, f), "utf8").match(/<nav class="sidebar"[\s\S]*?<\/nav>/) || [""])[0]
   for (const f of pages) if (sidebarOf(f).includes('href="#')) fail.push(`nav: ${f} lists an anchor of a page`)
   const nested = pages.find((f) => /<nav class="outline"[\s\S]*?<li class="l3">/.test(fs.readFileSync(path.join(dir, f), "utf8")))
   if (nested) {
@@ -130,16 +174,25 @@ const url = (f) => "file://" + path.join(dir, f)
       const a = nav.querySelector(`a[data-i="${i}"]`)
       if (!a) return { top: 0, scrollable: false }
       a.scrollIntoView({ block: "start" })
+      nav.scrollTop -= 120
       a.dataset.e2e = "far"
-      return { top: nav.scrollTop, scrollable: nav.scrollHeight > nav.clientHeight }
+      return { top: nav.scrollTop, y: a.getBoundingClientRect().top, scrollable: nav.scrollHeight > nav.clientHeight }
     }, pick)
     if (target.scrollable && target.top > 0) {
       await Promise.all([page.waitForNavigation(), page.click("a[data-e2e=far]")])
+      // Before any island runs: the inline script alone puts it back.
+      const early = await page.evaluate(() => document.querySelector(".sidebar").scrollTop)
       await page.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-      // As far as the next page's navigation scrolls, when it's shorter.
-      const next = await page.evaluate(() => { const n = document.querySelector(".sidebar"); return { top: n.scrollTop, max: n.scrollHeight - n.clientHeight } })
-      const want = Math.min(target.top, next.max)
-      if (Math.abs(next.top - want) > 2) fail.push(`nav scroll: ${target.top} before the link, ${next.top} on the next page, which scrolls to ${next.max}`)
+      // The entry followed stays where it was on screen, unless the next
+      // page's navigation can't scroll that far.
+      const next = await page.evaluate(() => {
+        const n = document.querySelector(".sidebar")
+        const a = n.querySelector('[aria-current="page"]')
+        return { top: n.scrollTop, max: n.scrollHeight - n.clientHeight, y: a ? a.getBoundingClientRect().top : null }
+      })
+      const clamped = next.top <= 0 || next.top >= next.max - 1
+      if (next.y === null || (!clamped && Math.abs(next.y - target.y) > 2)) fail.push(`nav scroll: the entry followed was at ${target.y} px, on the next page it's at ${next.y} px`)
+      if (Math.abs(early - next.top) > 1) fail.push(`nav scroll: put back late, at ${early} before the islands and ${next.top} after`)
       // Nothing kept: the current page's entry is scrolled into view.
       await page.evaluate(() => sessionStorage.clear())
       await page.reload()

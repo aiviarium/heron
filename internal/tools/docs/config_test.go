@@ -109,7 +109,8 @@ func TestTheme(t *testing.T) {
 		}
 	}
 	page := got["guide.html"]
-	for _, want := range []string{`<link rel="stylesheet" href="_assets/docs.css"><link rel="stylesheet" href="_assets/theme/theme.css">`, `<img class="mark" src="_assets/theme/logo.svg"`} {
+	links := `<link rel="stylesheet" href="_assets/docs.css?v=` + assetVersion("docs.css") + `"><link rel="stylesheet" href="_assets/theme/theme.css?v=` + contentVersion([]byte(got["_assets/theme/theme.css"])) + `">`
+	for _, want := range []string{links, `<img class="mark" src="_assets/theme/logo.svg"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("page lacks %q", want)
 		}

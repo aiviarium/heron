@@ -73,8 +73,29 @@ func TestLensSiteFiles(t *testing.T) {
 			t.Errorf("assets written twice: %s", p)
 		}
 	}
-	mustHave(t, "dev page", f["dev/kite.cli.sync.html"], `href="../_assets/docs.css"`, `src="data.js"`, `id="kite.cli.sync.dry_run"`)
-	mustHave(t, "user page", f["kite.cli.sync.html"], `href="_assets/docs.css"`, `id="kite.cli.sync.dry_run"`)
+	v := "?v=" + assetVersion("docs.css")
+	mustHave(t, "dev page", f["dev/kite.cli.sync.html"], `href="../_assets/docs.css`+v+`"`, `src="data.js"`, `id="kite.cli.sync.dry_run"`)
+	mustHave(t, "user page", f["kite.cli.sync.html"], `href="_assets/docs.css`+v+`"`, `id="kite.cli.sync.dry_run"`)
+	// The frame every page has, for moving between pages without a flash:
+	// the canvas's scheme and the reader's theme before the stylesheet,
+	// assets cached until they change, the first paint held until the frame
+	// is parsed, the next page prefetched, and the navigation put back
+	// before paint.
+	page := f["kite.cli.sync.html"]
+	mustHave(t, "page chrome", page,
+		`<meta name="color-scheme" content="dark light">`,
+		`localStorage.getItem("heron-theme")`,
+		`<link rel="expect" href="#h-layout" blocking="render">`,
+		`<div class="layout" id="h-layout">`,
+		`<script type="speculationrules">`,
+		`src="_assets/docs.js?v=`+assetVersion("docs.js")+`"`,
+		`sessionStorage.getItem("heron-nav:"`)
+	if strings.Index(page, `heron-theme`) > strings.Index(page, `rel="stylesheet"`) {
+		t.Error("the theme script runs after the stylesheet link")
+	}
+	if strings.Index(page, `heron-nav:`) < strings.Index(page, `<nav class="sidebar"`) || strings.Index(page, `heron-nav:`) > strings.Index(page, `<main`) {
+		t.Error("the navigation's scroll isn't put back right after the navigation, before the page")
+	}
 	// Each lens's search index holds what it keeps: the user lens has no rule.
 	mustNotHave(t, "user data.js", f["data.js"], `"p":"kite.sync.copies_changed"`)
 	mustHave(t, "explore data.js", f["explore/data.js"], `"p":"kite.sync.copies_changed"`)

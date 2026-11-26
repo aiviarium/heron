@@ -42,12 +42,21 @@ function lenses() {
   }
 }
 
-/** The navigation on narrow screens. */
+/** The navigation on narrow screens: a sheet over the page, opened at the
+ * current page's entry, closed with Escape. */
 function nav() {
   for (const b of $$("[data-island=nav]")) {
-    b.addEventListener("click", () => {
-      const open = document.body.classList.toggle("nav-open")
+    const set = (open: boolean) => {
+      document.body.classList.toggle("nav-open", open)
       b.setAttribute("aria-expanded", String(open))
+      if (open) document.querySelector('.sidebar [aria-current="page"]')?.scrollIntoView({ block: "center" })
+    }
+    b.addEventListener("click", () => set(!document.body.classList.contains("nav-open")))
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.body.classList.contains("nav-open")) {
+        set(false)
+        b.focus()
+      }
     })
   }
 }
@@ -135,18 +144,29 @@ function versions() {
   }
 }
 
-/** The navigation keeps its scroll position from page to page of one
- * lens's site: saved here as a page is left, put back by the inline script
- * after the navigation before the next page paints. */
+/** The navigation keeps its place from page to page of one lens's site:
+ * its scroll position and the entry followed, with where that entry was
+ * on screen, saved here as a page is left and put back by the inline
+ * script after the navigation before the next page paints. */
 function navScroll() {
   const nav = document.querySelector<HTMLElement>(".sidebar")
   const logo = document.querySelector<HTMLAnchorElement>(".logo")
   if (!nav || !logo) return
+  let followed: { h: string; y: number } | null = null
   const save = () => {
-    try { sessionStorage.setItem("heron-nav:" + logo.href, String(nav.scrollTop)) } catch { /* storage blocked */ }
+    try {
+      sessionStorage.setItem("heron-nav:" + logo.href, JSON.stringify({ t: nav.scrollTop, ...followed }))
+    } catch { /* storage blocked */ }
   }
-  nav.addEventListener("click", (e) => { if ((e.target as Element).closest("a")) save() })
+  nav.addEventListener("click", (e) => {
+    const a = (e.target as Element).closest<HTMLAnchorElement>("a[href]")
+    if (!a) return
+    followed = { h: a.getAttribute("href")!, y: a.getBoundingClientRect().top - nav.getBoundingClientRect().top }
+    save()
+  })
   addEventListener("pagehide", save)
+  // Back from the bfcache: what's saved is this page's again.
+  addEventListener("pageshow", (e) => { if (e.persisted) followed = null })
 }
 
 /** The outline follows the heading in view. */
