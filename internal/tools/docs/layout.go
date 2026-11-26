@@ -238,11 +238,23 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	if len(ol) > 1 || f.Aside == "" && len(ol) > 0 {
 		b.WriteString(`<nav class="outline" aria-label="` + attr(label("docs.label.outline")) + `"><div class="label">` + esc(label("docs.label.on_this_page")) + `</div><ul>`)
 		for _, h := range ol {
-			b.WriteString(fmt.Sprintf(`<li class="l%d"><a href="#%s">%s</a></li>`, h.Level, attr(h.ID), esc(h.Title)))
+			bind := ""
+			if h.Binding != "" {
+				bind = ` data-binding="` + attr(h.Binding) + `"`
+				if h.Hidden {
+					bind += " hidden"
+				}
+			}
+			b.WriteString(fmt.Sprintf(`<li class="l%d"%s><a href="#%s">%s</a></li>`, h.Level, bind, attr(h.ID), esc(h.Title)))
 		}
 		b.WriteString(`</ul></nav>`)
 	}
-	b.WriteString(`</aside></div>`)
+	b.WriteString(`</aside>`)
+	if s.hasBindings() {
+		// The binding the reader picked last, applied before the page paints.
+		b.WriteString(bindingScript)
+	}
+	b.WriteString(`</div>`)
 	b.WriteString(`<script src="` + attr(s.Opts.Data) + `" defer></script>`)
 	b.WriteString(`<script src="` + a + `docs.js?v=` + assetVersion("docs.js") + `" defer></script>`)
 	b.WriteString(`</body></html>`)
@@ -350,7 +362,11 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 		}
 		b.WriteString(`<li><a href="` + attr(s.href(q.File)) + `"` + cur + `>`)
 		if q.Layout == "op" {
-			b.WriteString(`<span class="m m-` + strings.ToLower(attr(q.Method)) + `">` + esc(q.Method) + `</span>`)
+			b.WriteString(`<span class="m m-` + strings.ToLower(attr(q.Method)) + `"`)
+			for _, bm := range q.BindMethods {
+				b.WriteString(` data-m-` + bm[0] + `="` + attr(bm[1]) + `"`)
+			}
+			b.WriteString(`>` + esc(q.Method) + `</span>`)
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
 		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {

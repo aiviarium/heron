@@ -560,50 +560,58 @@ func renderAPI(c *Ctx) error {
 	c.W(`<section class="node api" id="`, attr(Anchor(n)), `">`)
 	c.title("")
 	c.Prose(n)
-	var facts []string
+	bs := s.apiBindings(n)
+	// The facts of the HTTP binding: the base path, the socket, the wire.
+	var httpFacts []string
 	if b := basePath(s, n); b != "" {
-		facts = append(facts, `<dt>`+esc(label("docs.label.base_path"))+`</dt><dd><code>`+esc(b)+`</code></dd>`)
+		httpFacts = append(httpFacts, `<dt>`+esc(label("docs.label.base_path"))+`</dt><dd><code>`+esc(b)+`</code></dd>`)
 	}
 	if w := wsRoute(n); w != "" {
-		facts = append(facts, `<dt>`+esc(label("docs.label.socket"))+`</dt><dd><code>`+esc(w)+`</code></dd>`)
+		httpFacts = append(httpFacts, `<dt>`+esc(label("docs.label.socket"))+`</dt><dd><code>`+esc(w)+`</code></dd>`)
 	}
-	bs := s.apiBindings(n)
-	rpcOnly := len(bs) > 0 && bs[0] != bindHTTP
-	if !rpcOnly {
-		facts = append(facts, `<dt>`+esc(label("docs.label.wire"))+`</dt><dd>`+esc(label("docs.label.wire_json"))+`</dd>`)
-	}
-	svcFacts := s.serviceFacts(n)
-	if len(svcFacts) > 0 {
-		c.Island("copy")
-	}
+	httpFacts = append(httpFacts, `<dt>`+esc(label("docs.label.wire"))+`</dt><dd>`+esc(label("docs.label.wire_json"))+`</dd>`)
+	// The facts of every binding: the cross-cutting annotations.
+	var shared []string
 	for _, a := range annotations(n) {
 		if ownAnnotations[annName(a)] && annName(a) != "throws" {
 			continue
 		}
-		facts = append(facts, `<dt>`+esc(sentenceCase(annName(a)))+`</dt><dd><code>`+s.highlightDecl(resolve.Site{File: n.Decl.File, N: a.Args().N, Scope: n.Decl.Scope}, false)+`</code></dd>`)
+		shared = append(shared, `<dt>`+esc(sentenceCase(annName(a)))+`</dt><dd><code>`+s.highlightDecl(resolve.Site{File: n.Decl.File, N: a.Args().N, Scope: n.Decl.Scope}, false)+`</code></dd>`)
 	}
-	if len(facts) > 0 {
-		c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
+	if len(bs) == 0 {
+		// An api with no RPC binding reads as it always has.
+		if facts := append(httpFacts, shared...); len(facts) > 0 {
+			c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
+		}
+		c.httpIndex(n)
+		c.apiTypesList(n)
+		c.W(`</section>`)
+		return nil
 	}
-	if len(svcFacts) > 0 {
-		c.W(`<dl class="facts rpc-facts">`, strings.Join(svcFacts, ""), `</dl>`)
+	// An api bound to RPC: the facts of every binding, then each binding's
+	// own facts and index, under a switch when it has more than one.
+	c.Island("copy")
+	shared = append(s.serverFacts(n), shared...)
+	if len(shared) > 0 {
+		c.W(`<dl class="facts api-facts">`, strings.Join(shared, ""), `</dl>`)
 	}
-	// An api bound to RPC: each binding's index, under a switch when it
-	// has more than one.
 	if len(bs) > 1 {
 		c.bindingSwitch(bs)
 	}
 	for _, b := range bs {
-		if b == bindHTTP {
-			continue
-		}
 		c.bindOpen(bs, b)
-		c.rpcIndex(n, b)
-		c.bindClose(bs)
-	}
-	if len(bs) == 0 || !rpcOnly {
-		c.bindOpen(bs, bindHTTP)
-		c.httpIndex(n)
+		facts := s.bindingFacts(n, b)
+		if b == bindHTTP {
+			facts = httpFacts
+		}
+		if len(facts) > 0 {
+			c.W(`<dl class="facts api-facts">`, strings.Join(facts, ""), `</dl>`)
+		}
+		if b == bindHTTP {
+			c.httpIndex(n)
+		} else {
+			c.rpcIndex(n, b)
+		}
 		c.bindClose(bs)
 	}
 	c.apiTypesList(n)
@@ -777,7 +785,6 @@ func renderOp(c *Ctx) error {
 		}
 		facts = append(facts, `<dt>`+esc(sentenceCase(a.name))+`</dt><dd>`+v+`</dd>`)
 	}
-	facts = append(facts, s.rpcFacts(n)...)
 	if len(facts) > 0 {
 		c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
 	}

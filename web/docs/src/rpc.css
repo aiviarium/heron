@@ -8,7 +8,13 @@
 .binding-switch { display: flex; align-items: center; gap: var(--h-space-2); margin: 0 0 var(--h-space-4); }
 .binding-switch > .label { font-size: 12px; color: var(--h-text-faint); }
 .binding-switch .seg { background: var(--h-bg-soft); }
-.binding-switch .seg button { font-size: var(--h-font-size-ui); padding: 0 var(--h-space-3); }
+/* The switch shows its pick at once: the selected tab and the part shown
+   never disagree, not even for a transition's length. */
+.binding-switch .seg button { font-size: var(--h-font-size-ui); padding: 0 var(--h-space-3); transition: none; }
+
+/* An api page's facts, each a label and its value. */
+.api-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--h-space-1) var(--h-space-4); align-items: baseline; }
+.api-facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--h-space-1); }
 
 /* The navigation's and the endpoint's method column. */
 .m-rpc, .m-srv, .m-clt, .m-bidi, .m-ntf, .m-json-rpc { color: var(--h-status-info); }
@@ -40,8 +46,7 @@
 .rpc-methods .rpc-sig-line { font-size: 12.5px; color: var(--h-text-secondary); }
 .rpc-methods .op-line { flex-basis: 100%; color: var(--h-text-secondary); }
 .rpc-service { font-size: 13px; }
-.rpc-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--h-space-1) var(--h-space-4); align-items: center; }
-.rpc-facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--h-space-1); }
+
 .rpc-protocol { display: inline-block; padding: 0 var(--h-space-2); border: 1px solid var(--h-border); border-radius: var(--h-radius-mark); font-size: 12px; }
 
 /* A stream's messages, in the order they're sent. */

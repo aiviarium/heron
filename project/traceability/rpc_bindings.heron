@@ -301,6 +301,7 @@ rpc_bindings: section {
 
   proves(heron.tools.frontend.screens.op_page.bindings.binding_switch) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("scripts/e2e-docs.sh")
   }
 
   proves(heron.tools.frontend.screens.op_page.bindings.op_bindings) {
@@ -351,5 +352,28 @@ rpc_bindings: section {
 
   proves(heron.tools.frontend.screens.type_page.signature.proto_definition) {
     verify("internal/tools/docs/rpc_test.go", test = "TestMessageTypePage")
+  }
+
+  proves(heron.tools.frontend.screens.api_page.service.facts_by_binding) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+    verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.outline_follows_binding) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.sidebar.methods_follow_binding) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.language.apis.jsonrpc.params.wire_names) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestJSONRPCNames")
+  }
+
+  proves(heron.language.data.encodings.json.json_names) {
+    verify("internal/core/eval/eval_test.go", test = "TestJSONNames")
   }
 }

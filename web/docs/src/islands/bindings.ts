@@ -13,6 +13,12 @@ function show(binding: string) {
     tab.tabIndex = on ? 0 : -1
   }
   for (const part of $$("[data-binding]")) part.hidden = part.dataset.binding !== binding
+  // The navigation's methods, for each op that has the binding.
+  for (const m of $$(`.nav .m[data-m-${binding}]`)) {
+    const v = m.getAttribute(`data-m-${binding}`)!
+    m.textContent = v
+    m.className = `m m-${v.toLowerCase()}`
+  }
 }
 
 export function bindings() {
@@ -21,6 +27,7 @@ export function bindings() {
   const offered = tabs.map((t) => t.dataset.bindingTab!)
   let saved: string | null = null
   try { saved = localStorage.getItem(key) } catch { /* storage blocked */ }
+  // The page's inline script applied the saved binding before it painted.
   if (saved && offered.includes(saved)) show(saved)
   for (const tab of tabs) {
     tab.addEventListener("click", () => {

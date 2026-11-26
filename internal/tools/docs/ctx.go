@@ -24,11 +24,15 @@ type Ctx struct {
 	Tag *TagCall
 
 	anchorSuffix string
-	out          *strings.Builder
-	outline      *[]Heading
-	islands      map[string]bool
-	aside        *strings.Builder
-	seen         map[*resolve.Node]bool
+	// binding is the binding whose part of the page is being written,
+	// and bindingHidden whether that part starts hidden.
+	binding       string
+	bindingHidden bool
+	out           *strings.Builder
+	outline       *[]Heading
+	islands       map[string]bool
+	aside         *strings.Builder
+	seen          map[*resolve.Node]bool
 }
 
 // Heading is an entry of a page's outline.
@@ -36,6 +40,10 @@ type Heading struct {
 	ID    string
 	Title string
 	Level int
+	// Binding is the binding whose part of the page the heading is in,
+	// and Hidden whether that part is hidden until the reader picks it.
+	Binding string
+	Hidden  bool
 }
 
 // Fragment is rendered HTML with what it needs: the islands to load and
@@ -279,7 +287,7 @@ func (c *Ctx) Heading(level int, id, title string, extra string) {
 		level = 6
 	}
 	if level <= 3 {
-		*c.outline = append(*c.outline, Heading{ID: id, Title: title, Level: level})
+		*c.outline = append(*c.outline, Heading{ID: id, Title: title, Level: level, Binding: c.binding, Hidden: c.bindingHidden})
 	}
 	idAttr := ` id="` + attr(id) + `"`
 	if c.Node != nil && id == Anchor(c.Node) {

@@ -48,9 +48,18 @@ func TestBindingSwitch(t *testing.T) {
 		// The JSON-RPC header.
 		`<span class="method m-json-rpc">JSON-RPC</span><code class="path">parcels.get</code>`,
 	)
-	if strings.Count(h, `<dl class="facts">`) != 1 || strings.Count(h, `class="binding-switch"`) != 1 {
-		t.Error("the contract's prose and facts are shown once")
+	if strings.Count(h, `class="binding-switch"`) != 1 || strings.Count(h, `<div class="prose">`) > strings.Count(f["parcels.get_parcel.html"], `<div class="prose">`) {
+		t.Error("the contract's prose is shown once")
 	}
+	// The idempotency level is a fact of the gRPC and Connect parts alone.
+	httpPart := regexp.MustCompile(`(?s)<div class="binding" data-binding="http">.*?<div class="binding"`).FindString(h)
+	if strings.Count(h, `<dt>Idempotency</dt>`) != 2 || strings.Contains(httpPart, `<dt>Idempotency</dt>`) {
+		t.Error("the idempotency level shows in the gRPC and Connect parts alone")
+	}
+	// The outline lists each binding's headings, the hidden ones hidden,
+	// and the binding picked last is applied before the page paints.
+	mustHave(t, "outline", h, `<li class="l2" data-binding="grpc" hidden><a href="#parcels.get_parcel.grpc.request">`,
+		`<li class="l2" data-binding="http"><a href="#parcels.get_parcel.params.path">`, `localStorage.getItem("heron-binding")`)
 	// The examples per binding: calls in each protocol's forms.
 	mustHave(t, "get_parcel examples", h,
 		`data-binding="grpc" hidden>`, `data-lang="grpcurl"`, `data-lang="bufcurl"`,
@@ -120,7 +129,19 @@ func TestServicePage(t *testing.T) {
 	mustHave(t, "the HTTP index", idx, `/parcels/:id`)
 	mustNotHave(t, "the HTTP index", idx, `Upload scans`, `Navigate`)
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(h)
-	mustHave(t, "nav", nav, `<span class="m m-bidi">BIDI</span>`, `<span class="m m-clt">CLT</span>`, `<span class="m m-get">GET</span>`)
+	mustHave(t, "nav", nav, `<span class="m m-bidi" data-m-grpc="BIDI" data-m-connect="BIDI">BIDI</span>`, `<span class="m m-clt"`,
+		`<span class="m m-get" data-m-http="GET" data-m-grpc="RPC" data-m-connect="RPC" data-m-jsonrpc="RPC">GET</span>`)
+	// Each binding's facts in its part, each a label and its value, and
+	// the servers for every binding; a group's methods carry no badge.
+	httpPart := regexp.MustCompile(`(?s)<div class="binding" data-binding="http">.*?</table>`).FindString(h)
+	grpcPart := regexp.MustCompile(`(?s)<div class="binding" data-binding="grpc" hidden>.*?</div></div>`).FindString(h)
+	mustHave(t, "the HTTP facts", httpPart, `<dl class="facts api-facts"><dt>Base path</dt>`, `<dt>Wire format</dt>`)
+	mustNotHave(t, "the HTTP facts", httpPart, `<dt>Service</dt>`)
+	mustHave(t, "the gRPC facts", grpcPart, `<dt>Service</dt>`, `<dt>Protocols</dt>`)
+	mustNotHave(t, "the gRPC facts", grpcPart, `Base path`, `Wire format`, `rpc-kind`)
+	if i, j := strings.Index(h, `<dt>Servers</dt>`), strings.Index(h, `class="binding-switch"`); i < 0 || i > j {
+		t.Error("the servers are a fact of every binding, before the switch")
+	}
 }
 
 // A message's type page shows its .proto definition and its JSON form
@@ -170,7 +191,7 @@ R: type { z: String }
 	if !(strings.Index(nav, `A.html`) < strings.Index(nav, `wire.call.html`) && strings.Index(nav, `P.html`) > wireTypes) {
 		t.Errorf("types under the api that names them:\n%s", nav)
 	}
-	mustHave(t, "wire", f["wire.html"], `length-prefixed frames, CBOR, without the jsonrpc member`)
+	mustHave(t, "wire", f["wire.html"], `<dt>Framing</dt><dd>length-prefixed frames</dd>`, `<dt>Encoding</dt><dd>CBOR, without the jsonrpc member</dd>`)
 	mustHave(t, "call", f["wire.call.html"], `one record as the whole of params`, `data-lang="raw"`, `length <span class="tk-num">`)
 }
 

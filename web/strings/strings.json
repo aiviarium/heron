@@ -226,7 +226,10 @@
       "protocols": "Protocols",
       "batches": "takes batches",
       "servers": "Servers",
-      "json_form": "JSON form"
+      "json_form": "JSON form",
+      "framing": "Framing",
+      "encoding": "Encoding",
+      "batch": "Batches"
     },
     "lang": {
       "curl": "cURL",

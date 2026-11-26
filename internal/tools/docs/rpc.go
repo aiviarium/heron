@@ -102,27 +102,21 @@ func (c *Ctx) bindOpen(bs []string, b string) {
 	if bs[0] != b {
 		hidden = " hidden"
 	}
+	c.binding, c.bindingHidden = b, bs[0] != b
 	c.W(`<div class="binding" data-binding="`, b, `"`, hidden, `>`)
 }
 
 func (c *Ctx) bindClose(bs []string) {
 	if len(bs) >= 2 {
+		c.binding, c.bindingHidden = "", false
 		c.W(`</div>`)
 	}
 }
 
-// subHeading writes a heading that only the first binding's part lists in
-// the outline, so the outline never leads into a hidden part.
-func (c *Ctx) subHeading(id, title, extra string, outline bool) {
-	if outline {
-		c.Heading(c.Level+1, id, title, extra)
-		return
-	}
-	lv := c.Level + 1
-	if lv < 2 {
-		lv = 2
-	}
-	c.Wf(`<h%d id="%s" class="h"><a class="anchor" href="#%s">%s</a>%s</h%d>`, lv, attr(id), attr(id), esc(title), extra, lv)
+// subHeading writes a heading of a binding's part; the outline lists it
+// under that binding, shown while the binding is.
+func (c *Ctx) subHeading(id, title, extra string, _ bool) {
+	c.Heading(c.Level+1, id, title, extra)
 }
 
 // kindBadge writes a method's streaming kind.
@@ -152,6 +146,49 @@ func (s *Site) navMethod(op *resolve.Node) string {
 	}
 	return ""
 }
+
+// bindMethods is what the navigation shows beside an op for each of its
+// bindings, the HTTP method for HTTP.
+func (s *Site) bindMethods(op *resolve.Node, httpMethod string) [][2]string {
+	bs := s.opBindings(op)
+	if len(bs) < 2 {
+		return nil
+	}
+	var out [][2]string
+	m := s.rpc()
+	for _, b := range bs {
+		switch b {
+		case bindHTTP:
+			out = append(out, [2]string{b, httpMethod})
+		case bindGRPC, bindConnect:
+			out = append(out, [2]string{b, kindShort(m.Method(op).Kind)})
+		case bindJSONRPC:
+			v := label("docs.kind_short.unary")
+			if m.JSONMethod(op).Notification {
+				v = label("docs.kind_short.notification")
+			}
+			out = append(out, [2]string{b, v})
+		}
+	}
+	return out
+}
+
+// hasBindings reports whether any op of the tree has an RPC binding.
+func (s *Site) hasBindings() bool {
+	m := s.rpc()
+	return len(m.Services) > 0 || len(m.JSONAPIs) > 0
+}
+
+// bindingScript applies the binding the reader picked last, kept in
+// localStorage as heron-binding, before the page paints: the switch's
+// tabs, the parts of the page and its outline, and the navigation's
+// methods. docs.js keeps them in step when the reader picks another.
+const bindingScript = `<script>(function(){var b;try{b=localStorage.getItem("heron-binding")}catch(e){}if(!b)return;` +
+	`var tabs=document.querySelectorAll("[data-binding-tab]"),ok=false;` +
+	`tabs.forEach(function(t){if(t.dataset.bindingTab===b)ok=true});` +
+	`if(ok){tabs.forEach(function(t){var on=t.dataset.bindingTab===b;t.setAttribute("aria-selected",on?"true":"false");t.tabIndex=on?0:-1});` +
+	`document.querySelectorAll("[data-binding]").forEach(function(p){p.hidden=p.dataset.binding!==b})}` +
+	`document.querySelectorAll(".nav .m[data-m-"+b+"]").forEach(function(m){var v=m.getAttribute("data-m-"+b);m.textContent=v;m.className="m m-"+v.toLowerCase()})})()</script>`
 
 // rpcHeader writes the head of a binding's part: the method's path or wire
 // name with a copy button, and for gRPC and Connect its signature.
@@ -218,6 +255,9 @@ func (c *Ctx) rpcBody(op *resolve.Node, b string, first bool) {
 	switch b {
 	case bindGRPC, bindConnect:
 		me := m.Method(op)
+		if facts := s.rpcFacts(op); len(facts) > 0 {
+			c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
+		}
 		c.subHeading(id+".request", label("docs.heading.request"), ` <code class="t">`+esc(me.Request.Name)+`</code>`, first)
 		c.messageFields(me.Request, b)
 		if len(me.Metadata) > 0 {
@@ -1398,7 +1438,7 @@ func (c *Ctx) rpcIndex(api *resolve.Node, b string) {
 			}
 			c.W(`<div class="rpc-group"><p class="rpc-group-head">`, esc(kindTitle(k)), `</p><ul class="rpc-methods">`)
 			for _, me := range ms {
-				c.W(`<li>`, kindBadge(me.Kind), `<code class="rpc-sig-line">`, esc(me.Name), `(`)
+				c.W(`<li><code class="rpc-sig-line">`, esc(me.Name), `(`)
 				if me.Kind == rpc.ClientStreaming || me.Kind == rpc.BidiStreaming {
 					c.W(`<span class="tk-kw">stream</span> `)
 				}
@@ -1448,13 +1488,7 @@ func (c *Ctx) rpcIndex(api *resolve.Node, b string) {
 			}
 			c.W(`<div class="rpc-group"><p class="rpc-group-head">`, esc(title), `</p><ul class="rpc-methods">`)
 			for _, jm := range groups[g] {
-				c.W(`<li>`)
-				if jm.Notification {
-					c.W(`<span class="rpc-kind kind-notification">`, esc(label("docs.kind.notification")), `</span>`)
-				} else {
-					c.W(`<span class="rpc-kind kind-unary">`, esc(label("docs.kind.request")), `</span>`)
-				}
-				c.W(`<code class="rpc-sig-line">`, esc(jm.Name), `</code> `)
+				c.W(`<li><code class="rpc-sig-line">`, esc(jm.Name), `</code> `)
 				c.Link(jm.Op, displayName(s, jm.Op))
 				if t := firstSentence(inlineParagraph(s.proseHTML(jm.Op))); t != "" {
 					c.W(`<span class="op-line">`, t, `</span>`)
@@ -1466,39 +1500,50 @@ func (c *Ctx) rpcIndex(api *resolve.Node, b string) {
 	}
 }
 
-// serviceFacts are the facts of an api's RPC bindings.
-func (s *Site) serviceFacts(api *resolve.Node) []string {
+// bindingFacts are the facts of one RPC binding of an api: the service
+// and its protocols for gRPC and Connect, the framing, the encoding and
+// batches for JSON-RPC.
+func (s *Site) bindingFacts(api *resolve.Node, b string) []string {
 	m := s.rpc()
 	var facts []string
-	if svc := m.ServiceOf(api); svc != nil {
+	switch b {
+	case bindGRPC, bindConnect:
+		svc := m.ServiceOf(api)
+		if svc == nil {
+			return nil
+		}
 		facts = append(facts, `<dt>`+esc(label("docs.label.service"))+`</dt><dd><code class="rpc-service">`+esc(svc.FullName())+`</code><button type="button" class="icon-btn copy" data-island="copy" data-copy="`+attr(svc.FullName())+`" aria-label="`+attr(label("docs.action.copy"))+`">`+iconCopy+`</button></dd>`)
 		var ps []string
 		for _, p := range svc.Protocols {
 			ps = append(ps, `<span class="rpc-protocol">`+esc(label("docs.protocol."+p))+`</span>`)
 		}
 		facts = append(facts, `<dt>`+esc(label("docs.label.protocols"))+`</dt><dd>`+strings.Join(ps, " ")+`</dd>`)
-	}
-	if j := m.JSONAPIOf(api); j != nil {
-		v := esc(label("docs.framing."+j.Framing)) + `, ` + esc(label("docs.encoding."+j.Encoding))
+	case bindJSONRPC:
+		j := m.JSONAPIOf(api)
+		if j == nil {
+			return nil
+		}
+		facts = append(facts, `<dt>`+esc(label("docs.label.framing"))+`</dt><dd>`+esc(label("docs.framing."+j.Framing))+`</dd>`)
+		facts = append(facts, `<dt>`+esc(label("docs.label.encoding"))+`</dt><dd>`+esc(label("docs.encoding."+j.Encoding))+`</dd>`)
 		if j.Batch {
-			v += `, ` + esc(label("docs.label.batches"))
+			facts = append(facts, `<dt>`+esc(label("docs.label.batch"))+`</dt><dd>`+esc(label("docs.label.batches"))+`</dd>`)
 		}
-		facts = append(facts, `<dt>`+esc(label("docs.binding.jsonrpc"))+`</dt><dd>`+v+`</dd>`)
-	}
-	var servers []string
-	if svc := m.ServiceOf(api); svc != nil {
-		servers = svc.Servers
-	} else if j := m.JSONAPIOf(api); j != nil {
-		servers = j.Servers
-	}
-	if len(servers) > 0 {
-		var ls []string
-		for _, u := range servers {
-			ls = append(ls, `<code>`+esc(u)+`</code>`)
-		}
-		facts = append(facts, `<dt>`+esc(label("docs.label.servers"))+`</dt><dd>`+strings.Join(ls, " ")+`</dd>`)
 	}
 	return facts
+}
+
+// serverFacts are an api's server URLs, the same for every binding.
+func (s *Site) serverFacts(api *resolve.Node) []string {
+	var servers []string
+	for _, a := range annotationsNamed(api, "server") {
+		if u, ok := argString(a.Args(), 0, "url"); ok {
+			servers = append(servers, `<code>`+esc(u)+`</code>`)
+		}
+	}
+	if len(servers) == 0 {
+		return nil
+	}
+	return []string{`<dt>` + esc(label("docs.label.servers")) + `</dt><dd>` + strings.Join(servers, " ") + `</dd>`}
 }
 
 // --- the type page ---

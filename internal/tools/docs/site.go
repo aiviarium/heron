@@ -67,8 +67,11 @@ type Page struct {
 	Children []*Page
 	// Method is an op's HTTP method, shown in the navigation.
 	Method string
-	prev   *Page
-	next   *Page
+	// BindMethods is what the navigation shows for each binding of an op
+	// with more than one, as {grpc, RPC}.
+	BindMethods [][2]string
+	prev        *Page
+	next        *Page
 }
 
 // Area is a top-level part of the site, a tab in the top bar with its own
@@ -399,7 +402,7 @@ func (s *Site) buildPages() {
 			if m == "" {
 				m = s.navMethod(op)
 			}
-			q := &Page{Node: op, File: s.fileFor(op), Title: displayName(s, op), Layout: "op", Area: ref, Parent: p, Method: m}
+			q := &Page{Node: op, File: s.fileFor(op), Title: displayName(s, op), Layout: "op", Area: ref, Parent: p, Method: m, BindMethods: s.bindMethods(op, m)}
 			s.add(q)
 			p.Children = append(p.Children, q)
 			g.Pages = append(g.Pages, q)

@@ -84,9 +84,29 @@ const service = (req, res) => {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2, colorScheme: theme })
     const page = await ctx.newPage()
     page.on("pageerror", (e) => fail.push(`script error on ${page.url()}: ${e.message}`))
+    // The switch's selected tab, the parts shown, the outline and the
+    // navigation's methods all name the same binding.
+    const agree = async (where) => {
+      const bad = await page.evaluate(() => {
+        const sel = [...document.querySelectorAll(".binding-switch [aria-selected=true]")].map((t) => t.dataset.bindingTab)
+        if (!sel.length) return ""
+        const b = sel[0]
+        if (sel.some((x) => x !== b)) return `two tabs selected: ${sel}`
+        for (const p of document.querySelectorAll("[data-binding]")) {
+          const shown = !p.hidden
+          if (shown !== (p.dataset.binding === b)) return `${b} is selected, and a ${p.dataset.binding} part is ${shown ? "shown" : "hidden"}`
+        }
+        for (const m of document.querySelectorAll(`.nav .m[data-m-${b}]`)) {
+          if (m.textContent !== m.getAttribute(`data-m-${b}`)) return `the navigation shows ${m.textContent} for ${b}`
+        }
+        return ""
+      })
+      if (bad) fail.push(`${where}: ${bad}`)
+    }
     const open = async (f) => {
       await page.goto(base + f)
       await page.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      await agree(f)
     }
     const shot = async (name, opts = {}) => {
       if (shots) await page.screenshot({ path: path.join(shots, `rpc-${name}-${theme}.png`), ...opts })
@@ -94,6 +114,7 @@ const service = (req, res) => {
     const pick = async (b) => {
       await page.click(`.binding-switch [data-binding-tab=${b}]`)
       if (await page.locator(`.binding[data-binding=${b}]`).first().isHidden()) fail.push(`the ${b} binding doesn't show`)
+      await agree(`${page.url()} after picking ${b}`)
     }
 
     await open("parcels.html")
@@ -105,6 +126,10 @@ const service = (req, res) => {
     await open("parcels.get_parcel.html")
     if (await page.locator(".binding[data-binding=grpc]").first().isHidden()) fail.push("the binding picked on the service page isn't kept")
     await shot("unary-grpc")
+    // Before the page painted: the navigation shows the gRPC kind of an op
+    // that HTTP also carries, and the outline the gRPC headings.
+    if ((await page.locator('.nav a[href="parcels.get_parcel.html"] .m').textContent()) !== "RPC") fail.push("the navigation doesn't follow the binding picked")
+    if (await page.locator('.outline [data-binding=grpc]').first().isHidden()) fail.push("the outline doesn't follow the binding picked")
     await pick("connect")
     await shot("binding-switch")
     if (await page.locator(".examples[data-binding=connect]").isHidden()) fail.push("the Connect examples don't show")
