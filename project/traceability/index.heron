@@ -25,6 +25,7 @@ include = [
   "./tools_tree_sitter.heron",
   "./tools_docs.heron",
   "./tools_server.heron",
+  "./tools_server_api.heron",
   "./tools_frontend.heron",
 ]
 

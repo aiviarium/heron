@@ -148,7 +148,7 @@ layered_migration: section {
   }
 
   proves(heron.tools.server.ops.task_runs_otherwise) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
   }
 
   proves(heron.tools.server.serving.lsp_socket_otherwise) {

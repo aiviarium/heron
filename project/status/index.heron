@@ -275,3 +275,10 @@ layered_untested: status<untested>(
 ) {
   | Built, with no test proving it yet.
 }
+
+tools_server_untested: status<untested>(
+  heron.tools.server.ops.client_state,
+) {
+  | Built, with no test proving it yet: the server keeps no client's state, which a test can only
+  | show by the ops it lacks.
+}

@@ -10,4 +10,6 @@ releases: section {
   page_navigation: release("0.3.1+build1") {{ The 0.3.1 spec: the docs' navigation lists pages alone and keeps its scroll, and a page's outline nests two levels. }}
 
   layers: release("0.4.0+build1") {{ The 0.4.0 spec: the intent, specification and contract layers, use cases, errors with their projections, revisions and the gap report. }}
+
+  api_consumer: release("0.5.0+build1") {{ The 0.5.0 spec: the server API published in the spec and used by the frontend through its generated client alone, file listing, versions and conditional writes, binary files, workspace events, standard sources, origins and compression, the API reference with landing, outcomes and served Try it, AsyncAPI and a TextMate grammar. }}
 }
