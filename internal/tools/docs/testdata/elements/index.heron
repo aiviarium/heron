@@ -1,0 +1,24 @@
+// A tree whose prose holds kind elements, in `|` lines and in a prose
+// file, for the element tests.
+import = ["std/doc@1", "std/spec@1", "std/product@1", "std/docs@1"]
+
+include = ["./guide.heron.md"]
+
+people: section {
+  desk: actor(kind = ActorKind.SYSTEM) {{ The support console. }}
+}
+
+refunds: section {
+  | How refunds work, with *stress* and <em>stress</em>, `code` and <code>code</code>.
+  | See <ref to="window"/>, [window], <ref to="window" code/> and [`window`]. Fish &amp; chips.
+
+  window: term {{ The 30 days. }}
+
+  | <rule id="late" by="desk">
+  |   <must>refuse a refund after the [window]</must>
+  | </rule>
+}
+
+docs {
+  lenses = [user, developer, explore]
+}

@@ -172,7 +172,7 @@ Prose lines with links, inserts, tags and code
 
 x: section {
   | See [the term](#a.b), $name.field and ${count + 1}.
-  | <toc depth={2} /> and `code`, \$ escaped, a [plain] link, [`a.b`], [c](#c) and \[raw] text.
+  | <toc depth={2} @lens="user" /> and `code`, \$ escaped, a [plain] link, [`a.b`], [c](#c) and \[raw] text.
   y =| A value.
 }
 
@@ -212,7 +212,10 @@ x: section {
             (identifier)
             (attribute
               (identifier)
-              (number)))
+              (number))
+            (attribute
+              (identifier)
+              (string)))
           (text)
           (backtick)
           (text)

@@ -161,6 +161,16 @@ func (s *Site) inlineHTML(n *resolve.Node) string {
 
 // container linearises a prose container's children.
 func (p *proseBuf) container(n *syntax.Node) {
+	if n.Kind == syntax.Tag {
+		if el := p.s.Tree.ElementNode(n); el != nil {
+			if n == p.site.N && p.site.Scope == el.Body {
+				// The element's own text: its content.
+				p.container(&syntax.Node{Kind: syntax.ProseBlock, Children: tagContent(n)})
+			}
+			// Otherwise a node of its own, rendered as one.
+			return
+		}
+	}
 	switch n.Kind {
 	case syntax.Link, syntax.ShortLink, syntax.Insert, syntax.Tag, syntax.Fence:
 		p.inlineNode(n)
@@ -176,7 +186,7 @@ func (p *proseBuf) container(n *syntax.Node) {
 				if lineStart {
 					t = strings.TrimPrefix(t, " ")
 				}
-				p.b.WriteString(t)
+				p.text(t)
 				lineStart = false
 			case syntax.Whitespace:
 				if !lineStart {
@@ -227,6 +237,10 @@ func (p *proseBuf) inlineNode(n *syntax.Node) {
 	case syntax.Insert:
 		p.place(p.insert(ast.Insert{N: n}), false)
 	case syntax.Tag:
+		if p.s.Tree.ElementNode(n) != nil {
+			// A node of its own, rendered as one.
+			return
+		}
 		h, block := p.tag(ast.Tag{N: n})
 		p.place(h, block)
 	case syntax.Fence:
@@ -264,6 +278,47 @@ func (p *proseBuf) shortLink(l ast.ShortLink) string {
 		text += ` <span class="lvl">` + esc(kindWords(strength)) + `</span>`
 	}
 	return p.s.proseLinkHTML(t, text)
+}
+
+// refElement renders `<ref to="name"/>` as `[name]` does, with `code` as
+// “[`name`]“ does, and `<link target="name">text</link>` as a link to
+// the node with its text.
+func (p *proseBuf) refElement(t ast.Tag, kind string, inner []syntax.Elem) string {
+	key := "to"
+	if kind == "doc.link" {
+		key = "target"
+	}
+	var lit *syntax.Node
+	code := false
+	for _, a := range t.TagAttrs() {
+		if a.Ident() == nil {
+			continue
+		}
+		switch a.Ident().Text {
+		case key:
+			lit = a.StringLit().N
+		case "code":
+			code = true
+		}
+	}
+	if lit == nil {
+		return ""
+	}
+	name, _ := resolve.StringValue(lit)
+	target := p.s.Checker.Refs[lit]
+	text := esc(name)
+	switch {
+	case kind == "doc.link":
+		text = p.sub(inner)
+	case code:
+		text = `<code>` + esc(name) + `</code>`
+	case target != nil:
+		text = esc(sentenceWords(p.s, target))
+	}
+	if target == nil {
+		return `<span class="ref ref-broken">` + text + `</span>`
+	}
+	return p.s.proseLinkHTML(target, text)
 }
 
 // sentenceWords is a node as it reads inside a sentence: a term by its
@@ -350,6 +405,44 @@ func (p *proseBuf) insert(in ast.Insert) string {
 }
 
 // tag renders a markup component through the renderer of its kind.
+// entityRe matches the four entities prose reads as characters.
+var entityRe = regexp.MustCompile(`&(amp|lt|gt|quot);`)
+
+// text adds text, its entities as the characters they stand for, each in
+// place so it never starts a Markdown form.
+func (p *proseBuf) text(t string) {
+	for {
+		loc := entityRe.FindStringIndex(t)
+		if loc == nil {
+			p.b.WriteString(t)
+			return
+		}
+		p.b.WriteString(t[:loc[0]])
+		p.place(esc(htmlUnescape(t[loc[0]:loc[1]])), false)
+		t = t[loc[1]:]
+	}
+}
+
+// tagContent is an element's content: what stands between its head and
+// its closing tag.
+func tagContent(n *syntax.Node) []syntax.Elem {
+	var inner []syntax.Elem
+	started := false
+	for _, ch := range n.Children {
+		if tok, ok := ch.(*syntax.Token); ok && tok.Kind == syntax.TagEnd && !started {
+			started = true
+			continue
+		}
+		if x, ok := ch.(*syntax.Node); ok && x.Kind == syntax.TagClose {
+			break
+		}
+		if started {
+			inner = append(inner, ch)
+		}
+	}
+	return inner
+}
+
 func (p *proseBuf) tag(t ast.Tag) (string, bool) {
 	segs := resolve.PathSegs(t.Path().N)
 	kind := p.s.refTarget(t.Path().N, p.site)
@@ -382,13 +475,18 @@ func (p *proseBuf) tag(t ast.Tag) (string, bool) {
 				}
 			case *syntax.Node:
 				if v, ok := resolve.StringValue(ch); ok {
-					val = v
+					val = entityRe.ReplaceAllStringFunc(v, htmlUnescape)
 				} else {
 					val = ch.Text()
 				}
 			}
 		}
 		attrs[key] = val
+	}
+	if name == "doc.ref" || name == "doc.link" && attrs["target"] != "" {
+		// The element form of a short link, or a link to a node: the
+		// node its quoted attribute names, as `[name]` renders it.
+		return p.refElement(t, name, inner), false
 	}
 	body := p.sub(inner)
 	if r := p.s.tagRenderer(name); r != nil {

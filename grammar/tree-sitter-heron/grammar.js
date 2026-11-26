@@ -392,6 +392,6 @@ module.exports = grammar({
     closing_tag: ($) => seq('</', $.path, '>'),
 
     attribute: ($) =>
-      seq(field('name', $._name), optional(seq('=', choice($.string, seq('{', $._expression, '}'))))),
+      seq(optional('@'), field('name', $._name), optional(seq('=', choice($.string, seq('{', $._expression, '}'))))),
   },
 });

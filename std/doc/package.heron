@@ -99,6 +99,10 @@ doc: package(version = "1.0") {
     accept(prose)
   }
 
+  /// The element form of a short link: `<ref to="name"/>` is `[name]`,
+  /// and with `code` it's ``[`name`]``, its path shown as code.
+  ref(to: Ref(Any), code?: Bool): kind(in = [inline])
+
   divider: kind(in = [block])
 
   /// What a callout says.

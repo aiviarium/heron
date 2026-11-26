@@ -2,6 +2,7 @@ package format_test
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -104,5 +105,20 @@ func TestLinksKept(t *testing.T) {
 	src := "a: section {\n  | See [b], [`a.b`] and [the b](#a.b).\n\n  b: section {}\n}\n"
 	if got := format.Source("t.heron", src); got != src {
 		t.Errorf("links changed:\n%s", diff(src, got))
+	}
+}
+
+// The formatter keeps each node in the form it was written in: a Markdown
+// form stays Markdown and an element stays an element, in a prose file
+// and in `|` lines alike.
+func TestElementFormsKept(t *testing.T) {
+	for _, name := range []string{"index.heron", "guide.heron.md"} {
+		b, err := os.ReadFile(filepath.Join("../../tools/docs/testdata/elements", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := format.Source(name, string(b)); got != string(b) {
+			t.Errorf("%s changed:\n%s", name, diff(string(b), got))
+		}
 	}
 }

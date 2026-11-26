@@ -32,6 +32,7 @@
 (let name: (identifier) @variable)
 (let_statement name: (identifier) @variable)
 (attribute name: (identifier) @attribute)
+(attribute "@" @attribute)
 (map_entry (path (identifier) @property))
 
 (named_type (path (identifier) @type .))

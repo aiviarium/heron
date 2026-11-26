@@ -361,3 +361,47 @@ refunds: section {
 		}
 	}
 }
+
+// Definition and hover on a kind element's name answer for its kind, and
+// on a `<ref to="…">` target for the node it resolves to.
+func TestElementDefinitionAndHover(t *testing.T) {
+	const src = `import = ["std/doc@1"]
+
+checkout: section {
+  /// The sum of an order's lines.
+  total: term {{ The sum of an order's lines. }}
+}
+
+refunds: section {
+  | A refund never exceeds the <ref to="total"/>. <warning>It can't be undone.</warning>
+}
+`
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "index.heron"), src)
+	c := start(t, dir)
+	uri := lsptest.FileURI(filepath.Join(dir, "index.heron"))
+	c.Open(uri, src)
+	noDiagnostics(t, c, "elements")
+	var locs []location
+	if err := c.Call("textDocument/definition", pos(uri, lsptest.At(src, `"total"`, 0, 2)), &locs); err != nil {
+		t.Fatal(err)
+	}
+	if len(locs) != 1 || locs[0].Range.Start.Line != 4 {
+		t.Fatalf("definition of a ref target: %+v", locs)
+	}
+	if err := c.Call("textDocument/definition", pos(uri, lsptest.At(src, "<warning>", 0, 2)), &locs); err != nil {
+		t.Fatal(err)
+	}
+	if len(locs) != 1 || locs[0].URI != "heron:/std/doc/package.heron" {
+		t.Fatalf("definition of an element's name: %+v", locs)
+	}
+	var h struct {
+		Contents struct{ Value string }
+	}
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, `"total"`, 0, 2)), &h); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.Contents.Value, "The sum of an order's lines.") {
+		t.Errorf("hover on a ref target: %s", h.Contents.Value)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"html"
 	"strings"
 
+	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
@@ -110,6 +111,11 @@ func (c *Ctx) render() error {
 		err = c.summary()
 	} else if r := c.Site.renderer(kind); r != nil {
 		err = r(c)
+	} else if t := c.Site.tagRenderer(kind); t != nil && n.Name == "" && strings.HasPrefix(kind, "doc.") {
+		// An anonymous std/doc component, as a callout written as a node
+		// or an element on lines of its own, renders as its tag does.
+		h, _ := t(firstBlockless(c.Site.proseHTML(n)), c.Site.nodeAttrs(n))
+		c.W(h)
 	} else {
 		err = renderGeneric(c)
 	}
@@ -336,3 +342,32 @@ func (c *Ctx) Prose(n *resolve.Node) bool {
 func esc(s string) string { return html.EscapeString(s) }
 
 func attr(s string) string { return html.EscapeString(s) }
+
+// firstBlockless is rendered prose without its outer paragraph, as a tag's
+// body is.
+func firstBlockless(h string) string {
+	h = strings.TrimSpace(h)
+	if strings.HasPrefix(h, "<p>") && strings.HasSuffix(h, "</p>") && strings.Count(h, "<p>") == 1 {
+		return h[3 : len(h)-4]
+	}
+	return h
+}
+
+// nodeAttrs are a node's string arguments by name, as a tag's attributes.
+func (s *Site) nodeAttrs(n *resolve.Node) map[string]string {
+	out := map[string]string{}
+	args := kindArgs(n)
+	if args.N == nil {
+		return out
+	}
+	for _, a := range args.Args() {
+		if na, ok := a.(ast.NamedArg); ok && na.Ident() != nil {
+			if v, ok := resolve.StringValue(na.Expr().Syntax()); ok {
+				out[na.Ident().Text] = v
+			} else {
+				out[na.Ident().Text] = na.Expr().Syntax().Text()
+			}
+		}
+	}
+	return out
+}

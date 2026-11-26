@@ -222,6 +222,9 @@ func kindArgs(n *resolve.Node) ast.Args {
 		}
 	case syntax.Invoke:
 		return ast.Invoke{N: n.Decl.N}.Args()
+	case syntax.Tag:
+		// A kind element: its attributes, as the checker read them.
+		return n.ElementArgs
 	}
 	return ast.Args{}
 }

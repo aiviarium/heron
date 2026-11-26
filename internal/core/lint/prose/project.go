@@ -352,6 +352,10 @@ func (p *projector) inline(e syntax.Elem) {
 			p.text(t.Text, t.Start)
 		case syntax.CodeSpan, syntax.Escape:
 			p.mask(t.Text, t.Start, "code")
+		case syntax.Newline:
+			// A line break inside an element's content reads as a space,
+			// mapped to the break.
+			p.setGap(t.Start, t.Start+len(t.Text))
 		case syntax.FenceLine:
 			p.mask(t.Text, t.Start, "code")
 		}
@@ -401,6 +405,11 @@ func (p *projector) inline(e syntax.Elem) {
 		p.mask(p.file.Src[s:open], s, "tag")
 		for ; i < len(n.Children); i++ {
 			c := n.Children[i]
+			if c.ElemKind() == syntax.Newline {
+				// A line break inside an element's content reads as a space.
+				p.inline(c)
+				continue
+			}
 			if c.ElemKind().IsTrivia() {
 				continue
 			}

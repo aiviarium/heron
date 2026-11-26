@@ -377,3 +377,23 @@ func TestShortLinksRender(t *testing.T) {
 	mustHave(t, "tips", h, `A <a class="ref ref-term" href="kite.sync.html#kite.sync.conflict" data-card="kite.sync.conflict">conflict</a> needs you`,
 		`<a class="ref" href="kite.cli.sync.html#kite.cli.sync.dry_run"`, `><code>dry_run</code></a> previews`, `>store line</a> step`)
 }
+
+// Kind elements: a named element is a node with its page or anchor, its
+// content its body, an element on lines of its own in it a member, and its
+// @name attributes its annotations; an element of a kind a Markdown form
+// builds renders as the form does, and `<ref>` as a short link does.
+func TestElementsRender(t *testing.T) {
+	_, f := lensFiles(t, "testdata/elements/index.heron")
+	h := f["do_it.html"]
+	mustHave(t, "how-to", h, `<h1 class="page-title">Ask for a refund</h1>`, `<li class="step" id="do_it.look"><h2 class="h">`,
+		`id="do_it.call"`, `<aside class="callout callout-warning"><div class="prose"><p>A refund can&#39;t be undone.</p></div></aside></li>`)
+	if _, ok := f["dev/do_it.html"]; ok {
+		t.Error("@lens=\"user\" doesn't keep the how-to to the user lens")
+	}
+	ex := f["explore/refunds.html"]
+	mustHave(t, "refunds", ex, `with <em>stress</em> and <em>stress</em>, <code>code</code> and <code>code</code>.`,
+		`See <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window">window</a>, <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window">window</a>,`,
+		`<a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window"><code>window</code></a> and <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window"><code>window</code></a>.`,
+		`Fish &amp; chips.`, `<div class="rule" id="refunds.late"><p class="sentence">The <a class="ref subject" href="people.html#people.desk">desk</a> <strong class="strength">must</strong> refuse a refund after the`)
+	mustNotHave(t, "refunds", ex, "&amp;amp;", `tag-ref`)
+}

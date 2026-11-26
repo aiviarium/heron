@@ -93,7 +93,7 @@ export class Models {
     const have = this.files.get(path);
     if (have) return have;
     const uri = this.uriOf(path);
-    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron") ? LANG : undefined, uri);
+    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron") || path.endsWith(".heron.md") ? LANG : undefined, uri);
     model.updateOptions({ tabSize: 2, insertSpaces: true });
     const [saved, setSaved] = createSignal(text, { ownedWrite: true });
     const fm: FileModel = {
@@ -139,7 +139,7 @@ export class Models {
       fm.setSaved(text);
       return fm;
     }
-    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron") ? LANG : path.endsWith(".ts") ? "typescript" : undefined, uri);
+    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron") || path.endsWith(".heron.md") ? LANG : path.endsWith(".ts") ? "typescript" : undefined, uri);
     const [saved, setSaved] = createSignal(text, { ownedWrite: true });
     fm = { path: key, model, readOnly: true, saved, setSaved, dirty: () => false };
     this.files.set(key, fm);

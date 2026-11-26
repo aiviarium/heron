@@ -174,6 +174,13 @@ func (s *Session) targetAt(id resolve.FileID, off int) (target, *result) {
 					return target{file: fid, tok: tok}, r
 				}
 			}
+			// An element's quoted attribute that names a node, as
+			// `<ref to="refund_window"/>`.
+			if res != nil && res.Checker != nil {
+				if n := res.Checker.Refs[a]; n != nil {
+					return target{node: n, tok: tok}, r
+				}
+			}
 		}
 	}
 	if tok.Kind != syntax.Ident {

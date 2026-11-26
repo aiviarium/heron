@@ -79,6 +79,47 @@ func (s *Site) tagRenderer(kind string) tagFunc {
 			return `<details class="details"><div class="prose"><p>` + body + `</p></div></details>`, true
 		}
 	}
+	if strings.HasPrefix(kind, "doc.") {
+		// std/doc's kinds a Markdown form builds render as that form does.
+		switch short {
+		case "p":
+			return func(body string, _ map[string]string) (string, bool) { return `<p>` + body + `</p>`, true }
+		case "code":
+			return func(body string, a map[string]string) (string, bool) {
+				if a["lang"] != "" || a["title"] != "" {
+					return s.codeBlock(a["lang"], a["title"], htmlUnescape(stripTags(body))), true
+				}
+				return `<code>` + body + `</code>`, false
+			}
+		case "quote":
+			return func(body string, _ map[string]string) (string, bool) {
+				return `<blockquote><p>` + body + `</p></blockquote>`, true
+			}
+		case "list":
+			return func(body string, a map[string]string) (string, bool) {
+				if a["ordered"] == "true" {
+					return `<ol>` + body + `</ol>`, true
+				}
+				return `<ul>` + body + `</ul>`, true
+			}
+		case "item":
+			return func(body string, _ map[string]string) (string, bool) { return `<li>` + body + `</li>`, true }
+		case "table":
+			return func(body string, _ map[string]string) (string, bool) {
+				return `<div class="table-wrap"><table>` + body + `</table></div>`, true
+			}
+		case "row":
+			return func(body string, _ map[string]string) (string, bool) { return `<tr>` + body + `</tr>`, true }
+		case "cell":
+			return func(body string, _ map[string]string) (string, bool) { return `<td>` + body + `</td>`, true }
+		case "divider":
+			return func(string, map[string]string) (string, bool) { return `<hr>`, true }
+		case "link":
+			return func(body string, a map[string]string) (string, bool) {
+				return `<a class="ext" href="` + attr(a["uri"]) + `">` + body + `</a>`, false
+			}
+		}
+	}
 	return nil
 }
 
