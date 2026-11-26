@@ -15,6 +15,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/diag"
 	"github.com/aiviarium/heron/internal/core/lint"
 	coreprose "github.com/aiviarium/heron/internal/core/lint/prose"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
@@ -76,6 +77,7 @@ func prepareSpec(in any) (string, func([]*registry.ProseRegion) []registry.Prose
 	f := collect(li.Tree, li.Checker)
 	reportSenses(li, f)
 	reportDeadLinks(li)
+	reportGaps(li)
 	return f.key(), func(regions []*registry.ProseRegion) []registry.ProseFinding {
 		var out []registry.ProseFinding
 		for i, r := range regions {
@@ -87,7 +89,7 @@ func prepareSpec(in any) (string, func([]*registry.ProseRegion) []registry.Prose
 
 func collect(t *resolve.Tree, c *types.Checker) *specFacts {
 	f := &specFacts{names: map[string][]*resolve.Node{}, measured: map[*resolve.Node]bool{}, c: c}
-	var qualities []*resolve.Node
+	var qualities, rules []*resolve.Node
 	t.Walk(func(n *resolve.Node) {
 		if n.Shape == resolve.ShapeMounted || n.Decl.File == nil || n.Decl.File.ID.IsStd() {
 			return
@@ -100,28 +102,31 @@ func collect(t *resolve.Tree, c *types.Checker) *specFacts {
 			f.terms = append(f.terms, tm)
 		case types.IsStd(k, "spec", "spec.quality"):
 			qualities = append(qualities, n)
-		case types.IsStd(k, "spec", "spec.metric"):
+		case types.IsStd(k, "spec", "spec.scenario") && n.Child("measure") != nil:
+			// A quality scenario measures the rules beside it.
 			for p := n.Parent; p != nil; p = p.Parent {
 				f.measured[p] = true
 			}
+		case types.IsStd(k, "spec", "spec.rule"):
+			rules = append(rules, n)
 		}
 		if n.Name != "" && len(n.Name) >= 4 && identLike(n.Name) {
 			f.names[n.Name] = append(f.names[n.Name], n)
 		}
 	})
-	// A quality covers the rules its targets name.
+	// A rule that serves a quality is measured by it.
+	isQuality := map[*resolve.Node]bool{}
 	for _, q := range qualities {
-		for p := q.Parent; p != nil; p = p.Parent {
-			f.measured[p] = true
-		}
-		if q.Decl.N == nil {
+		isQuality[q] = true
+	}
+	for _, r := range rules {
+		e := project.NamedArg(project.KindArgs(r), "serves")
+		if e == nil {
 			continue
 		}
-		q.Decl.N.Walk(func(m *syntax.Node) bool {
-			if m.Kind == syntax.Path {
-				if x := c.Refs[m]; x != nil {
-					f.measured[x] = true
-				}
+		e.Syntax().Walk(func(m *syntax.Node) bool {
+			if m.Kind == syntax.Path && isQuality[c.Refs[m]] {
+				f.measured[r] = true
 			}
 			return true
 		})
@@ -380,6 +385,7 @@ func (f *specFacts) region(i int, r *registry.ProseRegion) []registry.ProseFindi
 			}
 		}
 	}
+	out = append(out, f.layerWords(i, r, chain, ws)...)
 	// Node names written as words.
 	for _, w := range ws {
 		ns := f.names[w.text]

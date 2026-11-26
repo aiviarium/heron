@@ -225,6 +225,8 @@ include = ["./refunds.heron.md"]
 `)
 	write(t, filepath.Join(dir, "refunds.heron.md"), `# Refunds {#refunds}
 
+<goal id="refunds_work">Customers get their money back.</goal>
+
 <term id="capture_date">
 The day the payment is captured, which is the capture date.
 </term>
@@ -246,6 +248,8 @@ The day the payment is captured, which is the capture date.
 }
 
 const specIndex = `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
+
+refunds_work: goal {{ Customers get their money back. }}
 
 capture_date: term(aliases = ["captured at"]) {{
   The day the payment is captured.
@@ -269,10 +273,11 @@ refunds: section {
     must {{ reject the words "fast" and "should" when they're used }}
   }
 
-  timed: rule {
+  timed: rule(serves = [speed]) {
     must {{ answer quickly }}
   }
-  speed: quality(timed)
+
+  speed: quality(measure = "Within a second.") {{ Answers feel instant. }}
 
   place_order: section {{ Placing. }}
 
