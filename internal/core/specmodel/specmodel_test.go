@@ -241,6 +241,14 @@ wrong: scenario(illustrates = buy.7) {
 	if st := res.Tree.Find("buy.2a"); st == nil || st.Shape != resolve.ShapeStep {
 		t.Errorf("buy.2a is %v", st)
 	}
+	// A step's site is its own range of the body, so the outline and go
+	// to definition land on it.
+	if st := res.Tree.Find("buy.2"); st != nil {
+		s, e := st.Decl.Span()
+		if txt := st.Decl.File.Src[s:e]; !strings.Contains(txt, "checks it") || strings.Contains(txt, "picks") {
+			t.Errorf("step 2's site is %q", txt)
+		}
+	}
 }
 
 // Every {placeholder} of an error's title is a field, and every field

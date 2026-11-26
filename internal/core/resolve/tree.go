@@ -37,12 +37,18 @@ type Site struct {
 	File  *File
 	N     *syntax.Node
 	Scope *Scope
+	// Start and End, when End is set, are the part of N the site is, as a
+	// use case step is a range of its body.
+	Start, End int
 }
 
 // Span returns the site's byte range.
 func (s Site) Span() (int, int) {
 	if s.N == nil {
 		return 0, 0
+	}
+	if s.End > s.Start {
+		return s.Start, s.End
 	}
 	return s.N.Span()
 }

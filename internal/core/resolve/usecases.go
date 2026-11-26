@@ -24,7 +24,7 @@ func useCaseSteps(t *Tree) {
 				if n.byName != nil && n.byName[name] != nil {
 					return
 				}
-				n.add(&Node{Name: name, Shape: ShapeStep, Decl: Site{File: p.File, N: p.N, Scope: p.Scope}})
+				n.add(&Node{Name: name, Shape: ShapeStep, Decl: Site{File: p.File, N: p.N, Scope: p.Scope, Start: start, End: end}})
 			}
 			for _, st := range uc.Steps {
 				add(st.Num, st.Start, st.End)
