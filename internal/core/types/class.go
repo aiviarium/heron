@@ -91,6 +91,9 @@ func (c *Checker) metaOf(n *resolve.Node) *meta {
 	case resolve.ShapeHeading:
 		m.decl = c.headingKind(n.Decl.Scope)
 		m.t = ty{decl: m.decl}
+	case resolve.ShapeElement:
+		m.decl = c.elementKind(n)
+		m.t = ty{decl: m.decl}
 	case resolve.ShapeSet, resolve.ShapeImplicit:
 		if n.Parent != nil {
 			if f, ok := c.Field(n.Parent, n.Name); ok && f.Type.decl != nil {
@@ -236,6 +239,8 @@ func declArgs(n *resolve.Node) []ast.Arg {
 		tt = ast.Value{N: n.Decl.N}.Type()
 	case syntax.Invoke:
 		return ast.Invoke{N: n.Decl.N}.Args().Args()
+	case syntax.Tag:
+		return n.ElementArgs.Args()
 	}
 	if nt, ok := tt.(ast.NamedType); ok {
 		return nt.Args().Args()

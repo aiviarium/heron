@@ -111,6 +111,8 @@ func (c *Checker) own(n *resolve.Node) {
 					"%s doesn't exist, and entering never creates a node%s", qualified(n), c.closestField(n.Parent, n.Name))
 			}
 		}
+	case resolve.ShapeElement:
+		c.element(n)
 	case resolve.ShapeHeading:
 		if c.metaOf(n).decl == nil {
 			c.errorf(n.Decl.File, n.Decl.N, "unresolved", "a heading needs a kind with heading = true in scope, such as section from std/doc")
@@ -175,7 +177,7 @@ func (c *Checker) bodyContent(n *resolve.Node) {
 	counts := map[*acceptEntry]int{}
 	list := c.acceptList(k)
 	for _, ch := range n.Children {
-		if ch.Shape != resolve.ShapeAnon && ch.Shape != resolve.ShapeDeclared && ch.Shape != resolve.ShapeHeading {
+		if ch.Shape != resolve.ShapeAnon && ch.Shape != resolve.ShapeDeclared && ch.Shape != resolve.ShapeHeading && ch.Shape != resolve.ShapeElement {
 			continue
 		}
 		x := c.KindOf(ch)
@@ -273,6 +275,11 @@ func (c *Checker) sites(n *resolve.Node, annotations bool) {
 		sc := p.Scope
 		if n.Body != nil {
 			sc = n.Body
+		}
+		if n.Shape == resolve.ShapeElement && p.N == n.Decl.N {
+			// An element's own text: its content, its nested elements aside.
+			c.proseChildren(p.N, sc, p.File)
+			continue
 		}
 		c.prose(p.N, sc, p.File)
 	}

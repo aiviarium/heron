@@ -581,6 +581,10 @@ func (c *Checker) prose(n *syntax.Node, sc *resolve.Scope, file *resolve.File) {
 	if n == nil {
 		return
 	}
+	if n.Kind == syntax.Tag && c.Tree.ElementNode(n) != nil {
+		// A node of its own, checked as one.
+		return
+	}
 	switch n.Kind {
 	case syntax.Link, syntax.ShortLink, syntax.Insert, syntax.Tag:
 		// A prose file's items are inline forms themselves.
@@ -617,6 +621,10 @@ func (c *Checker) proseChildren(n *syntax.Node, sc *resolve.Scope, file *resolve
 		case syntax.Insert:
 			c.insert(ast.Insert{N: ch}, sc, file, nil)
 		case syntax.Tag:
+			if c.Tree.ElementNode(ch) != nil {
+				// A node of its own, checked as one.
+				continue
+			}
 			c.tag(ast.Tag{N: ch}, sc, file)
 			c.proseChildren(ch, sc, file)
 		case syntax.Fence:
@@ -642,12 +650,18 @@ func (c *Checker) tag(t ast.Tag, sc *resolve.Scope, file *resolve.File) {
 	if !c.IsKind(d) {
 		return // the tag-kind lint reports it
 	}
+	if c.kindArgBool(d, "heading") || IsStd(d, "doc", "doc.term") {
+		// A section, a step or a term is a node: it needs an id.
+		c.errorf(file, t.Path().N, "unnamed", "<%s> declares a node and needs an id", strings.Join(segs, "."))
+	}
 	params := c.Params(d)
+	given := map[string]bool{}
 	for _, a := range t.TagAttrs() {
 		id := a.Ident()
-		if id == nil {
+		if id == nil || a.At() != nil {
 			continue
 		}
+		given[id.Text] = true
 		p := findParam(params, id.Text)
 		if p == nil {
 			c.errorf(file, a.N, "unknown-argument", "<%s> takes no attribute %s%s", d.Name, id.Text, closestParam(params, id.Text))
@@ -660,17 +674,28 @@ func (c *Checker) tag(t ast.Tag, sc *resolve.Scope, file *resolve.File) {
 			if e := a.Expr(); e != nil {
 				c.value(e, p.Type, sc, file, p)
 			}
+		case a.StringLit().N != nil && c.refParam(p.Type):
+			// A reference, resolved as a link's path is.
+			c.attrRef(a.StringLit().N, sc, file)
 		case a.StringLit().N != nil:
 			want := p.Type
 			if want.decl != nil && resolve.IsBuiltin(want.decl) && want.decl.Name != "String" && want.decl.Name != "Prose" {
-				// An attribute string is the value's text; only its
-				// inserts are checked.
+				// A quoted attribute is a literal of its parameter's type.
+				raw, _ := resolve.StringValue(a.StringLit().N)
+				if _, ok := c.literal(raw, want); !ok && (want.decl.Name == "Int" || want.decl.Name == "Float" || want.decl.Name == "Decimal" || want.decl.Name == "Bool") {
+					c.errorf(file, a.StringLit().N, "type", "expected %s, got a string", want.decl.Name)
+				}
 				c.expr(a.StringLit(), sc, file, nil)
 				continue
 			}
 			c.value(a.StringLit(), want, sc, file, p)
 		case a.Expr() != nil:
 			c.value(a.Expr(), p.Type, sc, file, p)
+		}
+	}
+	for _, p := range params {
+		if !p.Optional && !p.Variadic && !given[p.Name] {
+			c.errorf(file, t.Path().N, "missing-argument", "<%s> needs the attribute %s", d.Name, p.Name)
 		}
 	}
 }

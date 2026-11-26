@@ -1,0 +1,82 @@
+package types
+
+import (
+	"strings"
+	"testing"
+)
+
+// A kind element's name resolves to a kind, by suffix too; its quoted
+// attributes are literals of their parameters' types and braced ones
+// expressions; a kind with a heading or a term needs an id; a kind whose
+// body is code has no element form; a missing attribute, an unknown one
+// and a quoted reference that names nothing are reported; and an
+// unquoted value is a syntax error that keeps the element.
+func TestElementsCheck(t *testing.T) {
+	_, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1", "std/product@1", "std/docs@1"]
+
+people: section {
+  desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
+}
+
+ok: section {
+  | <rule id="late" by="desk"><must>refuse it</must></rule>
+  | <toc depth="2" /> <toc depth={1 + 1} /> <ref to="desk"/> <note kind="TIP">A tip.</note>
+}
+
+bad: section {
+  | <howto id="h">
+  |   <step>No id.</step>
+  | </howto>
+  |
+  | <term>Unnamed.</term> <toc depth="two" /> <toc depth=2 /> <ref to="nobody"/> <ref/> <toc colour="red" />
+}
+`})
+	var got []string
+	for _, d := range ds {
+		got = append(got, d.Code+": "+d.Message)
+	}
+	want := []string{
+		"syntax: the value of depth needs quotes or braces",
+		"unnamed: <step> declares a node and needs an id",
+		"unnamed: <term> declares a node and needs an id",
+		"type: expected Int, got a string",
+		"unresolved: [nobody] names no node",
+		"missing-argument: <ref> needs the attribute to",
+		"unknown-argument: <toc> takes no attribute colour",
+	}
+	for _, w := range want {
+		found := false
+		for _, g := range got {
+			if strings.HasPrefix(g, w) {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("no %q in\n%s", w, strings.Join(got, "\n"))
+		}
+	}
+	for _, g := range got {
+		if strings.Contains(g, "late") || strings.Contains(g, "kind") && strings.Contains(g, "TIP") {
+			t.Errorf("a clean element reported: %s", g)
+		}
+	}
+	if len(got) != len(want) {
+		t.Errorf("got %d diagnostics, want %d:\n%s", len(got), len(want), strings.Join(got, "\n"))
+	}
+}
+
+// A kind whose body is code has no element form.
+func TestElementCode(t *testing.T) {
+	_, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1"]
+
+s: section {
+  | <task id="t">x</task>
+}
+`})
+	for _, d := range ds {
+		if d.Code == "element-code" {
+			return
+		}
+	}
+	t.Errorf("no element-code diagnostic: %v", ds)
+}
