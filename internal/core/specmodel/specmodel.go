@@ -205,8 +205,6 @@ func displayPath(n *resolve.Node) string {
 	return p
 }
 
-
-
 func article(w string) string {
 	if w != "" && strings.ContainsRune("aeiou", rune(w[0])) {
 		return "an " + w
