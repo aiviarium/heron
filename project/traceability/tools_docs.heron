@@ -48,6 +48,7 @@ tools_docs: section {
   }
 
   proves(heron.tools.docs.page_layout.nav_scroll_kept) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
     verify("scripts/e2e-docs.sh")
   }
 
@@ -56,6 +57,26 @@ tools_docs: section {
   }
 
   proves(heron.tools.docs.page_layout.theme_before_paint) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.stable_frame) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.page_transitions) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.asset_versions) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
+    verify("internal/tools/server/server_test.go", test = "TestSpecBrowserCaching")
+  }
+
+  proves(heron.tools.docs.page_layout.prefetch_links) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
     verify("scripts/e2e-docs.sh")
   }
 
