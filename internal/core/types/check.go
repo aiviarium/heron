@@ -30,6 +30,8 @@ type Checker struct {
 	// Refs maps each path that resolved to the node it names, for
 	// go-to-definition and the lints that follow references.
 	Refs map[*syntax.Node]*resolve.Node
+	// linkIdx indexes the nodes a link reaches by suffix, once built.
+	linkIdx *linkIndex
 }
 
 // New returns a checker for a tree.

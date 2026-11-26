@@ -582,7 +582,7 @@ func (c *Checker) prose(n *syntax.Node, sc *resolve.Scope, file *resolve.File) {
 		return
 	}
 	switch n.Kind {
-	case syntax.Link, syntax.Insert, syntax.Tag:
+	case syntax.Link, syntax.ShortLink, syntax.Insert, syntax.Tag:
 		// A prose file's items are inline forms themselves.
 		c.proseChildren(&syntax.Node{Kind: syntax.ProseLine, Children: []syntax.Elem{n}}, sc, file)
 		return
@@ -603,17 +603,17 @@ func (c *Checker) proseChildren(n *syntax.Node, sc *resolve.Scope, file *resolve
 		case syntax.Link:
 			l := ast.Link{N: ch}
 			if l.Hash() != nil && l.Path().N != nil {
-				segs := resolve.PathSegs(l.Path().N)
-				if t := c.lookupPath(sc, file, -1, segs, nil); t == nil {
-					c.errorf(file, l.Path().N, "unresolved", "the link to #%s doesn't resolve%s", strings.Join(segs, "."), c.closest(sc, segs[0]))
-				} else {
-					c.Refs[l.Path().N] = t
-				}
+				p := l.Path().N
+				c.checkLinkPath(p, sc, file, func(segs []string, hint string) {
+					c.errorf(file, p, "unresolved", "the link to #%s doesn't resolve%s", strings.Join(segs, "."), hint)
+				})
 			}
 			for _, ins := range l.Inserts() {
 				c.insert(ins, sc, file, nil)
 			}
 			c.proseChildren(ch, sc, file)
+		case syntax.ShortLink:
+			c.shortLink(ast.ShortLink{N: ch}, sc, file)
 		case syntax.Insert:
 			c.insert(ast.Insert{N: ch}, sc, file, nil)
 		case syntax.Tag:
