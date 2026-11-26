@@ -73,9 +73,13 @@ function copy() {
       }
       try {
         await navigator.clipboard.writeText(text)
+        const was = b.getAttribute("aria-label")
         b.classList.add("copied")
         b.setAttribute("aria-label", t("copied"))
-        setTimeout(() => b.classList.remove("copied"), 1200)
+        setTimeout(() => {
+          b.classList.remove("copied")
+          if (was !== null) b.setAttribute("aria-label", was)
+        }, 1200)
       } catch { /* no clipboard */ }
     })
   }
@@ -144,18 +148,21 @@ function versions() {
   }
 }
 
-/** The navigation keeps its place from page to page of one lens's site:
- * its scroll position and the entry followed, with where that entry was
- * on screen, saved here as a page is left and put back by the inline
+/** The navigation keeps its place from page to page of one lens's site
+ * and area: its scroll position and the entry followed, with where that
+ * entry was on screen, saved here as a page is left and put back by the inline
  * script after the navigation before the next page paints. */
 function navScroll() {
   const nav = document.querySelector<HTMLElement>(".sidebar")
   const logo = document.querySelector<HTMLAnchorElement>(".logo")
   if (!nav || !logo) return
+  // One place per site area: each area has its own navigation.
+  const area = document.querySelector<HTMLAnchorElement>(".tabs [aria-current]")
+  const key = "heron-nav:" + logo.href + (area ? " " + area.href : "")
   let followed: { h: string; y: number } | null = null
   const save = () => {
     try {
-      sessionStorage.setItem("heron-nav:" + logo.href, JSON.stringify({ t: nav.scrollTop, ...followed }))
+      sessionStorage.setItem(key, JSON.stringify({ t: nav.scrollTop, ...followed }))
     } catch { /* storage blocked */ }
   }
   nav.addEventListener("click", (e) => {

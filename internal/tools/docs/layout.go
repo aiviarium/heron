@@ -403,13 +403,13 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 }
 
 // navScrollScript puts the navigation back where the last page of the
-// same lens's site left it, before the page paints: the entry that was
+// same lens's site and site area left it, before the page paints: the entry that was
 // followed stays where it was on screen, even when the tree around it
 // opens or closes, and otherwise the scroll position is kept. The current
 // page's entry is then scrolled into view if it isn't. docs.js saves the
 // position, and the entry followed, as a page is left.
-const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo"),a=n.querySelector('[aria-current="page"]'),v=null;` +
-	`try{v=l&&JSON.parse(sessionStorage.getItem("heron-nav:"+l.href))}catch(e){}` +
+const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo"),t=document.querySelector('.tabs [aria-current]'),a=n.querySelector('[aria-current="page"]'),v=null;` +
+	`try{v=l&&JSON.parse(sessionStorage.getItem("heron-nav:"+l.href+(t?" "+t.href:"")))}catch(e){}` +
 	`if(typeof v==="number")v={t:v};` +
 	`if(v&&typeof v==="object"){if(a&&v.h&&v.h===a.getAttribute("href")&&typeof v.y==="number")n.scrollTop+=a.getBoundingClientRect().top-n.getBoundingClientRect().top-v.y;else if(typeof v.t==="number")n.scrollTop=v.t}` +
 	`if(a){var r=a.getBoundingClientRect(),b=n.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom)a.scrollIntoView({block:"nearest"})}})()</script>`
