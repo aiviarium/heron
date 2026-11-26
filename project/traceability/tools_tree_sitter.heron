@@ -13,4 +13,9 @@ tools_tree_sitter: section {
     verify("grammar/tree-sitter-heron/test/corpus/heron.txt")
     verify("grammar/tree-sitter-heron/test-fixtures.sh")
   }
+
+  proves(heron.tools.tree_sitter.query_files.elements_captured) {
+    verify("grammar/tree-sitter-heron/test/corpus/heron.txt")
+    verify("grammar/tree-sitter-heron/test-fixtures.sh")
+  }
 }

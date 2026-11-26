@@ -91,6 +91,7 @@ language_markup: section {
 
   proves(heron.language.markup.tags.attribute_values) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
   }
 
   proves(heron.language.markup.tags.tag_closing) {
@@ -245,5 +246,83 @@ language_markup: section {
 
   proves(heron.language.markup.links.diagnostics.unresolved_short_link) {
     verify("internal/core/types/links_test.go", test = "TestLinkLookup")
+  }
+
+  proves(heron.language.markup.writing.one_prose_syntax) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
+    verify("internal/core/resolve/resolve_test.go", test = "TestElementsDeclareNodes")
+  }
+
+  proves(heron.language.markup.long_form.diagnostics.heading_needs_name) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
+  }
+
+  proves(heron.language.markup.tags.element_ids) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestElementsDeclareNodes")
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
+  }
+
+  proves(heron.language.markup.tags.element_bodies) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestElementsDeclareNodes")
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
+  }
+
+  proves(heron.language.markup.tags.anonymous_elements) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestElementsDeclareNodes")
+  }
+
+  proves(heron.language.markup.tags.element_needs_id) {
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+  }
+
+  proves(heron.language.markup.tags.annotation_attributes) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestElementsDeclareNodes")
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
+  }
+
+  proves(heron.language.markup.tags.code_stays_in_heron) {
+    verify("internal/core/types/elements_test.go", test = "TestElementCode")
+  }
+
+  proves(heron.language.markup.tags.quoted_attributes) {
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.markup.tags.forms_kept) {
+    verify("internal/core/format/format_test.go", test = "TestElementFormsKept")
+  }
+
+  proves(heron.language.markup.tags.prose_kinds_render_alike) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
+  }
+
+  proves(heron.language.markup.tags.required_attributes) {
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+  }
+
+  proves(heron.language.markup.tags.diagnostics.missing_attribute) {
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+  }
+
+  proves(heron.language.markup.tags.diagnostics.element_needs_id) {
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+  }
+
+  proves(heron.language.markup.tags.diagnostics.code_in_element) {
+    verify("internal/core/types/elements_test.go", test = "TestElementCode")
+  }
+
+  proves(heron.language.markup.tags.diagnostics.unquoted_attribute) {
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+  }
+
+  proves(heron.language.markup.links.ref_element) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
+    verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
+  }
+
+  proves(heron.language.markup.text.entities) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestElementsRender")
   }
 }

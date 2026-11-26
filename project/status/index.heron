@@ -58,9 +58,7 @@ language_markup_planned: status<planned>(
   heron.language.markup.links.link_shows_kind,
   heron.language.markup.links.empty_link_text,
   heron.language.markup.inserts.insert_calls_not_run,
-  heron.language.markup.tags.required_attributes,
   heron.language.markup.tags.slots,
-  heron.language.markup.tags.diagnostics.missing_attribute,
   heron.language.markup.tags.diagnostics.tag_not_accepted,
   heron.language.markup.components.other_components,
   heron.language.markup.components.logic_rendering,
@@ -70,7 +68,7 @@ language_markup_planned: status<planned>(
   heron.language.markup.from_markdown.markdown_forms_reported,
   heron.language.markup.from_markdown.diagnostics.markdown_form,
 ) {
-  | Not built yet. The 15 requirements of [language.markup](#heron.language.markup).
+  | Not built yet. The 13 requirements of [language.markup](#heron.language.markup).
 }
 
 language_markup_untested: status<untested>(

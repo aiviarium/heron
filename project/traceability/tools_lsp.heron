@@ -140,4 +140,8 @@ tools_lsp: section {
   proves(heron.tools.lsp.definition.definition_short_link) {
     verify("internal/tools/lsp/features_test.go", test = "TestShortLinkDefinitionAndHover")
   }
+
+  proves(heron.tools.lsp.definition.definition_element) {
+    verify("internal/tools/lsp/features_test.go", test = "TestElementDefinitionAndHover")
+  }
 }
