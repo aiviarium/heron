@@ -149,18 +149,21 @@ func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
 	if s.explore() {
 		return children
 	}
-	var groups [5][]*resolve.Node
+	var groups [6][]*resolve.Node
 	for _, ch := range children {
-		g := 0
+		g := 1
 		switch k := s.kindPath(ch); {
+		case s.isIntent(ch):
+			// Goals and the other intent nodes open the page.
+			g = 0
 		case k == "spec.rule" || k == "spec.quality" || k == "spec.guidance" || s.summarized(ch):
-			g = 1
-		case k == "doc.term":
 			g = 2
-		case k == "spec.error" || s.isContainer(ch) && s.onlyDiagnostics(ch):
-			g = 4
-		case s.isContainer(ch):
+		case k == "doc.term":
 			g = 3
+		case k == "spec.error" || s.isContainer(ch) && s.onlyDiagnostics(ch):
+			g = 5
+		case s.isContainer(ch):
+			g = 4
 		}
 		groups[g] = append(groups[g], ch)
 	}

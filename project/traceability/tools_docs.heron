@@ -390,6 +390,10 @@ tools_docs: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
   }
 
+  proves(heron.tools.docs.rendering.intent_first) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestIntentFirst")
+  }
+
   proves(heron.tools.docs.rendering.tables_for_tabular_data) {
     verify("internal/tools/docs/lenses_test.go", test = "TestSmallTablesAsLines")
     verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")

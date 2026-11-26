@@ -142,6 +142,8 @@ kite: package(version = "1.4.0") {
       address: field(String)
       | The store didn't answer within the timeout; Kite retries at the next interval.
     }
+
+    same_everywhere: goal {{ A note reads the same in the folder and in the store. }}
   }
 
   /// A note as the store keeps it.

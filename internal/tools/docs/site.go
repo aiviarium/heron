@@ -14,6 +14,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/specmodel"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
 )
@@ -356,6 +357,19 @@ func (s *Site) buildPages() {
 		}
 	}
 	walk(s.Tree.Root, nil, 0)
+	if !s.explore() {
+		// An area's intent pages, its goals, come first among its pages.
+		var intentFirst func(ps []*Page)
+		intentFirst = func(ps []*Page) {
+			sort.SliceStable(ps, func(i, j int) bool {
+				return s.isIntent(ps[i].Node) && !s.isIntent(ps[j].Node)
+			})
+			for _, p := range ps {
+				intentFirst(p.Children)
+			}
+		}
+		intentFirst(docs.Pages)
+	}
 
 	// The API reference: the sections in its layout, each api with its
 	// ops, then types, lifecycles and errors.
@@ -414,7 +428,7 @@ func (s *Site) buildPages() {
 		}
 	}
 	if len(s.diagnostics) > 0 {
-		p := &Page{File: "_diagnostics.html", Title: label("docs.page.diagnostics"), Layout: "diagnostics", Area: docs}
+		p := &Page{File: "_diagnostics.html", Title: label("docs.page.errors"), Layout: "diagnostics", Area: docs}
 		s.Pages = append(s.Pages, p)
 		docs.Pages = append(docs.Pages, p)
 		if s.errorsGathered() {
@@ -664,4 +678,9 @@ func (s *Site) homeNode() *resolve.Node {
 		return r
 	}
 	return pkg
+}
+
+// isIntent reports whether a node is in the intent layer, as a goal is.
+func (s *Site) isIntent(n *resolve.Node) bool {
+	return n != nil && specmodel.LayerOf(s.Checker, n) == specmodel.Intent
 }

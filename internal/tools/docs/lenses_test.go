@@ -251,6 +251,30 @@ func TestDeveloperLens(t *testing.T) {
 	mustNotHave(t, "dev nav", nav, "copies_changed", "Unreadable")
 }
 
+// An area's goals come first, before its rules and its errors, on its
+// page and among its pages in the navigation, whatever order the tree
+// writes them in; explore keeps the tree's order.
+func TestIntentFirst(t *testing.T) {
+	_, f := lensFiles(t, kite)
+	sync := f["dev/kite.sync.html"]
+	main := sync[strings.Index(sync, `id="main"`):]
+	order := []string{`href="kite.sync.same_everywhere.html"`, `id="kite.sync.copies_changed"`, `id="kite.sync.unreadable"`}
+	for i := 1; i < len(order); i++ {
+		if a, b := strings.Index(main, order[i-1]), strings.Index(main, order[i]); a < 0 || b < 0 || a > b {
+			t.Errorf("%s after %s", order[i-1], order[i])
+		}
+	}
+	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
+	if a, b := strings.Index(nav, "kite.sync.same_everywhere.html"), strings.Index(nav, "kite.sync.retries.html"); a < 0 || b < 0 || a > b {
+		t.Errorf("the goal isn't first among the section's pages in\n%s", nav)
+	}
+	ex := f["explore/kite.sync.html"]
+	ex = ex[strings.Index(ex, `id="main"`):]
+	if strings.Index(ex, `kite.sync.same_everywhere`) < strings.Index(ex, `id="kite.sync.copies_changed"`) {
+		t.Error("explore doesn't keep the tree's order")
+	}
+}
+
 // Explore shows every node in full: each rule with a facts line of its
 // path, kind, targets, subject and strength, each node's kind beside its
 // name; the navigation lists pages alone, and the page's nodes are in its
