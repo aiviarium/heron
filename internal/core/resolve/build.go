@@ -57,7 +57,7 @@ func (r *Resolver) resolve(entry FileID, prelude bool, self *Package) *Tree {
 // resolve reads a tree. A package's tree sees its own names, including the
 // members of its package node, throughout its files, as its importers do.
 func (r *Resolver) resolveTree(entry FileID, prelude bool, self *Package, ctx *Scope) *Tree {
-	t := &Tree{includes: map[FileID][]FileID{}, scopes: map[FileID]*Scope{}, Targets: map[*syntax.Node]FileID{}}
+	t := &Tree{includes: map[FileID][]FileID{}, scopes: map[FileID]*Scope{}, Targets: map[*syntax.Node]FileID{}, Elements: map[*syntax.Node]*Node{}}
 	t.Root = &Node{Shape: ShapeRoot, Package: self}
 	base := ctx
 	if base == nil {
@@ -165,7 +165,7 @@ func (b *builder) member(f *File, m ast.Member, target *Node, sc *Scope) {
 		b.body(f, m.Body(), n, body)
 	case ast.TextNode:
 		n := b.anon(target, site)
-		n.Prose = append(n.Prose, Site{File: f, N: m.ProseBlock().N, Scope: sc})
+		b.prose(n, Site{File: f, N: m.ProseBlock().N, Scope: sc})
 	case ast.Invoke:
 		n := b.anon(target, site)
 		body := &Scope{Parent: sc, Node: n, File: f}
@@ -202,7 +202,7 @@ func (b *builder) member(f *File, m ast.Member, target *Node, sc *Scope) {
 	case ast.Action:
 		target.Code = append(target.Code, site)
 	case ast.ProseLines, ast.ProseBlock:
-		target.Prose = append(target.Prose, site)
+		b.prose(target, site)
 	case ast.CommentLine, ast.ErrorNode, ast.Doc:
 	}
 }
@@ -225,7 +225,7 @@ func (b *builder) body(f *File, body ast.Body, n *Node, sc *Scope) {
 	case ast.StructBody:
 		b.members(f, body.Members(), n, sc)
 	case ast.ProseBlock:
-		n.Prose = append(n.Prose, Site{File: f, N: body.N, Scope: sc})
+		b.prose(n, Site{File: f, N: body.N, Scope: sc})
 	case ast.DoBlock:
 		n.Code = append(n.Code, Site{File: f, N: body.N, Scope: sc})
 	}
@@ -838,6 +838,8 @@ func (b *builder) proseFile(f *File, target *Node, sc *Scope) {
 			parent, psc := cur()
 			name := headingName(it)
 			if name == "" {
+				st, en := it.N.Span()
+				b.t.Diags.Errorf(string(f.ID), st, en, "unnamed", "the heading %q declares a section and needs a {#name}", headingText(it))
 				continue
 			}
 			site.Scope = psc
@@ -854,19 +856,25 @@ func (b *builder) proseFile(f *File, target *Node, sc *Scope) {
 		default:
 			n, s := cur()
 			site.Scope = s
-			n.Prose = append(n.Prose, site)
+			b.prose(n, site)
 		}
 	}
 }
 
-// headingName is the section name a heading declares: its {#id}, or its
-// text in snake_case.
+// headingName is the section name a heading declares: its {#id}. A name
+// never comes from the heading's text, so rewording a heading breaks no
+// link; a heading without one is reported.
 func headingName(h ast.Heading) string {
 	if id := h.HeadingId(); id != nil {
 		s := strings.TrimSpace(id.Text)
 		s = strings.TrimPrefix(strings.TrimSuffix(s, "}"), "{#")
 		return s
 	}
+	return ""
+}
+
+// headingText is a heading's text, for a message.
+func headingText(h ast.Heading) string {
 	var text strings.Builder
 	for _, c := range h.N.Children {
 		switch c := c.(type) {
@@ -878,7 +886,7 @@ func headingName(h ast.Heading) string {
 			text.WriteString(c.Text())
 		}
 	}
-	return Slug(text.String())
+	return strings.TrimSpace(text.String())
 }
 
 // Slug turns display text into a name: lower case, with runs of anything

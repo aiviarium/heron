@@ -301,9 +301,11 @@ development {
 	wantDiag(t, r.Resolve(id), "two packages export development")
 }
 
+// A heading declares the section its {#name} names; a heading without
+// one is reported, never named from its text.
 func TestProseFileHeadings(t *testing.T) {
 	dir := writeTree(t, map[string]string{
-		"guide.heron.md": "# Refund guide\n\nText.\n\n## Before you start\n\nMore.\n\n## Limits {#refund_limits}\n\n```heron\nlimit = 1\n```\n",
+		"guide.heron.md": "# Refund guide {#refund_guide}\n\nText.\n\n## Before you start {#before_you_start}\n\nMore.\n\n## Limits {#refund_limits}\n\n```heron\nlimit = 1\n```\n",
 	})
 	tr := resolveDir(t, dir, "guide.heron.md")
 	wantNoDiags(t, tr)
@@ -311,6 +313,36 @@ func TestProseFileHeadings(t *testing.T) {
 		if tr.Find(p) == nil {
 			t.Errorf("%s missing", p)
 		}
+	}
+	dir = writeTree(t, map[string]string{"guide.heron.md": "# Refund guide\n\nText.\n"})
+	tr = resolveDir(t, dir, "guide.heron.md")
+	if len(tr.Diags) != 1 || tr.Diags[0].Code != "unnamed" || tr.Find("refund_guide") != nil {
+		t.Errorf("a heading without a name: %v", tr.Diags)
+	}
+}
+
+// An element with an id declares a node of the text's node; inside a
+// named element's body an element on lines of its own is a member, named
+// or anonymous; an element inside a sentence is content; and an
+// element's @name attributes are its annotations.
+func TestElementsDeclareNodes(t *testing.T) {
+	dir := writeTree(t, map[string]string{
+		"index.heron": "include = [\"./g.heron.md\"]\n",
+		"g.heron.md":  "<howto id=\"h\" @display=\"How\">\nIntro with <em>stress</em>.\n\n<step id=\"a\">One.</step>\n\n<note>Aside.</note>\n</howto>\n\nText <kbd id=\"k\">K</kbd> and <kbd>L</kbd>.\n",
+	})
+	tr := resolveDir(t, dir, "index.heron")
+	h := tr.Find("h")
+	if h == nil || h.Shape != ShapeElement || tr.Find("h.a") == nil || tr.Find("k") == nil {
+		t.Fatalf("nodes: %v", tr.Root.Children)
+	}
+	if len(h.Children) != 2 || h.Children[1].Name != "" || h.Children[1].Shape != ShapeElement {
+		t.Errorf("members of h: %v", h.Children)
+	}
+	if len(h.Annotations) != 1 {
+		t.Errorf("annotations: %v", h.Annotations)
+	}
+	if n := len(tr.Elements); n != 4 {
+		t.Errorf("%d elements declare nodes, want 4", n)
 	}
 }
 

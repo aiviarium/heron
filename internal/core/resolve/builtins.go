@@ -11,7 +11,7 @@ var BuiltinTypes = []string{
 }
 
 // ShapeBuiltin marks a primitive type.
-const ShapeBuiltin Shape = ShapeHeading + 1
+const ShapeBuiltin Shape = ShapeElement + 1
 
 var (
 	builtinsOnce  sync.Once

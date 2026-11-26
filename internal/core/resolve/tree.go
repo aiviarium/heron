@@ -25,10 +25,11 @@ const (
 	ShapeImplicit              // reached by a deeper path, entered or set; types checks it
 	ShapeMounted               // a package's <export> node, mounted at the root
 	ShapeHeading               // a heading in a prose file
+	ShapeElement               // a kind element in prose: named by its id, or a member of a named one
 )
 
 func (s Shape) String() string {
-	return [...]string{"root", "declared", "value", "anonymous", "scope", "set", "implicit", "mounted", "heading", "builtin"}[s]
+	return [...]string{"root", "declared", "value", "anonymous", "scope", "set", "implicit", "mounted", "heading", "element", "builtin"}[s]
 }
 
 // Site is a member in a file, with the scope it was read in.
@@ -85,6 +86,9 @@ type Node struct {
 	// Overloads are the further signatures of a node declared <overload>,
 	// in declaration order; lookups find the first.
 	Overloads []*Node
+	// ElementArgs are a kind element's attributes as the arguments of its
+	// kind, which the checker writes once it knows the kind's parameters.
+	ElementArgs ast.Args
 }
 
 // Child returns the named child, looking through a mounted node to its
@@ -424,6 +428,17 @@ type Tree struct {
 	// file it names (a package's entry file, a folder's index.heron), for
 	// go-to-definition from the string.
 	Targets map[*syntax.Node]FileID
+	// Elements maps each kind element that declares a node to the node.
+	Elements map[*syntax.Node]*Node
+}
+
+// ElementNode returns the node a kind element declares, or nil when the
+// element is content of its text.
+func (t *Tree) ElementNode(tag *syntax.Node) *Node {
+	if t == nil || t.Elements == nil {
+		return nil
+	}
+	return t.Elements[tag]
 }
 
 // FileScope returns the scope a file of the tree was read in.
