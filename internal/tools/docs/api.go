@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 )
@@ -20,6 +21,7 @@ type opInfo struct {
 	returns          texpr
 	errors           []opError
 	performs         []*resolve.Node
+	realizes         []*resolve.Node
 	examples         []opExample
 	crossCutting     []crossAnn
 	streamIn, stream bool
@@ -38,6 +40,7 @@ type opParam struct {
 type opError struct {
 	typ    *resolve.Node
 	status string
+	code   string          // an error node's id, the body's code
 	causes []*resolve.Node // rules and examples that lead to it
 }
 
@@ -57,7 +60,7 @@ type crossAnn struct {
 	on   *resolve.Node
 }
 
-var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true}
+var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true, "realizes": true}
 
 func (s *Site) readOp(op *resolve.Node) *opInfo {
 	o := &opInfo{node: op, api: op.Parent}
@@ -138,7 +141,13 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 			return
 		}
 		e := opError{typ: t}
-		if a := annotation(s, t, "status"); a != nil {
+		if s.kindPath(t) == "spec.error" {
+			// An error node: its HTTP status and id are its projection.
+			e.code, _ = argString(kindArgs(t), 0, "id")
+			if st := namedArg(kindArgs(t), "status"); st != nil {
+				e.status = strings.TrimSpace(st.Syntax().Text())
+			}
+		} else if a := annotation(s, t, "status"); a != nil {
 			if es := argExprs(a.Args()); len(es) > 0 {
 				e.status = strings.TrimSpace(es[0].Syntax().Text())
 			}
@@ -147,6 +156,17 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 	}
 	for _, t := range thrown {
 		addErr(t)
+	}
+	for _, a := range op.Annotations {
+		an := ast.Annotation{N: a.N}
+		if an.N == nil || an.Path().N == nil || annName(an) != "realizes" {
+			continue
+		}
+		for _, e := range project.ArgExprs(an.Args()) {
+			if t := project.RefTarget(s.Checker, e.Syntax(), a); t != nil {
+				o.realizes = append(o.realizes, t)
+			}
+		}
 	}
 	for _, a := range annotationsNamed(op, "performs") {
 		for _, e := range argExprs(a.Args()) {
@@ -542,6 +562,7 @@ func renderAPI(c *Ctx) error {
 	if w := wsRoute(n); w != "" {
 		facts = append(facts, `<dt>`+esc(label("docs.label.socket"))+`</dt><dd><code>`+esc(w)+`</code></dd>`)
 	}
+	facts = append(facts, `<dt>`+esc(label("docs.label.wire"))+`</dt><dd>`+esc(label("docs.label.wire_json"))+`</dd>`)
 	for _, a := range annotations(n) {
 		if ownAnnotations[annName(a)] && annName(a) != "throws" {
 			continue
@@ -559,24 +580,53 @@ func renderAPI(c *Ctx) error {
 			continue
 		}
 		_, p := httpRoute(s, op)
+		if p == "" {
+			p = wsRoute(op)
+		}
 		res := resource(p)
 		if _, ok := groups[res]; !ok {
 			order = append(order, res)
 		}
 		groups[res] = append(groups[res], op)
 	}
+	// One table, a row heading each group, so the columns line up.
+	c.W(`<div class="table-wrap"><table class="ops"><colgroup><col class="method-col"><col class="path-col"><col></colgroup><tbody>`)
 	for _, res := range order {
 		if res != "" && len(order) > 1 {
-			c.Heading(c.Level+1, Anchor(n)+"."+res, res, "")
+			id := Anchor(n) + "." + res
+			*c.outline = append(*c.outline, Heading{ID: id, Title: res, Level: 2})
+			c.W(`<tr class="ops-group" id="`, attr(id), `"><th colspan="3">`, esc(res), `</th></tr>`)
 		}
-		c.W(`<div class="table-wrap"><table class="ops"><tbody>`)
 		for _, op := range groups[res] {
 			m, p := httpRoute(s, op)
-			c.W(`<tr><td class="method-col">`, methodHTML(m), `</td><td><code class="path">`, esc(p), `</code></td><td>`)
+			if m == "" {
+				if w := wsRoute(op); w != "" {
+					m, p = "WS", w
+				}
+			}
+			c.W(`<tr><td class="method-col">`, methodHTML(m), `</td><td><code class="path">`, esc(p), `</code></td><td class="op-cell">`)
 			c.Link(op, displayName(s, op))
+			c.W(deprecatedBadge(op))
+			if t := firstSentence(inlineParagraph(s.proseHTML(op))); t != "" {
+				c.W(`<span class="op-line">`, t, `</span>`)
+			}
 			c.W(`</td></tr>`)
 		}
-		c.W(`</tbody></table></div>`)
+	}
+	c.W(`</tbody></table></div>`)
+	// The types and errors the ops name, directly or through fields.
+	named := s.apiTypes(n)
+	if len(named) > 0 {
+		c.Heading(c.Level+1, Anchor(n)+".types", label("docs.label.types"), "")
+		c.W(`<ul class="refs api-types">`)
+		for _, t := range named {
+			c.W(`<li>`, s.linkHTML(t, `<code class="t">`+esc(displayName(s, t))+`</code>`, ""))
+			if d := firstSentence(inlineParagraph(s.proseHTML(t))); d != "" {
+				c.W(`<span class="op-line">`, d, `</span>`)
+			}
+			c.W(`</li>`)
+		}
+		c.W(`</ul>`)
 	}
 	c.W(`</section>`)
 	return nil
@@ -616,6 +666,9 @@ func renderOp(c *Ctx) error {
 	} else if o.ws != "" {
 		c.W(`<div class="endpoint"><span class="method m-ws">WS</span><code class="path">`, esc(o.ws), `</code></div>`)
 	}
+	if b := deprecatedBadge(n); b != "" {
+		c.W(`<p class="deprecation">`, strings.TrimSpace(b), `</p>`)
+	}
 	c.Prose(n)
 
 	// Facts: the transitions it performs, then cross-cutting behaviour.
@@ -630,6 +683,13 @@ func renderOp(c *Ctx) error {
 			ls = append(ls, s.linkHTML(t, `<code>`+esc(text)+`</code>`, ""))
 		}
 		facts = append(facts, `<dt>`+esc(label("docs.label.performs"))+`</dt><dd>`+strings.Join(ls, ", ")+`</dd>`)
+	}
+	if len(o.realizes) > 0 {
+		var ls []string
+		for _, t := range o.realizes {
+			ls = append(ls, s.linkHTML(t, esc(displayName(s, t)), ""))
+		}
+		facts = append(facts, `<dt>`+esc(label("docs.label.realizes"))+`</dt><dd>`+strings.Join(ls, ", ")+`</dd>`)
 	}
 	for _, a := range o.crossCutting {
 		v := ""
@@ -718,7 +778,27 @@ func renderOp(c *Ctx) error {
 		if e.status != "" {
 			c.W(`<code class="status err">`, esc(e.status), `</code>`)
 		}
-		c.W(s.linkHTML(e.typ, `<code class="t">`+esc(e.typ.Name)+`</code>`, ""), `</div>`)
+		if e.code != "" {
+			c.W(s.linkHTML(e.typ, esc(displayName(s, e.typ)), ""), ` <code class="err-code">`, esc(e.code), `</code></div>`)
+			if title := fieldString(e.typ, "title"); title != "" {
+				c.W(`<p class="err-title">`, messageHTML(title), `</p>`)
+			}
+			var fs []string
+			for _, f := range e.typ.Children {
+				if s.kindPath(f) == "spec.field" {
+					t := ""
+					if es := argExprs(kindArgs(f)); len(es) > 0 {
+						t = strings.TrimSpace(es[0].Syntax().Text())
+					}
+					fs = append(fs, `<code>`+esc(f.Name)+`</code> <code class="t">`+esc(t)+`</code>`)
+				}
+			}
+			if len(fs) > 0 {
+				c.W(`<p class="err-fields"><span class="label">`, esc(label("docs.label.fields")), `</span> `, strings.Join(fs, ", "), `</p>`)
+			}
+		} else {
+			c.W(s.linkHTML(e.typ, `<code class="t">`+esc(e.typ.Name)+`</code>`, ""), `</div>`)
+		}
 		if d := s.proseHTML(e.typ); d != "" {
 			c.W(`<div class="prose">`, d, `</div>`)
 		}
@@ -890,7 +970,8 @@ func (c *Ctx) opAside(o *opInfo) {
 		list = append(list, &exs[i])
 	}
 	if len(list) == 0 {
-		list = []*opExample{nil}
+		// No example: the messages as JSON built from their types.
+		list = []*opExample{o.skeletonExample(s)}
 	}
 	b.WriteString(`<div class="examples" data-island="examples">`)
 	b.WriteString(`<div class="panel"><div class="panel-head"><div class="seg" role="tablist" aria-label="` + attr(label("docs.label.language")) + `">`)
@@ -919,7 +1000,7 @@ func (c *Ctx) opAside(o *opInfo) {
 		}
 		r := o.request(ex)
 		id := ""
-		if ex != nil {
+		if ex != nil && ex.node != nil {
 			id = ` id="` + attr(Anchor(ex.node)) + `"`
 		}
 		b.WriteString(`<div class="ex"` + id + ` data-example="` + fmt.Sprint(i) + `"` + hidden + `>`)
@@ -933,7 +1014,9 @@ func (c *Ctx) opAside(o *opInfo) {
 		b.WriteString(`</div>`)
 	}
 	b.WriteString(`<div class="panel-foot"><button type="button" class="icon-btn copy" data-island="copy" aria-label="` + attr(label("docs.action.copy")) + `">` + iconCopy + `</button>`)
-	if o.method != "" {
+	served := o.api != nil && s.Opts.ServedOps[o.api.Name+"."+o.node.Name]
+	// The server's own API is tried only where that server serves the page.
+	if o.method != "" && (served || o.api == nil || o.api.Name != ServerAPI) {
 		b.WriteString(`<button type="button" class="btn primary" data-tryit>` + esc(label("docs.action.try")) + `</button>`)
 	}
 	b.WriteString(`</div></div>`)
@@ -967,6 +1050,11 @@ func (c *Ctx) opAside(o *opInfo) {
 	}
 	// What Try it needs, as data.
 	data := map[string]any{"method": o.method, "path": o.base + o.path}
+	if served {
+		// Sent through the generated client, as the frontend sends it.
+		data["client"] = clientName(o.node.Name)
+		data["stream"] = o.stream
+	}
 	var params []map[string]any
 	for _, p := range o.params {
 		params = append(params, map[string]any{"name": p.name, "in": p.loc, "header": p.header, "required": !p.optional})
@@ -974,7 +1062,7 @@ func (c *Ctx) opAside(o *opInfo) {
 	data["params"] = params
 	var exData []any
 	for _, ex := range list {
-		if ex == nil {
+		if ex == nil || ex.node == nil {
 			exData = append(exData, map[string]any{})
 			continue
 		}
@@ -1075,3 +1163,145 @@ func highlightJSON(code string) string {
 }
 
 var _ = sort.Strings
+
+// skeletonExample is the example an op without one shows: each required
+// parameter and the response with a value of its type.
+func (o *opInfo) skeletonExample(s *Site) *opExample {
+	ex := &opExample{values: map[string]any{}}
+	for _, p := range o.params {
+		if p.optional || p.typ.name == "Stream" {
+			continue
+		}
+		ex.values[p.name] = s.skeleton(p.typ, nil)
+	}
+	if o.returns.text != "" {
+		t := o.returns
+		if t.name == "Stream" && len(t.args) == 1 {
+			t = t.args[0]
+		}
+		ex.returns, ex.hasRet = s.skeleton(t, nil), true
+	}
+	return ex
+}
+
+// skeleton is a value of a type as it travels on the wire: a record's
+// fields, optional ones included, a list with one element, an enum's
+// first variant.
+func (s *Site) skeleton(x texpr, stack []*resolve.Node) any {
+	switch x.name {
+	case "String":
+		return "string"
+	case "Int":
+		return json.Number("0")
+	case "Float", "Number":
+		return json.Number("0.0")
+	case "Bool":
+		return false
+	case "Timestamp":
+		return "2026-01-01T00:00:00Z"
+	case "Duration":
+		return "30s"
+	case "Any":
+		return &omap{}
+	case "List", "Set", "Stream":
+		if len(x.args) == 1 {
+			return []any{s.skeleton(x.args[0], stack)}
+		}
+		return []any{}
+	case "Map":
+		m := &omap{}
+		if len(x.args) == 2 {
+			m.set("key", s.skeleton(x.args[1], stack))
+		}
+		return m
+	}
+	if len(x.union) > 0 {
+		return s.skeleton(x.union[0], stack)
+	}
+	t := x.decl
+	if t == nil || len(stack) > 4 {
+		return nil
+	}
+	for _, st := range stack {
+		if st == t {
+			return nil
+		}
+	}
+	if s.kindPath(t) == "types.enum" {
+		for _, v := range t.Children {
+			if v.Name != "" {
+				return v.Name
+			}
+		}
+		return ""
+	}
+	m := &omap{}
+	for _, mem := range s.members(t, s.envFor(x)) {
+		m.set(mem.name, s.skeleton(mem.typ, append(stack, t)))
+	}
+	return m
+}
+
+// deprecatedBadge marks a node its kind flags as deprecated.
+func deprecatedBadge(n *resolve.Node) string {
+	for _, f := range kindFlags(n) {
+		if f == "deprecated" {
+			return ` <span class="badge badge-deprecated">` + esc(label("docs.label.deprecated")) + `</span>`
+		}
+	}
+	return ""
+}
+
+// apiTypes are the types and errors an api's ops name, in the params,
+// results and throws, and through those types' fields, in the order met.
+func (s *Site) apiTypes(api *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	seen := map[*resolve.Node]bool{}
+	var add func(x texpr, depth int)
+	add = func(x texpr, depth int) {
+		for _, a := range x.args {
+			add(a, depth)
+		}
+		for _, u := range x.union {
+			add(u, depth)
+		}
+		t := x.decl
+		if t == nil || seen[t] || !own(t) || !s.isTypeDecl(t) || depth > 6 {
+			return
+		}
+		seen[t] = true
+		out = append(out, t)
+		for _, m := range s.members(t, s.envFor(x)) {
+			add(m.typ, depth+1)
+		}
+	}
+	for _, op := range api.Children {
+		if s.kindPath(op) != "types.op" {
+			continue
+		}
+		o := s.readOp(op)
+		for _, p := range o.params {
+			add(p.typ, 0)
+		}
+		add(o.returns, 0)
+		for _, e := range o.errors {
+			if !seen[e.typ] {
+				seen[e.typ] = true
+				out = append(out, e.typ)
+			}
+		}
+	}
+	return out
+}
+
+// clientName is an op's method on the generated TS client: its name in
+// lower camel case, as get_record is getRecord.
+func clientName(op string) string {
+	parts := strings.Split(op, "_")
+	for i := 1; i < len(parts); i++ {
+		if parts[i] != "" {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}

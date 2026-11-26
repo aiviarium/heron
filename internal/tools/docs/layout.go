@@ -346,7 +346,11 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 		if q.Layout == "op" {
 			b.WriteString(`<span class="m m-` + strings.ToLower(attr(q.Method)) + `">` + esc(q.Method) + `</span>`)
 		}
-		b.WriteString(`<span class="t">` + esc(q.Title) + `</span></a>`)
+		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
+		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {
+			b.WriteString(`<span class="nav-deprecated" title="` + attr(label("docs.label.deprecated")) + `">` + esc(label("docs.label.deprecated")) + `</span>`)
+		}
+		b.WriteString(`</a>`)
 		if len(q.Children) > 0 && q.Layout != "api" && (depth > 0 || s.within(p, q)) {
 			b.WriteString(`<ul>`)
 			for _, c := range q.Children {

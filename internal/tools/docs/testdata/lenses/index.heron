@@ -177,9 +177,21 @@ kite: package(version = "1.4.0") {
     }
 
     @http<put>("/notes/:id")
+    @throws(note_locked)
     put_note(@path id: String, @body note: Note): op(Note) {
       | Writes one note, replacing the store's copy.
     }
+
+    @http<get>("/notes")
+    list_notes(): op<deprecated>(List(Note)) {
+      | Lists every note. Use the sync log instead.
+    }
+  }
+
+  @realizes(gone_notes)
+  note_locked: error("store.NOTE_LOCKED", status = 423, by = kite.system.syncer) {
+    title = "{id} is being written by another sync"
+    id: field(String)
   }
 
   gone_notes: rule(by = kite.system.syncer) {

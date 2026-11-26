@@ -53,6 +53,9 @@ type Generator struct {
 	Target string
 	// Generate receives the gen package's *gen.Input.
 	Generate func(ctx context.Context, in any) ([]GeneratedFile, error)
+	// OnRequest marks a target that runs only when named, never as one of
+	// every target, such as an extra for outside tooling.
+	OnRequest bool
 }
 
 // Loader registers the parts a checked tree declares, such as what its
@@ -171,12 +174,13 @@ func (r *Registry) Generators(target string) []*Generator {
 	return out
 }
 
-// Targets returns every generation target that has an adapter, sorted.
+// Targets returns every generation target that has an adapter, sorted,
+// leaving out those that run only when named.
 func (r *Registry) Targets() []string {
 	seen := map[string]bool{}
 	var out []string
 	for _, g := range r.Generators("") {
-		if !seen[g.Target] {
+		if !seen[g.Target] && !g.OnRequest {
 			seen[g.Target] = true
 			out = append(out, g.Target)
 		}

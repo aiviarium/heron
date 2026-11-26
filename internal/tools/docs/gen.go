@@ -114,6 +114,7 @@ func (s *Site) DataJS() []byte { return s.dataJS() }
 // Register installs the docs renderers and the `docs` generation target.
 func Register(r *registry.Registry) {
 	registerRenderers(r)
+	registerAsyncAPI(r)
 	if err := r.SetGenerator(registry.Generator{Path: "docs.site", Target: "docs", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
 		gi := in.(*gen.Input)
 		versions := releasedVersions(filepath.Join(gi.Dir, OutDir))
@@ -132,6 +133,28 @@ func Register(r *registry.Registry) {
 			return nil, err
 		}
 		out = append(out, registry.GeneratedFile{Path: OutDir + "/" + manifestName, Content: manifest, Ignored: true})
+		return out, nil
+	}}); err != nil {
+		panic(err)
+	}
+}
+
+// asyncAPIDir is where `heron generate asyncapi` writes its documents.
+const asyncAPIDir = ".heron/asyncapi"
+
+func registerAsyncAPI(r *registry.Registry) {
+	if err := r.SetGenerator(registry.Generator{Path: "docs.asyncapi", Target: "asyncapi", OnRequest: true, Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
+		gi := in.(*gen.Input)
+		var out []registry.GeneratedFile
+		docs := AsyncAPI(gi.Tree, gi.Checker)
+		names := make([]string, 0, len(docs))
+		for n := range docs {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			out = append(out, registry.GeneratedFile{Path: asyncAPIDir + "/" + n, Content: docs[n], Ignored: true})
+		}
 		return out, nil
 	}}); err != nil {
 		panic(err)

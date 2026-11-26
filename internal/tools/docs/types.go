@@ -485,11 +485,26 @@ func (c *Ctx) usedBy(n *resolve.Node) {
 	if len(refs) == 0 {
 		return
 	}
+	// An anonymous node, such as a rule's clause, is listed as the named
+	// node that holds it, once.
+	var named []*resolve.Node
+	seen := map[*resolve.Node]bool{}
+	for _, r := range refs {
+		for r.Name == "" && r.Parent != nil {
+			r = r.Parent
+		}
+		if !seen[r] && r != n {
+			seen[r] = true
+			named = append(named, r)
+		}
+	}
+	if len(named) == 0 {
+		return
+	}
 	c.Heading(c.Level+1, Anchor(n)+".used_by", label("docs.heading.used_by"), "")
 	c.W(`<ul class="refs">`)
-	for _, r := range refs {
-		text := c.refText(r)
-		c.W(`<li>`, s.linkHTML(r, `<code>`+esc(text)+`</code>`, ""))
+	for _, r := range named {
+		c.W(`<li>`, s.linkHTML(r, esc(displayName(s, r)), ""))
 		if k := s.Checker.KindOf(r); k != nil {
 			c.W(` <span class="kind">`, esc(k.Name), `</span>`)
 		}

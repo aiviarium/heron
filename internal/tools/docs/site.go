@@ -41,7 +41,14 @@ type Options struct {
 	// Lens is the lens the site renders; nil renders everything, as the
 	// explore lens does.
 	Lens *lens.Lens
+	// ServedOps are the ops of the API the serving server publishes, as
+	// spec_server.preview, when `heron serve` serves the site; their pages
+	// offer Try it against the page's own origin.
+	ServedOps map[string]bool
 }
+
+// ServerAPI is the name of the API `heron serve` publishes.
+const ServerAPI = "spec_server"
 
 // Page is one page of the site.
 type Page struct {
@@ -371,6 +378,9 @@ func (s *Site) buildPages() {
 				continue
 			}
 			m, _ := httpRoute(s, op)
+			if m == "" && wsRoute(op) != "" {
+				m = "WS"
+			}
 			q := &Page{Node: op, File: s.fileFor(op), Title: displayName(s, op), Layout: "op", Area: ref, Parent: p, Method: m}
 			s.add(q)
 			p.Children = append(p.Children, q)
@@ -394,7 +404,27 @@ func (s *Site) buildPages() {
 		}
 		ref.Groups = append(ref.Groups, g)
 	}
-	typeGroup(label("docs.nav.types"), s.types)
+	// Types from more than one scope, such as an API's and a protocol's,
+	// group by the scope that declares them.
+	var scopes []*resolve.Node
+	byScope := map[*resolve.Node][]*resolve.Node{}
+	for _, t := range s.types {
+		if _, ok := byScope[t.Parent]; !ok {
+			scopes = append(scopes, t.Parent)
+		}
+		byScope[t.Parent] = append(byScope[t.Parent], t)
+	}
+	if len(scopes) > 1 {
+		for _, sc := range scopes {
+			title := label("docs.nav.types")
+			if sc != nil && sc != s.Tree.Root && sc.Name != "" {
+				title = label("docs.nav.types_in", "scope", displayName(s, sc))
+			}
+			typeGroup(title, byScope[sc])
+		}
+	} else {
+		typeGroup(label("docs.nav.types"), s.types)
+	}
 	typeGroup(label("docs.nav.errors"), s.errors)
 
 	s.Areas = append(s.Areas, docs)
