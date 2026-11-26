@@ -267,11 +267,11 @@ func (s *Site) isPageNode(n *resolve.Node, sectionDepth int) bool {
 	case s.authored(n):
 		return true
 	case k == "doc.section":
-		return sectionDepth < s.Config.Depth && s.hasContent(n)
+		return sectionDepth < s.depth() && s.hasContent(n)
 	case k == "types.api", k == "types.op", pageKinds[k]:
 		return true
 	case k == "" && n.Shape == resolve.ShapeScoped:
-		return s.hasDocs(n) && sectionDepth < s.Config.Depth && s.hasContent(n)
+		return s.hasDocs(n) && sectionDepth < s.depth() && s.hasContent(n)
 	}
 	return s.isTypeDecl(n)
 }
@@ -290,6 +290,15 @@ func (s *Site) hasDocs(n *resolve.Node) bool {
 		}
 	}
 	return false
+}
+
+// depth is how many levels of sections get pages: the lens's depth when
+// it sets one, else the docs block's.
+func (s *Site) depth() int {
+	if l := s.Opts.Lens; l != nil && l.Depth > 0 {
+		return l.Depth
+	}
+	return s.Config.Depth
 }
 
 func (s *Site) fileFor(n *resolve.Node) string {

@@ -8,6 +8,7 @@ package lens
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
@@ -63,6 +64,9 @@ type Lens struct {
 	Show, Summarize, Hide []*resolve.Node
 	// Entry lists the authored pages shown first.
 	Entry []*resolve.Node
+	// Depth is how many levels of sections get pages in the lens, in
+	// place of the docs block's; 0 when the lens doesn't set it.
+	Depth int
 }
 
 // Explore reports whether the lens shows everything.
@@ -97,6 +101,8 @@ func Read(c *types.Checker, n *resolve.Node) *Lens {
 			l.Hide = refList(c, ch.Value, site, nil)
 		case "entry":
 			l.Entry = refList(c, ch.Value, site, nil)
+		case "depth":
+			l.Depth, _ = strconv.Atoi(strings.TrimSpace(ch.Value.Syntax().Text()))
 		}
 	}
 	return l

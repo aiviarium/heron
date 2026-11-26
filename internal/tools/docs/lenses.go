@@ -58,7 +58,9 @@ func (s *Site) placed(n *resolve.Node) bool {
 	s.places[n] = false
 	v := false
 	if !s.marked(n) {
-		if s.kept(n) {
+		if s.kept(n) && !s.isContainer(n) {
+			v = true
+		} else if s.kept(n) && s.ownProseShown(n) {
 			v = true
 		} else {
 			for _, ch := range n.Children {
@@ -74,6 +76,27 @@ func (s *Site) placed(n *resolve.Node) bool {
 	}
 	s.places[n] = v
 	return v
+}
+
+// isContainer reports whether a node is a section or a folder scope: a
+// node the lens shows only when it shows something of it, its prose or a
+// node below it.
+func (s *Site) isContainer(n *resolve.Node) bool {
+	k := s.kindPath(n)
+	return k == "doc.section" || k == "" && n.Shape == resolve.ShapeScoped
+}
+
+// ownProseShown reports whether a node's own text shows in the lens.
+func (s *Site) ownProseShown(n *resolve.Node) bool {
+	if len(n.Docs) > 0 {
+		return true
+	}
+	for _, p := range n.Prose {
+		if s.runShown(n, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // hidden reports whether a node has no place in the lens.

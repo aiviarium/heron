@@ -77,19 +77,24 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     nav: LensNav
     /// Authored pages shown first.
     entry?: List(Ref(Any))
+    /// How many levels of sections get pages of their own in the lens, in
+    /// place of the docs block's `depth`.
+    depth?: Int
     /// The URL path segment the lens is served under; "" for the default.
     prefix: String
   }
 
   /// For the people who use what a tree describes: the authored pages
   /// first, then the commands, examples, terms and errors they act on,
-  /// without the rules that bind an implementation or the tree's sections.
+  /// without the rules that bind an implementation or the tree's sections,
+  /// with a page per part of the tree rather than per concern.
   user: lens {
     title = "User"
     default = true
     nav = LensNav.TASK
     show = [authored, step, spec.example, doc.term, tech.command, tech.argument, tech.option, tech.exit, tech.diagnostic]
     hide = [spec.rule, spec.condition, tech.production, tech.invariant]
+    depth = 2
     prefix = ""
   }
 
