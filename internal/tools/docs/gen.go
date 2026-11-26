@@ -2,7 +2,9 @@ package docs
 
 import (
 	"context"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/aiviarium/heron/internal/core/rpc"
 	"io/fs"
@@ -10,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/aiviarium/heron/internal/core/gen"
 	"github.com/aiviarium/heron/internal/core/registry"
@@ -242,4 +245,23 @@ func removeStale(dir string, files []registry.GeneratedFile) ([]byte, error) {
 		}
 	}
 	return []byte(strings.Join(lines, "\n") + "\n"), nil
+}
+
+// assetVersions are the content hashes of the built-in assets, which the
+// pages put in the assets' URLs so a cache keeps an asset until it
+// changes.
+var assetVersions = sync.OnceValue(func() map[string]string {
+	out := map[string]string{}
+	for _, a := range Assets() {
+		out[a.Path] = contentVersion(a.Content)
+	}
+	return out
+})
+
+func assetVersion(path string) string { return assetVersions()[path] }
+
+// contentVersion is a short hash of a file's content.
+func contentVersion(b []byte) string {
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:6])
 }

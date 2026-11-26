@@ -157,6 +157,47 @@ func TestSpecBrowser(t *testing.T) {
 	}
 }
 
+// The docs under `heron serve` are cached as a static site's are: an asset
+// at its content's version is kept for good, and everything else is
+// revalidated with its ETag, so moving between pages fetches only the page.
+func TestSpecBrowserCaching(t *testing.T) {
+	ts, _ := petstore(t)
+	head := func(url, etag string) *http.Response {
+		t.Helper()
+		req, _ := http.NewRequest("GET", url, nil)
+		if etag != "" {
+			req.Header.Set("If-None-Match", etag)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+		return res
+	}
+	_, page := get(t, ts.URL+"/docs/")
+	i := strings.Index(page, "/docs/_assets/docs.css?v=")
+	if i < 0 {
+		t.Fatalf("the stylesheet's URL has no version: %.400q", page)
+	}
+	versioned := page[i : i+strings.IndexByte(page[i:], '"')]
+	if res := head(ts.URL+versioned, ""); res.StatusCode != 200 || !strings.Contains(res.Header.Get("Cache-Control"), "immutable") {
+		t.Errorf("%s: %d %q", versioned, res.StatusCode, res.Header.Get("Cache-Control"))
+	}
+	for _, p := range []string{"/docs/", "/docs/_assets/data.js", "/docs/_assets/docs.css"} {
+		res := head(ts.URL+p, "")
+		tag := res.Header.Get("ETag")
+		if res.StatusCode != 200 || tag == "" || res.Header.Get("Cache-Control") != "no-cache" {
+			t.Errorf("%s: %d etag %q cache %q", p, res.StatusCode, tag, res.Header.Get("Cache-Control"))
+			continue
+		}
+		if again := head(ts.URL+p, tag); again.StatusCode != http.StatusNotModified {
+			t.Errorf("%s with its ETag: %d, not 304", p, again.StatusCode)
+		}
+	}
+}
+
 func TestExtensionRoutesAreMounted(t *testing.T) {
 	ts, s := petstore(t)
 	if code, body := get(t, ts.URL+"/api/v1/sample/echo/ab?times=3"); code != 200 || !strings.Contains(body, `"ababab"`) {
