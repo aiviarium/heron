@@ -3,6 +3,7 @@ package docs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aiviarium/heron/internal/core/jsonnames"
 	"net/url"
 	"strconv"
 	"strings"
@@ -258,6 +259,8 @@ func (c *Ctx) rpcBody(op *resolve.Node, b string, first bool) {
 		c.rpcErrors(op, me.Errors, b, first)
 	case bindJSONRPC:
 		jm := m.JSONMethod(op)
+		s.jsonCase = jm.API.Case
+		defer func() { s.jsonCase = "" }()
 		c.subHeading(id+".params", label("docs.heading.params"), "", first)
 		c.jsonParams(jm)
 		if !jm.Notification {
@@ -381,7 +384,7 @@ func (c *Ctx) jsonParams(jm *rpc.JSONMethod) {
 		if jm.ByPosition {
 			c.W(`<span class="fnum">`, strconv.Itoa(i), `</span> `)
 		}
-		c.W(`<code class="fname">`, esc(p.name), `</code> <code class="t">`, p.typ.html, `</code>`)
+		c.W(`<code class="fname">`, esc(jm.Params[i].Wire), `</code> <code class="t">`, p.typ.html, `</code>`)
 		if !p.optional {
 			c.W(` <span class="badge req">`, esc(label("docs.badge.required")), `</span>`)
 		}
@@ -913,12 +916,49 @@ func jsonEnvelope(jm *rpc.JSONMethod, params any) *omap {
 	return env
 }
 
+// wireValue writes an example's value with each record's fields by their
+// names in JSON, as std/json's @key and @keys and the api's case say.
+func (s *Site) wireValue(x texpr, v any, apiCase string) any {
+	switch val := v.(type) {
+	case []any:
+		el := x
+		if len(x.args) == 1 {
+			el = x.args[0]
+		}
+		out := make([]any, len(val))
+		for i, e := range val {
+			out[i] = s.wireValue(el, e, apiCase)
+		}
+		return out
+	case *omap:
+		t := x.decl
+		if t == nil || !s.isTypeDecl(t) {
+			return v
+		}
+		ms := s.members(t, s.envFor(x))
+		out := &omap{}
+		for _, k := range val.keys {
+			name, ft := k, texpr{}
+			for _, m := range ms {
+				if m.name == k {
+					name, ft = jsonnames.Member(m.node, t, apiCase), m.typ
+				}
+			}
+			out.set(name, s.wireValue(ft, val.vals[k], apiCase))
+		}
+		return out
+	}
+	return v
+}
+
 // jsonParamsOf is an example's params as the method sends them.
-func jsonParamsOf(jm *rpc.JSONMethod, o *opInfo, ex *opExample) any {
+func (s *Site) jsonParamsOf(jm *rpc.JSONMethod, o *opInfo, ex *opExample) any {
 	if jm.Whole != nil {
 		if ex != nil {
-			if v, ok := ex.values[jm.Whole.Name]; ok {
-				return v
+			for _, p := range o.params {
+				if v, ok := ex.values[p.name]; ok && p.name == jm.Whole.Name {
+					return s.wireValue(p.typ, v, jm.API.Case)
+				}
 			}
 		}
 		return &omap{}
@@ -936,7 +976,7 @@ func jsonParamsOf(jm *rpc.JSONMethod, o *opInfo, ex *opExample) any {
 			if !ok {
 				break
 			}
-			out = append(out, v)
+			out = append(out, s.wireValue(p.typ, v, jm.API.Case))
 		}
 		if out == nil {
 			out = []any{}
@@ -944,12 +984,12 @@ func jsonParamsOf(jm *rpc.JSONMethod, o *opInfo, ex *opExample) any {
 		return out
 	}
 	m := &omap{}
-	for _, p := range o.params {
+	for i, p := range o.params {
 		if ex == nil {
 			continue
 		}
 		if v, ok := ex.values[p.name]; ok {
-			m.set(p.name, v)
+			m.set(jm.Params[i].Wire, s.wireValue(p.typ, v, jm.API.Case))
 		}
 	}
 	return m
@@ -1042,7 +1082,7 @@ func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
 			list = []*opExample{o.skeletonExample(s)}
 		}
 		for _, ex := range list {
-			je := jsonEx{req: jsonEnvelope(jm, jsonParamsOf(jm, o, ex))}
+			je := jsonEx{req: jsonEnvelope(jm, s.jsonParamsOf(jm, o, ex))}
 			if ex.node != nil {
 				je.name, je.node = displayName(s, ex.node), ex.node
 			}
@@ -1077,7 +1117,7 @@ func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
 					r.set("error", eo)
 					je.status = "error"
 				case ex.hasRet:
-					r.set("result", ex.returns)
+					r.set("result", s.wireValue(o.returns, ex.returns, jm.API.Case))
 				case jm.NullResult:
 					r.set("result", nil)
 				}

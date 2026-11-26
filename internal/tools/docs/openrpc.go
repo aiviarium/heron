@@ -2,6 +2,7 @@ package docs
 
 import (
 	"encoding/json"
+	"github.com/aiviarium/heron/internal/core/jsonnames"
 	"strconv"
 
 	"github.com/aiviarium/heron/internal/core/resolve"
@@ -25,6 +26,8 @@ func OpenRPC(tree *resolve.Tree, c *types.Checker) map[string][]byte {
 
 func (s *Site) openRPC(api *resolve.Node) *omap {
 	j := s.rpc().JSONAPIOf(api)
+	s.jsonCase = j.Case
+	defer func() { s.jsonCase = "" }()
 	doc := &omap{}
 	doc.set("openrpc", "1.3.2")
 	info := &omap{}
@@ -77,16 +80,16 @@ func (s *Site) openRPC(api *resolve.Node) *omap {
 				}
 				for _, mem := range s.members(p.typ.decl, s.envFor(p.typ)) {
 					cd := &omap{}
-					cd.set("name", mem.name)
+					cd.set("name", jsonnames.Member(mem.node, p.typ.decl, j.Case))
 					cd.set("required", !mem.optional && !mem.typ.optional && mem.def == nil)
 					cd.set("schema", s.schemaOf(mem.typ, ref))
 					params = append(params, cd)
 				}
 			}
 		} else {
-			for _, p := range o.params {
+			for i, p := range o.params {
 				cd := &omap{}
-				cd.set("name", p.name)
+				cd.set("name", jm.Params[i].Wire)
 				cd.set("required", !p.optional)
 				if p.doc != nil {
 					cd.set("description", plainText(s.renderText([]resolve.Site{{File: p.site.File, N: p.doc, Scope: p.site.Scope}})))
@@ -135,6 +138,7 @@ func (s *Site) openRPC(api *resolve.Node) *omap {
 				if !ok {
 					continue
 				}
+				v = s.wireValue(p.typ, v, j.Case)
 				if jm.Whole != nil {
 					if mm, ok := v.(*omap); ok {
 						for _, k := range mm.keys {
@@ -147,7 +151,7 @@ func (s *Site) openRPC(api *resolve.Node) *omap {
 					continue
 				}
 				pp := &omap{}
-				pp.set("name", p.name)
+				pp.set("name", jsonnames.Apply(p.name, j.Case))
 				pp.set("value", v)
 				ps = append(ps, pp)
 			}
@@ -158,7 +162,7 @@ func (s *Site) openRPC(api *resolve.Node) *omap {
 			if ex.hasRet {
 				r := &omap{}
 				r.set("name", "result")
-				r.set("value", ex.returns)
+				r.set("value", s.wireValue(o.returns, ex.returns, j.Case))
 				eo.set("result", r)
 			} else if ex.throws != nil {
 				continue // OpenRPC pairs a result, not an error

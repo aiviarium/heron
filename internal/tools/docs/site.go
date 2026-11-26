@@ -132,6 +132,9 @@ type Site struct {
 	specLenses *Lenses
 	// rpcModel is the tree's RPC projection, built on first use.
 	rpcModel *rpc.Model
+	// jsonCase is the case of names in JSON an api's @keys sets, while
+	// one api's description is written.
+	jsonCase string
 
 	// modes memoizes how the lens renders each node; lenses is the set
 	// of lens sites this one belongs to, if any.

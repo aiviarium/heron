@@ -2,6 +2,7 @@ package docs
 
 import (
 	"encoding/json"
+	"github.com/aiviarium/heron/internal/core/jsonnames"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/resolve"
@@ -235,7 +236,7 @@ func (s *Site) typeSchema(t *resolve.Node, ref func(*resolve.Node)) *omap {
 				}
 			}
 		}
-		props.set(m.name, sc)
+		props.set(jsonnames.Member(m.node, t, s.jsonCase), sc)
 		if !m.optional && !m.typ.optional && m.def == nil {
 			required = append(required, m.name)
 		}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/aiviarium/heron/internal/core/jsonnames"
 	"path"
 	"sort"
 	"strconv"
@@ -238,19 +239,102 @@ func (m *Machine) shape(v Value, t TypeValue) (Value, error) {
 		return v, nil
 	}
 	if mp, ok := v.(map[string]Value); ok && m.Types.IsType(t.Node) {
-		return &Record{Type: t.Node.Name, Fields: mp}, nil
+		// Fields arrive by their names in JSON, as @json names them.
+		names := m.jsonNames(t.Node)
+		fields := make(map[string]Value, len(mp))
+		for k, x := range mp {
+			name := k
+			for member, wire := range names {
+				if wire == k {
+					name = member
+				}
+			}
+			fields[name] = x
+		}
+		return &Record{Type: t.Node.Name, Fields: fields}, nil
 	}
 	return v, nil
 }
 
-func nativeEncode(_ context.Context, _ *Machine, args map[string]Value, _ *resolve.Node) (Value, error) {
+func nativeEncode(_ context.Context, m *Machine, args map[string]Value, _ *resolve.Node) (Value, error) {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)
-	if err := enc.Encode(Plain(args["value"])); err != nil {
+	if err := enc.Encode(Plain(m.toWire(args["value"]))); err != nil {
 		return nil, Thrown("EncodeError", map[string]Value{"message": err.Error()})
 	}
 	return strings.TrimSuffix(b.String(), "\n"), nil
+}
+
+// jsonNames maps each member of a declared type to its name in JSON, as
+// std/json's @json names it.
+func (m *Machine) jsonNames(t *resolve.Node) map[string]string {
+	out := map[string]string{}
+	var collect func(n *resolve.Node, depth int)
+	collect = func(n *resolve.Node, depth int) {
+		if depth > 8 {
+			return
+		}
+		for _, ch := range n.Children {
+			if ch.Name == "" {
+				continue
+			}
+			if _, ok := out[ch.Name]; !ok {
+				out[ch.Name] = jsonnames.Member(ch, t, "")
+			}
+		}
+		for _, i := range m.Types.Implements(n) {
+			collect(i, depth+1)
+		}
+	}
+	collect(t, 0)
+	return out
+}
+
+// toWire renames each record's fields to their names in JSON.
+func (m *Machine) toWire(v Value) Value {
+	switch x := v.(type) {
+	case []Value:
+		out := make([]Value, len(x))
+		for i, e := range x {
+			out[i] = m.toWire(e)
+		}
+		return out
+	case map[string]Value:
+		out := make(map[string]Value, len(x))
+		for k, e := range x {
+			out[k] = m.toWire(e)
+		}
+		return out
+	case *Record:
+		names := map[string]string{}
+		if t := m.typeNamed(x.Type); t != nil {
+			names = m.jsonNames(t)
+		}
+		out := make(map[string]Value, len(x.Fields))
+		for k, e := range x.Fields {
+			if w, ok := names[k]; ok {
+				k = w
+			}
+			out[k] = m.toWire(e)
+		}
+		return out
+	}
+	return v
+}
+
+// typeNamed finds a type the tree declares by its name.
+func (m *Machine) typeNamed(name string) *resolve.Node {
+	if m.Tree == nil {
+		return nil
+	}
+	var found *resolve.Node
+	m.Tree.Walk(func(n *resolve.Node) {
+		if found == nil && n.Name == name && m.Types.IsType(n) {
+			found = n
+		}
+	})
+	return found
 }
 
 // --- members and methods of values ---

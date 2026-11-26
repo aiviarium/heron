@@ -15,6 +15,21 @@ json: package(version = "1.0", requires = ["std/types@1"]) {
     message: String
   }
 
+  /// How a type's field names are written in JSON.
+  Case: enum {
+    /// As the members are named.
+    as_written: Self
+    /// In lower camel case, as line_number is lineNumber.
+    camel: Self
+  }
+
+  /// A member's or a parameter's name in JSON.
+  key(name: String): annotation(on = [types.member, types.param])
+
+  /// The case of a type's field names in JSON; on an api, of its ops'
+  /// parameters and of every type they reach that sets none.
+  keys(case: Case): annotation(on = [types.type, types.api])
+
   /// Reads JSON text as a value of a type.
   @throws(DecodeError)
   decode(type: Any, text: String): func(Any)

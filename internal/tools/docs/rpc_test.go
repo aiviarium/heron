@@ -243,3 +243,46 @@ func TestRPCGenerators(t *testing.T) {
 		t.Error("proto ran without being asked for")
 	}
 }
+
+// An api's @keys(camel) names its JSON-RPC params and their fields in lower
+// camel case, in the docs and in the OpenRPC document.
+func TestJSONRPCNames(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "index.heron"), []byte(`import = ["std/types@1", "std/jsonrpc@1", "std/json@1"]
+
+@jsonrpc(framing = content_length)
+@keys(camel)
+ls: api {
+  @jsonrpc("textDocument/hover")
+  hover(@params p: HoverParams): op(Hover) {
+    over_a_name: example {
+      p = HoverParams(text_document = "file:///a.heron", line_number = 3)
+      returns = Hover(contents = "A name")
+    }
+  }
+  @jsonrpc("textDocument/didClose")
+  did_close(text_document: String): op
+}
+
+HoverParams: type {
+  text_document: String
+  @key("line")
+  line_number: Int
+}
+
+Hover: type { contents: String }
+`), 0o644)
+	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
+	h := f["ls.hover.html"]
+	mustHave(t, "hover", h, `<code class="fname">textDocument</code>`, `&#34;textDocument&#34;`, `&#34;line&#34;`, `Content-Length</span>`)
+	mustNotHave(t, "hover", h, `&#34;text_document&#34;`)
+	mustHave(t, "did_close", f["ls.did_close.html"], `<code class="fname">textDocument</code>`, `Notification`)
+	id, _ := resolve.Canonical(filepath.Join(dir, "index.heron"))
+	res := check.NewSession().Check(id)
+	doc := string(OpenRPC(res.Tree, res.Checker)["ls.json"])
+	for _, want := range []string{`"name": "textDocument"`, `"name": "line"`, `"value": "file:///a.heron"`, `"contents"`} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("OpenRPC lacks %s:\n%s", want, doc)
+		}
+	}
+}

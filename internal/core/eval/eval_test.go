@@ -465,6 +465,32 @@ enc: func(String) do {
 	want(t, h.mustCall("enc", nil), `{"n":2,"name":"<a&b>","ok":true,"tags":["x"]}`)
 }
 
+// json.encode and json.decode name a record's fields as std/json's
+// @json says: a member's own name, or its type's case.
+func TestJSONNames(t *testing.T) {
+	src := `import = ["std/types@1", "std/json@1"]
+
+@keys(camel)
+Position: type {
+  line_number: Int
+  @key("char")
+  character_offset: Int
+}
+
+enc: func(String) do {
+  return json.encode(Position(line_number = 2, character_offset = 5))
+}
+
+dec: func(Int) do {
+  let p = json.decode(Position, "{\"lineNumber\": 7, \"char\": 1}")
+  return p.line_number
+}
+`
+	h := load(t, src, nil)
+	want(t, h.mustCall("enc", nil), `{"char":5,"lineNumber":2}`)
+	want(t, h.mustCall("dec", nil), int64(7))
+}
+
 // The edges of values, members, loops, calls and failures that the
 // Scripting section's code rules name.
 func TestCodeEdges(t *testing.T) {

@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"github.com/aiviarium/heron/internal/core/jsonnames"
 	"path/filepath"
 	"strings"
 
@@ -589,7 +590,11 @@ func (c *Ctx) schemaTree(x texpr, stack []*resolve.Node, depth int) {
 func (c *Ctx) schemaRow(m member) string {
 	s := c.Site
 	var b strings.Builder
-	b.WriteString(`<span class="row-main"><code class="fname">` + esc(m.name) + `</code> <code class="t">` + m.typ.html + `</code>`)
+	name := m.name
+	if m.node != nil && m.node.Parent != nil {
+		name = jsonnames.Member(m.node, m.node.Parent, s.jsonCase)
+	}
+	b.WriteString(`<span class="row-main"><code class="fname">` + esc(name) + `</code> <code class="t">` + m.typ.html + `</code>`)
 	switch {
 	case !m.optional && m.def == nil:
 		b.WriteString(` <span class="badge req">` + esc(label("docs.badge.required")) + `</span>`)

@@ -7,6 +7,8 @@ package rpc
 
 import (
 	"fmt"
+
+	"github.com/aiviarium/heron/internal/core/jsonnames"
 	"regexp"
 	"sort"
 	"strconv"
@@ -212,6 +214,8 @@ type JSONAPI struct {
 	Methods  []*JSONMethod
 	// Bound reports whether the api's own @jsonrpc binds every op.
 	Bound bool
+	// Case is the case std/json's @keys sets for the api's names in JSON.
+	Case string
 }
 
 // JSONMethod is one op as a JSON-RPC method.
@@ -231,7 +235,9 @@ type JSONMethod struct {
 
 // JSONParam is a parameter of a JSON-RPC method.
 type JSONParam struct {
-	Name     string
+	Name string
+	Wire string // its name in params, by name
+
 	Type     Type
 	Optional bool
 	Doc      string
@@ -1362,7 +1368,7 @@ func (m *Model) buildJSON(api *resolve.Node) {
 	as := r.annsOf(api)
 	ja := find(as, "jsonrpc", "jsonrpc")
 	ops := m.opsOf(api)
-	j := &JSONAPI{API: api, Framing: "http", Encoding: "json", Servers: m.servers(as), Bound: ja != nil}
+	j := &JSONAPI{API: api, Framing: "http", Encoding: "json", Servers: m.servers(as), Bound: ja != nil, Case: jsonnames.Case(api)}
 	apiPositional := false
 	if ja != nil {
 		if e := arg(ja.a, 0, "method"); e != nil {
@@ -1422,7 +1428,7 @@ func (m *Model) buildJSON(api *resolve.Node) {
 			m.errorf(op.Decl, "jsonrpc", "%s streams, and a JSON-RPC method answers once", op.Name)
 		}
 		for _, p := range params {
-			jp := JSONParam{Name: p.name, Type: p.typ, Optional: p.optional, Doc: p.doc}
+			jp := JSONParam{Name: p.name, Wire: jsonnames.Param(p.syn, j.Case), Type: p.typ, Optional: p.optional, Doc: p.doc}
 			whole := false
 			for _, a := range p.anns {
 				x := r.annAt(a, p.site)
