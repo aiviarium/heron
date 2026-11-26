@@ -43,7 +43,7 @@ parcels: api {
         status = ParcelStatus.IN_TRANSIT,
         weight_grams = 1200,
         destination = Destination(locker = Locker(code = "LEJ-17")),
-        labels = { "fragile" = "yes" },
+        labels = { fragile = "yes" },
       )
     }
 
