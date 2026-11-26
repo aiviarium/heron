@@ -51,7 +51,7 @@ export const values = {
     "topbar": "44px",
     "sidebar": "248px",
     "aside": "300px",
-    "measure": "38em",
+    "measure": "570px",
     "border": "1px",
     "focus": "2px",
   },

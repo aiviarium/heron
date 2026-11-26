@@ -162,8 +162,12 @@ func tokenClassTok(t *syntax.Token, prev *syntax.Token, parent *syntax.Node) str
 		return "tk-num"
 	case syntax.At:
 		return "tk-ann"
-	case syntax.DocPrefix, syntax.Pipe:
+	case syntax.DocPrefix:
 		return "tk-comment"
+	case syntax.Pipe:
+		// A prose line's marker is punctuation; its text is prose, which
+		// reads at the text colour, as prose does outside code.
+		return "tk-punct"
 	case syntax.Text, syntax.CodeSpan:
 		if parent != nil && (parent.Kind == syntax.DocLine) {
 			return "tk-comment"
