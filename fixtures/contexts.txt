@@ -32,4 +32,3 @@ language.specifications.projects.specifications_projects         specifications
 language.specifications.projects.specifications_versioning       specifications
 language.specifications.requirements.specifications_example      specifications
 tools.docs.extending.docs_configuration                          docs
-tools.server.api.base_api                                        server
