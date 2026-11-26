@@ -18,13 +18,17 @@ type SpecExample struct {
 }
 
 var (
-	exampleOpenRE = regexp.MustCompile(`^(\s*)([A-Za-z_][A-Za-z0-9_]*): example \{\s*$`)
-	proseFenceRE  = regexp.MustCompile("^(`{3,}|~{3,})([^`\\s]*)$")
+	exampleOpenRE    = regexp.MustCompile(`^(\s*)([A-Za-z_][A-Za-z0-9_]*): example \{\s*$`)
+	exampleElementRE = regexp.MustCompile(`^\s*<example\s+id="([A-Za-z_][A-Za-z0-9_]*)"`)
+	proseFenceRE     = regexp.MustCompile("^(`{3,}|~{3,})([^`\\s]*)$")
 )
 
 // SpecExamples returns the fenced code blocks held in the `|` lines of the
 // `name: example { … }` nodes of a Heron file, with the `|` prefix removed.
 func SpecExamples(file, src string) []SpecExample {
+	if strings.HasSuffix(file, ".heron.md") {
+		return elementExamples(file, src)
+	}
 	var out []SpecExample
 	lines := strings.Split(src, "\n")
 	for i := 0; i < len(lines); i++ {
@@ -79,4 +83,60 @@ func SpecFiles(root string) ([]string, error) {
 	})
 	sort.Strings(out)
 	return out, err
+}
+
+// elementExamples returns the fenced code blocks of the `<example id="…">`
+// elements of a prose file, as written, up to each one's `</example>`.
+func elementExamples(file, src string) []SpecExample {
+	var out []SpecExample
+	lines := strings.Split(src, "\n")
+	for i := 0; i < len(lines); i++ {
+		m := exampleElementRE.FindStringSubmatch(lines[i])
+		if m == nil {
+			continue
+		}
+		name, nameLine := m[1], i+1
+		var fence, lang string
+		var body strings.Builder
+		start := 0
+		for i++; i < len(lines) && strings.TrimSpace(lines[i]) != "</example>"; i++ {
+			text := lines[i]
+			switch {
+			case fence == "" && proseFenceRE.MatchString(strings.TrimSpace(text)):
+				fm := proseFenceRE.FindStringSubmatch(strings.TrimSpace(text))
+				fence, lang = fm[1], fm[2]
+				body.Reset()
+				start = i + 2
+			case fence != "" && strings.TrimSpace(text) == fence:
+				out = append(out, SpecExample{File: file, Name: name, NameLine: nameLine, Line: start, Lang: lang, Content: body.String()})
+				fence = ""
+			case fence != "":
+				body.WriteString(text)
+				body.WriteString("\n")
+			}
+		}
+	}
+	return out
+}
+
+// InFence reports, for each line of a prose file, whether it's inside a
+// fenced block, where a line that reads like a declaration is code.
+func InFence(src string) []bool {
+	lines := strings.Split(src, "\n")
+	out := make([]bool, len(lines))
+	fence := ""
+	for i, l := range lines {
+		t := strings.TrimSpace(l)
+		switch {
+		case fence == "" && proseFenceRE.MatchString(t):
+			fence = proseFenceRE.FindStringSubmatch(t)[1]
+			out[i] = true
+		case fence != "":
+			out[i] = true
+			if t == fence {
+				fence = ""
+			}
+		}
+	}
+	return out
 }

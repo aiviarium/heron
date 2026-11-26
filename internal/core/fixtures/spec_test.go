@@ -51,8 +51,18 @@ func TestFixturesAreTheSpecExamples(t *testing.T) {
 		for _, ex := range SpecExamples(f, string(src)) {
 			held[ex.NameLine] = true
 		}
+		fenced := make([]bool, strings.Count(string(src), "\n")+1)
+		if strings.HasSuffix(f, ".heron.md") {
+			fenced = InFence(string(src))
+		}
 		for i, line := range strings.Split(string(src), "\n") {
-			if m := exampleOpenRE.FindStringSubmatch(line); m != nil && !held[i+1] {
+			m := exampleOpenRE.FindStringSubmatch(line)
+			if m == nil && strings.HasSuffix(f, ".heron.md") {
+				if em := exampleElementRE.FindStringSubmatch(line); em != nil {
+					m = []string{"", "", em[1]}
+				}
+			}
+			if m != nil && !held[i+1] && !fenced[i] {
 				rel, _ := filepath.Rel(dir, f)
 				t.Errorf("%s:%d: example %s holds no code block", rel, i+1, m[2])
 			}

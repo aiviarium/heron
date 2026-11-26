@@ -222,6 +222,11 @@ func nameLine(n *resolve.Node) int {
 	}
 	src := n.Decl.File.Src
 	start, end := n.Decl.Span()
+	if n.Decl.N.Kind == syntax.Tag {
+		// A kind element: the line its head starts on.
+		l, _ := syntax.LineCol(src, start)
+		return l
+	}
 	for off := start; off < end; {
 		eol := strings.IndexByte(src[off:end], '\n')
 		line := src[off:end]
