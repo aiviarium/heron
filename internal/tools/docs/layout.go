@@ -432,7 +432,11 @@ const navScrollScript = `<script>(function(){var n=document.currentScript.previo
 
 // themeScript applies the reader's chosen theme before the stylesheet
 // and the first paint; without one the system's preference holds.
-const themeScript = `<script>try{var t=localStorage.getItem("heron-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}</script>`
+// themeScript also settles the promises of a page transition the browser
+// skips (as it does for pages opened from file://), so a skipped
+// transition is never an unhandled rejection.
+const themeScript = `<script>try{var t=localStorage.getItem("heron-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}` +
+	`["pageswap","pagereveal"].forEach(function(k){addEventListener(k,function(e){var v=e.viewTransition;if(v){[v.ready,v.finished,v.updateCallbackDone].forEach(function(q){q&&q.catch(function(){})})}})})</script>`
 
 // speculationRules prefetches a page of the site when the reader is about
 // to follow a link to it (on hover or pointer down), so the next page is
