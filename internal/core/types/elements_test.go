@@ -80,3 +80,35 @@ s: section {
 	}
 	t.Errorf("no element-code diagnostic: %v", ds)
 }
+
+// A variadic parameter's attribute gives its arguments in order, before
+// the named ones: `targets="ok"` is `rule(ok, …)` and `targets={[ok, ok.a]}`
+// is `rule(ok, ok.a, …)`.
+func TestElementVariadicAttribute(t *testing.T) {
+	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1", "std/product@1"]
+
+desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
+
+ok: section {
+  a: term {{ A word. }}
+
+  | <rule id="one" by="desk" targets="ok"><must>refuse it</must></rule>
+  |
+  | <rule id="two" targets={[ok, ok.a]} by="desk"><must>refuse it</must></rule>
+}
+`})
+	if len(ds) != 0 {
+		t.Fatalf("diagnostics: %v", ds)
+	}
+	for name, want := range map[string]string{"one": "x(ok, by = desk)", "two": "x(ok, ok.a, by = desk)"} {
+		var got string
+		for _, n := range c.Tree.Root.Child("ok").Children {
+			if n.Name == name {
+				got = "x" + n.ElementArgs.N.Text()
+			}
+		}
+		if got != want {
+			t.Errorf("%s: args %q, want %q", name, got, want)
+		}
+	}
+}

@@ -111,7 +111,21 @@ func (c *Checker) elementArgs(tag ast.Tag, params []Param, sc *resolve.Scope, fi
 	var src strings.Builder
 	src.WriteString("x(")
 	var pieces []piece
-	for _, a := range tag.TagAttrs() {
+	// A variadic parameter's attribute is written first, as positional
+	// arguments: `targets="a"` is `x(a)`, and `targets={[a, b]}` is `x(a, b)`.
+	variadic := func(a ast.TagAttr) bool {
+		p := findParam(params, a.Ident().Text)
+		return p != nil && p.Variadic
+	}
+	var attrs []ast.TagAttr
+	for _, pass := range []bool{true, false} {
+		for _, a := range tag.TagAttrs() {
+			if a.At() == nil && a.Ident() != nil && variadic(a) == pass {
+				attrs = append(attrs, a)
+			}
+		}
+	}
+	for _, a := range attrs {
 		if a.At() != nil || a.Ident() == nil || a.Ident().Text == "id" {
 			continue
 		}
@@ -139,7 +153,13 @@ func (c *Checker) elementArgs(tag ast.Tag, params []Param, sc *resolve.Scope, fi
 		if len(pieces) > 0 {
 			src.WriteString(", ")
 		}
-		src.WriteString(name + " = ")
+		if variadic(a) {
+			if a.LBrace() != nil && strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]") {
+				val, at = val[1:len(val)-1], at+1
+			}
+		} else {
+			src.WriteString(name + " = ")
+		}
 		pieces = append(pieces, piece{text: val, from: src.Len(), at: at, attrOffset: as})
 		src.WriteString(val)
 	}
