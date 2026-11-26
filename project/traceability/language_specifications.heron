@@ -57,6 +57,10 @@ language_specifications: section {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
   }
 
+  proves(heron.language.specifications.requirements.no_repeated_connective) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
+  }
+
   proves(heron.language.specifications.requirements.subject_words) {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
     verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")

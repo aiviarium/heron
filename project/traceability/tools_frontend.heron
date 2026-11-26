@@ -1,6 +1,10 @@
 tools_frontend: section {
   | The tests that prove the requirements of the spec's [tools.frontend](#heron.tools.frontend).
 
+  proves(heron.tools.frontend.design_system.typography.prose_in_code) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestProseInCode")
+  }
+
   proves(heron.tools.frontend.design_system.tokens.one_source) {
     verify("web/tokens/tokens_test.go", test = "TestGeneratedFilesAreCurrent")
   }

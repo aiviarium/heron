@@ -111,26 +111,33 @@ func TestLensSwitcher(t *testing.T) {
 	mustHave(t, "dev glossary switcher", sw.FindString(f["dev/_glossary.html"]), `href="../_glossary.html"`)
 }
 
-// The user lens opens on its tasks: the root's prose marked for it and a
-// tile per authored page, its navigation the authored pages by kind and
-// then the reference; it shows commands, terms, examples and diagnostics
-// as errors with their fixes, and leaves out rules and the tree's section
-// prose, keeping a section's heading where it holds what it shows.
+// The user lens opens on its tasks: the root's prose marked for it, its
+// first tutorial as the primary link and a group per group of its
+// navigation, which lists the authored pages by kind, then the reference
+// with the errors and the glossary, and a page holding only authored pages
+// once; it shows commands, terms, examples and diagnostics as errors with
+// their fixes, and leaves out rules and the tree's section prose, keeping
+// a section's heading where it holds what it shows.
 func TestUserLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	home := f["index.html"]
-	mustHave(t, "user home", home, "Kite syncs a folder of notes", `class="tile"`, `href="kite.start.html"`, `href="kite.set_up_store.html"`, `href="kite.first_sync.html"`)
-	mustNotHave(t, "user home", home, "The spec of Kite 1.4")
+	mustHave(t, "user home", home, "Kite syncs a folder of notes",
+		`<a class="home-primary" href="kite.first_sync.html"><span class="home-primary-title">First sync</span><span class="home-primary-text">Build a notes folder from nothing and keep it in sync.</span>`,
+		`<h2 class="home-group-title">How-to guides</h2>`, `href="kite.start.html"`, `href="kite.set_up_store.html"`,
+		`<h2 class="home-group-title">Reference</h2>`, `href="kite.cli.html"`, `href="_diagnostics.html"><span class="home-link-title">Errors</span>`, `href="_glossary.html"`,
+		`<span class="home-link-text">Keep the folder small: Kite copies changed notes only, so a large folder syncs as fast as a small one.</span>`)
+	mustNotHave(t, "user home", home, "The spec of Kite 1.4", `<h2 class="home-group-title">Tutorials</h2>`, `class="tile"`)
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(home)
-	order := []string{">Guides<", ">Start<", ">Tutorials<", ">First sync<", ">How-to guides<", ">Set up store<", ">Concepts<", ">Conflicts<", ">Reference<", ">CLI<"}
-	last := -1
+	mustNotHave(t, "user nav", nav, ">More<")
+	order := []string{">Guides<", ">Start<", ">Tutorials<", ">First sync<", ">How-to guides<", ">Set up store<", ">Concepts<", ">Tips<", ">Conflicts<", ">Reference<", ">CLI<", ">Errors<", ">Glossary<"}
+	rest := nav[strings.Index(nav, `class="nav-group"`):]
 	for _, o := range order {
-		i := strings.Index(nav, o)
-		if i < 0 || i < last {
+		i := strings.Index(rest, o)
+		if i < 0 {
 			t.Errorf("navigation order at %s: %s", o, nav)
 			break
 		}
-		last = i
+		rest = rest[i:]
 	}
 	sync := f["kite.sync.html"]
 	mustHave(t, "user sync", sync, `<code class="diag-code">unreadable</code> <span class="diag-message">`, `class="diag-fix">A note Kite can&#39;t read`, "conflict")
@@ -140,6 +147,13 @@ func TestUserLens(t *testing.T) {
 	}
 	mustHave(t, "user command", f["kite.cli.sync.html"], "--dry-run", "Lists what a sync would copy")
 	mustNotHave(t, "user command", f["kite.cli.sync.html"], "exit with status 1 when any note")
+	// The user lens's depth, 2, folds a third level onto its parent's page,
+	// which the docs block's depth, 3, gives a page in the other lenses.
+	if _, ok := f["kite.sync.retries.backoff.html"]; ok {
+		t.Error("a third-level section has a page in the user lens")
+	}
+	mustHave(t, "user retries", f["kite.sync.retries.html"], `id="kite.sync.retries.backoff"`, "The time a sync waits")
+	mustHave(t, "dev backoff", f["dev/kite.sync.retries.backoff.html"], "double the wait")
 	// Every authored page has a page in every lens that keeps it.
 	for _, p := range []string{"kite.start.html", "dev/kite.start.html", "explore/kite.start.html"} {
 		mustHave(t, p, f[p], `class="authored"`)
@@ -160,13 +174,28 @@ func TestLensMarksRender(t *testing.T) {
 }
 
 // The developer lens lists sections as topics and sums each rule up as
-// its sentence, which opens in place, after the nodes rendered in full.
+// its sentence, which opens in place; a page reads as its prose, its
+// rules, its terms, its sections and its diagnostics last, while explore
+// keeps the tree's order. Its home lists each topic's pages.
 func TestDeveloperLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	sync := f["dev/kite.sync.html"]
 	mustHave(t, "dev sync", sync, `<div class="rule rule-summary" id="kite.sync.no_deletes"><p class="sentence">`)
-	if strings.Index(sync, `id="kite.sync.unreadable"`) > strings.Index(sync, `id="kite.sync.copies_changed"`) {
-		t.Error("a summary line before a node rendered in full")
+	main := sync[strings.Index(sync, `id="main"`):]
+	order := []string{`id="kite.sync.copies_changed"`, `id="kite.sync.no_deletes"`, `id="kite.sync.conflict"`, `href="kite.sync.retries.html"`, `id="kite.sync.unreadable"`}
+	for i := 1; i < len(order); i++ {
+		if a, b := strings.Index(main, order[i-1]), strings.Index(main, order[i]); a < 0 || b < 0 || a > b {
+			t.Errorf("%s after %s", order[i-1], order[i])
+		}
+	}
+	ex := f["explore/kite.sync.html"]
+	if strings.Index(ex, `id="kite.sync.conflict"`) > strings.Index(ex, `id="kite.sync.copies_changed"`) {
+		t.Error("explore doesn't keep the tree's order")
+	}
+	mustHave(t, "dev home", f["dev/index.html"], `<h2 class="home-group-title"><a href="kite.cli.html">CLI</a></h2>`, `<a href="kite.cli.sync.html"><span class="home-link-title">kite sync</span><span class="home-link-text">Syncs a folder with its store, once.</span>`)
+	// A section whose only prose and pages are for users has no page here.
+	if _, ok := f["dev/kite.more.html"]; ok {
+		t.Error("an empty section has a page in the developer lens")
 	}
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
 	mustHave(t, "dev nav", nav, `<a class="label" href="kite.cli.html">CLI</a>`)
@@ -191,6 +220,8 @@ func TestLinksAcrossLenses(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	mustHave(t, "user concept", f["kite.conflicts.html"], `href="dev/kite.sync.html#kite.sync.keeps_both">the conflict rule`, `<span class="lens-tag">Developer</span>`)
 	mustNotHave(t, "dev concept", f["dev/kite.conflicts.html"], "lens-tag")
+	// A link the generator builds, as a rule's subject, carries no title.
+	mustHave(t, "dev sync", f["dev/kite.sync.html"], `<a class="ref subject" href="kite.system.html#kite.system.syncer">syncer</a>`)
 }
 
 // A rule reads as one paragraph: conditions, subject, strength, behaviour,
@@ -208,11 +239,19 @@ func TestRuleAsProse(t *testing.T) {
 		`<span class="rule-example">For example, removing <code>ideas.md</code> locally moves it to <code>trash/ideas.md</code>.</span>`)
 	mustNotHave(t, "rules", sync, `class="rule-more"`, `class="rule-head"`, `<dt>`)
 	dev := f["dev/kite.sync.html"]
-	// keeps_both targets the term conflict, not its section: a chip.
-	mustHave(t, "dev rules", dev, `class="ref chip ref-term"`)
-	if c := regexp.MustCompile(`id="kite.sync.copies_changed".*?</(details|div)>`).FindString(dev); strings.Contains(c, "chip") {
-		t.Errorf("a chip for the rule's own section: %s", c)
+	// A clause that holds the connective it would be joined with is the
+	// next sentence.
+	mustHave(t, "dev rules", dev, `for every note it copies. The log grows with each sync, so it&#39;s rotated once it reaches 1 MB.`)
+	mustNotHave(t, "dev rules", dev, `copies, so the log grows`)
+	// keeps_both targets the term conflict, on its own page: no chip, as
+	// none for the rule's own section; a target elsewhere leads the
+	// sentence as a tag.
+	for _, id := range []string{"kite.sync.copies_changed", "kite.sync.keeps_both"} {
+		if c := regexp.MustCompile(`id="` + regexp.QuoteMeta(id) + `".*?</(details|div)>`).FindString(dev); strings.Contains(c, "chip") {
+			t.Errorf("a chip for a target on the rule's page: %s", c)
+		}
 	}
+	mustHave(t, "dev home", f["dev/index.html"], `<p class="sentence"><span class="rule-targets"><a class="ref chip" href="kite.store_api.get_note.html">kite.store_api.get_note</a></span>When the store answers 404`)
 	// The formal parts are in the markup for the hover card.
 	mustHave(t, "dev rules", dev, `class="rule-meta"`)
 }
@@ -295,4 +334,20 @@ docs {
 	if _, ok := f["explore/start.html"]; !ok {
 		t.Error("no guide page in explore")
 	}
+}
+
+// Prose inside Heron code reads as prose: a `|` line's marker is
+// punctuation and its text, like a `{{ }}` body's, is prose at the text
+// colour; only comments take the faint comment colour.
+func TestProseInCode(t *testing.T) {
+	ls, _ := lensFiles(t, kite)
+	h := ls.Default().highlightSource("// a comment\nrefunds: section {\n  | How a refund is made.\n  window: term {{ The 30 days after capture. }}\n}\n")
+	mustHave(t, "code", h, `<span class="tk-comment">// a comment</span>`, `<span class="tk-punct">|</span>`, `<span class="tk-prose">`)
+	mustNotHave(t, "code", h, `<span class="tk-comment">|</span>`)
+	css, err := assets.ReadFile("assets/docs.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHave(t, "docs.css", string(css), `.tk-prose{color:var(--h-text)}`)
+	mustNotHave(t, "docs.css", string(css), `.tk-prose{color:var(--h-syntax-comment)}`, `.tk-comment,.tk-prose`)
 }

@@ -248,6 +248,7 @@ lenses_untested: status<untested>(
   heron.tools.docs.rendering.rules_flow,
   heron.tools.docs.rendering.one_indent,
   heron.tools.docs.rendering.no_nested_boxes,
+  heron.tools.docs.rendering.content_width,
   heron.tools.frontend.design_system.typography.sentences_at_full_strength,
   heron.tools.frontend.design_system.typography.small_text_for_facts,
 ) {

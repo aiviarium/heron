@@ -202,8 +202,8 @@ tools_docs: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
   }
 
-  proves(heron.tools.docs.lenses.what_a_lens_shows.summarized_after_full) {
-    verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
+  proves(heron.tools.docs.lenses.what_a_lens_shows.lens_depth) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
   }
 
   proves(heron.tools.docs.lenses.what_a_lens_shows.containers_kept) {
@@ -212,6 +212,7 @@ tools_docs: section {
 
   proves(heron.tools.docs.lenses.what_a_lens_shows.empty_containers_dropped) {
     verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+    verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
   }
 
   proves(heron.tools.docs.lenses.what_a_lens_shows.marked_nodes) {
@@ -242,6 +243,14 @@ tools_docs: section {
 
   proves(heron.tools.docs.lenses.navigation.task_home) {
     verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.tools.docs.lenses.navigation.task_reference_once) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.tools.docs.lenses.navigation.topic_home) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
   }
 
   proves(heron.tools.docs.lenses.navigation.topic_nav) {
@@ -351,6 +360,14 @@ tools_docs: section {
 
   proves(heron.tools.docs.rendering.target_chip) {
     verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
+  }
+
+  proves(heron.tools.docs.rendering.chip_leads) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
+  }
+
+  proves(heron.tools.docs.rendering.content_order) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
   }
 
   proves(heron.tools.docs.rendering.tables_for_tabular_data) {

@@ -63,6 +63,17 @@ kite: package(version = "1.4.0") {
     run: step {{ Run `kite sync` and watch the log. }}
   }
 
+  more: section {
+    @lens(user)
+    | More pages for people who sync notes.
+
+    @lens(user)
+    tips: concept {
+      | Keep the folder small: Kite copies changed notes only, so a large folder syncs as
+      | fast as a small one.
+    }
+  }
+
   conflicts: concept {
     | A [conflict](#kite.sync.conflict) happens when a note changed in the folder and in the
     | store since the last sync. Kite keeps both copies and tells you which ones to merge,
@@ -83,6 +94,25 @@ kite: package(version = "1.4.0") {
       when {{ a note changed in the folder and in the store }}
       must {{ keep both copies, the store's under a `.conflict` suffix }}
       unless {{ the two copies are equal }}
+    }
+
+    logs_each: rule(sync, by = kite.system.syncer) {
+      must {{ append a line to the sync log for every note it copies }}
+      then {{ the log grows with each sync, so it's rotated once it reaches 1 MB }}
+    }
+
+    retries: section {
+      | How a sync retries a store that doesn't answer.
+
+      backoff: section {
+        | How long a sync waits between tries.
+
+        backoff_doubles: rule(backoff, by = kite.system.syncer) {
+          must {{ double the wait after each failed try, up to five minutes }}
+        }
+
+        wait: term {{ The time a sync waits before it tries the store again. }}
+      }
     }
 
     no_deletes: rule(sync, by = kite.system.syncer) {
@@ -169,5 +199,6 @@ kite: package(version = "1.4.0") {
 }
 
 docs {
+  depth = 3
   lenses = [user, developer, explore]
 }
