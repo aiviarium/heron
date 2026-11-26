@@ -140,13 +140,18 @@ func TestUserLens(t *testing.T) {
 		rest = rest[i:]
 	}
 	sync := f["kite.sync.html"]
-	mustHave(t, "user sync", sync, `<code class="diag-code">unreadable</code> <span class="diag-message">`, `class="diag-fix">A note Kite can&#39;t read`, "conflict")
-	mustNotHave(t, "user sync", sync, "copy every note", "sev-error", "Reported by", "How a sync decides what to copy", "Spec writers:")
+	mustHave(t, "user sync", sync, "conflict")
+	// Its errors are on its Errors page alone, each at its anchor there.
+	mustNotHave(t, "user sync", sync, `id="kite.sync.unreadable"`, "diag-code", "copy every note", "sev-error", "Reported by", "How a sync decides what to copy", "Spec writers:")
 	if _, ok := f["kite.system.html"]; ok {
 		t.Error("the actors' section has a page in the user lens")
 	}
 	mustHave(t, "user command", f["kite.cli.sync.html"], "--dry-run", "Lists what a sync would copy")
 	mustNotHave(t, "user command", f["kite.cli.sync.html"], "exit with status 1 when any note")
+	// A term's heading is its display name, in sentence case; inside a
+	// sentence it keeps its case.
+	mustHave(t, "user sync", sync, `href="#kite.sync.conflict">Conflict</a>`)
+	mustHave(t, "user glossary", f["_glossary.html"], `>Conflict</a>`, `>Wait</a>`)
 	// The user lens's depth, 2, folds a third level onto its parent's page,
 	// which the docs block's depth, 3, gives a page in the other lenses.
 	if _, ok := f["kite.sync.retries.backoff.html"]; ok {
@@ -279,13 +284,25 @@ func TestSmallTablesAsLines(t *testing.T) {
 	mustNotHave(t, "command", h, `<table class="opts">`)
 }
 
-// The diagnostics page lists each diagnostic as its code and message on
-// one line with its fix under it.
+// The diagnostics page lists its diagnostics by code: a code with one as
+// its code and message on one line with its fix under it, a code with two
+// or more as the code once with each message and fix under it. A
+// placeholder inside literal angle brackets reads without its own marks.
+// In the user lens each entry is the diagnostic's anchor.
 func TestDiagnosticsCompact(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	h := f["explore/_diagnostics.html"]
-	mustHave(t, "diagnostics", h, `<ul class="diag-list"><li id="code-store-unreachable"><p class="diag-line"><code class="diag-code">store-unreachable</code>`, `<p class="diag-fix">The store didn&#39;t answer within the timeout; Kite retries at the next interval.</p>`)
-	mustNotHave(t, "diagnostics", h, "<table")
+	mustHave(t, "diagnostics", h, `<li id="code-store-unreachable"><div><p class="diag-line"><code class="diag-code">store-unreachable</code> <a class="ref diag-message"`,
+		`<p class="diag-fix">The store didn&#39;t answer within the timeout; Kite retries at the next interval.</p>`,
+		`<li id="code-unreadable"><p class="diag-line"><code class="diag-code">unreadable</code></p><ul class="diag-group"><li><p class="diag-line"><a class="ref diag-message"`,
+		`can&#39;t list &lt;<span class="ph">folder</span>&gt;`, `can&#39;t read <span class="ph">‹file›</span>`)
+	mustNotHave(t, "diagnostics", h, "<table", `&lt;<span class="ph">‹folder›`)
+	if strings.Count(h, `<code class="diag-code">unreadable</code>`) != 1 {
+		t.Error("a code listed more than once")
+	}
+	u := f["_diagnostics.html"]
+	mustHave(t, "user errors", u, `<h1 class="page-title">Errors</h1>`, `<li id="kite.sync.unreadable"><p class="diag-line"><span class="diag-message">can&#39;t read`)
+	mustHave(t, "user search", f["data.js"], `kite.sync.unreadable`)
 }
 
 // A lens a tree declares is built under its prefix and listed by its

@@ -263,6 +263,9 @@ func (s *Site) isPageNode(n *resolve.Node, sectionDepth int) bool {
 	if !own(n) || n.Name == "" || s.hidden(n) {
 		return false
 	}
+	if s.gatheredDiagnostic(n) {
+		return false
+	}
 	switch k := s.kindPath(n); {
 	case s.authored(n):
 		return true
@@ -413,6 +416,12 @@ func (s *Site) buildPages() {
 		p := &Page{File: "_diagnostics.html", Title: label("docs.page.diagnostics"), Layout: "diagnostics", Area: docs}
 		s.Pages = append(s.Pages, p)
 		docs.Pages = append(docs.Pages, p)
+		if s.errorsGathered() {
+			// Each diagnostic's anchor is its entry on this page.
+			for _, d := range s.diagnostics {
+				s.anchorOf[d] = p
+			}
+		}
 	}
 
 	if s.project != nil {

@@ -58,8 +58,14 @@ func placeholders(m string) string {
 			b.WriteString(esc(m))
 			return b.String()
 		}
+		name := m[i : j+len("›")]
+		if strings.HasSuffix(m[:i], "<") && strings.HasPrefix(m[j+len("›"):], ">") {
+			// A placeholder inside literal angle brackets, as `<‹kind›>`
+			// for a tag, reads as `<kind>`: the brackets already mark it.
+			name = m[i+len("‹") : j]
+		}
 		b.WriteString(esc(m[:i]))
-		b.WriteString(`<span class="ph">` + esc(m[i:j+len("›")]) + `</span>`)
+		b.WriteString(`<span class="ph">` + esc(name) + `</span>`)
 		m = m[j+len("›"):]
 	}
 }
@@ -145,27 +151,54 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 		}
 		return fieldString(ds[i], "message") < fieldString(ds[j], "message")
 	})
-	c.W(`<ul class="diag-list">`)
-	last := ""
+	// One entry per code: a code with one diagnostic on one line with its
+	// message, a code with more as the code once and each message under
+	// it, each message with its fix.
+	var groups [][]*resolve.Node
 	for _, d := range ds {
-		cd := code(d)
-		id := ""
-		if cd != last {
-			id = ` id="code-` + attr(cd) + `"`
-			*c.outline = append(*c.outline, Heading{ID: "code-" + cd, Title: cd, Level: 2})
-			last = cd
+		if n := len(groups); n > 0 && code(groups[n-1][0]) == code(d) {
+			groups[n-1] = append(groups[n-1], d)
+			continue
 		}
-		cls := ""
-		if id == "" {
-			cls = ` class="diag-repeat"`
+		groups = append(groups, []*resolve.Node{d})
+	}
+	message := func(d *resolve.Node) string {
+		m := messageHTML(fieldString(d, "message"))
+		if s.anchorOf[d] == c.Page {
+			// The entry is the diagnostic's place.
+			return `<span class="diag-message">` + m + `</span>`
 		}
-		c.W(`<li`, id, cls, `><p class="diag-line"><code class="diag-code">`, esc(cd), `</code> `)
-		c.W(s.linkHTML(d, messageHTML(fieldString(d, "message")), "diag-message"))
-		c.W(`</p>`)
-		if fix := firstSentence(inlineParagraph(s.proseHTML(d))); fix != "" {
-			c.W(`<p class="diag-fix">`, fix, `</p>`)
+		return s.linkHTML(d, m, "diag-message")
+	}
+	fix := func(d *resolve.Node) {
+		if f := firstSentence(inlineParagraph(s.proseHTML(d))); f != "" {
+			c.W(`<p class="diag-fix">`, f, `</p>`)
 		}
-		c.W(`</li>`)
+	}
+	id := func(d *resolve.Node) string {
+		if s.anchorOf[d] == c.Page {
+			return ` id="` + attr(Anchor(d)) + `"`
+		}
+		return ""
+	}
+	c.W(`<ul class="diag-list">`)
+	for _, g := range groups {
+		cd := code(g[0])
+		*c.outline = append(*c.outline, Heading{ID: "code-" + cd, Title: cd, Level: 2})
+		c.W(`<li id="code-`, attr(cd), `">`)
+		if len(g) == 1 {
+			c.W(`<div`, id(g[0]), `><p class="diag-line"><code class="diag-code">`, esc(cd), `</code> `, message(g[0]), `</p>`)
+			fix(g[0])
+			c.W(`</div></li>`)
+			continue
+		}
+		c.W(`<p class="diag-line"><code class="diag-code">`, esc(cd), `</code></p><ul class="diag-group">`)
+		for _, d := range g {
+			c.W(`<li`, id(d), `><p class="diag-line">`, message(d), `</p>`)
+			fix(d)
+			c.W(`</li>`)
+		}
+		c.W(`</ul></li>`)
 	}
 	c.W(`</ul>`)
 	return nil

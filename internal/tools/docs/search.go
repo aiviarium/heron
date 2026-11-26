@@ -38,7 +38,7 @@ func (s *Site) card(n *resolve.Node) card {
 		c.Kind = k.Name
 	}
 	if s.kindPath(n) == "doc.term" {
-		c.Title = termName(s, n)
+		c.Title = termHeading(s, n)
 		c.HTML = s.proseHTML(n)
 	} else {
 		c.HTML = `<pre><code>` + s.signature(n) + `</code></pre>`
@@ -85,7 +85,7 @@ func (s *Site) Search() []entry {
 		}
 		switch k := s.kindPath(n); {
 		case k == "doc.term":
-			add(n, termName(s, n))
+			add(n, termHeading(s, n))
 		case k == "core.task" || k == "spec.project" || k == "types.example":
 			add(n, displayName(s, n))
 		case k != "" || s.pageOf[n] != nil || n.Parent != nil && s.isTypeDecl(n.Parent):

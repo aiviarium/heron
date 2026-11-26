@@ -143,7 +143,7 @@ func (s *Site) glossary(c *Ctx) error {
 	c.W(`<dl class="glossary">`)
 	letter := ""
 	for _, t := range terms {
-		name := termName(s, t)
+		name := termHeading(s, t)
 		if l := strings.ToUpper(name[:1]); l != letter {
 			letter = l
 			c.W(`<div class="letter" id="letter-`, attr(l), `">`, esc(l), `</div>`)

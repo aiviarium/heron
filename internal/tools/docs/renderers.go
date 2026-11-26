@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
@@ -221,7 +222,7 @@ func renderSection(c *Ctx) error {
 func renderTerm(c *Ctx) error {
 	n := c.Node
 	c.W(`<div class="term" id="`, attr(Anchor(n)), `">`)
-	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(termName(c.Site, n)), `</a>`, c.Site.kindTag(n))
+	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(termHeading(c.Site, n)), `</a>`, c.Site.kindTag(n))
 	if al := termAliases(n); len(al) > 0 {
 		c.W(`<span class="aliases">`, esc(strings.Join(al, ", ")), `</span>`)
 	}
@@ -229,6 +230,25 @@ func renderTerm(c *Ctx) error {
 	c.Prose(n)
 	c.W(`</dd></div>`)
 	return nil
+}
+
+// termHeading is a term's name as a heading shows it: its display name,
+// sentence case, as every node's is, while termName keeps the word as it
+// reads inside a sentence.
+func termHeading(s *Site, n *resolve.Node) string {
+	if annotation(s, n, "display") != nil {
+		return displayName(s, n)
+	}
+	return capitalFirst(termName(s, n))
+}
+
+// capitalFirst capitalises the first letter of a name.
+func capitalFirst(t string) string {
+	r := []rune(t)
+	if len(r) > 0 {
+		r[0] = unicode.ToUpper(r[0])
+	}
+	return string(r)
 }
 
 // termName is the word a term defines: its first alias when its name is

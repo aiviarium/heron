@@ -620,6 +620,10 @@ body[data-layout="home"] .page-title { margin-bottom: var(--h-space-3); }
 .diag, .diag-list > li { margin: 0 0 var(--h-space-5); max-width: var(--h-size-measure); }
 .diag:last-child, .diag-list > li:last-child { margin-bottom: 0; }
 .diag-list { list-style: none; margin: 0; padding: 0; }
+/* A code with two or more messages: the code once, its messages under it. */
+.diag-group { list-style: none; margin: var(--h-space-1) 0 0; padding: 0 0 0 var(--h-space-4); }
+.diag-group > li { margin: 0 0 var(--h-space-3); }
+.diag-group > li:last-child { margin-bottom: 0; }
 .diag-line { margin: 0; font-size: var(--h-font-size-prose); line-height: var(--h-font-line-prose); }
 .diag-line .diag-code { margin-right: var(--h-space-1); font-size: var(--h-font-size-code); color: var(--h-text-secondary); }
 .diag-line .sev { font: var(--h-font-weight-medium) 12px var(--h-font-mono); margin-right: var(--h-space-1); }

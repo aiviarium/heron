@@ -129,6 +129,11 @@ kite: package(version = "1.4.0") {
       | A note Kite can't read, such as one without read permission.
     }
 
+    unlistable: diagnostic("unreadable", by = kite.system.syncer) {
+      message = "can't list <‹folder›>"
+      | A folder Kite can't list, so none of its notes sync.
+    }
+
     store_down: diagnostic("store-unreachable", severity = Severity.warning, by = kite.system.syncer) {
       message = "the store at ‹address› doesn't answer"
       | The store didn't answer within the timeout; Kite retries at the next interval.
