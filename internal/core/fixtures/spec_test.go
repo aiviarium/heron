@@ -62,13 +62,29 @@ func TestFixturesAreTheSpecExamples(t *testing.T) {
 					m = []string{"", "", em[1]}
 				}
 			}
-			if m != nil && !held[i+1] && !fenced[i] {
+			if m != nil && !held[i+1] && !fenced[i] && !opExample(lines(string(src)), i) {
 				rel, _ := filepath.Rel(dir, f)
 				t.Errorf("%s:%d: example %s holds no code block", rel, i+1, m[2])
 			}
 		}
 	}
 	t.Logf("%d code blocks of examples", len(blocks))
+}
+
+func lines(src string) []string { return strings.Split(src, "\n") }
+
+// opExample reports whether the example opening at line i is an op's
+// example, which sets the op's parameters and its outcome as fields
+// rather than holding a code block.
+func opExample(ls []string, i int) bool {
+	for _, l := range ls[i+1:] {
+		t := strings.TrimSpace(l)
+		if t == "" || strings.HasPrefix(t, "|") {
+			continue
+		}
+		return regexp.MustCompile(`^[a-z_][a-z0-9_]* = `).MatchString(t)
+	}
+	return false
 }
 
 // verifyRE finds the file and test a `verify(…)` of the project tree names.

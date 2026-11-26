@@ -1,14 +1,73 @@
-// std/proto: binds apis to gRPC services and types to protobuf messages,
-// from the Data and APIs tabs.
-import = ["std/schema@1", "std/types@1"]
+// std/proto: binds apis to gRPC services, served over gRPC, gRPC-Web and
+// Connect, and types to protobuf messages, from the Data and APIs tabs.
+import = ["std/schema@1", "std/types@1", "std/spec@1"]
 
 proto: package(version = "1.0", requires = ["std/types@1"]) {
-  /// The protobuf package that names an api's service.
-  proto(package: String): annotation(on = [types.api])
+  /// A wire protocol a service is served with.
+  Protocol: enum {
+    /// gRPC over HTTP/2.
+    grpc: Self
+    /// gRPC-Web, for browsers.
+    grpc_web: Self
+    /// The Connect protocol: unary calls as plain HTTP with JSON bodies.
+    connect: Self
+  }
 
-  /// A member's or parameter's field number.
-  field(number: Int): annotation(on = [types.member, types.param])
+  /// How safe a method is to retry.
+  Idempotency: enum {
+    /// It changes nothing: Connect serves it with GET too.
+    no_side_effects: Self
+    /// Calling it twice is calling it once.
+    idempotent: Self
+  }
+
+  /// gRPC's canonical status codes, but OK.
+  Code: enum {
+    CANCELLED: Self
+    UNKNOWN: Self
+    INVALID_ARGUMENT: Self
+    DEADLINE_EXCEEDED: Self
+    NOT_FOUND: Self
+    ALREADY_EXISTS: Self
+    PERMISSION_DENIED: Self
+    RESOURCE_EXHAUSTED: Self
+    FAILED_PRECONDITION: Self
+    ABORTED: Self
+    OUT_OF_RANGE: Self
+    UNIMPLEMENTED: Self
+    INTERNAL: Self
+    UNAVAILABLE: Self
+    DATA_LOSS: Self
+    UNAUTHENTICATED: Self
+  }
+
+  /// On an api, the protobuf package, the service's name and the protocols
+  /// it's served over; on an op, its method's name, idempotency level and
+  /// default time limit.
+  proto(
+    package?: String,
+    service?: String,
+    protocols?: List(Protocol),
+    method?: String,
+    idempotency?: Idempotency,
+    timeout?: Duration,
+  ): annotation(on = [types.api, types.op])
+
+  /// A member's, parameter's or enum value's field number.
+  field(number: Int): annotation(on = [types.member, types.param, types.variant])
+
+  /// An integer field encoded as sint32 or sint64.
+  sint: flag(group = "encoding", on = [field])
+
+  /// An integer field encoded as fixed32, fixed64, sfixed32 or sfixed64.
+  fixed: flag(group = "encoding", on = [field])
 
   /// Field numbers that are never reused.
-  reserved(numbers<variadic>: Int): annotation(on = [types.type])
+  reserved(numbers<variadic>: Int): annotation(on = [types.type, types.enum, types.union])
+
+  /// A parameter that travels as gRPC metadata, by its own name or this one.
+  metadata(name?: String): annotation(on = [types.param])
+
+  /// The gRPC status code an error is answered with.
+  code(code: Code): annotation(on = [types.type, spec.error])
 }

@@ -77,7 +77,11 @@
     },
     "framing": {
       "sse": "Server-sent events",
-      "ws": "WebSocket messages"
+      "ws": "WebSocket messages",
+      "http": "one request per HTTP POST",
+      "content_length": "Content-Length headers, as the language server protocol frames messages",
+      "length_prefixed": "length-prefixed frames",
+      "websocket": "one message per WebSocket frame"
     },
     "heading": {
       "alternate_flows": "Alternate flows",
@@ -111,7 +115,13 @@
       "type_params": "Type parameters",
       "used_by": "Used by",
       "values": "Values",
-      "variants": "Variants"
+      "variants": "Variants",
+      "request": "Request",
+      "response": "Response",
+      "metadata": "Metadata",
+      "result": "Result",
+      "errors": "Errors",
+      "notifications": "Notifications"
     },
     "label": {
       "base_path": "Base path",
@@ -197,12 +207,33 @@
       "fields": "Fields",
       "scenarios": "Scenarios",
       "flow": "Flow",
-      "actor": "Actor"
+      "actor": "Actor",
+      "binding": "Binding",
+      "idempotency": "Idempotency",
+      "timeout": "Time limit",
+      "base64": "base64",
+      "field_number": "Field number",
+      "json": "JSON",
+      "proto": "protobuf",
+      "by_name": "by name",
+      "by_position": "by position",
+      "whole_params": "one record as the whole of params",
+      "params_structure": "Params",
+      "error_data": "data",
+      "error_info": "ErrorInfo metadata",
+      "error_detail": "Detail",
+      "service": "Service",
+      "protocols": "Protocols",
+      "batches": "takes batches",
+      "servers": "Servers",
+      "json_form": "JSON form"
     },
     "lang": {
       "curl": "cURL",
       "ts": "TypeScript",
-      "http": "HTTP"
+      "http": "HTTP",
+      "get": "cURL GET",
+      "raw": "Message"
     },
     "rule": {
       "subject": "the system",
@@ -232,7 +263,9 @@
       "zoom_in": "Zoom in",
       "zoom_out": "Zoom out",
       "zoom_reset": "Reset view",
-      "key_esc": "esc"
+      "key_esc": "esc",
+      "try_message": "Request message",
+      "try_envelope": "Request"
     },
     "story": {
       "as_a": "As a {actor},",
@@ -281,6 +314,42 @@
       "realizes": "Realizes",
       "spec_note": "The specification this project implements, {spec} {version}, shown read-only: it is authored and versioned in its own package, and the project only refers to it",
       "from_spec": "spec"
+    },
+    "binding": {
+      "http": "HTTP",
+      "grpc": "gRPC",
+      "connect": "Connect",
+      "jsonrpc": "JSON-RPC"
+    },
+    "kind": {
+      "unary": "Unary",
+      "server": "Server streaming",
+      "client": "Client streaming",
+      "bidi": "Bidirectional streaming",
+      "notification": "Notification",
+      "request": "Request"
+    },
+    "protocol": {
+      "grpc": "gRPC",
+      "grpc_web": "gRPC-Web",
+      "connect": "Connect"
+    },
+    "encoding": {
+      "json": "JSON",
+      "cbor": "CBOR, without the jsonrpc member"
+    },
+    "note": {
+      "browser_streams": "A browser can't stream from the client: call this method from a server with gRPC or Connect over HTTP/2",
+      "notification": "A notification has no id and is never answered",
+      "empty_message": "An empty message",
+      "no_params": "No params"
+    },
+    "kind_short": {
+      "unary": "RPC",
+      "server": "SRV",
+      "client": "CLT",
+      "bidi": "BIDI",
+      "notification": "NTF"
     }
   },
   "app": {

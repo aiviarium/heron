@@ -2,12 +2,14 @@
 // island enhances the part marked with data-island, so a page reads fully
 // before any of this runs.
 import "./theme.css"
+import "./rpc.css"
 import { render } from "@solidjs/web"
 import { t } from "./data"
 import { Cards } from "./islands/cards"
 import { Diagram } from "./islands/diagram"
 import { Search } from "./islands/search"
 import { TryIt } from "./islands/tryit"
+import { bindings } from "./islands/bindings"
 
 const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => [...root.querySelectorAll<T>(sel)]
 
@@ -179,6 +181,7 @@ function start() {
   versions()
   navScroll()
   outline()
+  bindings()
   const trigger = document.querySelector<HTMLElement>("[data-island=search]")
   if (trigger) mount(() => <Search trigger={trigger} />)
   if (document.querySelector("[data-card]")) mount(() => <Cards />)

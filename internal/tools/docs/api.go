@@ -25,6 +25,7 @@ type opInfo struct {
 	examples         []opExample
 	crossCutting     []crossAnn
 	streamIn, stream bool
+	server           string // the api's first @server URL
 }
 
 type opParam struct {
@@ -60,7 +61,7 @@ type crossAnn struct {
 	on   *resolve.Node
 }
 
-var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true, "realizes": true}
+var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true, "realizes": true, "proto": true, "jsonrpc": true, "server": true}
 
 func (s *Site) readOp(op *resolve.Node) *opInfo {
 	o := &opInfo{node: op, api: op.Parent}
@@ -68,6 +69,9 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 	if o.api != nil {
 		o.base = basePath(s, o.api)
 		o.ws = wsRoute(o.api)
+		if a := annotation(s, o.api, "server"); a != nil {
+			o.server, _ = argString(a.Args(), 0, "url")
+		}
 	}
 	if w := wsRoute(op); w != "" {
 		o.ws = w
@@ -412,13 +416,14 @@ func scalar(v any) string {
 // request is an example's request, built the same way for every form.
 type request struct {
 	method, url, path string
+	server            string
 	headers           [][2]string
 	body              any
 	hasBody           bool
 }
 
 func (o *opInfo) request(ex *opExample) request {
-	r := request{method: o.method, path: o.path}
+	r := request{method: o.method, path: o.path, server: o.server}
 	if r.method == "" {
 		r.method = "POST"
 	}
@@ -468,7 +473,7 @@ func (o *opInfo) request(ex *opExample) request {
 
 func (r request) curl() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "curl -X %s \"$BASE_URL%s\"", r.method, r.url)
+	fmt.Fprintf(&b, "curl -X %s \"%s%s\"", r.method, orBase(r.server), r.url)
 	for _, h := range r.headers {
 		fmt.Fprintf(&b, " \\\n  -H \"%s: %s\"", h[0], h[1])
 	}
@@ -562,7 +567,15 @@ func renderAPI(c *Ctx) error {
 	if w := wsRoute(n); w != "" {
 		facts = append(facts, `<dt>`+esc(label("docs.label.socket"))+`</dt><dd><code>`+esc(w)+`</code></dd>`)
 	}
-	facts = append(facts, `<dt>`+esc(label("docs.label.wire"))+`</dt><dd>`+esc(label("docs.label.wire_json"))+`</dd>`)
+	bs := s.apiBindings(n)
+	rpcOnly := len(bs) > 0 && bs[0] != bindHTTP
+	if !rpcOnly {
+		facts = append(facts, `<dt>`+esc(label("docs.label.wire"))+`</dt><dd>`+esc(label("docs.label.wire_json"))+`</dd>`)
+	}
+	facts = append(facts, s.serviceFacts(n)...)
+	if len(s.serviceFacts(n)) > 0 {
+		c.Island("copy")
+	}
 	for _, a := range annotations(n) {
 		if ownAnnotations[annName(a)] && annName(a) != "throws" {
 			continue
@@ -572,12 +585,43 @@ func renderAPI(c *Ctx) error {
 	if len(facts) > 0 {
 		c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
 	}
+	// An api bound to RPC: each binding's index, under a switch when it
+	// has more than one.
+	if len(bs) > 1 {
+		c.bindingSwitch(bs)
+	}
+	for _, b := range bs {
+		if b == bindHTTP {
+			continue
+		}
+		c.bindOpen(bs, b)
+		c.rpcIndex(n, b)
+		c.bindClose(bs)
+	}
+	if len(bs) == 0 || !rpcOnly {
+		c.bindOpen(bs, bindHTTP)
+		c.httpIndex(n)
+		c.bindClose(bs)
+	}
+	c.apiTypesList(n)
+	c.W(`</section>`)
+	return nil
+}
+
+// httpIndex writes an api's ops by resource, with their methods and
+// paths.
+func (c *Ctx) httpIndex(n *resolve.Node) {
+	s := c.Site
 	// The index: ops by resource, with their methods and paths.
 	groups := map[string][]*resolve.Node{}
 	var order []string
+	rpcBound := len(s.apiBindings(n)) > 0
 	for _, op := range n.Children {
 		if s.kindPath(op) != "types.op" {
 			continue
+		}
+		if rpcBound && !httpOr(s, op) {
+			continue // carried by its RPC bindings alone
 		}
 		_, p := httpRoute(s, op)
 		if p == "" {
@@ -614,6 +658,11 @@ func renderAPI(c *Ctx) error {
 		}
 	}
 	c.W(`</tbody></table></div>`)
+}
+
+// apiTypesList writes the types and errors an api's ops name.
+func (c *Ctx) apiTypesList(n *resolve.Node) {
+	s := c.Site
 	// The types and errors the ops name, directly or through fields.
 	named := s.apiTypes(n)
 	if len(named) > 0 {
@@ -628,8 +677,6 @@ func renderAPI(c *Ctx) error {
 		}
 		c.W(`</ul>`)
 	}
-	c.W(`</section>`)
-	return nil
 }
 
 // resource is the first segment of a path, which groups ops in the index.
@@ -655,7 +702,27 @@ func renderOp(c *Ctx) error {
 	o := s.readOp(n)
 	c.W(`<section class="node op-page" id="`, attr(Anchor(n)), `">`)
 	c.title("")
-	if o.method != "" || o.path != "" {
+	// An op bound to RPC too: one contract, a switch for the parts each
+	// binding shows differently.
+	bs := s.opBindings(n)
+	httpShown := len(bs) == 0 || bs[0] == bindHTTP
+	if len(bs) > 1 {
+		c.bindingSwitch(bs)
+	}
+	for _, b := range bs {
+		if b == bindHTTP {
+			continue
+		}
+		c.bindOpen(bs, b)
+		c.rpcHeader(n, b)
+		c.bindClose(bs)
+	}
+	if httpShown {
+		c.bindOpen(bs, bindHTTP)
+	}
+	if !httpShown {
+		// No HTTP route or socket: the HTTP header is left out.
+	} else if o.method != "" || o.path != "" {
 		full := o.base + o.path
 		c.W(`<div class="endpoint">`, methodHTML(o.method), `<code class="path">`)
 		if o.base != "" {
@@ -665,6 +732,9 @@ func renderOp(c *Ctx) error {
 		c.Island("copy")
 	} else if o.ws != "" {
 		c.W(`<div class="endpoint"><span class="method m-ws">WS</span><code class="path">`, esc(o.ws), `</code></div>`)
+	}
+	if httpShown {
+		c.bindClose(bs)
 	}
 	if b := deprecatedBadge(n); b != "" {
 		c.W(`<p class="deprecation">`, strings.TrimSpace(b), `</p>`)
@@ -704,10 +774,50 @@ func renderOp(c *Ctx) error {
 		}
 		facts = append(facts, `<dt>`+esc(sentenceCase(a.name))+`</dt><dd>`+v+`</dd>`)
 	}
+	facts = append(facts, s.rpcFacts(n)...)
 	if len(facts) > 0 {
 		c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
 	}
 
+	// Each RPC binding's messages and errors.
+	for _, b := range bs {
+		if b == bindHTTP {
+			continue
+		}
+		c.bindOpen(bs, b)
+		c.rpcBody(n, b, b == bs[0])
+		c.bindClose(bs)
+	}
+	if httpShown {
+		c.bindOpen(bs, bindHTTP)
+		c.httpBody(o)
+		c.bindClose(bs)
+	}
+
+	c.opRules(n)
+	c.usedBy(n)
+	c.W(`</section>`)
+
+	if c.isPage() {
+		if httpShown {
+			c.opAside(o, bs)
+		}
+		for _, b := range bs {
+			if b != bindHTTP {
+				c.Island("examples")
+				c.Island("tryit")
+				c.Aside(c.rpcAside(o, b, bs))
+			}
+		}
+	}
+	return nil
+}
+
+// httpBody writes an op's parameters, messages and responses as HTTP
+// carries them.
+func (c *Ctx) httpBody(o *opInfo) {
+	s := c.Site
+	n := o.node
 	// Parameters, grouped by where they go.
 	locs := []struct{ key, title string }{
 		{"path", label("docs.heading.path_params")},
@@ -812,8 +922,11 @@ func renderOp(c *Ctx) error {
 		c.W(`</div>`)
 	}
 	c.W(`</div>`)
+}
 
-	// Rules on the op.
+// opRules writes the rules on an op.
+func (c *Ctx) opRules(n *resolve.Node) error {
+	s := c.Site
 	var rules []*resolve.Node
 	s.Tree.Walk(func(x *resolve.Node) {
 		if own(x) && s.kept(x) && s.kindPath(x) == "spec.rule" {
@@ -841,12 +954,6 @@ func renderOp(c *Ctx) error {
 				return err
 			}
 		}
-	}
-	c.usedBy(n)
-	c.W(`</section>`)
-
-	if c.isPage() {
-		c.opAside(o)
 	}
 	return nil
 }
@@ -959,11 +1066,15 @@ func (c *Ctx) paramsTable(ps []opParam) {
 
 // opAside writes the right column of an op page: the request example with
 // its language tabs, example picker, copy and Try it, then the response.
-func (c *Ctx) opAside(o *opInfo) {
+func (c *Ctx) opAside(o *opInfo, bs []string) {
 	s := c.Site
 	c.Island("examples")
 	c.Island("tryit")
 	var b strings.Builder
+	binding := ""
+	if len(bs) > 1 {
+		binding = ` data-binding="http"`
+	}
 	exs := o.examples
 	var list []*opExample
 	for i := range exs {
@@ -973,7 +1084,7 @@ func (c *Ctx) opAside(o *opInfo) {
 		// No example: the messages as JSON built from their types.
 		list = []*opExample{o.skeletonExample(s)}
 	}
-	b.WriteString(`<div class="examples" data-island="examples">`)
+	b.WriteString(`<div class="examples" data-island="examples"` + binding + `>`)
 	b.WriteString(`<div class="panel"><div class="panel-head"><div class="seg" role="tablist" aria-label="` + attr(label("docs.label.language")) + `">`)
 	for i, lang := range []struct{ k, t string }{{"curl", label("docs.lang.curl")}, {"ts", label("docs.lang.ts")}, {"http", label("docs.lang.http")}} {
 		sel := "false"
@@ -1050,6 +1161,9 @@ func (c *Ctx) opAside(o *opInfo) {
 	}
 	// What Try it needs, as data.
 	data := map[string]any{"method": o.method, "path": o.base + o.path}
+	if o.server != "" {
+		data["server"] = o.server
+	}
 	if served {
 		// Sent through the generated client, as the frontend sends it.
 		data["client"] = clientName(o.node.Name)

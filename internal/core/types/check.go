@@ -811,11 +811,60 @@ func (c *Checker) annotation(s resolve.Site) {
 		c.errorf(s.File, a.Path().N, "not-an-annotation", "%s is not an annotation", strings.Join(segs, "."))
 		return
 	}
+	if len(segs) == 1 {
+		if forms := c.ambiguousAnnotation(s.Scope, segs[0]); len(forms) > 1 {
+			c.errorf(s.File, a.Path().N, "ambiguous", "@%s is declared by more than one imported package: write %s", segs[0], strings.Join(forms, " or "))
+		}
+	}
 	c.Refs[a.Path().N] = d
 	for _, f := range a.Flags().Idents() {
 		c.flag(f, s.Scope, s.File)
 	}
 	c.args(a.Args(), c.Params(d), "@"+d.Name, s.Scope, s.File, len(a.Flags().Idents()) == 0)
+}
+
+// ambiguousAnnotation returns each package-qualified form of an
+// unqualified annotation name, as @proto.code and @jsonrpc.code, when the
+// innermost scope that binds it as an annotation does so through more than
+// one imported package. A name the tree declares itself shadows imports.
+func (c *Checker) ambiguousAnnotation(sc *resolve.Scope, name string) []string {
+	seen := map[*resolve.Scope]bool{}
+	var forms []string
+	var walk func(sc *resolve.Scope) bool
+	walk = func(sc *resolve.Scope) bool {
+		for ; sc != nil; sc = sc.Parent {
+			if seen[sc] {
+				return false
+			}
+			seen[sc] = true
+			if sc.Node != nil {
+				if n := sc.Node.Child(name); n != nil && c.IsAnnotation(n) {
+					return true
+				}
+			}
+			pkgs := map[*resolve.Node]bool{}
+			for _, p := range sc.Imports {
+				n := p.Lookup(name)
+				if n == nil || !c.IsAnnotation(n) || n.Parent == nil || pkgs[n.Parent] {
+					continue
+				}
+				pkgs[n.Parent] = true
+				forms = append(forms, "@"+n.Parent.Name+"."+name)
+			}
+			if len(forms) > 0 {
+				return true
+			}
+			for _, a := range sc.Also {
+				if walk(a) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	walk(sc)
+	sort.Strings(forms)
+	return forms
 }
 
 // --- suggestions ---

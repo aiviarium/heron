@@ -1,0 +1,112 @@
+// The parcels service: an api described once and served over HTTP, gRPC,
+// gRPC-Web and Connect, with one op also a JSON-RPC method. Its ops stream
+// in all four ways and fail with errors projected onto every binding. The
+// docs, `heron generate proto` and `heron generate openrpc` read it as the
+// RPC example; the tests and the docs' screenshots use it.
+import = [
+  "std/doc@1",
+  "std/types@1",
+  "std/apis@1",
+  "std/http@1",
+  "std/proto@1",
+  "std/jsonrpc@1",
+]
+
+include = ["./model.heron"]
+
+/// Tracks parcels from the label to the doorstep.
+@display("Parcels")
+@server("https://parcels.example.com")
+@http(base_path = "/v1")
+@proto("acme.parcels.v1", protocols = [grpc, grpc_web, connect])
+parcels: api {
+  | Labels parcels, follows them through the network and guides the couriers who deliver
+  | them. Every op is a method of `acme.parcels.v1.ParcelsService`; the unary ones are
+  | plain HTTP routes too.
+
+  @http<get>("/parcels/:id")
+  @jsonrpc("parcels.get")
+  @proto(idempotency = no_side_effects)
+  @throws(ParcelNotFound)
+  get_parcel(
+    @path id: String,
+    /// The account the parcel belongs to, for a carrier serving several.
+    @header("Tenant") tenant?: String,
+  ): op(Parcel) {
+    | Returns one parcel with its latest status and where it's headed.
+
+    labelled: example {
+      id = "p_1042"
+      tenant = "acme"
+      returns = Parcel(
+        id = "p_1042",
+        status = ParcelStatus.IN_TRANSIT,
+        weight_grams = 1200,
+        destination = Destination(locker = Locker(code = "LEJ-17")),
+        labels = { "fragile" = "yes" },
+      )
+    }
+
+    unknown: example {
+      id = "p_0000"
+      throws = ParcelNotFound
+    }
+  }
+
+  @http<post>("/parcels")
+  @proto(idempotency = idempotent)
+  @throws(InvalidAddress)
+  create_label(@body request: LabelRequest): op(Parcel) {
+    | Prints a label for a parcel and starts tracking it.
+
+    to_a_locker: example {
+      request = LabelRequest(weight_grams = 800, destination = Destination(locker = Locker(code = "BER-02")))
+      returns = Parcel(id = "p_2001", status = ParcelStatus.LABELLED, weight_grams = 800)
+    }
+  }
+
+  @http<get>("/parcels/:id/events")
+  @proto(timeout = "10m")
+  @throws(ParcelNotFound)
+  watch_parcel(@path id: String): op(Stream(ParcelEvent)) {
+    | Streams a parcel's events as they happen, starting with its current status.
+
+    in_transit: example {
+      id = "p_1042"
+      returns = [
+        ParcelEvent(status = ParcelStatus.LABELLED, place = "Leipzig depot"),
+        ParcelEvent(status = ParcelStatus.IN_TRANSIT, place = "Leipzig hub"),
+        ParcelEvent(status = ParcelStatus.DELIVERED, place = "Locker LEJ-17"),
+      ]
+    }
+  }
+
+  upload_scans(scans: Stream(Scan)): op(ScanSummary) {
+    | Takes a depot's scans as its sorter reads them, and answers once the depot closes the
+    | stream.
+
+    shift: example {
+      scans = [
+        Scan(parcel_id = "p_1042", depot = "LEJ"),
+        Scan(parcel_id = "p_2001", depot = "LEJ"),
+      ]
+      returns = ScanSummary(accepted = 2)
+    }
+  }
+
+  @throws(RouteUnavailable)
+  navigate(positions: Stream(Position)): op(Stream(Instruction)) {
+    | Guides a courier: each position the van sends is answered with the next instruction.
+
+    to_the_locker: example {
+      positions = [
+        Position(lat = 51.3397, lng = 12.3731),
+        Position(lat = 51.3421, lng = 12.3790),
+      ]
+      returns = [
+        Instruction(text = "Turn right onto Querstraße", meters = 400),
+        Instruction(text = "The locker is on your left", meters = 0),
+      ]
+    }
+  }
+}

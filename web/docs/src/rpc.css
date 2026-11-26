@@ -1,0 +1,56 @@
+/* RPC bindings: the binding switch, a method's path, signature and
+   streaming kind, its fields with their numbers, a stream's messages in
+   order, and a message's protobuf and JSON forms. Kept apart from the
+   theme so it merges on its own; every value is a token. */
+@layer heron {
+
+/* The switch between an op's or an api's bindings. */
+.binding-switch { display: flex; align-items: center; gap: var(--h-space-2); margin: 0 0 var(--h-space-4); }
+.binding-switch > .label { font-size: 12px; color: var(--h-text-faint); }
+.binding-switch .seg { background: var(--h-bg-soft); }
+.binding-switch .seg button { font-size: var(--h-font-size-ui); padding: 0 var(--h-space-3); }
+
+/* The navigation's and the endpoint's method column. */
+.m-rpc, .m-srv, .m-clt, .m-bidi, .m-ntf, .m-json-rpc { color: var(--h-status-info); }
+.m-srv, .m-clt { color: var(--h-method-get); }
+.m-bidi { color: var(--h-method-patch); }
+.m-ntf { color: var(--h-text-faint); }
+
+/* A method's path, its signature and its streaming kind. */
+.rpc-endpoint .rpc-kind { margin-right: var(--h-space-2); }
+.rpc-sig { margin: calc(-1 * var(--h-space-3)) 0 var(--h-space-5); padding: var(--h-space-2) var(--h-space-3); border: 1px solid var(--h-border-faint); border-radius: var(--h-radius-card); background: var(--h-bg-soft); font-size: 13px; overflow-x: auto; }
+.rpc-sig a { text-decoration: underline; text-decoration-color: var(--h-border-strong); text-underline-offset: 3px; }
+.rpc-kind { flex: none; font: var(--h-font-weight-medium) 10.5px/1 var(--h-font-sans); padding: 3px 6px; border-radius: var(--h-radius-mark); border: 1px solid currentColor; color: var(--h-status-info); white-space: nowrap; }
+.rpc-kind.kind-server, .rpc-kind.kind-client { color: var(--h-method-get); }
+.rpc-kind.kind-bidi { color: var(--h-method-patch); }
+.rpc-kind.kind-notification { color: var(--h-text-faint); }
+
+/* A message's fields: number, name, type, JSON name. */
+.rpc-fields .fnum { display: inline-block; min-width: 22px; padding: 1px 4px; margin-right: var(--h-space-1); border-radius: var(--h-radius-mark); background: var(--h-bg-soft); color: var(--h-text-secondary); font: var(--h-font-weight-medium) 11px/1.4 var(--h-font-mono); text-align: center; }
+.rpc-fields .json-name code { color: var(--h-text-secondary); }
+.rpc-directions .label, .rpc-structure .label { color: var(--h-text-secondary); margin-right: var(--h-space-2); }
+.note { color: var(--h-text-secondary); font-size: var(--h-font-size-ui); }
+
+/* A service's index: methods by streaming kind or namespace. */
+.rpc-group { margin: 0 0 var(--h-space-5); }
+.rpc-group-head { margin: 0 0 var(--h-space-2); font-size: 12px; font-weight: var(--h-font-weight-semibold); color: var(--h-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.rpc-methods { list-style: none; margin: 0; padding: 0; border: 1px solid var(--h-border); border-radius: var(--h-radius-card); }
+.rpc-methods > li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--h-space-1) var(--h-space-3); padding: var(--h-space-3); border-top: 1px solid var(--h-border-faint); }
+.rpc-methods > li:first-child { border-top: 0; }
+.rpc-methods .rpc-sig-line { font-size: 12.5px; color: var(--h-text-secondary); }
+.rpc-methods .op-line { flex-basis: 100%; color: var(--h-text-secondary); }
+.rpc-service { font-size: 13px; }
+.rpc-protocol { display: inline-block; padding: 0 var(--h-space-2); border: 1px solid var(--h-border); border-radius: var(--h-radius-mark); font-size: 12px; }
+
+/* A stream's messages, in the order they're sent. */
+.rpc-seq { margin: 0; padding: 0 var(--h-space-2) var(--h-space-2); list-style: none; counter-reset: rpc-seq; }
+.rpc-seq > .label { display: block; padding: var(--h-space-2) var(--h-space-1) var(--h-space-1); font-size: 12px; color: var(--h-text-faint); }
+.rpc-seq ol { margin: 0; padding: 0; list-style: none; counter-reset: rpc-seq; }
+.rpc-seq li { position: relative; counter-increment: rpc-seq; margin: var(--h-space-1) 0 0; padding-left: 26px; }
+.rpc-seq li::before { content: counter(rpc-seq); position: absolute; left: 0; top: 8px; width: 18px; text-align: right; font: 11px/1 var(--h-font-mono); color: var(--h-text-faint); }
+.rpc-seq li pre { margin: 0; border: 1px solid var(--h-border-faint); border-radius: var(--h-radius-mark); background: var(--h-bg-page); }
+
+/* A message's forms on its type page. */
+.type-forms > .seg { margin-bottom: var(--h-space-2); background: var(--h-bg-soft); }
+
+}

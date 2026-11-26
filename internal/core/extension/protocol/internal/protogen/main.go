@@ -180,9 +180,14 @@ func load(entry, path string) (*proto, error) {
 				e.variants = append(e.variants, v.Name)
 			}
 			p.enums = append(p.enums, e)
-		case c.IsInterface(n):
+		case isAPI(c, n):
+			// Each side's methods: an api bound by std/jsonrpc, its ops
+			// named on the wire by @jsonrpc, one without a result a
+			// notification.
 			for _, f := range n.Children {
-				p.methods = append(p.methods, methodOf(n.Name, f))
+				if f.Name != "" && f.Decl.N != nil && f.Decl.N.Kind == syntax.Declare {
+					p.methods = append(p.methods, methodOf(goName(n.Name), f))
+				}
 			}
 		case c.IsType(n):
 			r := record{name: n.Name, doc: docOf(n)}
@@ -196,32 +201,39 @@ func load(entry, path string) (*proto, error) {
 	return p, nil
 }
 
+func isAPI(c *types.Checker, n *resolve.Node) bool {
+	k := c.KindOf(n)
+	return k != nil && k.Path() == "types.api"
+}
+
 func methodOf(iface string, n *resolve.Node) method {
 	d := ast.Declare{N: n.Decl.N}
 	m := method{iface: iface, name: n.Name, wire: n.Name, doc: docOf(n)}
 	for _, a := range d.Annotations() {
-		if resolve.PathText(a.Path().N) != "method" {
+		if resolve.PathText(a.Path().N) != "jsonrpc" {
 			continue
 		}
 		for _, arg := range a.Args().Args() {
-			if pa, ok := arg.(ast.PositionalArg); ok {
-				m.wire, _ = resolve.StringValue(pa.Expr().Syntax())
+			switch arg := arg.(type) {
+			case ast.PositionalArg:
+				m.wire, _ = resolve.StringValue(arg.Expr().Syntax())
+			case ast.NamedArg:
+				if arg.Ident() != nil && arg.Ident().Text == "method" {
+					m.wire, _ = resolve.StringValue(arg.Expr().Syntax())
+				}
 			}
 		}
 	}
 	if ps := d.Params().Params(); len(ps) == 1 {
 		m.params = refOf(ps[0].Type(), false)
 	}
+	m.notification = true
 	if nt, ok := d.Type().(ast.NamedType); ok {
-		for _, fl := range nt.Flags().Idents() {
-			if fl.Text == "notification" {
-				m.notification = true
-			}
-		}
 		for _, a := range nt.Args().Args() {
 			if pa, ok := a.(ast.PositionalArg); ok {
 				r := exprRef(pa.Expr())
 				m.result = &r
+				m.notification = false
 			}
 		}
 	}

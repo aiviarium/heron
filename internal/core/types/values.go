@@ -246,6 +246,18 @@ func (c *Checker) value(e ast.Expr, want ty, sc *resolve.Scope, file *resolve.Fi
 		c.expr(e, sc, file, nil)
 		return
 	}
+	if IsStd(d, "types", "types.Stream") {
+		// An example's stream: the messages in the order they're sent.
+		if arr, ok := e.(ast.ArrayExpr); ok {
+			el := c.argType(want, 0)
+			for _, x := range arr.Exprs() {
+				c.value(x, el, sc, file, nil)
+			}
+			return
+		}
+		c.errorf(file, e.Syntax(), "type", "expected a list of the stream's messages, in the order they're sent")
+		return
+	}
 	if IsStd(d, "schema", "schema.Ref") {
 		if lit != "" {
 			mismatch()

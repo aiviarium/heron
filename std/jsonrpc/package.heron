@@ -1,0 +1,49 @@
+// std/jsonrpc: binds apis and ops to JSON-RPC 2.0 methods and
+// notifications, from the APIs tab.
+import = ["std/schema@1", "std/types@1", "std/spec@1"]
+
+jsonrpc: package(version = "1.0", requires = ["std/types@1"]) {
+  /// How a method's params hold the op's parameters.
+  ParamStructure: enum {
+    /// An object of the parameters by name.
+    by_name: Self
+    /// An array of the parameters in the order written.
+    by_position: Self
+  }
+
+  /// How an api's messages travel.
+  Framing: enum {
+    /// Each request POSTed to the server, answered in the response.
+    http: Self
+    /// A Content-Length header and a blank line before each message, as the
+    /// language server protocol frames them.
+    content_length: Self
+    /// A 4-byte big-endian length before each message.
+    length_prefixed: Self
+    /// One message per WebSocket frame.
+    websocket: Self
+  }
+
+  /// How each message is encoded.
+  Encoding: enum {
+    json: Self
+    /// CBOR maps, without the jsonrpc member.
+    cbor: Self
+  }
+
+  /// On an op, its method's name; on an api, how its methods' params,
+  /// batches, framing and encoding go. Either binds the ops to JSON-RPC.
+  jsonrpc(
+    method?: String,
+    params?: ParamStructure,
+    batch?: Bool,
+    framing?: Framing,
+    encoding?: Encoding,
+  ): annotation(on = [types.api, types.op])
+
+  /// The parameter whose value is the whole of params.
+  params: annotation(on = [types.param])
+
+  /// The JSON-RPC error code an error is answered with.
+  code(code: Int): annotation(on = [types.type, spec.error])
+}

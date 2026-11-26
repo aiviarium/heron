@@ -18,6 +18,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/rpc"
 	"github.com/aiviarium/heron/internal/core/specmodel"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
@@ -114,6 +115,9 @@ func (s *Session) checkTree(t *resolve.Tree) *Result {
 	res.Diags = append(res.Diags, project.Check(t, c)...)
 	// The spec layers and the shapes of std/spec's kinds.
 	res.Diags = append(res.Diags, specmodel.Check(t, c)...)
+	// The RPC bindings: gRPC services and JSON-RPC methods (std/proto,
+	// std/jsonrpc), their names, numbers and what can't be projected.
+	res.Diags = append(res.Diags, rpc.Build(t, c).Diags...)
 	// The docs' lenses and authored pages (std/docs). Their diagnostics
 	// name a lens where the checker would only say the name is unknown.
 	lds, replaced := lens.Check(t, c, CheckExample)

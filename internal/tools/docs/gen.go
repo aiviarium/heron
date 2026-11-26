@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"github.com/aiviarium/heron/internal/core/rpc"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -115,6 +116,7 @@ func (s *Site) DataJS() []byte { return s.dataJS() }
 func Register(r *registry.Registry) {
 	registerRenderers(r)
 	registerAsyncAPI(r)
+	registerRPC(r)
 	if err := r.SetGenerator(registry.Generator{Path: "docs.site", Target: "docs", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
 		gi := in.(*gen.Input)
 		versions := releasedVersions(filepath.Join(gi.Dir, OutDir))
@@ -154,6 +156,42 @@ func registerAsyncAPI(r *registry.Registry) {
 		sort.Strings(names)
 		for _, n := range names {
 			out = append(out, registry.GeneratedFile{Path: asyncAPIDir + "/" + n, Content: docs[n], Ignored: true})
+		}
+		return out, nil
+	}}); err != nil {
+		panic(err)
+	}
+}
+
+// protoDir and openRPCDir are where `heron generate proto` and `heron
+// generate openrpc` write.
+const (
+	protoDir   = ".heron/proto"
+	openRPCDir = ".heron/openrpc"
+)
+
+func registerRPC(r *registry.Registry) {
+	if err := r.SetGenerator(registry.Generator{Path: "docs.proto", Target: "proto", OnRequest: true, Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
+		gi := in.(*gen.Input)
+		var out []registry.GeneratedFile
+		for _, f := range rpc.Build(gi.Tree, gi.Checker).ProtoFiles() {
+			out = append(out, registry.GeneratedFile{Path: protoDir + "/" + f.Path, Content: f.Content, Ignored: true})
+		}
+		return out, nil
+	}}); err != nil {
+		panic(err)
+	}
+	if err := r.SetGenerator(registry.Generator{Path: "docs.openrpc", Target: "openrpc", OnRequest: true, Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
+		gi := in.(*gen.Input)
+		docs := OpenRPC(gi.Tree, gi.Checker)
+		names := make([]string, 0, len(docs))
+		for n := range docs {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		var out []registry.GeneratedFile
+		for _, n := range names {
+			out = append(out, registry.GeneratedFile{Path: openRPCDir + "/" + n, Content: docs[n], Ignored: true})
 		}
 		return out, nil
 	}}); err != nil {

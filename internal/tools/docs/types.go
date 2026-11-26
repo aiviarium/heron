@@ -222,7 +222,10 @@ func renderType(c *Ctx) error {
 	kind := s.kindPath(n)
 	c.W(`<section class="node type-page" id="`, attr(Anchor(n)), `">`)
 	c.title("")
-	c.W(s.codeFrame("heron", s.relFile(n.Decl.File), s.signature(n), dedent(strings.TrimSpace(n.Decl.N.Text()), declIndent(n.Decl))))
+	frame := s.codeFrame("heron", s.relFile(n.Decl.File), s.signature(n), dedent(strings.TrimSpace(n.Decl.N.Text()), declIndent(n.Decl)))
+	if !c.protoTabs(n, frame) {
+		c.W(frame)
+	}
 	c.Prose(n)
 
 	// Facts: the status an error is returned with, the interfaces it

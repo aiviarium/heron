@@ -1,0 +1,112 @@
+// The parcels service's types and errors. Parcel numbers its fields, so
+// they stay put when it grows; the others are numbered in the order their
+// fields are written.
+
+/// A parcel as the network tracks it.
+@reserved(4)
+Parcel: type {
+  @field(1)
+  id: String
+  @field(2)
+  status: ParcelStatus
+  /// What the parcel weighs, as the depot's scale read it.
+  @field(3)
+  weight_grams: Int(bits = 32)
+  /// Where the parcel goes; left out until it's addressed.
+  @field(5)
+  destination?: Destination
+  /// Handling notes printed on the label, such as fragile.
+  @field(6)
+  labels: Map(String, String) = {}
+}
+
+/// Where a parcel is in its life.
+ParcelStatus: enum {
+  LABELLED: Self
+  IN_TRANSIT: Self
+  DELIVERED: Self
+  /// The courier couldn't deliver it, and it's on its way back.
+  RETURNED: Self
+}
+
+/// A street address or a parcel locker.
+Destination: union {
+  address: Address
+  locker: Locker
+}
+
+Address: type {
+  street: String
+  postal_code: String
+  city: String
+  /// An ISO 3166 country code, such as DE.
+  country: String
+}
+
+Locker: type {
+  /// The locker's code, printed on its door.
+  code: String
+}
+
+/// What a label is printed from.
+LabelRequest: type {
+  weight_grams: Int(bits = 32)
+  destination: Destination
+}
+
+/// Something that happened to a parcel.
+ParcelEvent: type {
+  status: ParcelStatus
+  /// Where it happened.
+  place: String
+  at?: Timestamp
+}
+
+/// One read of a parcel's label by a depot's sorter.
+Scan: type {
+  parcel_id: String
+  depot: String
+  at?: Timestamp
+}
+
+ScanSummary: type {
+  /// The scans that matched a parcel.
+  accepted: Int
+}
+
+/// A courier's position.
+Position: type {
+  lat: Float
+  lng: Float
+}
+
+/// The next step of a courier's route.
+Instruction: type {
+  text: String
+  /// How far ahead the step is.
+  meters: Int(bits = 32)
+}
+
+@status(404)
+@proto.code(NOT_FOUND)
+@jsonrpc.code(-32004)
+ParcelNotFound: type(Error) {
+  message: String = "No parcel has this id."
+  id: String = ""
+}
+
+@status(422)
+@proto.code(INVALID_ARGUMENT)
+@jsonrpc.code(-32010)
+InvalidAddress: type(Error) {
+  message: String = "The address can't be delivered to."
+  /// The field of the address that's wrong.
+  field: String = ""
+}
+
+@status(503)
+@proto.code(UNAVAILABLE)
+@jsonrpc.code(-32011)
+RouteUnavailable: type(Error) {
+  message: String = "No route can be planned right now; retry shortly."
+}

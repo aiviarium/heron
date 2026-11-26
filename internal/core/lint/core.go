@@ -8,6 +8,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/diag"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/rpc"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
 )
@@ -23,12 +24,21 @@ func Register(r *registry.Registry) {
 		{Name: "tag-kind", Summary: "a tag whose name isn't a kind that may stand in prose", Run: wrap(tagKind)},
 		{Name: "example-params", Summary: "an op example that leaves out a required parameter", Run: wrap(exampleParams)},
 		{Name: "repeated-import", Summary: "an import that an enclosing scope already makes", Run: wrap(repeatedImport)},
+		{Name: "rpc-code", Summary: "an error an RPC method throws without a code for its binding, or a JSON-RPC code in the reserved range", Run: wrap(rpcCodes)},
 	} {
 		r.MustAddLint(l)
 	}
 }
 
 func wrap(f func(*Input)) func(any) { return func(in any) { f(in.(*Input)) } }
+
+// rpcCodes reports the errors gRPC and JSON-RPC methods throw without a
+// code of their binding, and JSON-RPC codes in the reserved range.
+func rpcCodes(in *Input) {
+	for _, f := range rpc.Build(in.Tree, in.Checker).Lints {
+		in.Report(f.Node, f.Site, diag.Warning, f.Message)
+	}
+}
 
 // eachNode calls f for every node of the tree's own files.
 func eachNode(in *Input, f func(*resolve.Node)) {

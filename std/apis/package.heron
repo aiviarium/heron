@@ -13,6 +13,10 @@ apis: package(version = "1.0", requires = ["std/types@1"]) {
   /// What a transport returns for one request.
   Response: type<open>
 
+  /// Where an api is served, for every binding; more than one for more
+  /// than one server.
+  server(url: String): annotation<repeatable>(on = [types.api])
+
   /// A transport bound to its implementation, as in
   /// `grpc: transport = js("@acme/heron-grpc")`.
   transport: kind

@@ -7,6 +7,7 @@ package docs
 
 import (
 	"context"
+	"github.com/aiviarium/heron/internal/core/rpc"
 	"sort"
 	"strings"
 
@@ -129,6 +130,8 @@ type Site struct {
 	specSite *Site
 	// specLenses are the spec's own lenses, when it builds more than one.
 	specLenses *Lenses
+	// rpcModel is the tree's RPC projection, built on first use.
+	rpcModel *rpc.Model
 
 	// modes memoizes how the lens renders each node; lenses is the set
 	// of lens sites this one belongs to, if any.
@@ -172,6 +175,15 @@ func New(t *resolve.Tree, c *types.Checker, opts Options) *Site {
 	s.buildPages()
 	s.buildBacklinks()
 	return s
+}
+
+// rpc is the tree's RPC projection: its gRPC services and JSON-RPC
+// methods, as the checker and the generators read them.
+func (s *Site) rpc() *rpc.Model {
+	if s.rpcModel == nil {
+		s.rpcModel = rpc.Build(s.Tree, s.Checker)
+	}
+	return s.rpcModel
 }
 
 // kindPath is the declaration path of a node's kind, such as "spec.rule".
@@ -368,6 +380,7 @@ func (s *Site) buildPages() {
 	for _, p := range refSections {
 		ref.Groups = append(ref.Groups, NavGroup{Title: p.Title, Pages: append([]*Page{p}, p.Children...)})
 	}
+	apiGroup := map[*resolve.Node]int{}
 	for _, a := range s.apis {
 		p := &Page{Node: a, File: s.fileFor(a), Title: displayName(s, a), Layout: "api", Area: ref}
 		s.add(p)
@@ -380,6 +393,9 @@ func (s *Site) buildPages() {
 			if m == "" && wsRoute(op) != "" {
 				m = "WS"
 			}
+			if m == "" {
+				m = s.navMethod(op)
+			}
 			q := &Page{Node: op, File: s.fileFor(op), Title: displayName(s, op), Layout: "op", Area: ref, Parent: p, Method: m}
 			s.add(q)
 			p.Children = append(p.Children, q)
@@ -388,8 +404,9 @@ func (s *Site) buildPages() {
 		g.Pages = g.Pages[1:]
 		g.Title = p.Title
 		ref.Groups = append(ref.Groups, NavGroup{Title: g.Title, Pages: append([]*Page{p}, g.Pages...)})
+		apiGroup[a] = len(ref.Groups) - 1
 	}
-	typeGroup := func(title string, nodes []*resolve.Node) {
+	typeGroupAt := func(title string, nodes []*resolve.Node, at int) {
 		if len(nodes) == 0 {
 			return
 		}
@@ -401,13 +418,50 @@ func (s *Site) buildPages() {
 			s.add(p)
 			g.Pages = append(g.Pages, p)
 		}
-		ref.Groups = append(ref.Groups, g)
+		if at < 0 || at >= len(ref.Groups) {
+			ref.Groups = append(ref.Groups, g)
+			return
+		}
+		ref.Groups = append(ref.Groups[:at+1], append([]NavGroup{g}, ref.Groups[at+1:]...)...)
+	}
+	typeGroup := func(title string, nodes []*resolve.Node) { typeGroupAt(title, nodes, -1) }
+	// Each api's types right after its ops, each type under the first api
+	// that names it, so an HTTP api's types and an RPC service's messages
+	// never share a group; the types no api names group by their scope.
+	byAPI := map[*resolve.Node][]*resolve.Node{}
+	claimed := map[*resolve.Node]bool{}
+	isType := map[*resolve.Node]bool{}
+	for _, t := range s.types {
+		isType[t] = true
+	}
+	for _, a := range s.apis {
+		for _, t := range s.apiTypes(a) {
+			if isType[t] && !claimed[t] {
+				claimed[t] = true
+				byAPI[a] = append(byAPI[a], t)
+			}
+		}
+	}
+	var rest []*resolve.Node
+	for _, t := range s.types {
+		if !claimed[t] {
+			rest = append(rest, t)
+		}
+	}
+	if len(s.apis) > 1 || len(s.apis) == 1 && len(rest) > 0 {
+		// Insert from the last api back, so earlier groups keep their place.
+		for i := len(s.apis) - 1; i >= 0; i-- {
+			a := s.apis[i]
+			typeGroupAt(label("docs.nav.types_in", "scope", displayName(s, a)), byAPI[a], apiGroup[a])
+		}
+	} else {
+		rest = s.types
 	}
 	// Types from more than one scope, such as an API's and a protocol's,
 	// group by the scope that declares them.
 	var scopes []*resolve.Node
 	byScope := map[*resolve.Node][]*resolve.Node{}
-	for _, t := range s.types {
+	for _, t := range rest {
 		if _, ok := byScope[t.Parent]; !ok {
 			scopes = append(scopes, t.Parent)
 		}
@@ -422,7 +476,7 @@ func (s *Site) buildPages() {
 			typeGroup(title, byScope[sc])
 		}
 	} else {
-		typeGroup(label("docs.nav.types"), s.types)
+		typeGroup(label("docs.nav.types"), rest)
 	}
 	typeGroup(label("docs.nav.errors"), s.errors)
 
