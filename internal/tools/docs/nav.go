@@ -312,31 +312,3 @@ func firstSentence(h string) string {
 
 // isAuthoredPage reports whether a page is an authored node's.
 func (s *Site) isAuthoredPage(p *Page) bool { return p != nil && p.Node != nil && s.authored(p.Node) }
-
-// pageNodes writes, for TREE, the nodes the open page shows that have an
-// anchor, nested as the tree nests them.
-func (s *Site) pageNodes(b *strings.Builder, p *Page) {
-	if s.nav() != lens.NavTree || p.Node == nil || s.Opts.Lens == nil {
-		return
-	}
-	var walk func(n *resolve.Node, depth int) string
-	walk = func(n *resolve.Node, depth int) string {
-		var out strings.Builder
-		for _, ch := range n.Children {
-			if ch.Name == "" || !own(ch) || ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || s.anchorOf[ch] != p || s.pageOf[ch] != nil {
-				continue
-			}
-			out.WriteString(`<li><a href="#` + attr(Anchor(ch)) + `"><span class="t">` + esc(displayName(s, ch)) + `</span></a>`)
-			if depth < 2 {
-				if inner := walk(ch, depth+1); inner != "" {
-					out.WriteString(`<ul>` + inner + `</ul>`)
-				}
-			}
-			out.WriteString(`</li>`)
-		}
-		return out.String()
-	}
-	if h := walk(p.Node, 0); h != "" {
-		b.WriteString(`<ul class="nav-nodes">` + h + `</ul>`)
-	}
-}

@@ -638,10 +638,6 @@ body:not([data-lens="explore"]):not([data-lens=""]) .diag > .rule-meta { display
 .lens-tag { margin-left: 2px; font: var(--h-font-weight-medium) 11px var(--h-font-sans); color: var(--h-text-faint); text-decoration: none; display: inline-block; }
 .lens-mark { display: inline-block; margin-left: var(--h-space-1); padding: 0 5px; font: var(--h-font-weight-medium) 11px/16px var(--h-font-sans); color: var(--h-text-secondary); border: 1px solid var(--h-border); border-radius: var(--h-radius-mark); letter-spacing: 0; vertical-align: 2px; }
 .prose > .lens-mark:first-child, .marked > .lens-mark:first-child { float: right; margin-top: 4px; }
-.nav-nodes { list-style: none; margin: 2px 0 var(--h-space-1) var(--h-space-3); padding-left: var(--h-space-2); border-left: 1px solid var(--h-border-faint); }
-.nav-nodes ul { list-style: none; margin: 0 0 0 var(--h-space-3); padding: 0; }
-.nav-nodes a { display: block; padding: 2px var(--h-space-2); font-size: 12.5px; line-height: 18px; color: var(--h-text-faint); border-radius: var(--h-radius-control); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nav-nodes a:hover { color: var(--h-text); background: var(--h-bg-soft); }
 }
 
 @layer heron {

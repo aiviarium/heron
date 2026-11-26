@@ -220,9 +220,10 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	if f.Aside != "" {
 		b.WriteString(f.Aside)
 	}
-	if len(f.Outline) > 1 || f.Aside == "" && len(f.Outline) > 0 {
+	ol := s.outline(p, f)
+	if len(ol) > 1 || f.Aside == "" && len(ol) > 0 {
 		b.WriteString(`<nav class="outline" aria-label="` + attr(label("docs.label.outline")) + `"><div class="label">` + esc(label("docs.label.on_this_page")) + `</div><ul>`)
-		for _, h := range f.Outline {
+		for _, h := range ol {
 			b.WriteString(fmt.Sprintf(`<li class="l%d"><a href="#%s">%s</a></li>`, h.Level, attr(h.ID), esc(h.Title)))
 		}
 		b.WriteString(`</ul></nav>`)
@@ -338,9 +339,6 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			b.WriteString(`<span class="m m-` + strings.ToLower(attr(q.Method)) + `">` + esc(q.Method) + `</span>`)
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span></a>`)
-		if q == p {
-			s.pageNodes(b, p)
-		}
 		if len(q.Children) > 0 && q.Layout != "api" && (depth > 0 || s.within(p, q)) {
 			b.WriteString(`<ul>`)
 			for _, c := range q.Children {
@@ -383,7 +381,15 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 	}
 	b.WriteString(s.slotHTML(nil, "sidebar", ""))
 	b.WriteString(`</div></nav>`)
+	b.WriteString(navScrollScript)
 }
+
+// navScrollScript puts the navigation back where the last page of the same
+// lens's site left it, before the page paints, or else scrolls the current
+// page's entry into view. docs.js saves the position as a page is left.
+const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo");` +
+	`try{var v=l&&sessionStorage.getItem("heron-nav:"+l.href);if(v!==null&&v!==undefined){n.scrollTop=+v;return}}catch(e){}` +
+	`var a=n.querySelector('[aria-current="page"]');if(a)a.scrollIntoView({block:"nearest"})})()</script>`
 
 // within reports whether page p is q or below it.
 func (s *Site) within(p, q *Page) bool {
@@ -428,3 +434,61 @@ const (
 	iconMenu   = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`
 	logoMark   = `<svg class="mark" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 3.5v13M15 3.5v13M5 10h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>`
 )
+
+// outline is a page's outline: its headings and, under the heading of a
+// node with no subheadings of its own, the nodes the page shows inside it
+// that have an anchor, two levels deep in all. What's on a page is here,
+// and the navigation lists pages alone.
+func (s *Site) outline(p *Page, f *Fragment) []Heading {
+	if p.Node == nil {
+		return f.Outline
+	}
+	byAnchor := map[string]*resolve.Node{}
+	var walk func(n *resolve.Node)
+	walk = func(n *resolve.Node) {
+		for _, ch := range n.Children {
+			if s.anchorOf[ch] == p && s.pageOf[ch] == nil {
+				byAnchor[Anchor(ch)] = ch
+				walk(ch)
+			}
+		}
+	}
+	walk(p.Node)
+	shown := func(n *resolve.Node) []*resolve.Node {
+		var out []*resolve.Node
+		for _, ch := range n.Children {
+			if ch.Name == "" || !own(ch) || ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || s.anchorOf[ch] != p || s.pageOf[ch] != nil {
+				continue
+			}
+			if strings.Contains(f.HTML, `id="`+attr(Anchor(ch))+`"`) {
+				out = append(out, ch)
+			}
+		}
+		return out
+	}
+	var out []Heading
+	if len(f.Outline) == 0 {
+		// A page without headings: the nodes it shows, and theirs.
+		for _, ch := range shown(p.Node) {
+			out = append(out, Heading{ID: Anchor(ch), Title: displayName(s, ch), Level: 2})
+			for _, g := range shown(ch) {
+				out = append(out, Heading{ID: Anchor(g), Title: displayName(s, g), Level: 3})
+			}
+		}
+		return out
+	}
+	for i, h := range f.Outline {
+		out = append(out, h)
+		if h.Level != 2 || i+1 < len(f.Outline) && f.Outline[i+1].Level > 2 {
+			continue
+		}
+		n := byAnchor[h.ID]
+		if n == nil {
+			continue
+		}
+		for _, ch := range shown(n) {
+			out = append(out, Heading{ID: Anchor(ch), Title: displayName(s, ch), Level: 3})
+		}
+	}
+	return out
+}

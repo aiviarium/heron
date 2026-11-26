@@ -95,6 +95,64 @@ const url = (f) => "file://" + path.join(dir, f)
   await readyServed(pages[0])
   const kept = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
   if (kept !== after) fail.push("theme: the chosen theme doesn't hold on the next load")
+
+  // The navigation lists pages alone: no page's navigation links to an
+  // anchor, and what's on a page is in its outline, nested two levels.
+  const sidebarOf = (f) => (fs.readFileSync(path.join(dir, f), "utf8").match(/<nav class="sidebar"[\s\S]*?<\/nav>/) || [""])[0]
+  for (const f of pages) if (sidebarOf(f).includes('href="#')) fail.push(`nav: ${f} lists an anchor of a page`)
+  const nested = pages.find((f) => /<nav class="outline"[\s\S]*?<li class="l3">/.test(fs.readFileSync(path.join(dir, f), "utf8")))
+  if (nested) {
+    await readyServed(nested)
+    const n = await page.evaluate(() => ({ anchors: document.querySelectorAll('.sidebar a[href^="#"]').length, l3: document.querySelectorAll(".outline li.l3 a").length }))
+    if (n.anchors || !n.l3) fail.push(`nav: on ${nested} the navigation has ${n.anchors} anchors and the outline ${n.l3} nested entries`)
+  } else console.log("(no nested outline on this site)")
+
+  // The navigation keeps its scroll from page to page, and with nothing
+  // kept it scrolls the current page's entry into view.
+  // A page with a long navigation, and the link furthest down it to a page
+  // whose navigation is as long, so the position has room to hold.
+  const items = (f) => (sidebarOf(f).match(/<li>/g) || []).length
+  const long = pages.filter((f) => items(f) > 40).sort((a, b) => items(b) - items(a))[0]
+  if (long) {
+    await readyServed(long)
+    const hrefs = await page.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].map((a, i) => (a.dataset.i = String(i), a.offsetParent && !a.getAttribute("aria-current") ? a.getAttribute("href") : null)))
+    // Down the list but not at its end, and put at the top of the
+    // navigation: kept, the position differs from scrolling the entry into
+    // view, which would leave it at the bottom.
+    const picks = []
+    hrefs.forEach((h, i) => {
+      const f = h && path.normalize(path.join(path.dirname(long), h))
+      if (f && pages.includes(f) && items(f) >= items(long) - 5) picks.push(i)
+    })
+    const pick = picks.length ? picks[Math.floor(picks.length * 0.6)] : -1
+    const target = await page.evaluate((i) => {
+      const nav = document.querySelector(".sidebar")
+      const a = nav.querySelector(`a[data-i="${i}"]`)
+      if (!a) return { top: 0, scrollable: false }
+      a.scrollIntoView({ block: "start" })
+      a.dataset.e2e = "far"
+      return { top: nav.scrollTop, scrollable: nav.scrollHeight > nav.clientHeight }
+    }, pick)
+    if (target.scrollable && target.top > 0) {
+      await Promise.all([page.waitForNavigation(), page.click("a[data-e2e=far]")])
+      await page.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      // As far as the next page's navigation scrolls, when it's shorter.
+      const next = await page.evaluate(() => { const n = document.querySelector(".sidebar"); return { top: n.scrollTop, max: n.scrollHeight - n.clientHeight } })
+      const want = Math.min(target.top, next.max)
+      if (Math.abs(next.top - want) > 2) fail.push(`nav scroll: ${target.top} before the link, ${next.top} on the next page, which scrolls to ${next.max}`)
+      // Nothing kept: the current page's entry is scrolled into view.
+      await page.evaluate(() => sessionStorage.clear())
+      await page.reload()
+      const seen = await page.evaluate(() => {
+        const nav = document.querySelector(".sidebar").getBoundingClientRect()
+        const a = document.querySelector('.sidebar [aria-current="page"]')
+        if (!a) return true
+        const r = a.getBoundingClientRect()
+        return r.top >= nav.top && r.bottom <= nav.bottom
+      })
+      if (!seen) fail.push("nav scroll: with nothing kept, the current page's entry isn't in view")
+    }
+  } else console.log("(no long navigation on this site)")
   server.close()
   await ready(pages[0])
 

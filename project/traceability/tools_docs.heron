@@ -29,6 +29,20 @@ tools_docs: section {
     verify("internal/tools/docs/docs_test.go", test = "TestOpPage")
   }
 
+  proves(heron.tools.docs.page_layout.nav_pages_only) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestNavPagesOutlineNested")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.outline_nested) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestNavPagesOutlineNested")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.nav_scroll_kept) {
+    verify("scripts/e2e-docs.sh")
+  }
+
   proves(heron.tools.docs.page_layout.narrow_screens) {
     verify("scripts/e2e-docs.sh")
   }
@@ -259,6 +273,7 @@ tools_docs: section {
 
   proves(heron.tools.docs.lenses.navigation.tree_nav) {
     verify("internal/tools/docs/lenses_test.go", test = "TestExploreLens")
+    verify("internal/tools/docs/lenses_test.go", test = "TestNavPagesOutlineNested")
   }
 
   proves(heron.tools.docs.lenses.diagnostics.unknown_lens) {

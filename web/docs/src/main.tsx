@@ -135,6 +135,20 @@ function versions() {
   }
 }
 
+/** The navigation keeps its scroll position from page to page of one
+ * lens's site: saved here as a page is left, put back by the inline script
+ * after the navigation before the next page paints. */
+function navScroll() {
+  const nav = document.querySelector<HTMLElement>(".sidebar")
+  const logo = document.querySelector<HTMLAnchorElement>(".logo")
+  if (!nav || !logo) return
+  const save = () => {
+    try { sessionStorage.setItem("heron-nav:" + logo.href, String(nav.scrollTop)) } catch { /* storage blocked */ }
+  }
+  nav.addEventListener("click", (e) => { if ((e.target as Element).closest("a")) save() })
+  addEventListener("pagehide", save)
+}
+
 /** The outline follows the heading in view. */
 function outline() {
   const links = $$<HTMLAnchorElement>(".outline a")
@@ -163,6 +177,7 @@ function start() {
   copy()
   views()
   versions()
+  navScroll()
   outline()
   const trigger = document.querySelector<HTMLElement>("[data-island=search]")
   if (trigger) mount(() => <Search trigger={trigger} />)

@@ -253,14 +253,36 @@ func TestDeveloperLens(t *testing.T) {
 
 // Explore shows every node in full: each rule with a facts line of its
 // path, kind, targets, subject and strength, each node's kind beside its
-// name, and, in the navigation, the open page's nodes.
+// name; the navigation lists pages alone, and the page's nodes are in its
+// outline.
 func TestExploreLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	sync := f["explore/kite.sync.html"]
 	mustHave(t, "explore sync", sync, `<span class="rule-meta"><code class="meta-name">sync.copies_changed</code>`,
 		`<code class="meta-kind">rule</code>`, `<code class="meta-strength">must</code>`, `<span class="kind">section</span>`,
-		`<span class="kind">term</span>`, `id="kite.sync.unreadable"`, `<ul class="nav-nodes">`, `href="#kite.sync.keeps_both"`)
+		`<span class="kind">term</span>`, `id="kite.sync.unreadable"`)
 	mustNotHave(t, "explore sync", sync, `<details class="rule`)
+	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`).FindString(sync)
+	mustHave(t, "explore sync outline", outline, `<li class="l2"><a href="#kite.sync.keeps_both">`)
+}
+
+// In every lens the navigation lists pages, never an anchor on a page;
+// a page's outline holds its headings and, under a node's heading, the
+// nodes inside it, two levels deep, or on a page without headings its
+// nodes and theirs.
+func TestNavPagesOutlineNested(t *testing.T) {
+	_, f := lensFiles(t, kite)
+	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`)
+	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`)
+	for path, h := range f {
+		if strings.HasSuffix(path, ".html") && strings.Contains(nav.FindString(h), `href="#`) {
+			t.Errorf("%s: the navigation lists an anchor", path)
+		}
+	}
+	mustHave(t, "user retries outline", outline.FindString(f["kite.sync.retries.html"]),
+		`<li class="l2"><a href="#kite.sync.retries.backoff">Backoff</a></li><li class="l3"><a href="#kite.sync.retries.backoff.wait">Wait</a></li>`)
+	mustHave(t, "explore backoff outline", outline.FindString(f["explore/kite.sync.retries.backoff.html"]),
+		`<li class="l2"><a href="#kite.sync.retries.backoff.backoff_doubles">`, `<li class="l2"><a href="#kite.sync.retries.backoff.wait">`)
 }
 
 // A link to a node its lens leaves out opens it in the first lens that
