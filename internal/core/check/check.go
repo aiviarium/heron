@@ -96,6 +96,9 @@ func (s *Session) Check(entry resolve.FileID) *Result {
 	for k, v := range next {
 		s.memo[k] = v
 	}
+	// Requirements written as elements, in packages and in nodes the memo
+	// served, read their attributes before conformance and the docs do.
+	c.ElementArgs(t)
 	// Project mode and the implementation version scheme, over the whole
 	// tree: a tree that implements a spec leaves the spec's kinds to it.
 	res.Diags = append(res.Diags, project.Check(t, c)...)

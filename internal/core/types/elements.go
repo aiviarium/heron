@@ -98,6 +98,34 @@ func (c *Checker) element(n *resolve.Node) {
 	}
 }
 
+// ElementArgs reads the attributes of every kind element in a tree and the
+// packages it imports as their kinds' arguments, where no check has read
+// them yet: a package's nodes and nodes whose diagnostics came from a memo,
+// so a requirement written as an element has its targets and `by` wherever
+// it's read.
+func (c *Checker) ElementArgs(t *resolve.Tree) {
+	seen := map[*resolve.Tree]bool{}
+	var tree func(t *resolve.Tree)
+	tree = func(t *resolve.Tree) {
+		if t == nil || seen[t] {
+			return
+		}
+		seen[t] = true
+		t.Walk(func(n *resolve.Node) {
+			if n.Shape != resolve.ShapeElement || n.ElementArgs.N != nil || n.Decl.N == nil {
+				return
+			}
+			if k := c.metaOf(n).decl; k != nil {
+				n.ElementArgs = c.elementArgs(ast.Tag{N: n.Decl.N}, c.KindParams(k, n), n.Decl.Scope, n.Decl.File)
+			}
+		})
+		for _, p := range t.Imports {
+			tree(p.Tree)
+		}
+	}
+	tree(t)
+}
+
 // elementArgs writes an element's attributes as the arguments of its kind:
 // `id` and `@name` attributes aside, a quoted value as a literal of its
 // parameter's type and a braced one as the expression it holds, parsed

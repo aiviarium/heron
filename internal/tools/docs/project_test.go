@@ -110,7 +110,8 @@ func TestProjectSiteLinksToSpecSite(t *testing.T) {
 // A requirement whose subject is a person or an agent, with no proof and
 // no status, is a practice: listed in its own group and not counted among
 // what the code must meet, while one a proof names stays proven. A rule
-// on a system actor with neither is still missing.
+// on a system actor with neither is still missing. A rule written as an
+// element reads its `by` from its attribute.
 func TestConformancePractices(t *testing.T) {
 	dir := t.TempDir()
 	read := func(p string) string {
@@ -128,9 +129,7 @@ func TestConformancePractices(t *testing.T) {
       should {{ empty a cart they won't pay for }}
     }
 
-    small_changes: rule(parts.cart, by = helper) {
-      must {{ change one part at a time }}
-    }
+    | <rule id="small_changes" targets="parts.cart" by="helper"><must>change one part at a time</must></rule>
 
     proven_habit: rule(parts.cart, by = buyer) {
       must {{ see the total before paying }}
