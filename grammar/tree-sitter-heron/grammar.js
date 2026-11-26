@@ -336,6 +336,7 @@ module.exports = grammar({
         $.escape,
         $.backtick,
         $.link,
+        $.short_link,
         $.insert,
         $.tag,
         $.closing_tag,
@@ -346,11 +347,22 @@ module.exports = grammar({
 
     escape: (_) => token(prec(2, /\\[$<\[|\]`\\*_#]|\\\}\}/)),
 
+    // `[name]` or ``[`name`]``: a name or a dotted path of names alone, or
+    // in single backticks. Each is one token, brackets included, so
+    // bracketed text that isn't a name stays text; a link may start the
+    // same way, `[name](`, so `[name](#path)` stays a link.
+    short_link: ($) => choice($._short_name, $._short_code),
+
+    _short_name: (_) => token(prec(3, /\[[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*\]/)),
+
+    _short_code: (_) => token(prec(3, /\[`[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*`\]/)),
+
     link: ($) =>
       seq(
-        '[',
-        repeat(choice($.text, $.escape, $.backtick, $.insert, alias(choice('$', '<', '`', '\\'), $.text))),
-        '](',
+        choice(
+          seq('[', repeat(choice($.text, $.escape, $.backtick, $.insert, alias(choice('$', '<', '`', '\\'), $.text))), ']('),
+          seq(alias(choice($._short_name, $._short_code), $.text), token.immediate(prec(5, '('))),
+        ),
         choice(seq('#', optional($.path)), $.url),
         ')',
       ),

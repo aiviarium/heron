@@ -22,4 +22,5 @@
 (doc) @comment.outer
 (comment) @comment.outer
 (link) @link.outer
+(short_link) @link.outer
 (tag) @tag.outer

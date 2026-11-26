@@ -833,6 +833,10 @@
           "named": true
         },
         {
+          "type": "short_link",
+          "named": true
+        },
+        {
           "type": "tag",
           "named": true
         },
@@ -2165,6 +2169,10 @@
           "named": true
         },
         {
+          "type": "short_link",
+          "named": true
+        },
+        {
           "type": "tag",
           "named": true
         },
@@ -2201,6 +2209,10 @@
         },
         {
           "type": "link",
+          "named": true
+        },
+        {
+          "type": "short_link",
           "named": true
         },
         {
@@ -2423,6 +2435,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "short_link",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "source_file",

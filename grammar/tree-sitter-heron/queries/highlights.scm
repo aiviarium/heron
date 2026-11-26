@@ -45,6 +45,7 @@
 (insert (member) @variable.member)
 (link (path) @markup.link)
 (link (url) @markup.link.url)
+(short_link) @markup.link
 (tag (identifier) @tag)
 (closing_tag (path (identifier) @tag))
 
