@@ -1,7 +1,7 @@
 language_specifications_layers: section {
   | The tests that prove the layered model of `std/spec`: layers and links, intent, the
-  | specification and contract kinds, use cases, revisions, the gap report, delivery, the
-  | prose lints and the retired kinds.
+  | specification and contract kinds, use cases, revisions, the gap report, delivery and the
+  | prose lints.
 
   proves(heron.language.specifications.contract.command_view) {
     verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
@@ -238,26 +238,6 @@ language_specifications_layers: section {
 
   proves(heron.language.specifications.requirements.subject_actor_or_part) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
-  }
-
-  proves(heron.language.specifications.retired.errors.retired_kind_used) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
-  }
-
-  proves(heron.language.specifications.retired.errors.retired_package) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
-  }
-
-  proves(heron.language.specifications.retired.retired_fix) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
-  }
-
-  proves(heron.language.specifications.retired.retired_packages) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
-  }
-
-  proves(heron.language.specifications.retired.retired_reported) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
   }
 
   proves(heron.language.specifications.traceability.errors.orphan_entry) {

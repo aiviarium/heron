@@ -194,6 +194,10 @@ language_core_format: section {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
+  proves(heron.language.core_format.imports.packages.branch_pins) {
+    verify("internal/core/setup/branchpin_test.go", test = "TestBranchPinInstallsByCommit")
+  }
+
   proves(heron.language.core_format.imports.packages.lock_pins) {
     verify("internal/core/setup/setup_test.go", test = "TestLockRoundTrip")
   }

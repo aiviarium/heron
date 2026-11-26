@@ -36,13 +36,14 @@ The root `index.heron` imports the package by its git address,
 import = ["std/repo@1", "git+https://github.com/aiviarium/heron-specs//heron@v0"]
 ```
 
-and `heron.lock` pins the tag and the commit it resolved to. Before
-anything checks, install it:
+and `heron.lock` pins it at a commit. No version of the spec is released
+yet, so the pin names the branch `main` and the exact commit and checksum;
+setup installs that commit. Before anything checks, install it:
 
 ```sh
 scripts/spec-setup.sh            # heron run setup: installs the pinned spec
                                  # under .heron/packages/, from git
-scripts/spec-setup.sh --update   # moves the pin to the newest v0 tag
+scripts/spec-setup.sh --update   # once versions are tagged, moves the pin to the newest v0 tag
 ```
 
 To work against an unreleased spec, point `HERON_SPECS_DIR` at a checkout

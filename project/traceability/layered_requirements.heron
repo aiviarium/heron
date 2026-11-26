@@ -1,0 +1,157 @@
+layered_requirements: section {
+  | Proofs for the requirements of the layered spec that sit beside the rules they complete:
+  | each rule for the other side of a condition, the commands' exit statuses written as
+  | errors, and the commands' own rules.
+
+  proves(heron.cli.check.exit_1) {
+    verify("internal/core/cli/check_test.go", test = "TestCheckCommand")
+  }
+
+  proves(heron.cli.check.exit_2) {
+    verify("internal/core/cli/check_test.go", test = "TestCheckCommand")
+  }
+
+  proves(heron.cli.fmt.exit_1) {
+    verify("internal/core/cli/cli_test.go", test = "TestFmt")
+  }
+
+  proves(heron.cli.fmt.exit_2) {
+    verify("internal/core/cli/cli_test.go", test = "TestFmt")
+  }
+
+  proves(heron.cli.generate.exit_1) {
+    verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
+  }
+
+  proves(heron.cli.generate.exit_2) {
+    verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
+  }
+
+  proves(heron.cli.help.exit_2) {
+    verify("internal/core/cli/cli_test.go")
+  }
+
+  proves(heron.cli.help.prints_usage) {
+    verify("internal/core/cli/cli_test.go")
+  }
+
+  proves(heron.cli.lint.exit_1) {
+    verify("internal/core/cli/check_test.go", test = "TestSampleLint")
+  }
+
+  proves(heron.cli.lint.exit_2) {
+    verify("internal/core/cli/check_test.go", test = "TestSampleLint")
+  }
+
+  proves(heron.cli.lsp.answers_lsp) {
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  proves(heron.cli.lsp.exit_1) {
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  proves(heron.cli.lsp.exit_2) {
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  proves(heron.cli.run.exit_1) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.cli.run.exit_2) {
+    verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds")
+  }
+
+  proves(heron.cli.serve.exit_1) {
+    verify("scripts/e2e-app.sh", test = "first-run")
+  }
+
+  proves(heron.cli.serve.exit_2) {
+    verify("scripts/e2e-app.sh", test = "first-run")
+  }
+
+  proves(heron.cli.serve.serves_workspace) {
+    verify("scripts/e2e-app.sh", test = "first-run")
+  }
+
+  proves(heron.language.core_format.conflicts.unordered_conflict_otherwise) {
+    verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
+  }
+
+  proves(heron.language.core_format.nodes.entering.enter_never_creates_otherwise) {
+    verify("internal/core/types/types_test.go", test = "TestErrors")
+  }
+
+  proves(heron.language.grammar.lexical.words_in_structure_otherwise) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestLexical")
+  }
+
+  proves(heron.language.grammar.prose.lines_and_blocks.inline_on_one_line_otherwise) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
+
+  proves(heron.language.grammar.structure.lines.doc_lines_attach_otherwise) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.language.grammar.structure.lines.newlines_end_members_otherwise) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestStructure")
+  }
+
+  proves(heron.tools.docs.renderers.renderer_per_kind_otherwise) {
+    verify("internal/tools/docs/docs_test.go", test = "TestRendererRegistry")
+  }
+
+  proves(heron.tools.frontend.editor.errors.lsp_disconnected) {
+    verify("web/shell/src/lsp.test.ts")
+  }
+
+  proves(heron.tools.frontend.editor.fix_a_diagnostic) {
+    verify("scripts/e2e-app.sh", test = "language-server")
+  }
+
+  proves(heron.tools.frontend.screens.editor_screen.sidebar.outline.outline_follows_otherwise) {
+    verify("scripts/e2e-app.sh", test = "first-run")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.body.parameters.grouped_params_otherwise) {
+    verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
+  }
+
+  proves(heron.tools.frontend.shell.slots_registered_otherwise) {
+    verify("web/shell/src/extensions.test.ts")
+  }
+
+  proves(heron.tools.lsp.extensions.source_request_otherwise) {
+    verify("internal/tools/lsp/features_test.go", test = "TestDefinitionAcrossFilesAndFromImportStrings")
+  }
+
+  proves(heron.tools.lsp.formatting.format_whole_file_otherwise) {
+    verify("internal/tools/lsp/features_test.go", test = "TestFormattingTokensSymbolsFolding")
+  }
+
+  proves(heron.tools.lsp.session.debounce_otherwise) {
+    verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
+  }
+
+  proves(heron.tools.prose.vale.vale_binary_otherwise) {
+    verify("internal/tools/prose/prose_test.go", test = "TestValeConfiguration")
+  }
+
+  proves(heron.tools.prose.vale.vale_config_otherwise) {
+    verify("internal/tools/prose/prose_test.go", test = "TestValeConfiguration")
+  }
+
+  proves(heron.tools.prose.vale.vocabulary_edit_otherwise) {
+    verify("internal/tools/prose/prose_test.go", test = "TestVocabularyActionsAndCaching")
+  }
+
+  proves(heron.tools.server.ops.task_runs_otherwise) {
+    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
+  }
+
+  proves(heron.tools.server.serving.lsp_socket_otherwise) {
+    verify("internal/tools/server/lsp_test.go", test = "TestRealLanguageServerOnTheSocket")
+  }
+}
