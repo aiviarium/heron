@@ -3,7 +3,7 @@
 // on the unsaved texts (problems, outline, preview, results).
 import { createSignal } from "solid-js";
 import { LspClient, Models, registerProviders, monaco, setupMonaco, type FileModel } from "@heron/editor";
-import { createClient, type NodeResult, type OutlineNode, type Preview, type Problem, type Workspace, type GeneratedFile } from "./api.gen.ts";
+import { createClient, ApiError, type NodeResult, type OutlineNode, type Preview, type Problem, type Workspace, type GeneratedFile } from "./api.gen.ts";
 
 export const api = createClient();
 
@@ -77,8 +77,9 @@ export async function start() {
       const path = models.pathOf(uri);
       if (path && !models.get(path)) await load(path);
       else if (!path && !monaco.editor.getModel(monaco.Uri.parse(uri))) {
-        // A standard package's file: read only, from the language server.
-        const res = await lsp.request<{ text: string }>("heron/source", { uri }).catch(() => null);
+        // A standard package's file: read only, from the API.
+        const m = uri.match(/^heron:\/?std\/(.+)$/);
+        const res = m ? await api.stdSource("std/" + m[1]).catch(() => null) : null;
         if (res) models.external(uri, res.text);
       }
     },
@@ -108,6 +109,7 @@ export async function start() {
   window.addEventListener("popstate", () => void openFile(fromURL() ?? ws.entry, undefined, false));
   await openFile(fromURL() ?? ws.entry, undefined, false);
   refreshGenerated();
+  void watchWorkspace();
 }
 
 /**
@@ -157,11 +159,43 @@ function fromURL(): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+/** The entity tag of each file as last read or saved, for if_match. */
+const etags = new Map<string, string>();
+
 async function load(path: string): Promise<FileModel> {
   const have = models.get(path);
   if (have) return have;
   const f = await api.readFile(path);
+  etags.set(path, f.etag);
   return models.open(path, f.text);
+}
+
+/**
+ * Follows the workspace's changes: a file changed on disk reloads into its
+ * model when it has no unsaved edits, and problems and results refresh.
+ * A dropped stream reconnects.
+ */
+async function watchWorkspace() {
+  for (;;) {
+    try {
+      for await (const ev of api.watch()) {
+        if (ev.type === "file" && ev.path && models.get(ev.path)) {
+          if (ev.change === "removed") continue;
+          const f = await api.readFile(ev.path).catch(() => null);
+          if (f && f.etag !== etags.get(ev.path)) {
+            etags.set(ev.path, f.etag);
+            models.reload(ev.path, f.text);
+          }
+        } else if (ev.type === "problems" || ev.type === "results") {
+          if (slowTimer) clearTimeout(slowTimer);
+          slowTimer = setTimeout(() => void runSlow(), 150);
+        }
+      }
+    } catch {
+      /* the server went away; try again shortly */
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
 }
 
 /** Opens a file in the editor, at a position when given. */
@@ -212,7 +246,17 @@ export async function save() {
   const fm = currentModel();
   if (!c || !fm || fm.readOnly) return;
   const text = fm.model.getValue();
-  await api.writeFile({ path: c, text });
+  let saved;
+  try {
+    saved = await api.writeFile({ path: c, text, if_match: etags.get(c) ?? "" });
+  } catch (e) {
+    if (!(e instanceof ApiError) || e.status !== 412) throw e;
+    // Someone else wrote the file since it was read: keep both only if the
+    // person says so.
+    if (!confirm(`${c} changed on disk since it was opened. Overwrite it with your version?`)) return;
+    saved = await api.writeFile({ path: c, text });
+  }
+  etags.set(c, saved.etag);
   fm.setSaved(text);
   lsp.save(fm.model.uri.toString(), text);
   schedule();
@@ -244,7 +288,7 @@ async function runPreview() {
   }
   const seq = ++previewSeq;
   try {
-    const p = await api.preview({ file, offset: cursor().offset, overlays: models.overlays() });
+    const p = await api.preview({ file, position: { line: cursor().line - 1, character: cursor().column - 1 }, overlays: models.overlays() });
     if (seq !== previewSeq) return;
     if (p.error) {
       setPreviewError(p.error);
