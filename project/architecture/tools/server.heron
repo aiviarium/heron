@@ -46,49 +46,13 @@ server: component("internal/tools/server", lang = "go") {
 
 @realizes(heron.system.server)
 server_api: component("internal/tools/server/api", lang = "go") {
-  | The server's API is a spec like any other: `spec_server`, declared in
-  | `internal/tools/server/api/server.heron` as the design gives it, with its types in
-  | `types.heron` and the editor's ops in `editor.heron`, which enters the api from another
-  | file the way a later [unit](#delivery.units) adds its own. Go handlers and the TS client of `web/shell`
-  | are both generated from it.
+  | The Go handlers of [the server API](#heron.tools.server_api.spec_server), which the spec package
+  | publishes with its types and errors: `apigen` reads it from the spec package and writes
+  | `api_gen.go` here and the TS client of `web/shell`. A later [unit](#delivery.units) adds its
+  | ops by entering `spec_server` from its own files, as the sample under
+  | `internal/tools/server/internal/sample` does.
 
   uses = [architecture.tools.server_route]
-
-  | | Op          | Method and path            | Answers                                            |
-  | | ----------- | -------------------------- | -------------------------------------------------- |
-  | | `preview`   | `POST /api/v1/preview`     | a node or a file rendered as the docs render it    |
-  | | `results`   | `GET /api/v1/results`      | the latest results of the nodes under a path       |
-  | | `get_record`| `GET /api/v1/records/:id`  | one run record, or 404                             |
-  | | `lsp`       | `/api/v1/lsp`, a websocket | the language server                                |
-  | | `workspace` | `GET /api/v1/workspace`    | the [entry point](#heron.language.core_format.files.entry_point), its files and its branch |
-  | | `read_file` | `GET /api/v1/file`         | a file's text, or 404                              |
-  | | `write_file`| `POST /api/v1/file`        | saves a file                                       |
-  | | `problems`  | `POST /api/v1/problems`    | every diagnostic of the tree, with its source      |
-  | | `run_task`  | `POST /api/v1/run`         | a task's run, streamed                             |
-  | | `outline`   | `POST /api/v1/outline`     | a file's nodes, which of them run, and their lines |
-  | | `generated` | `POST /api/v1/generated`   | the files generation would write                   |
-
-  base_api: example {
-    | ```heron
-    | import = ["std/types@1", "std/http@1", "std/ws@1"]
-    |
-    | @http(base_path = "/api/v1")
-    | spec_server: api {
-    |   @http<post>("/preview")
-    |   preview(@body request: PreviewRequest): op(Preview)
-    |
-    |   @http<get>("/results")
-    |   results(@query path: String): op(NodeResults)
-    |
-    |   @http<get>("/records/:id")
-    |   get_record(@path id: String): op(Record)
-    |
-    |   // The language server, for Monaco and the preview.
-    |   @ws("/lsp")
-    |   lsp(messages: Stream(LspMessage)): op(Stream(LspMessage))
-    | }
-    | ```
-  }
 
   generated_current: property {
     must {{ keep the committed `api_gen.go` and `web/shell/src/api.gen.ts` equal to what [the API generator](#architecture.tools.server_apigen) writes from the [Heron files](#heron.language.core_format.files.heron_file) }}

@@ -590,8 +590,8 @@ neither the spec nor the catalogue.
   and the API. `Shell.Mount(Extension{Routes, Results})` is the seam for a
   later unit's ops and gutter results; `cmd/heron` holds the shell
   `server.Register` returns.
-- **The API** is `internal/tools/server/api/server.heron` (the tab's block,
-  its types, and the editor's ops in `editor.heron`). `apigen` writes
+- **The API** is the spec package's `tools/server_api/` (`spec_server`, its
+  types and its errors), read from the spec package. `apigen` writes
   `api_gen.go` (types, `Service`, `Routes`) and `web/shell/src/api.gen.ts`;
   with `-ext` it writes a unit's own ops only, as the sample under
   `internal/tools/server/internal/sample` proves. ci.sh checks both current.

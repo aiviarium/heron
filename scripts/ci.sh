@@ -98,8 +98,8 @@ step "tree-sitter grammar: generated parser current, corpus, the same fixtures, 
 
 step "the repository's tree (the spec package and the project tree) and examples/ check and lint clean"
 go build -o "$tmp/heron" ./cmd/heron
-"$tmp/heron" check . examples/petstore web/samples/docs-site internal/tools/server/api/server.heron
-"$tmp/heron" lint . examples/petstore web/samples/docs-site internal/tools/server/api/server.heron
+"$tmp/heron" check . examples/petstore web/samples/docs-site
+"$tmp/heron" lint . examples/petstore web/samples/docs-site
 
 step "conformance: every requirement of the spec is proven, planned or untested, and the project's docs build"
 if grep -rqs --include='*.heron' -E '^[a-z_]+: implements\(' project; then

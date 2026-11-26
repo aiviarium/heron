@@ -695,6 +695,6 @@ body:not([data-lens="explore"]):not([data-lens=""]) .diag > .rule-meta { display
 .err-fields .label { margin-right: var(--h-space-1); }
 table.ops { table-layout: fixed; }
 table.ops col.method-col { width: 92px; }
-table.ops col.path-col { width: 34%; }
+table.ops col.path-col { width: 24%; }
 table.ops .ops-group th { padding-top: var(--h-space-4); text-align: left; font: var(--h-font-weight-semibold) 12px var(--h-font-mono); color: var(--h-text-secondary); background: var(--h-bg-soft); }
 table.ops code.path { overflow-wrap: anywhere; }
