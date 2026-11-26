@@ -11,7 +11,7 @@ go build -o "$tmp/heron" ./cmd/heron
 export HERON="$tmp/heron"
 tests=("$@")
 if [ ${#tests[@]} -eq 0 ]; then
-  tests=(first-run switching typing indent lsp preview visible-text)
+  tests=(first-run switching typing indent lsp preview visible-text prose-tokens)
 fi
 fail=0
 for t in "${tests[@]}"; do

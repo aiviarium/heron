@@ -47,6 +47,8 @@
 (link (path) @markup.link)
 (link (url) @markup.link.url)
 (short_link) @markup.link
+(list_marker) @markup.list
+(emphasis_mark) @punctuation.special
 (tag (identifier) @tag)
 (closing_tag (path (identifier) @tag))
 

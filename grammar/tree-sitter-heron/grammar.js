@@ -326,7 +326,13 @@ module.exports = grammar({
 
     prose_lines: ($) => repeat1($.prose_line),
 
-    prose_line: ($) => seq(alias($._prose_bar, '|'), repeat(choice($._inline, alias('}', $.text))), $._line_end),
+    prose_line: ($) => seq(alias($._prose_bar, '|'), optional($.list_marker), repeat(choice($._inline, alias('}', $.text))), $._line_end),
+
+    // Markdown's marks in prose: a list item's marker at the start of a
+    // line, and emphasis delimiters. The words between stay text.
+    list_marker: (_) => token(prec(2, /([-*+]|[0-9]+[.)])[ \t]/)),
+
+    emphasis_mark: (_) => token(prec(2, /\*\*|\*|~~/)),
 
     prose_block: ($) => seq('{{', repeat(choice($._inline, alias('}', $.text))), '}}'),
 
@@ -340,10 +346,11 @@ module.exports = grammar({
         $.insert,
         $.tag,
         $.closing_tag,
-        alias(choice('[', ']', '$', '<', '`', '\\'), $.text),
+        $.emphasis_mark,
+        alias(choice('[', ']', '$', '<', '`', '\\', '~'), $.text),
       ),
 
-    text: (_) => token(prec(1, /[^\\`\[\]$<}\r\n]+/)),
+    text: (_) => token(prec(1, /[^\\`\[\]$<}*~\r\n]+/)),
 
     escape: (_) => token(prec(2, /\\[$<\[|\]`\\*_#]|\\\}\}/)),
 

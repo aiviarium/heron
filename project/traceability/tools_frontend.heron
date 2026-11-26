@@ -207,6 +207,10 @@ tools_frontend: section {
     verify("scripts/e2e-app.sh", test = "indent")
   }
 
+  proves(heron.tools.frontend.editor.language.prose_marks_only) {
+    verify("scripts/e2e-app.sh", test = "prose-tokens")
+  }
+
   proves(heron.tools.frontend.editor.language.prose_coloured_as_text) {
     verify("scripts/e2e-app.sh", test = "indent")
   }

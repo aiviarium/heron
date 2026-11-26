@@ -42,3 +42,18 @@ for q in queries/*.scm; do
   grep -q 'capture:' <<<"$out" || { echo "$q captures nothing"; exit 1; }
 done
 echo "tree-sitter: queries compile"
+
+# Prose is authored text, not code: a prose line's words get no keyword,
+# variable, type or number capture, only Markdown's marks, elements, links
+# and code spans do.
+pf="$fx/prose-highlight.heron"
+printf '%s\n' 'x: section {' \
+  '  | Refunds are asked for if the order is paid and then in time.' \
+  '  | - a list item with *emphasis* and <step id="a" @lens="user">for in</step>.' \
+  '}' > "$pf"
+caps=$("${ts[@]}" query queries/highlights.scm "$pf" 2>/dev/null | grep 'capture:' | grep -E 'start: \((1|2),' || true)
+if grep -E 'capture: [0-9]+ - (keyword|variable|type|number|constant|function)' <<<"$caps" |
+  grep -q .; then
+  echo "tree-sitter: a prose line has code captures:"; echo "$caps"; exit 1
+fi
+echo "tree-sitter: prose lines have no code captures"

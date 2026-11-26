@@ -501,3 +501,25 @@ x = 1
     (path
       (identifier))
     (number)))
+
+==================
+Markdown marks in prose: list markers and emphasis
+==================
+
+x: section {
+  | A sentence of plain words, with if and then in it.
+  | - an item with **strong** and *loose* ~~gone~~ words
+  | 2. a numbered item
+}
+
+---
+
+(source_file
+  (declaration
+    name: (path (identifier))
+    type: (named_type (path (identifier)))
+    (struct_body
+      (prose_lines
+        (prose_line (text))
+        (prose_line (list_marker) (text) (emphasis_mark) (text) (emphasis_mark) (text) (emphasis_mark) (text) (emphasis_mark) (emphasis_mark) (text) (emphasis_mark) (text))
+        (prose_line (list_marker) (text))))))

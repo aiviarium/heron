@@ -128,6 +128,8 @@ function exposeDebug() {
     },
     position: () => editor?.getPosition(),
     models: () => monaco.editor.getModels().map((m) => m.uri.toString()),
+    // The static grammar's tokens of a text, line by line, as [offset, type].
+    tokenize: (text: string, lang: string) => monaco.editor.tokenize(text, lang).map((l) => l.map((t) => [t.offset, t.type])),
     /** The static grammar's tokens of a line of the current model. */
     tokens: (line: number) => {
       const m = currentModel()?.model as unknown as { tokenization?: { getLineTokens(n: number): { getCount(): number; getEndOffset(i: number): number; getClassName(i: number): string } } };

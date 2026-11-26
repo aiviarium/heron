@@ -14,6 +14,12 @@ export { monaco };
 
 export const LANG = "heron";
 
+/** Prose files, `.heron.md`: prose from their first line, Heron in fences. */
+export const LANG_MD = "heron-md";
+
+/** Both languages, which every provider serves. */
+export const LANGS = [LANG, LANG_MD];
+
 /** The formatter's indent. */
 export const INDENT = 2;
 
@@ -102,21 +108,70 @@ const grammar: monaco.languages.IMonarchLanguage = {
     // the next line's start pops it before anything else is read.
     proseLine: [
       [/^/, { token: "", next: "@pop" }],
+      // A list marker right after the `|`.
+      [/\s*([-*+]|\d+[.)])(?=\s)/, "delimiter.markdown"],
       { include: "@proseInline" },
     ],
     proseBlock: [
       [/\}\}/, { token: "delimiter.prose", next: "@pop" }],
       { include: "@proseInline" },
     ],
+    // Prose is authored text: it keeps the text colour, and only its marks
+    // are highlighted, never a word as a keyword or a name.
     proseInline: [
       [/\\[$<\[|\]`\\*_#]/, "string.escape"],
       [/\[`?[A-Za-z_]\w*(\.[A-Za-z_]\w*)*`?\](?!\()/, "link"],
-      [/`[^`]*`/, "string.code"],
+      [/`+[^`]*`+/, "string.code"],
       [/\[[^\]]*\]\([^)]*\)/, "link"],
+      [/\$\{/, { token: "delimiter.interp", next: "@interp" }],
       [/\$[A-Za-z_][\w.]*/, "insert"],
-      [/<\/?[a-z][\w-]*[^>]*>/, "tag"],
-      [/[^`[$<}\\]+/, "string.prose"],
+      [/(<\/?)([A-Za-z_][\w.]*)/, ["delimiter.tag", { token: "tag", next: "@tagHead" }]],
+      [/\*\*|~~|\*/, "delimiter.markdown"],
+      [/[^`[$<}\\*~]+/, "string.prose"],
       [/./, "string.prose"],
+    ],
+    // A kind element's head: its attributes, `@` annotations among them.
+    tagHead: [
+      [/\s+/, ""],
+      [/\/?>/, { token: "delimiter.tag", next: "@pop" }],
+      [/@[A-Za-z_]\w*/, "annotation"],
+      [/[A-Za-z_][\w-]*/, "attribute.name"],
+      [/=/, "delimiter"],
+      [/"[^"]*"/, "attribute.value"],
+      [/\{/, { token: "delimiter.interp", next: "@interp" }],
+      [/./, ""],
+    ],
+  },
+};
+
+// A prose file reads as prose from its first line: Markdown's marks,
+// kind elements and links highlighted, its words at the text colour, a
+// `heron` fence as Heron and any other fence in its own language.
+const mdGrammar: monaco.languages.IMonarchLanguage = {
+  ...grammar,
+  tokenizer: {
+    ...grammar.tokenizer,
+    root: [
+      [/^\s*(```+|~~~+)\s*heron\s*$/, { token: "string.code", next: "@heronFence" }],
+      [/^\s*(```+|~~~+)\s*$/, { token: "string.code", next: "@codeFence" }],
+      [/^\s*(```+|~~~+)\s*([\w.+-]+).*$/, { token: "string.code", next: "@codeFenceIn", nextEmbedded: "$2" }],
+      [/^(#{1,6})(\s.*?)(\{#[A-Za-z_]\w*\})?\s*$/, ["delimiter.markdown", "string.prose", "annotation"]],
+      [/^\s*>/, "delimiter.markdown"],
+      [/^\s*([-*+]|\d+[.)])(?=\s)/, "delimiter.markdown"],
+      { include: "@proseInline" },
+    ],
+    heronFence: [
+      [/^\s*(```+|~~~+)\s*$/, { token: "string.code", next: "@pop" }],
+      { include: "@heron" },
+    ],
+    heron: grammar.tokenizer.root,
+    codeFence: [
+      [/^\s*(```+|~~~+)\s*$/, { token: "string.code", next: "@pop" }],
+      [/.*$/, "string.code"],
+    ],
+    codeFenceIn: [
+      [/^\s*(```+|~~~+)\s*$/, { token: "string.code", next: "@pop", nextEmbedded: "@pop" }],
+      [/.*$/, ""],
     ],
   },
 };
@@ -156,6 +211,10 @@ function theme(mode: Theme): monaco.editor.IStandaloneThemeData {
       { token: "link", foreground: fg("accent") },
       { token: "insert", foreground: fg("accent") },
       { token: "tag", foreground: fg("syntax-annotation") },
+      { token: "delimiter.tag", foreground: fg("syntax-punct") },
+      { token: "delimiter.markdown", foreground: fg("syntax-punct") },
+      { token: "attribute.name", foreground: fg("syntax-name") },
+      { token: "attribute.value", foreground: fg("syntax-string") },
       { token: "comment", foreground: fg("syntax-comment") },
       { token: "comment.doc", foreground: fg("text-secondary") },
       { token: "delimiter", foreground: fg("syntax-punct") },
@@ -252,6 +311,9 @@ export function setupMonaco(): typeof monaco {
   monaco.languages.register({ id: LANG, extensions: [".heron"], aliases: ["Heron"] });
   monaco.languages.setLanguageConfiguration(LANG, languageConfiguration);
   monaco.languages.setMonarchTokensProvider(LANG, grammar);
+  monaco.languages.register({ id: LANG_MD, extensions: [".heron.md"], aliases: ["Heron Markdown"] });
+  monaco.languages.setLanguageConfiguration(LANG_MD, languageConfiguration);
+  monaco.languages.setMonarchTokensProvider(LANG_MD, mdGrammar);
   monaco.editor.defineTheme("heron-dark", theme("dark"));
   monaco.editor.defineTheme("heron-light", theme("light"));
   return monaco;

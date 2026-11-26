@@ -201,6 +201,10 @@ language_schemas: section {
     verify("internal/core/types/types_test.go", test = "TestGenericsAndPatch")
   }
 
+  proves(heron.language.schemas.highlighting.prose_tokens) {
+    verify("internal/tools/lsp/features_test.go", test = "TestProseSemanticTokens")
+  }
+
   proves(heron.language.schemas.highlighting.static_layer) {
     verify("scripts/ci.sh")
   }

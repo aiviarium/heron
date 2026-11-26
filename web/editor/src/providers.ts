@@ -1,7 +1,7 @@
 // Monaco's language features for Heron, answered by the language server:
 // diagnostics as markers, completion, hover, definition, rename, code
 // actions for fixes, formatting and semantic tokens.
-import { monaco, LANG } from "./monaco.ts";
+import { monaco, LANGS } from "./monaco.ts";
 import type { LspClient } from "./lsp.ts";
 import { t, type Key } from "@heron/strings";
 
@@ -107,7 +107,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
   });
 
   ds.push(
-    m.languages.registerCompletionItemProvider(LANG, {
+    m.languages.registerCompletionItemProvider(LANGS, {
       triggerCharacters: [".", "@", "<", "#", "$", "(", ":"],
       async provideCompletionItems(model, pos, ctx) {
         if (!synced(model) || inProse(model, pos)) return { suggestions: [] };
@@ -135,7 +135,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
         };
       },
     }),
-    m.languages.registerHoverProvider(LANG, {
+    m.languages.registerHoverProvider(LANGS, {
       async provideHover(model, pos) {
         if (!synced(model)) return null;
         const res: any = await lsp.request("textDocument/hover", { textDocument: { uri: uri(model) }, position: toPos(pos) }).catch(() => null);
@@ -147,7 +147,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
         };
       },
     }),
-    m.languages.registerDefinitionProvider(LANG, {
+    m.languages.registerDefinitionProvider(LANGS, {
       async provideDefinition(model, pos) {
         if (!synced(model)) return null;
         const res: any = await lsp.request("textDocument/definition", { textDocument: { uri: uri(model) }, position: toPos(pos) }).catch(() => null);
@@ -162,7 +162,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
         return out;
       },
     }),
-    m.languages.registerRenameProvider(LANG, {
+    m.languages.registerRenameProvider(LANGS, {
       async provideRenameEdits(model, pos, newName) {
         const res: any = await lsp.request("textDocument/rename", { textDocument: { uri: uri(model) }, position: toPos(pos), newName });
         const we = workspaceEdit(m, res);
@@ -179,7 +179,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
         return { range: new m.Range(pos.lineNumber, word.startColumn, pos.lineNumber, word.endColumn), text: word.word };
       },
     }),
-    m.languages.registerCodeActionProvider(LANG, {
+    m.languages.registerCodeActionProvider(LANGS, {
       async provideCodeActions(model, range, ctx) {
         if (!synced(model)) return { actions: [], dispose() {} };
         const diagnostics = ctx.markers.map((mk) => ({
@@ -203,7 +203,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
         };
       },
     }),
-    m.languages.registerDocumentFormattingEditProvider(LANG, {
+    m.languages.registerDocumentFormattingEditProvider(LANGS, {
       async provideDocumentFormattingEdits(model, opts) {
         const res: any[] = (await lsp.request("textDocument/formatting", { textDocument: { uri: uri(model) }, options: { tabSize: opts.tabSize, insertSpaces: opts.insertSpaces } }).catch(() => null)) ?? [];
         return res.map(edit);
@@ -222,7 +222,7 @@ export function registerProviders(m: M, lsp: LspClient, hooks: ProviderHooks): m
         semantic = true;
         const legend = cap.legend as monaco.languages.SemanticTokensLegend;
         ds.push(
-          m.languages.registerDocumentSemanticTokensProvider(LANG, {
+          m.languages.registerDocumentSemanticTokensProvider(LANGS, {
             getLegend: () => legend,
             async provideDocumentSemanticTokens(model) {
               if (!synced(model)) return null;

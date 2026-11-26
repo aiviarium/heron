@@ -2307,6 +2307,18 @@
           "value": "|"
         },
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "list_marker"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
           "type": "REPEAT",
           "content": {
             "type": "CHOICE",
@@ -2332,6 +2344,28 @@
           "name": "_line_end"
         }
       ]
+    },
+    "list_marker": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "PATTERN",
+          "value": "([-*+]|[0-9]+[.)])[ \\t]"
+        }
+      }
+    },
+    "emphasis_mark": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\*\\*|\\*|~~"
+        }
+      }
     },
     "prose_block": {
       "type": "SEQ",
@@ -2403,6 +2437,10 @@
           "name": "closing_tag"
         },
         {
+          "type": "SYMBOL",
+          "name": "emphasis_mark"
+        },
+        {
           "type": "ALIAS",
           "content": {
             "type": "CHOICE",
@@ -2430,6 +2468,10 @@
               {
                 "type": "STRING",
                 "value": "\\"
+              },
+              {
+                "type": "STRING",
+                "value": "~"
               }
             ]
           },
@@ -2445,7 +2487,7 @@
         "value": 1,
         "content": {
           "type": "PATTERN",
-          "value": "[^\\\\`\\[\\]$<}\\r\\n]+"
+          "value": "[^\\\\`\\[\\]$<}*~\\r\\n]+"
         }
       }
     },

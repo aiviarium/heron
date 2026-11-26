@@ -362,6 +362,42 @@ refunds: section {
 	}
 }
 
+// Prose is authored text: the semantic tokens of a prose file's text,
+// its heading and its elements' words are never keywords, variables,
+// numbers or types; Markdown's marks are operators.
+func TestProseSemanticTokens(t *testing.T) {
+	const idx = `import = ["std/doc@1"]
+
+include = ["./guide.heron.md"]
+`
+	const md = `# Refunds for orders {#refunds}
+
+Refunds are asked for if the order is paid, and then in 2 days.
+
+<warning @lens="user">It can't be undone for in let.</warning>
+`
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "index.heron"), idx)
+	write(t, filepath.Join(dir, "guide.heron.md"), md)
+	c := start(t, dir)
+	uri := lsptest.FileURI(filepath.Join(dir, "guide.heron.md"))
+	c.Open(uri, md)
+	var toks struct{ Data []int }
+	if err := c.Call("textDocument/semanticTokens/full", map[string]any{"textDocument": map[string]any{"uri": uri}}, &toks); err != nil {
+		t.Fatal(err)
+	}
+	// The server's legend: type 1 is "type", 8 "variable", 15 "keyword"
+	// and 19 "number".
+	code := map[int]string{1: "type", 8: "variable", 15: "keyword", 19: "number"}
+	line := 0
+	for i := 0; i+4 < len(toks.Data); i += 5 {
+		line += toks.Data[i]
+		if k, ok := code[toks.Data[i+3]]; ok {
+			t.Errorf("line %d: a %s token in prose", line, k)
+		}
+	}
+}
+
 // Definition and hover on a kind element's name answer for its kind, and
 // on a `<ref to="…">` target for the node it resolves to.
 func TestElementDefinitionAndHover(t *testing.T) {

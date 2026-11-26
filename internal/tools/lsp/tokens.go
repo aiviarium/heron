@@ -110,7 +110,8 @@ func classify(t *syntax.Token, parent *syntax.Node, c *types.Checker, sites map[
 	case syntax.Quote, syntax.StringText, syntax.Escape, syntax.Raw:
 		return tokenType("string"), 0
 	case syntax.HeadingMark, syntax.Pipe:
-		return tokenType("keyword"), 0
+		// Markdown's marks, not keywords: prose is authored text.
+		return tokenType("operator"), 0
 	case syntax.At:
 		return tokenType("decorator"), 0
 	case syntax.Dollar, syntax.DollarBrace, syntax.Hash, syntax.LinkOpen, syntax.LinkMid, syntax.LinkClose, syntax.LinkTick, syntax.ShortLinkEnd,

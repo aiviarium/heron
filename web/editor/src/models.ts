@@ -3,7 +3,7 @@
 // the language server under their real URIs; generated previews live under
 // their own scheme and never reach it.
 import { createSignal } from "solid-js";
-import { monaco, LANG } from "./monaco.ts";
+import { monaco, LANG, LANG_MD, LANGS } from "./monaco.ts";
 import type { LspClient } from "./lsp.ts";
 
 export const GENERATED = "heron-generated";
@@ -93,7 +93,7 @@ export class Models {
     const have = this.files.get(path);
     if (have) return have;
     const uri = this.uriOf(path);
-    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron") || path.endsWith(".heron.md") ? LANG : undefined, uri);
+    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron.md") ? LANG_MD : path.endsWith(".heron") ? LANG : undefined, uri);
     model.updateOptions({ tabSize: 2, insertSpaces: true });
     const [saved, setSaved] = createSignal(text, { ownedWrite: true });
     const fm: FileModel = {
@@ -105,7 +105,7 @@ export class Models {
       dirty: () => (this.tick(), model.getValue() !== saved()),
     };
     this.files.set(path, fm);
-    if (model.getLanguageId() === LANG) {
+    if (LANGS.includes(model.getLanguageId())) {
       this.lsp.open({ uri: uri.toString(), languageId: LANG, version: model.getVersionId(), text: () => model.getValue() });
     }
     model.onDidChangeContent((e) => {
@@ -139,7 +139,7 @@ export class Models {
       fm.setSaved(text);
       return fm;
     }
-    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron") || path.endsWith(".heron.md") ? LANG : path.endsWith(".ts") ? "typescript" : undefined, uri);
+    const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, path.endsWith(".heron.md") ? LANG_MD : path.endsWith(".heron") ? LANG : path.endsWith(".ts") ? "typescript" : undefined, uri);
     const [saved, setSaved] = createSignal(text, { ownedWrite: true });
     fm = { path: key, model, readOnly: true, saved, setSaved, dirty: () => false };
     this.files.set(key, fm);

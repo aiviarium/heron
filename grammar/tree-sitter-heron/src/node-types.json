@@ -821,6 +821,10 @@
           "named": true
         },
         {
+          "type": "emphasis_mark",
+          "named": true
+        },
+        {
           "type": "escape",
           "named": true
         },
@@ -2157,6 +2161,10 @@
           "named": true
         },
         {
+          "type": "emphasis_mark",
+          "named": true
+        },
+        {
           "type": "escape",
           "named": true
         },
@@ -2200,6 +2208,10 @@
           "named": true
         },
         {
+          "type": "emphasis_mark",
+          "named": true
+        },
+        {
           "type": "escape",
           "named": true
         },
@@ -2209,6 +2221,10 @@
         },
         {
           "type": "link",
+          "named": true
+        },
+        {
+          "type": "list_marker",
           "named": true
         },
         {
@@ -2987,6 +3003,10 @@
     "named": false
   },
   {
+    "type": "emphasis_mark",
+    "named": true
+  },
+  {
     "type": "escape",
     "named": true
   },
@@ -3013,6 +3033,10 @@
   {
     "type": "let",
     "named": false
+  },
+  {
+    "type": "list_marker",
+    "named": true
   },
   {
     "type": "math",
