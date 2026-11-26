@@ -572,8 +572,8 @@ func renderAPI(c *Ctx) error {
 	if !rpcOnly {
 		facts = append(facts, `<dt>`+esc(label("docs.label.wire"))+`</dt><dd>`+esc(label("docs.label.wire_json"))+`</dd>`)
 	}
-	facts = append(facts, s.serviceFacts(n)...)
-	if len(s.serviceFacts(n)) > 0 {
+	svcFacts := s.serviceFacts(n)
+	if len(svcFacts) > 0 {
 		c.Island("copy")
 	}
 	for _, a := range annotations(n) {
@@ -584,6 +584,9 @@ func renderAPI(c *Ctx) error {
 	}
 	if len(facts) > 0 {
 		c.W(`<dl class="facts">`, strings.Join(facts, ""), `</dl>`)
+	}
+	if len(svcFacts) > 0 {
+		c.W(`<dl class="facts rpc-facts">`, strings.Join(svcFacts, ""), `</dl>`)
 	}
 	// An api bound to RPC: each binding's index, under a switch when it
 	// has more than one.
