@@ -34,8 +34,14 @@ run("language-server", async ({ page, url }) => {
   const marker = (await page.evaluate(() => window.heronDebug.markers())).find((m) => /PetNope/.test(m.message));
   assert(marker.severity === "error" && marker.source === "type checker", "marker: " + JSON.stringify(marker));
   await page.waitForSelector(".squiggly-error", { timeout: 3000 });
+  // The language server's marker comes first; the app's own check of the
+  // edit (problems, outline, previews) lands after it and repaints around
+  // the editor. Hover once that has settled too, as a person would after
+  // seeing the error counted, and move onto the word as a pointer does.
+  await page.waitForFunction(() => /^1 error/.test(document.querySelector('[data-testid="problem-counts"]')?.innerText ?? ""), null, { timeout: 5000 });
   const sq = await page.evaluate(([l, c]) => window.heronDebug.coords(l, c), [marker.line, marker.column + 2]);
-  await page.mouse.move(sq.x, sq.y);
+  await page.mouse.move(sq.x - 12, sq.y);
+  await page.mouse.move(sq.x, sq.y, { steps: 4 });
   await page.waitForSelector(".monaco-hover:not(.hidden)", { timeout: 5000 });
   const hoverText = await page.innerText(".monaco-hover:not(.hidden)");
   assert(/PetNope/.test(hoverText) && /type checker/.test(hoverText), "the problem hover: " + hoverText);
@@ -63,7 +69,9 @@ run("language-server", async ({ page, url }) => {
   at = find(text, "): op(Pet)");
   await goTo(page, at.line, at.column + "): op(".length + 1);
   const box = await page.evaluate(([l, c]) => window.heronDebug.coords(l, c), [at.line, at.column + "): op(".length + 1]);
-  await page.mouse.move(box.x, box.y);
+  await page.waitForFunction(() => /^0 errors/.test(document.querySelector('[data-testid="problem-counts"]')?.innerText ?? ""), null, { timeout: 5000 });
+  await page.mouse.move(box.x - 12, box.y);
+  await page.mouse.move(box.x, box.y, { steps: 4 });
   await page.waitForSelector(".monaco-hover:not(.hidden) .hover-contents", { timeout: 5000 });
   const hover = await page.innerText(".monaco-hover:not(.hidden)");
   assert(/Pet/.test(hover), "hover: " + hover);
