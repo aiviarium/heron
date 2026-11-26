@@ -57,11 +57,11 @@ tools_prose: section {
     verify("scripts/e2e-setup.sh")
   }
 
-  proves(heron.tools.prose.vale.diagnostics.vale_alert) {
+  proves(heron.tools.prose.vale.errors.vale_alert) {
     verify("internal/tools/prose/prose_test.go", test = "TestValeAlertsMapToWords")
   }
 
-  proves(heron.tools.prose.vale.diagnostics.vale_failed) {
+  proves(heron.tools.prose.vale.errors.vale_failed) {
     verify("internal/tools/prose/prose_test.go", test = "TestValeAlertsMapToWords")
   }
 

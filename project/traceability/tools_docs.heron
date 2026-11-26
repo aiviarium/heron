@@ -6,7 +6,7 @@ tools_docs: section {
   }
 
   proves(heron.tools.docs.site.page_nodes) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
 
   proves(heron.tools.docs.site.site_title) {
@@ -276,35 +276,35 @@ tools_docs: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestNavPagesOutlineNested")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.unknown_lens) {
+  proves(heron.tools.docs.lenses.errors.unknown_lens) {
     verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.not_a_lens) {
+  proves(heron.tools.docs.lenses.errors.not_a_lens) {
     verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.lens_not_a_kind) {
+  proves(heron.tools.docs.lenses.errors.lens_not_a_kind) {
     verify("internal/core/lens/lens_test.go", test = "TestOneDefaultLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.entry_not_a_page) {
+  proves(heron.tools.docs.lenses.errors.entry_not_a_page) {
     verify("internal/core/lens/lens_test.go", test = "TestOneDefaultLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.no_lens) {
+  proves(heron.tools.docs.lenses.errors.no_lens) {
     verify("internal/core/lens/lens_test.go", test = "TestOneDefaultLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.one_default_lens) {
+  proves(heron.tools.docs.lenses.errors.one_default_lens) {
     verify("internal/core/lens/lens_test.go", test = "TestOneDefaultLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.bad_prefix) {
+  proves(heron.tools.docs.lenses.errors.bad_prefix) {
     verify("internal/core/lens/lens_test.go", test = "TestOneDefaultLens")
   }
 
-  proves(heron.tools.docs.lenses.diagnostics.prefix_taken) {
+  proves(heron.tools.docs.lenses.errors.prefix_taken) {
     verify("internal/core/lens/lens_test.go", test = "TestOneDefaultLens")
   }
 
@@ -392,7 +392,7 @@ tools_docs: section {
 
   proves(heron.tools.docs.rendering.tables_for_tabular_data) {
     verify("internal/tools/docs/lenses_test.go", test = "TestSmallTablesAsLines")
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
 
   proves(heron.tools.docs.rendering.small_tables_as_lines) {

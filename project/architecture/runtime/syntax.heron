@@ -1,4 +1,4 @@
-@realizes(heron.product.system.parser)
+@realizes(heron.system.parser)
 syntax: component("internal/core/syntax", lang = "go") {
   | Splits one [Heron file](#heron.language.core_format.files.heron_file) into tokens and parses it into a [lossless tree](#heron.language.grammar.recovery.lossless_tree):
   | every byte of the input belongs to exactly one token, so printing the tokens in order
@@ -23,7 +23,7 @@ syntax: component("internal/core/syntax", lang = "go") {
     by `ast`'s generator.
   }}
 
-  surface(title = "tree.go") {{
+  exports(title = "tree.go") {{
     type Tree struct {
       Name  string
       Src   string
@@ -61,34 +61,47 @@ syntax: component("internal/core/syntax", lang = "go") {
   }}
 
   @display("No I/O")
-  no_io: invariant {
+  no_io: property {
     mustNot {{ import `os`, `os/exec`, `net`, `net/http`, `io/fs`, `io/ioutil`, `syscall` or `path/filepath` }}
     verify("scripts/ci.sh", test = "syntax and eval do no I/O")
   }
 
-  lossless: invariant {
+  lossless: property {
     must {{ return a tree whose tokens, printed in order, equal the input, for every input, a prefix of any fixture and fuzzed text included }}
     verify("internal/core/syntax/lossless_test.go", test = "FuzzParse")
   }
 
   @display("One pass")
-  one_pass: invariant {
+  one_pass: property {
     must {{ read the input once, left to right, with a scanner the parser drives in the mode it's in, and no separate token pass }}
   }
 
-  never_panics: invariant {
-    mustNot {{ panic or loop on any input; nesting deeper than 256 levels is a [too deep](#heron.language.grammar.recovery.diagnostics.too_deep) error }}
+  never_panics: property {
+    mustNot {{ panic or loop on any input; nesting deeper than 256 levels is a [too deep](#heron.language.grammar.recovery.errors.too_deep) error }}
     verify("internal/core/syntax/grammar_test.go", test = "TestRecoveryDepth")
   }
 
-  raises("syntax") {{
-    Every syntax error, as a `Diagnostic` in `Tree.Diags` with the byte range it concerns;
+  responsibility {{ Returns the error syntax: Every syntax error, as a `Diagnostic` in `Tree.Diags` with the byte range it concerns;
     `check` reports them under the code `syntax`. The messages are the
-    [recovery diagnostics](#heron.language.grammar.recovery.diagnostics).
-  }}
+    [recovery diagnostics](#heron.language.grammar.recovery.errors). }}
 
-  obligation(path = "internal/core/syntax/grammar_test.go") {{ Lexical tokens, structure, code, strings, prose and recovery parse to the expected trees. }}
-  obligation(path = "internal/core/syntax/lossless_test.go") {{ Every prefix of every fixture parses without losing a byte, and fuzzing finds no input that does. }}
-  obligation(path = "internal/core/syntax/fixtures_test.go") {{ Every Heron fixture parses without an error, unless it's marked as showing one. }}
-  obligation(path = "internal/core/syntax/shape_test.go") {{ Each member parses to the shape its syntax gives it. }}
+  property() {
+
+    | Lexical tokens, structure, code, strings, prose and recovery parse to the expected trees.
+
+    verify("internal/core/syntax/grammar_test.go")
+
+  }
+  property() {
+    | Every prefix of every fixture parses without losing a byte, and fuzzing finds no input that does.
+    verify("internal/core/syntax/lossless_test.go")
+  }
+  property() {
+    | Every Heron fixture parses without an error, unless it's marked as showing one.
+    verify("internal/core/syntax/fixtures_test.go")
+  }
+  property() {
+    | Each member parses to the shape its syntax gives it.
+    verify("internal/core/syntax/shape_test.go")
+  }
 }

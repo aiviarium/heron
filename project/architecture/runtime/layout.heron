@@ -35,28 +35,28 @@ layout: section {
     | ```
   }
 
-  unit_folders: invariant {
+  unit_folders: property {
     must {{ put each [unit](#delivery.units)'s Go packages under `internal/<unit>/`, as `internal/core/` for [unit](#delivery.units) 1 and `internal/tools/` for [unit](#delivery.units) 2, and its frontend packages in their own folders of the `web/` workspace }}
   }
 
-  packages_are_components: invariant {
+  packages_are_components: property {
     must {{ specify every Go package of `internal/core/` as a component of `project/architecture/runtime/`, other than a command and a package under a folder named `internal` }}
     | For example, `internal/core/ast/internal/astgen` generates code and `internal/core/lint/prose/words/heronwords` is a test binary, so neither is a component.
     verify("internal/tools/docs/components_test.go", test = "TestSpecComponentUses")
   }
 
-  uses_match_imports: invariant {
+  uses_match_imports: property {
     must {{ list in each component's `uses` exactly the components its package's code imports, leaving out its tests' imports }}
     | Then the architecture's dependency graph is the code's, and a new import shows up as a change to the project tree.
     verify("internal/tools/docs/components_test.go", test = "TestSpecComponentUses")
   }
 
-  std_owned_by_one_unit: invariant {
+  std_owned_by_one_unit: property {
     must {{ give each standard package under `std/` one owning [unit](#delivery.units), whose Go code backs what the package can't say in Heron }}
     | For example, `std/repo` is [unit](#delivery.units) 1's, backed by `internal/core/setup`; `std/docs` is [unit](#delivery.units) 2's.
   }
 
-  generated_beside_source: invariant {
+  generated_beside_source: property {
     must {{ commit generated code next to what it's generated from, and fail CI when a regeneration differs }}
     | For example, `syntax/kinds_gen.go` and `ast/nodes_gen.go` from `grammar/heron.ungram`; `protocol_gen.go` and `web/runtime/src/protocol.gen.ts` from `protocol.heron`.
     verify("scripts/ci.sh", test = "generated code is current")

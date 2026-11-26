@@ -1,4 +1,4 @@
-@realizes(heron.product.system.checker)
+@realizes(heron.system.checker)
 project: component("internal/core/project", lang = "go") {
   | The implementation side of a detached spec: a tree whose root `implements` a spec
   | package, with std/project's proofs, statuses and releases. It checks project mode and
@@ -29,7 +29,7 @@ project: component("internal/core/project", lang = "go") {
     since the earlier spec version.
   }}
 
-  surface(title = "project.go") {{
+  exports(title = "project.go") {{
     func Find(t *resolve.Tree, c *types.Checker) *Project
     func Check(t *resolve.Tree, c *types.Checker) diag.List
     func (p *Project) Requirements() []*Requirement
@@ -40,7 +40,7 @@ project: component("internal/core/project", lang = "go") {
   }}
 }
 
-@realizes(heron.product.system.command_line, heron.product.system.generator)
+@realizes(heron.system.command_line, heron.system.generator)
 release: component("internal/core/project/release", lang = "go") {
   | `heron release next [--tag label]`, the version of the next release of a project
   | that implements a spec, and `heron release check [--git]`, its versions against the
@@ -50,7 +50,7 @@ release: component("internal/core/project/release", lang = "go") {
 
   uses = [architecture.runtime.check, architecture.runtime.diag, architecture.runtime.gen, architecture.runtime.project, architecture.runtime.registry, architecture.runtime.resolve]
 
-  surface(title = "release.go") {{
+  exports(title = "release.go") {{
     func Register(r *registry.Registry)
   }}
 }

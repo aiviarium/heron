@@ -2,7 +2,9 @@
 // file per area of the spec.
 include = [
   "./guide.heron",
-  "./product_epics.heron",
+  "./tools_docs_audiences.heron",
+  "./layered_migration.heron",
+  "./language_specifications_layers.heron",
   "./language_core_format.heron",
   "./language_grammar.heron",
   "./language_schemas.heron",

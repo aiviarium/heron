@@ -1,4 +1,4 @@
-@realizes(heron.product.system.server)
+@realizes(heron.system.server)
 server: component("internal/tools/server", lang = "go") {
   | The shell of `heron serve`: it serves the frontend, the spec browser, the editor's
   | language server socket and the API on one address, and [mounts](#heron.language.core_format.mounts.mount) the ops other [units](#delivery.units)
@@ -11,7 +11,7 @@ server: component("internal/tools/server", lang = "go") {
   base_ops: responsibility {{ Implement the base API's ops: the workspace, files, problems, the outline, the preview, results, records, task runs and generated files. }}
 
   /// The shell and the extensions `Mount` adds to it.
-  surface(title = "server.go") {{
+  exports(title = "server.go") {{
     type Shell struct {
       LSP      LSP
       Renderer Renderer
@@ -28,9 +28,15 @@ server: component("internal/tools/server", lang = "go") {
     func OpenWorkspace(entry string, r *registry.Registry) (*Workspace, error)
   }}
 
-  obligation(path = "internal/tools/server/server_test.go") {{ Serve the base ops, the spec browser, a sample extension's routes and the socket from a real shell. }}
+  property() {
 
-  one_binary: invariant {
+    | Serve the base ops, the spec browser, a sample extension's routes and the socket from a real shell.
+
+    verify("internal/tools/server/server_test.go")
+
+  }
+
+  one_binary: property {
     must {{ embed the built frontend, so `heron serve` needs nothing beside the binary }}
     verify("internal/tools/server/server_test.go", test = "TestFrontendFallsBackToIndex")
   }
@@ -38,7 +44,7 @@ server: component("internal/tools/server", lang = "go") {
   verify("scripts/e2e-app.sh") {{ [heron serve](#heron.cli.serve) with the editor in Chromium. }}
 }
 
-@realizes(heron.product.system.server)
+@realizes(heron.system.server)
 server_api: component("internal/tools/server/api", lang = "go") {
   | The server's API is a spec like any other: `spec_server`, declared in
   | `internal/tools/server/api/server.heron` as the design gives it, with its types in
@@ -84,39 +90,39 @@ server_api: component("internal/tools/server/api", lang = "go") {
     | ```
   }
 
-  generated_current: invariant {
+  generated_current: property {
     must {{ keep the committed `api_gen.go` and `web/shell/src/api.gen.ts` equal to what [the API generator](#architecture.tools.server_apigen) writes from the [Heron files](#heron.language.core_format.files.heron_file) }}
     verify("internal/tools/server/server_test.go", test = "TestGeneratedRoutesMatchTheHeron")
   }
 
-  no_hand_written_requests: invariant {
+  no_hand_written_requests: property {
     must {{ give the frontend every request type and call through the generated client, with none written by hand }}
     verify("internal/tools/server/server_test.go", test = "TestGeneratedRoutesMatchTheHeron")
   }
 }
 
 @display("API generator")
-@realizes(heron.product.system.server)
+@realizes(heron.system.server)
 server_apigen: component("internal/tools/server/apigen", lang = "go") {
   | Writes a [unit](#delivery.units)'s routes and client from its ops on `spec_server`:
   | `go run ./internal/tools/server/apigen -base server.heron [-ext files] -go out.go -pkg name -ts out.ts`.
 
   uses = [architecture.runtime.check, architecture.runtime.resolve, architecture.runtime.types]
 
-  only_own_ops: invariant {
+  only_own_ops: property {
     must {{ check `spec_server` with the `-ext` files included, and write for their ops only, or for the base's when no `-ext` is given: Go types, a `Service` interface, `Routes(Service)`, and a TS client }}
     verify("internal/tools/server/server_test.go", test = "TestExtensionRoutesAreMounted")
   }
 }
 
-@realizes(heron.product.system.server)
+@realizes(heron.system.server)
 server_route: component("internal/tools/server/route", lang = "go") {
   | What generated API code and the server shell share.
 
   uses = []
 
   /// A route, its errors and its streams.
-  surface(title = "route.go") {{
+  exports(title = "route.go") {{
     type Route struct {
       Op, Method, Path string
       Stream, Socket   bool
@@ -130,12 +136,12 @@ server_route: component("internal/tools/server/route", lang = "go") {
     func NewEvents(w http.ResponseWriter) *Events
   }}
 
-  errors_as_json: invariant {
+  errors_as_json: property {
     must {{ write an error as `{"error": "‹message›"}` with its status, 500 when it carries none, and a body that isn't JSON as 400 "invalid body: ‹reason›" }}
     verify("internal/tools/server/server_test.go", test = "TestBaseOps")
   }
 
-  stream_errors: invariant {
+  stream_errors: property {
     must {{ end a stream that fails before its first event with an error response, and one that fails later with an `error` event }}
     verify("internal/tools/server/server_test.go", test = "TestBaseOps")
   }

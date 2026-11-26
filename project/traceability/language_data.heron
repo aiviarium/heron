@@ -25,15 +25,15 @@ language_data: section {
     verify("internal/core/types/typed_strings_test.go", test = "TestTypedStrings")
   }
 
-  proves(heron.language.data.typed_strings.diagnostics.not_a_duration) {
+  proves(heron.language.data.typed_strings.errors.not_a_duration) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.data.typed_strings.diagnostics.not_money) {
+  proves(heron.language.data.typed_strings.errors.not_money) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.data.typed_strings.diagnostics.not_a_timestamp) {
+  proves(heron.language.data.typed_strings.errors.not_a_timestamp) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 

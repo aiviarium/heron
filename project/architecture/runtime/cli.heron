@@ -1,5 +1,5 @@
 @display("CLI")
-@realizes(heron.product.system.command_line)
+@realizes(heron.system.command_line)
 cli: component("internal/core/cli", lang = "go") {
   | Dispatches the binary's subcommands and registers [unit](#delivery.units) 1's commands, core lints,
   | record kinds and setup funcs. Each command's arguments, options and exit codes are in
@@ -24,7 +24,7 @@ cli: component("internal/core/cli", lang = "go") {
     `index.heron`, relative to the working folder, with `.` when none is given.
   }}
 
-  surface(title = "cli.go") {{
+  exports(title = "cli.go") {{
     // Register installs unit 1's commands and core lints.
     func Register(r *registry.Registry)
     // Main runs the subcommand named by args[0] and returns the exit code.
@@ -33,29 +33,47 @@ cli: component("internal/core/cli", lang = "go") {
     func OSEnv() *registry.Env
   }}
 
-  relative_paths: invariant {
+  relative_paths: property {
     must {{ print the path of every diagnostic relative to the working folder, in text and in JSON }}
     verify("internal/core/cli/check_test.go", test = "TestCheckCommand")
   }
 
-  help_exit: invariant {
+  help_exit: property {
     | Applies when `heron` runs with no arguments, or with `help`, `-h` or `--help`.
     must {{ list every registered command with its summary, sorted by name, on standard error }}
     | Then the exit status is 2 with no arguments and 0 otherwise.
     verify("internal/core/cli/cli_test.go", test = "TestSampleCommand")
   }
 
-  unknown_command: invariant {
+  unknown_command: property {
     | Applies when the first argument names no registered command.
     must {{ print `heron: unknown command "‹name›"` and the usage on standard error, and exit with status 2 }}
     verify("internal/core/cli/cli_test.go", test = "TestSampleCommand")
   }
 
-  obligation(path = "internal/core/cli/cli_test.go") {{ A command registered from outside dispatches and shows in help; `fmt` rewrites and checks. }}
-  obligation(path = "internal/core/cli/check_test.go") {{ `check` in text and JSON, and a lint registered from outside through `lint`. }}
-  obligation(path = "internal/core/cli/run_test.go") {{ `run` parameters, needs, undo, confirmation, records and repository tasks. }}
-  obligation(path = "internal/core/cli/watch_test.go") {{ `check --watch` rechecks only the edited node. }}
-  obligation(path = "internal/core/cli/fix_test.go") {{ `lint -fix` never applies a suggestion. }}
+  property() {
+
+    | A command registered from outside dispatches and shows in help; `fmt` rewrites and checks.
+
+    verify("internal/core/cli/cli_test.go")
+
+  }
+  property() {
+    | `check` in text and JSON, and a lint registered from outside through `lint`.
+    verify("internal/core/cli/check_test.go")
+  }
+  property() {
+    | `run` parameters, needs, undo, confirmation, records and repository tasks.
+    verify("internal/core/cli/run_test.go")
+  }
+  property() {
+    | `check --watch` rechecks only the edited node.
+    verify("internal/core/cli/watch_test.go")
+  }
+  property() {
+    | `lint -fix` never applies a suggestion.
+    verify("internal/core/cli/fix_test.go")
+  }
 
   verify("internal/core/cli/check_test.go", test = "TestCheckCommand") {{ [heron check](#heron.cli.check) as the spec gives it. }}
   verify("scripts/ci.sh", test = "spec/ and examples/ check and lint clean; spec examples are the fixtures") {{ [heron check](#heron.cli.check) end to end. }}

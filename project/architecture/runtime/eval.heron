@@ -1,4 +1,4 @@
-@realizes(heron.product.system.interpreter)
+@realizes(heron.system.interpreter)
 eval: component("internal/core/eval", lang = "go") {
   | The interpreter for the `do` code of funcs, macros, tasks and [hooks](#heron.language.scripting.code.hook). It does no I/O of
   | its own: processes, files, the environment and the clock come in through capabilities,
@@ -30,7 +30,7 @@ eval: component("internal/core/eval", lang = "go") {
     in order, for the run record.
   }}
 
-  surface(title = "eval.go") {{
+  exports(title = "eval.go") {{
     type Machine struct {
       Tree     *resolve.Tree
       Types    *types.Checker
@@ -66,7 +66,7 @@ eval: component("internal/core/eval", lang = "go") {
     func Thrown(typ string, fields map[string]Value) *Throw
   }}
 
-  surface(title = "caps.go") {{
+  exports(title = "caps.go") {{
     // A nil capability fails the call that needs it.
     type Caps struct {
       Processes Processes
@@ -100,7 +100,7 @@ eval: component("internal/core/eval", lang = "go") {
     type Clock interface{ Now() time.Time }
   }}
 
-  surface(title = "value.go") {{
+  exports(title = "value.go") {{
     // Value is nil, bool, int64, float64, string, []Value, map[string]Value,
     // *Record, Text, Ref or TypeValue. Enum variants are their names.
     type Value = any
@@ -115,36 +115,45 @@ eval: component("internal/core/eval", lang = "go") {
   }}
 
   @display("No I/O")
-  no_io: invariant {
+  no_io: property {
     mustNot {{ import `os`, `os/exec`, `net`, `net/http`, `io/fs`, `io/ioutil`, `syscall` or `path/filepath` }}
     verify("scripts/ci.sh", test = "syntax and eval do no I/O")
   }
 
-  argument_lists: invariant {
+  argument_lists: property {
     must {{ start every process from an argument list, the program and its arguments, never a line for a shell to split }}
     verify("internal/core/eval/host/host_test.go", test = "TestRunPassesArgumentsWithoutAShell")
   }
 
-  faults_not_caught: invariant {
+  faults_not_caught: property {
     mustNot {{ let `attempt(…)` catch a fault in code, such as an unknown name or a wrong operand; it catches only [thrown errors](#heron.language.scripting.code.thrown_error) }}
     verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
   }
 
-  pure_at_evaluation: invariant {
+  pure_at_evaluation: property {
     mustNot {{ call a [foreign func](#heron.language.interop.declaring.foreign_func) that isn't declared pure while it evaluates a value or expands a macro }}
     verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
   }
 
-  raises("*eval.Error") {{ A fault in code, with the file, line and column: an unknown name, a wrong operand, division by zero, a non-Bool condition. It fails the run. }}
-  raises("*eval.Throw") {{ An error thrown as a Heron value, such as a `ProcessError` from a process that exits non-zero; uncaught, it fails the run. }}
+  responsibility {{ Returns the error *eval.Error: A fault in code, with the file, line and column: an unknown name, a wrong operand, division by zero, a non-Bool condition. It fails the run. }}
+  responsibility {{ Returns the error *eval.Throw: An error thrown as a Heron value, such as a `ProcessError` from a process that exits non-zero; uncaught, it fails the run. }}
 
-  obligation(path = "internal/core/eval/eval_test.go") {{ Bindings and control flow, operators, processes and files through fake capabilities, throws and faults, tasks, macros, node fields and [hooks](#heron.language.scripting.code.hook), [foreign funcs](#heron.language.interop.declaring.foreign_func), steps, strings and JSON. }}
-  obligation(path = "internal/core/eval/foreign_test.go") {{ Ops through their bound transport, pure [foreign funcs](#heron.language.interop.declaring.foreign_func) at [evaluation](#heron.language.scripting.funcs_and_templates.evaluation) time, and callbacks from foreign code. }}
+  property() {
+
+    | Bindings and control flow, operators, processes and files through fake capabilities, throws and faults, tasks, macros, node fields and [hooks](#heron.language.scripting.code.hook), [foreign funcs](#heron.language.interop.declaring.foreign_func), steps, strings and JSON.
+
+    verify("internal/core/eval/eval_test.go")
+
+  }
+  property() {
+    | Ops through their bound transport, pure [foreign funcs](#heron.language.interop.declaring.foreign_func) at [evaluation](#heron.language.scripting.funcs_and_templates.evaluation) time, and callbacks from foreign code.
+    verify("internal/core/eval/foreign_test.go")
+  }
 
   verify("scripts/e2e-tasks.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for tasks: `heron run` runs a task with params from the command line, asks for missing ones, honours `@needs` and `@undo`, and records the run. }}
 }
 
-@realizes(heron.product.system.interpreter, heron.product.system.extension_host)
+@realizes(heron.system.interpreter, heron.system.extension_host)
 eval_host: component("internal/core/eval/host", lang = "go") {
   | Supplies `eval`'s capabilities from the operating system: processes through `os/exec`,
   | files through `os`, the process environment and the wall clock. `heron run` and the
@@ -152,7 +161,7 @@ eval_host: component("internal/core/eval/host", lang = "go") {
 
   uses = [architecture.runtime.eval]
 
-  surface(title = "host.go") {{
+  exports(title = "host.go") {{
     // Caps returns the real capabilities, with log lines going to log.
     func Caps(log func(string)) eval.Caps
 
@@ -162,10 +171,16 @@ eval_host: component("internal/core/eval/host", lang = "go") {
     type Clock struct{}     // time.Now
   }}
 
-  no_shell: invariant {
+  no_shell: property {
     mustNot {{ start a process through a shell }}
     verify("internal/core/eval/host/host_test.go", test = "TestRunPassesArgumentsWithoutAShell")
   }
 
-  obligation(path = "internal/core/eval/host/host_test.go") {{ Arguments reach the process as given, quotes and spaces included, and files are read and written. }}
+  property() {
+
+    | Arguments reach the process as given, quotes and spaces included, and files are read and written.
+
+    verify("internal/core/eval/host/host_test.go")
+
+  }
 }

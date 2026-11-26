@@ -1,4 +1,4 @@
-@realizes(heron.product.system.interpreter)
+@realizes(heron.system.interpreter)
 records: component("internal/core/records", lang = "go") {
   | Stores audit records, release output and caches as data files. Record kinds register
   | through the registry, so every [unit](#delivery.units)'s records are written and read through one
@@ -19,7 +19,7 @@ records: component("internal/core/records", lang = "go") {
     result or error and exit status.
   }}
 
-  surface(title = "records.go") {{
+  exports(title = "records.go") {{
     const DefaultPath = ".heron/audit"
 
     type Config struct {
@@ -43,7 +43,7 @@ records: component("internal/core/records", lang = "go") {
     func (s *Store) Dir(kind string) string
   }}
 
-  surface(title = "run.go") {{
+  exports(title = "run.go") {{
     const RunKind = "run"
     func Register(r *registry.Registry)
     func NewRunRecorder(task, entry string, args map[string]eval.Value, now func() time.Time) *RunRecorder
@@ -55,29 +55,35 @@ records: component("internal/core/records", lang = "go") {
     func (r *RunRecorder) Data(result eval.Value, err error, exit int) map[string]any
   }}
 
-  ids_sort_by_time: invariant {
+  ids_sort_by_time: property {
     must {{ give each record an id that starts with its UTC time to the millisecond, as `20261125T093000.123Z`, followed by six random hexadecimal digits, so a folder listing in name order is the history }}
   }
 
-  whole_files: invariant {
+  whole_files: property {
     must {{ write a record to a temporary file and rename it into place, so a reader never sees half a record }}
   }
 
-  default_location: invariant {
+  default_location: property {
     | Applies when no [unit](#delivery.units) configures where records go.
     must {{ keep them under `.heron/audit/` at the project's root, which `heron run` takes to be the folder of its [entry point](#heron.language.core_format.files.entry_point) }}
     verify("internal/core/cli/run_test.go", test = "TestRunIsRecorded")
   }
 
-  location_registered: invariant {
+  location_registered: property {
     | Planned: not built yet.
     | Where a [unit](#delivery.units) owns the configuration of where records go, as the DevOps [unit](#delivery.units) does with `audit { path, keep }`.
     must {{ let that [unit](#delivery.units) register the location and how long records are kept through the registry, read by every command that opens the store }}
   }
 
-  raises("unknown kind") {{ `records: no record kind "‹kind›" is registered`, for a write or read of a kind nothing registered. }}
-  raises("invalid record") {{ `records: a ‹kind› record is invalid: …`, when the kind's validation rejects the data; nothing is written. }}
-  raises("bad id") {{ `records: bad id "‹id›"`, for an id with a slash in it. }}
+  responsibility {{ Returns the error unknown kind: `records: no record kind "‹kind›" is registered`, for a write or read of a kind nothing registered. }}
+  responsibility {{ Returns the error invalid record: `records: a ‹kind› record is invalid: …`, when the kind's validation rejects the data; nothing is written. }}
+  responsibility {{ Returns the error bad id: `records: bad id "‹id›"`, for an id with a slash in it. }}
 
-  obligation(path = "internal/core/records/records_test.go") {{ A sample kind registered from outside writes, lists, reads, validates and prunes; the run recorder turns events into a run record. }}
+  property() {
+
+    | A sample kind registered from outside writes, lists, reads, validates and prunes; the run recorder turns events into a run record.
+
+    verify("internal/core/records/records_test.go")
+
+  }
 }

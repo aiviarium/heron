@@ -1,4 +1,4 @@
-@realizes(heron.product.system.generator)
+@realizes(heron.system.generator)
 gen: component("internal/core/gen", lang = "go") {
   | The generation framework behind `heron generate`: adapters read the checked tree and
   | return files, none with a config format of its own, and the framework writes them and
@@ -27,7 +27,7 @@ gen: component("internal/core/gen", lang = "go") {
     stamp it with the declaration's path.
   }}
 
-  surface(title = "gen.go") {{
+  exports(title = "gen.go") {{
     // Register installs `heron generate` and the ts target.
     func Register(r *registry.Registry)
 
@@ -50,7 +50,7 @@ gen: component("internal/core/gen", lang = "go") {
     func TS(in *Input) ([]registry.GeneratedFile, error)
   }}
 
-  surface(title = "ignore.go") {{
+  exports(title = "ignore.go") {{
     const (
       BlockBegin    = "# heron:begin (managed by heron; edits inside are replaced)"
       BlockEnd      = "# heron:end"
@@ -62,24 +62,30 @@ gen: component("internal/core/gen", lang = "go") {
     func IgnoreBlock(text, owner string, entries []string) (string, error)
   }}
 
-  paths_inside: invariant {
+  paths_inside: property {
     mustNot {{ write a file whose path is absolute, is `.` or leaves the project's folder through `..` }}
     verify("internal/core/gen/gen_test.go", test = "TestPathsStayInside")
   }
 
-  writes_changes_only: invariant {
+  writes_changes_only: property {
     must {{ leave a file whose content is unchanged untouched, so running a target twice changes nothing }}
     verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
   }
 
-  sections_kept: invariant {
+  sections_kept: property {
     mustNot {{ erase another owner's section of the managed block, or any line outside it }}
     verify("internal/core/gen/gen_test.go", test = "TestIgnoreBlockKeepsTheRest")
   }
 
-  raises("no adapter") {{ `no adapter is registered for target "‹target›"; targets: …`, for a target nothing registered. }}
-  raises("outside") {{ `generated path "‹path›" is outside the project directory`, from an adapter that returned such a path. }}
-  raises("adapter failed") {{ `‹adapter› (‹target›): …`, wrapping the error an adapter returned; files written before it stay written. }}
+  responsibility {{ Returns the error no adapter: `no adapter is registered for target "‹target›"; targets: …`, for a target nothing registered. }}
+  responsibility {{ Returns the error outside: `generated path "‹path›" is outside the project directory`, from an adapter that returned such a path. }}
+  responsibility {{ Returns the error adapter failed: `‹adapter› (‹target›): …`, wrapping the error an adapter returned; files written before it stay written. }}
 
-  obligation(path = "internal/core/gen/gen_test.go") {{ Targets run and write once, the ignore block keeps the rest of the file, paths stay inside, and the TS types and bindings of a sample tree. }}
+  property() {
+
+    | Targets run and write once, the ignore block keeps the rest of the file, paths stay inside, and the TS types and bindings of a sample tree.
+
+    verify("internal/core/gen/gen_test.go")
+
+  }
 }

@@ -1,4 +1,4 @@
-@realizes(heron.product.system.checker, heron.product.system.docs_generator)
+@realizes(heron.system.checker, heron.system.docs_generator)
 lens: component("internal/core/lens", lang = "go") {
   | std/docs's Go side: the lenses a docs site builds, how each one treats a node by its kind
   | and the lens marks on and above it, and the checks on lenses, marks and authored pages.
@@ -19,7 +19,7 @@ lens: component("internal/core/lens", lang = "go") {
     without exactly one default lens, and an authored page's example that doesn't check.
   }}
 
-  surface(title = "lens.go") {{
+  exports(title = "lens.go") {{
     func SiteOf(t *resolve.Tree, c *types.Checker) *Site
     func (l *Lens) Mode(c *types.Checker, n *resolve.Node) Mode
     func (l *Lens) Marked(c *types.Checker, n *resolve.Node) bool

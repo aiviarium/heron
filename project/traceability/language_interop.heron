@@ -27,17 +27,17 @@ language_interop: section {
     verify("internal/core/extension/jshost_test.go", test = "TestSampleLintThroughHeronLint")
   }
 
-  proves(heron.language.interop.declaring.errors.declared_throws) {
+  proves(heron.language.interop.declaring.foreign_errors.declared_throws) {
     verify("internal/core/extension/protocol/conn_test.go", test = "TestThrownErrorsCarryTheirType")
     verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
   }
 
-  proves(heron.language.interop.declaring.errors.foreign_error) {
+  proves(heron.language.interop.declaring.foreign_errors.foreign_error) {
     verify("internal/core/extension/jshost_test.go", test = "TestCrashFailsCallsAndRestarts")
     verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
   }
 
-  proves(heron.language.interop.declaring.diagnostics.no_host) {
+  proves(heron.language.interop.declaring.errors.no_host) {
     verify("internal/core/eval/foreign_test.go", test = "TestForeignFuncWithoutAHost")
   }
 
@@ -106,11 +106,11 @@ language_interop: section {
     verify("internal/core/extension/process_test.go", test = "TestHostServicesOutsideARun")
   }
 
-  proves(heron.language.interop.host.diagnostics.host_missing) {
+  proves(heron.language.interop.host.errors.host_missing) {
     verify("internal/core/extension/process_test.go", test = "TestHostServicesOutsideARun")
   }
 
-  proves(heron.language.interop.host.diagnostics.keeps_exiting) {
+  proves(heron.language.interop.host.errors.keeps_exiting) {
     verify("internal/core/extension/process_test.go", test = "TestHandshakeVersionAndRestartLimit")
   }
 

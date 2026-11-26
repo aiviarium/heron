@@ -5,15 +5,14 @@
 import = [
   "std/doc@1",
   "std/spec@1",
-  "std/tech@1",
   "std/project@1",
   "std/docs@1",
 ]
 
 /// The Heron implementation: the `heron` binary, its standard packages and its frontend.
 @display("Heron implementation")
-heron_impl: implements(heron, at = "0.3.1") {
-  version = "0.3.1+build1"
+heron_impl: implements(heron, at = "0.4.0") {
+  version = "0.4.0+build1"
   // The spec's own site, at the root of GitHub Pages with the project site
   // under project/ (.github/workflows/pages.yml): links to spec nodes go there.
   docs = "https://aiviarium.github.io/heron/"

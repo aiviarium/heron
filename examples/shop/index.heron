@@ -5,7 +5,6 @@
 import = [
   "std/doc@1",
   "std/spec@1",
-  "std/tech@1",
   "std/project@1",
   "../shop-spec/",
 ]
@@ -48,7 +47,7 @@ proofs: section {
     verify("scripts/e2e-checkout.sh", test = "pay twice")
   }
 
-  proves(shop.checkout.pay_story.paid) {
+  proves(shop.checkout.paid) {
     verify("internal/cart/checkout_test.go", test = "TestPayEmptiesCart")
   }
 

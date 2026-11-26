@@ -1,5 +1,5 @@
 @display("Tree-sitter grammar")
-@realizes(heron.product.system.editor_grammar)
+@realizes(heron.system.editor_grammar)
 tree_sitter: component("grammar/tree-sitter-heron", lang = "js") {
   | The editor grammar: a tree-sitter grammar kept next to the Go parser and tested against
   | the same fixtures. Editors get [static highlighting](#heron.language.schemas.highlighting.static_highlighting), folding and structural selection
@@ -11,7 +11,7 @@ tree_sitter: component("grammar/tree-sitter-heron", lang = "js") {
   queries: responsibility {{ The highlight, fold and text-object queries over that tree. }}
 
   /// The grammar, its external scanner and the generated parser, committed.
-  surface(lang = "text", title = "files") {{
+  exports(lang = "text", title = "files") {{
     grammar.js
     src/scanner.c
     src/parser.c
@@ -21,21 +21,27 @@ tree_sitter: component("grammar/tree-sitter-heron", lang = "js") {
     test/corpus/heron.txt
   }}
 
-  obligation(path = "grammar/tree-sitter-heron/test-fixtures.sh") {{ Parse the Go parser's fixtures and the repository's Heron trees, and run every query on a fixture. }}
+  property() {
 
-  same_fixtures: invariant {
+    | Parse the Go parser's fixtures and the repository's Heron trees, and run every query on a fixture.
+
+    verify("grammar/tree-sitter-heron/test-fixtures.sh")
+
+  }
+
+  same_fixtures: property {
     must {{ parse every fixture of mode `heron`, the fixtures' context files, and every `.heron` file under std/, spec/, examples/ and the extension protocol with no `ERROR` or `MISSING` node }}
     | A [prose file](#heron.language.core_format.prose_layer.prose_file) is Markdown to editors, with Heron in its fences, and a sketch elides
     | parts on purpose, so neither is parsed.
     verify("grammar/tree-sitter-heron/test-fixtures.sh")
   }
 
-  parser_current: invariant {
+  parser_current: property {
     must {{ keep the committed `src/parser.c` equal to what `tree-sitter generate` writes from `grammar.js`, with tree-sitter-cli 0.25.3 }}
     verify("scripts/ci.sh")
   }
 
-  corpus_passes: invariant {
+  corpus_passes: property {
     must {{ pass the corpus under `test/corpus` with `tree-sitter test` }}
     verify("scripts/ci.sh")
   }
@@ -51,7 +57,7 @@ tree_sitter: component("grammar/tree-sitter-heron", lang = "js") {
     | | `_prose_bar`   | a `\|` that starts a [prose line](#heron.language.core_format.prose_layer.prose_lines) |
     | | `_union_bar`   | a `\|` between two types on one line                                            |
 
-    flat_prose: invariant {
+    flat_prose: property {
       must {{ read prose flat: an opening and a closing tag around ordinary text, and a `[`, `$` or `<` that starts no link, insert or tag as text }}
       | Then prose never backtracks, and a tag may span `|` lines.
       verify("grammar/tree-sitter-heron/test-fixtures.sh")

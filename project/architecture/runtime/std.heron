@@ -1,5 +1,5 @@
 @display("Standard packages")
-@realizes(heron.product.system.checker)
+@realizes(heron.system.checker)
 std: component("std", lang = "go") {
   | Embeds the standard packages, which are Heron source, into the binary. They're read and
   | checked like any other package; the embedded copy is the fallback a newer copy from a
@@ -14,17 +14,17 @@ std: component("std", lang = "go") {
     as `std:` files.
   }}
 
-  surface(title = "std.go") {{
+  exports(title = "std.go") {{
     //go:embed */*.heron
     var FS embed.FS
   }}
 
-  heron_source: invariant {
+  heron_source: property {
     must {{ write each standard package, such as `std/types` and `std/doc`, as Heron source, and back with Go only what Heron can't say, such as process control }}
     | For example, `std/process`'s `run` is declared in Heron and implemented by `eval`'s natives; `std/repo`'s funcs by `setup`.
   }
 
-  std_checks_clean: invariant {
+  std_checks_clean: property {
     must {{ check and lint every standard package clean, as a package }}
     verify("internal/core/types/types_test.go", test = "TestStdPackagesCheckClean")
     verify("internal/core/lint/lint_test.go", test = "TestStdLintsClean")

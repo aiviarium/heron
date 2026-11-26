@@ -73,19 +73,19 @@ language_schemas: section {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
-  proves(heron.language.schemas.accept.diagnostics.doesnt_accept) {
+  proves(heron.language.schemas.accept.errors.doesnt_accept) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
-  proves(heron.language.schemas.accept.diagnostics.accepts_at_most) {
+  proves(heron.language.schemas.accept.errors.accepts_at_most) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
-  proves(heron.language.schemas.accept.diagnostics.takes_no_prose) {
+  proves(heron.language.schemas.accept.errors.takes_no_prose) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
-  proves(heron.language.schemas.accept.diagnostics.takes_no_do_block) {
+  proves(heron.language.schemas.accept.errors.takes_no_do_block) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
@@ -113,11 +113,11 @@ language_schemas: section {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
-  proves(heron.language.schemas.modes.diagnostics.structure_only_tag) {
+  proves(heron.language.schemas.modes.errors.structure_only_tag) {
     verify("internal/core/lint/lint_test.go", test = "TestTagKind")
   }
 
-  proves(heron.language.schemas.modes.diagnostics.tag_not_a_kind) {
+  proves(heron.language.schemas.modes.errors.tag_not_a_kind) {
     verify("internal/core/lint/lint_test.go", test = "TestTagKind")
   }
 
@@ -141,7 +141,7 @@ language_schemas: section {
     verify("internal/core/lint/lint_test.go", test = "TestFlagOnAnnotation")
   }
 
-  proves(heron.language.schemas.flags.diagnostics.flag_misplaced) {
+  proves(heron.language.schemas.flags.errors.flag_misplaced) {
     verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
   }
 
@@ -165,15 +165,15 @@ language_schemas: section {
     verify("internal/core/extension/decl_test.go", test = "TestDiscoverExternDeclarations")
   }
 
-  proves(heron.language.schemas.annotations.diagnostics.annotation_misplaced) {
+  proves(heron.language.schemas.annotations.errors.annotation_misplaced) {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
   }
 
-  proves(heron.language.schemas.annotations.diagnostics.annotation_on_param) {
+  proves(heron.language.schemas.annotations.errors.annotation_on_param) {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
   }
 
-  proves(heron.language.schemas.annotations.diagnostics.annotation_repeated) {
+  proves(heron.language.schemas.annotations.errors.annotation_repeated) {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
   }
 
@@ -254,11 +254,11 @@ language_schemas: section {
     verify("internal/core/extension/protocol/conn_test.go", test = "TestTimeoutFromLimits")
   }
 
-  proves(heron.language.schemas.extensions.diagnostics.not_implemented) {
+  proves(heron.language.schemas.extensions.errors.not_implemented) {
     verify("internal/core/extension/jshost_test.go", test = "TestHandshakeMismatchIsReported")
   }
 
-  proves(heron.language.schemas.flags.diagnostics.flag_misplaced_on_annotation) {
+  proves(heron.language.schemas.flags.errors.flag_misplaced_on_annotation) {
     verify("internal/core/lint/lint_test.go", test = "TestFlagOnAnnotation")
   }
 }

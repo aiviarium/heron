@@ -314,111 +314,111 @@ language_grammar: section {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecoveryDepth")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.end_of_line) {
+  proves(heron.language.grammar.recovery.errors.end_of_line) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.no_member) {
+  proves(heron.language.grammar.recovery.errors.no_member) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_brace) {
+  proves(heron.language.grammar.recovery.errors.missing_brace) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_double_brace) {
+  proves(heron.language.grammar.recovery.errors.missing_double_brace) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_set_value) {
+  proves(heron.language.grammar.recovery.errors.missing_set_value) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_let_equals) {
+  proves(heron.language.grammar.recovery.errors.missing_let_equals) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_value) {
+  proves(heron.language.grammar.recovery.errors.missing_value) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_type) {
+  proves(heron.language.grammar.recovery.errors.missing_type) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_name) {
+  proves(heron.language.grammar.recovery.errors.missing_name) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_in) {
+  proves(heron.language.grammar.recovery.errors.missing_in) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_block) {
+  proves(heron.language.grammar.recovery.errors.missing_block) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_param_name) {
+  proves(heron.language.grammar.recovery.errors.missing_param_name) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_param_type) {
+  proves(heron.language.grammar.recovery.errors.missing_param_type) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_paren) {
+  proves(heron.language.grammar.recovery.errors.missing_paren) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_bracket) {
+  proves(heron.language.grammar.recovery.errors.missing_bracket) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_angle) {
+  proves(heron.language.grammar.recovery.errors.missing_angle) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.unterminated_string) {
+  proves(heron.language.grammar.recovery.errors.unterminated_string) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.unterminated_raw) {
+  proves(heron.language.grammar.recovery.errors.unterminated_raw) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.missing_fence) {
+  proves(heron.language.grammar.recovery.errors.missing_fence) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.argument_list) {
+  proves(heron.language.grammar.recovery.errors.argument_list) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.array_list) {
+  proves(heron.language.grammar.recovery.errors.array_list) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.map_entry) {
+  proves(heron.language.grammar.recovery.errors.map_entry) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.map_equals) {
+  proves(heron.language.grammar.recovery.errors.map_equals) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.map_separator) {
+  proves(heron.language.grammar.recovery.errors.map_separator) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.tag_mismatch) {
+  proves(heron.language.grammar.recovery.errors.tag_mismatch) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.tag_unclosed) {
+  proves(heron.language.grammar.recovery.errors.tag_unclosed) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecovery")
   }
 
-  proves(heron.language.grammar.recovery.diagnostics.too_deep) {
+  proves(heron.language.grammar.recovery.errors.too_deep) {
     verify("internal/core/syntax/grammar_test.go", test = "TestRecoveryDepth")
   }
 

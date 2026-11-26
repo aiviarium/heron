@@ -36,7 +36,7 @@ git commit -qm "a fresh checkout"
 echo "-- first run installs and writes"
 heron run setup >"$tmp/out1" 2>&1 || { cat "$tmp/out1"; fail "the first setup failed"; }
 [ -f heron.lock ] || fail "no heron.lock"
-grep -q '"std/spec" = { version = "1.0", checksum = "sha256:' heron.lock || fail "std/spec isn't pinned"
+grep -q '"std/spec" = { version = "1.1", checksum = "sha256:' heron.lock || fail "std/spec isn't pinned"
 grep -q "mailer = { url = \"file://$tmp/mailer\", ref = \"v1.8.0\", commit = \"$tagged\" }" heron.lock ||
   { cat heron.lock; fail "mailer isn't pinned at v1.8.0"; }
 # Unit 2's setup step pins Vale, for the sample's .vale.ini, and syncs it;
@@ -72,7 +72,7 @@ heron run setup >"$tmp/out2" 2>&1 || { cat "$tmp/out2"; fail "the second setup f
 [ "$(ls .heron/audit/run/*.json | wc -l)" -eq 2 ] || fail "each setup run isn't recorded"
 
 echo "-- a pin that doesn't match fails, and --update moves it"
-sed -i 's/"std\/spec" = { version = "1.0", checksum = "sha256:./"std\/spec" = { version = "1.0", checksum = "sha256:X/' heron.lock
+sed -i 's/"std\/spec" = { version = "1.1", checksum = "sha256:./"std\/spec" = { version = "1.1", checksum = "sha256:X/' heron.lock
 if heron run setup >"$tmp/out3" 2>&1; then fail "a wrong pin was accepted"; fi
 grep -q "heron.lock pins std/spec" "$tmp/out3" || { cat "$tmp/out3"; fail "the wrong pin isn't named"; }
 heron run setup --update >/dev/null 2>&1 || fail "--update failed"

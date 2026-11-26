@@ -1,5 +1,5 @@
 @display("LSP")
-@realizes(heron.product.system.language_server)
+@realizes(heron.system.language_server)
 lsp: component("internal/tools/lsp", lang = "go") {
   | The language server as a library: one [session](#heron.tools.lsp.session.lsp_session) per client, served over
   | standard input and output by `heron lsp` and over the `/lsp` socket by [the server](#architecture.tools.server). It answers from the
@@ -13,7 +13,7 @@ lsp: component("internal/tools/lsp", lang = "go") {
   protocol: responsibility {{ Read and write JSON-RPC messages, framed with `Content-Length` headers on a stream. }}
 
   /// A connection that carries whole JSON-RPC messages, one per call.
-  surface(title = "conn.go") {{
+  exports(title = "conn.go") {{
     type Conn interface {
       ReadMessage() ([]byte, error)
       WriteMessage([]byte) error
@@ -22,7 +22,7 @@ lsp: component("internal/tools/lsp", lang = "go") {
   }}
 
   /// A session over a connection, and the shortcut for standard input and output.
-  surface(title = "session.go") {{
+  exports(title = "session.go") {{
     type Options struct {
       Registry *registry.Registry
       Dir      string
@@ -35,24 +35,33 @@ lsp: component("internal/tools/lsp", lang = "go") {
   }}
 
   /// Installs `heron lsp`.
-  surface(title = "command.go") {{
+  exports(title = "command.go") {{
     func Register(r *registry.Registry)
   }}
 
-  raises("-32002") {{ A request other than `initialize` before the session is initialized: "the server isn't initialized". }}
-  raises("-32601") {{ A request with no handler: "no method ‹method›". }}
-  raises("-32602") {{ Invalid parameters, a rename the [rename rules](#heron.tools.lsp.rename) refuse, or a command that fails. }}
-  raises("-32603") {{ A handler that panics: "internal error in ‹method›: ‹reason›"; the session goes on. }}
+  responsibility {{ Returns the error -32002: A request other than `initialize` before the session is initialized: "the server isn't initialized". }}
+  responsibility {{ Returns the error -32601: A request with no handler: "no method ‹method›". }}
+  responsibility {{ Returns the error -32602: Invalid parameters, a rename the [rename rules](#heron.tools.lsp.rename) refuse, or a command that fails. }}
+  responsibility {{ Returns the error -32603: A handler that panics: "internal error in ‹method›: ‹reason›"; the session goes on. }}
 
-  obligation(path = "internal/tools/lsp/lsp_test.go") {{ Open every file of the sample repository and of spec/ with no diagnostic, whatever the URI spelling and the order. }}
-  obligation(path = "scripts/e2e-lsp.sh") {{ Drive `heron lsp` over stdio on a copy of the sample repository with a scripted client. }}
+  property() {
 
-  same_answers: invariant {
+    | Open every file of the sample repository and of spec/ with no diagnostic, whatever the URI spelling and the order.
+
+    verify("internal/tools/lsp/lsp_test.go")
+
+  }
+  property() {
+    | Drive `heron lsp` over stdio on a copy of the sample repository with a scripted client.
+    verify("scripts/e2e-lsp.sh")
+  }
+
+  same_answers: property {
     must {{ report for every file the diagnostics `heron check` and `heron lint` report for its tree, with nothing added or missed }}
     verify("internal/tools/lsp/lsp_test.go", test = "TestOpenEveryFileWithoutFalseDiagnostics")
   }
 
-  latest_text: invariant {
+  latest_text: property {
     must {{ answer every request after rechecking the open documents if anything changed, so an answer reflects the latest text }}
     verify("internal/tools/lsp/lsp_test.go", test = "TestErrorsAppearClearAndReachImporters")
   }

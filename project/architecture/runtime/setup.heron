@@ -1,4 +1,4 @@
-@realizes(heron.product.system.interpreter, heron.product.system.command_line)
+@realizes(heron.system.interpreter, heron.system.command_line)
 setup: component("internal/core/setup", lang = "go") {
   | Backs `std/repo`: the toolchain check, the packages and sources pinned in `heron.lock`,
   | and the generated files `heron run setup` writes, and `std/spec`'s `git(…)`. Its funcs
@@ -30,7 +30,7 @@ setup: component("internal/core/setup", lang = "go") {
     each source's checkout, and returns the paths it wrote.
   }}
 
-  surface(title = "setup.go") {{
+  exports(title = "setup.go") {{
     // Register installs the Go side of std/repo's funcs and of std/spec's git(…).
     func Register(r *registry.Registry, o Options)
 
@@ -45,7 +45,7 @@ setup: component("internal/core/setup", lang = "go") {
     func DefaultInstallers() map[string]Installer // pnpm and yarn through npm
   }}
 
-  surface(title = "lock.go") {{
+  exports(title = "lock.go") {{
     type Lock struct {
       Packages map[string]Pin
       Sources  map[string]SourcePin
@@ -57,17 +57,17 @@ setup: component("internal/core/setup", lang = "go") {
     func (l *Lock) Format() string
   }}
 
-  idempotent: invariant {
+  idempotent: property {
     must {{ change no file outside `.heron/` when run a second time on an unchanged repository }}
     verify("scripts/e2e-setup.sh")
   }
 
-  pins_hold: invariant {
+  pins_hold: property {
     mustNot {{ move a pin of `heron.lock` that no longer matches what it pins, unless asked with `update`; it fails naming the pin instead }}
     verify("scripts/e2e-setup.sh")
   }
 
-  generate_runs_targets: invariant {
+  generate_runs_targets: property {
     | Applies when `repo.generate()` runs.
     must {{ run every registered generation target and write its files before writing setup's section of the ignore block }}
     | Then the `.heron/` types an extension's TS code imports exist after a fresh `heron run setup`.
@@ -75,10 +75,19 @@ setup: component("internal/core/setup", lang = "go") {
     verify("scripts/e2e-setup.sh")
   }
 
-  raises("SetupError") {{ A thrown `SetupError` that `attempt(…)` can catch: a tool missing or at the wrong version, a pin that moved, a source that can't be pinned or checked out, a setup step or a generation target that failed. }}
+  responsibility {{ Returns the error SetupError: A thrown `SetupError` that `attempt(…)` can catch: a tool missing or at the wrong version, a pin that moved, a source that can't be pinned or checked out, a setup step or a generation target that failed. }}
 
-  obligation(path = "internal/core/setup/setup_test.go") {{ The toolchain check and install, the ignore block, the lock's round trip, and `generate()` running every target. }}
-  obligation(path = "scripts/e2e-setup.sh") {{ A fresh copy of `examples/petstore` sets up, pins its source and packages, writes the block, generates `.heron/types.ts`, and a second run changes nothing. }}
+  property() {
+
+    | The toolchain check and install, the ignore block, the lock's round trip, and `generate()` running every target.
+
+    verify("internal/core/setup/setup_test.go")
+
+  }
+  property() {
+    | A fresh copy of `examples/petstore` sets up, pins its source and packages, writes the block, generates `.heron/types.ts`, and a second run changes nothing.
+    verify("scripts/e2e-setup.sh")
+  }
 
   verify("scripts/e2e-setup.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for setup: `heron run setup` on a fresh checkout checks the toolchain, pins and installs what `heron.lock` lists, runs the generation targets, writes the managed ignore block, and changes nothing when it runs again. }}
 }

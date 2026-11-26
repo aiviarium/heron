@@ -1,4 +1,4 @@
-@realizes(heron.product.system.checker)
+@realizes(heron.system.checker)
 types: component("internal/core/types", lang = "go") {
   | Checks the resolved tree against the [schemas](#heron.language.schemas.kinds.schema) in scope, and answers the questions
   | every later stage asks about a node: which kind or type it has, which fields and kind
@@ -23,7 +23,7 @@ types: component("internal/core/types", lang = "go") {
     and how often each local is used, for lints and go-to-definition.
   }}
 
-  surface(title = "check.go") {{
+  exports(title = "check.go") {{
     func Check(t *resolve.Tree) (*Checker, diag.List)
     func New(t *resolve.Tree) *Checker
     // CheckNode checks one top-level node and returns its diagnostics.
@@ -54,29 +54,38 @@ types: component("internal/core/types", lang = "go") {
     var TypedStrings map[string]func(string) error
   }}
 
-  node_local: invariant {
+  node_local: property {
     must {{ give each top-level node's diagnostics from that node's own sites and the tree's structure alone, so `check` can memoize them per node }}
     verify("internal/core/check/memo_test.go", test = "TestIncrementalRecomputation")
   }
 
-  std_checks_clean: invariant {
+  std_checks_clean: property {
     must {{ check every standard package clean }}
     verify("internal/core/types/types_test.go", test = "TestStdPackagesCheckClean")
   }
 
-  raises("unresolved") {{ A name, kind, flag, annotation, link or member that resolves to nothing, with the closest name when one is near. }}
-  raises("type") {{ A value of the wrong type, or a name that's no variant of the enum expected. }}
-  raises("typed-string") {{ A string that isn't of the form its [typed string](#heron.language.data.typed_strings.typed_string) requires: the [typed string diagnostics](#heron.language.data.typed_strings). }}
-  raises("unknown-field") {{ A member no field of the kind or type declares. }}
-  raises("unknown-argument") {{ A named argument no parameter declares, or a [tag attribute](#heron.language.markup.tags.tag_attribute) no argument declares. }}
-  raises("missing-argument") {{ A required kind argument left out. }}
-  raises("too-many-arguments") {{ More positional arguments than parameters. }}
-  raises("accept") {{ A child, text or `do` block a body doesn't accept: the [accept diagnostics](#heron.language.schemas.accept). }}
-  raises("not-a-kind") {{ A path in kind position that names something other than a kind. }}
-  raises("not-a-flag") {{ A name in a flag list that isn't a flag. }}
-  raises("not-an-annotation") {{ An annotation whose name isn't an annotation. }}
-  raises("instead") {{ An `instead` under a rule with no negative strength, `mustNot` or `shouldNot`. }}
+  responsibility {{ Returns the error unresolved: A name, kind, flag, annotation, link or member that resolves to nothing, with the closest name when one is near. }}
+  responsibility {{ Returns the error type: A value of the wrong type, or a name that's no variant of the enum expected. }}
+  responsibility {{ Returns the error typed-string: A string that isn't of the form its [typed string](#heron.language.data.typed_strings.typed_string) requires: the [typed string diagnostics](#heron.language.data.typed_strings). }}
+  responsibility {{ Returns the error unknown-field: A member no field of the kind or type declares. }}
+  responsibility {{ Returns the error unknown-argument: A named argument no parameter declares, or a [tag attribute](#heron.language.markup.tags.tag_attribute) no argument declares. }}
+  responsibility {{ Returns the error missing-argument: A required kind argument left out. }}
+  responsibility {{ Returns the error too-many-arguments: More positional arguments than parameters. }}
+  responsibility {{ Returns the error accept: A child, text or `do` block a body doesn't accept: the [accept diagnostics](#heron.language.schemas.accept). }}
+  responsibility {{ Returns the error not-a-kind: A path in kind position that names something other than a kind. }}
+  responsibility {{ Returns the error not-a-flag: A name in a flag list that isn't a flag. }}
+  responsibility {{ Returns the error not-an-annotation: An annotation whose name isn't an annotation. }}
+  responsibility {{ Returns the error instead: An `instead` under a rule with no negative strength, `mustNot` or `shouldNot`. }}
 
-  obligation(path = "internal/core/types/types_test.go") {{ Clean files and each error, the standard packages, body accepts, [overloads](#heron.language.schemas.overloads.overload), generics and patches, APIs and ops, and the spec kinds. }}
-  obligation(path = "internal/core/types/typed_strings_test.go") {{ Every typed string's valid and invalid forms. }}
+  property() {
+
+    | Clean files and each error, the standard packages, body accepts, [overloads](#heron.language.schemas.overloads.overload), generics and patches, APIs and ops, and the spec kinds.
+
+    verify("internal/core/types/types_test.go")
+
+  }
+  property() {
+    | Every typed string's valid and invalid forms.
+    verify("internal/core/types/typed_strings_test.go")
+  }
 }

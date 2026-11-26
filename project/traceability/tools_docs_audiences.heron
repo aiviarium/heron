@@ -1,0 +1,68 @@
+tools_docs_audiences: section {
+  | The tests that prove the scenarios of the docs' [audiences](#heron.tools.docs.audiences).
+
+  proves(heron.tools.docs.audiences.opens_on_tasks) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.tools.docs.audiences.no_rules_shown) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.tools.docs.audiences.errors_as_fixes) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.tools.docs.audiences.broken_example_fails) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredExamplesCheck")
+  }
+
+  proves(heron.tools.docs.audiences.fact_follows_spec) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestAuthoredPagesRender")
+  }
+
+  proves(heron.tools.docs.audiences.fact_gone_fails) {
+    verify("internal/core/lens/lens_test.go", test = "TestAuthoredPageChecks")
+  }
+
+  proves(heron.tools.docs.audiences.authored_page_shown) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
+  }
+
+  proves(heron.tools.docs.audiences.marked_for_users) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensMarksRender")
+  }
+
+  proves(heron.tools.docs.audiences.unknown_lens_reported) {
+    verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
+  }
+
+  proves(heron.tools.docs.audiences.topics_and_lines) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
+  }
+
+  proves(heron.tools.docs.audiences.readable_rule) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
+  }
+
+  proves(heron.tools.docs.audiences.declared_lens_built) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestOwnLenses")
+  }
+
+  proves(heron.tools.docs.audiences.override_used) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestOwnLenses")
+  }
+
+  proves(heron.tools.docs.audiences.everything_in_explore) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestExploreLens")
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensMarksRender")
+  }
+
+  proves(heron.tools.docs.audiences.switch_keeps_place) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLensSwitcher")
+  }
+
+  proves(heron.tools.docs.audiences.hidden_target_opens) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestLinksAcrossLenses")
+  }
+}

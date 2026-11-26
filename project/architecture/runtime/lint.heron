@@ -1,4 +1,4 @@
-@realizes(heron.product.system.linter)
+@realizes(heron.system.linter)
 lint: component("internal/core/lint", lang = "go") {
   | Runs the registered lints and [prose lint providers](#heron.language.markup.prose_view.prose_lint_provider) over a checked tree, behind
   | `heron lint` and the language server. The core lints live here; packages, extensions
@@ -22,7 +22,7 @@ lint: component("internal/core/lint", lang = "go") {
     `tag-kind`, `example-params` and `repeated-import`.
   }}
 
-  surface(title = "lint.go") {{
+  exports(title = "lint.go") {{
     // Register installs the core lints.
     func Register(r *registry.Registry)
 
@@ -44,46 +44,58 @@ lint: component("internal/core/lint", lang = "go") {
     func (in *Input) As(name string) *Input
   }}
 
-  allow_drops: invariant {
+  allow_drops: property {
     must {{ drop a finding on a node when the node or one around it says `@lint(allow = ["name"])` with the lint's name, or, for a prose finding, the provider's name or `Provider.Rule` }}
     verify("internal/core/lint/lint_test.go", test = "TestRepeatedImportAndAllow")
     verify("internal/core/lint/prose_test.go", test = "TestProseAllow")
   }
 
-  complete_facts: invariant {
+  complete_facts: property {
     must {{ lint with the checker's facts about every node, those the check served from its memo included }}
     verify("internal/core/lint/lint_test.go", test = "TestLintAfterMemoizedCheck")
   }
 
-  cached_regions: invariant {
+  cached_regions: property {
     must {{ send a provider only the regions whose hash, joined with the provider's name and its `Prepare` key, has no cached result }}
     verify("internal/core/lint/prose_test.go", test = "TestProseCache")
   }
 
-  fixes_stay_in_text: invariant {
+  fixes_stay_in_text: property {
     mustNot {{ report a finding outside its region's text, or keep a fix whose range is out of the text or touches a [masked span](#heron.language.markup.prose_view.masked_span) }}
     verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
   }
 
-  std_lints_clean: invariant {
+  std_lints_clean: property {
     must {{ lint every standard package and every clean fixture clean }}
     verify("internal/core/lint/lint_test.go", test = "TestStdLintsClean")
     verify("internal/core/lint/fixtures_test.go", test = "TestCleanFixturesLintClean")
   }
 
-  raises("unused-let") {{ A `let` nothing below it uses. }}
-  raises("flag-placement") {{ A flag on a kind it doesn't attach to: the [flag diagnostics](#heron.language.schemas.flags). }}
-  raises("annotation-placement") {{ An annotation where it doesn't attach, or repeated without `<repeatable>`: the [annotation diagnostics](#heron.language.schemas.annotations). }}
-  raises("tag-kind") {{ A tag whose name isn't a kind that may stand in prose. }}
-  raises("example-params") {{ An [op example](#heron.language.apis.examples.op_example) that leaves out a required parameter. }}
-  raises("repeated-import") {{ An import that an enclosing scope already makes. }}
+  responsibility {{ Returns the error unused-let: A `let` nothing below it uses. }}
+  responsibility {{ Returns the error flag-placement: A flag on a kind it doesn't attach to: the [flag diagnostics](#heron.language.schemas.flags). }}
+  responsibility {{ Returns the error annotation-placement: An annotation where it doesn't attach, or repeated without `<repeatable>`: the [annotation diagnostics](#heron.language.schemas.annotations). }}
+  responsibility {{ Returns the error tag-kind: A tag whose name isn't a kind that may stand in prose. }}
+  responsibility {{ Returns the error example-params: An [op example](#heron.language.apis.examples.op_example) that leaves out a required parameter. }}
+  responsibility {{ Returns the error repeated-import: An import that an enclosing scope already makes. }}
 
-  obligation(path = "internal/core/lint/lint_test.go") {{ Each core lint, `@lint(allow)`, linting after a memoized check, and the standard packages. }}
-  obligation(path = "internal/core/lint/prose_test.go") {{ A sample provider's findings and fixes land on the exact source range, allows and the cache hold, and the projection renders as HTML. }}
-  obligation(path = "internal/core/lint/fixtures_test.go") {{ The clean fixtures lint clean. }}
+  property() {
+
+    | Each core lint, `@lint(allow)`, linting after a memoized check, and the standard packages.
+
+    verify("internal/core/lint/lint_test.go")
+
+  }
+  property() {
+    | A sample provider's findings and fixes land on the exact source range, allows and the cache hold, and the projection renders as HTML.
+    verify("internal/core/lint/prose_test.go")
+  }
+  property() {
+    | The clean fixtures lint clean.
+    verify("internal/core/lint/fixtures_test.go")
+  }
 }
 
-@realizes(heron.product.system.prose_linter)
+@realizes(heron.system.prose_linter)
 prose_view: component("internal/core/lint/prose", lang = "go") {
   | The [prose view](#heron.language.markup.prose_view): projects the prose of a checked tree's own files into
   | [regions](#heron.language.markup.prose_view.prose_region) a text linter can read, keeping headings, lists and paragraphs, masking code,
@@ -103,7 +115,7 @@ prose_view: component("internal/core/lint/prose", lang = "go") {
     renders the regions as HTML with a map back for providers that read HTML.
   }}
 
-  surface(title = "project.go") {{
+  exports(title = "project.go") {{
     type Region = registry.ProseRegion
     func Project(t *resolve.Tree, c *types.Checker) []*Region
     // SourceRange maps text offsets to file bytes; exact is false where a
@@ -114,22 +126,28 @@ prose_view: component("internal/core/lint/prose", lang = "go") {
     func (h *HTML) Locate(off int) (region, pos int, ok bool)
   }}
 
-  verbatim_is_not_prose: invariant {
+  verbatim_is_not_prose: property {
     mustNot {{ project the text of a node whose kind takes `Verbatim` text, such as a grammar's production or token, while still projecting its `///` docs }}
   }
 
-  own_files_only: invariant {
+  own_files_only: property {
     mustNot {{ project the prose of an imported package's files }}
     verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
   }
 
-  obligation(path = "internal/core/lint/prose_test.go") {{ Every prose fixture's regions map back to the bytes they came from. }}
+  property() {
+
+    | Every prose fixture's regions map back to the bytes they came from.
+
+    verify("internal/core/lint/prose_test.go")
+
+  }
 
   verify("scripts/e2e-prose.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for the prose view: a sample prose lint provider flags words in `{{ }}`, `|` and `///` text, never inside code, inserts or links, with fixes applied to the exact source range. }}
 }
 
 @display("Sample prose provider")
-@realizes(heron.product.system.prose_linter)
+@realizes(heron.system.prose_linter)
 prose_words: component("internal/core/lint/prose/words", lang = "go") {
   | A sample [prose lint provider](#heron.language.markup.prose_view.prose_lint_provider) that flags configured words and offers each word's
   | replacement as a fix. It proves the prose provider [extension point](#heron.language.interop.declaring.extension_point) end to end:
@@ -138,13 +156,13 @@ prose_words: component("internal/core/lint/prose/words", lang = "go") {
 
   uses = [architecture.runtime.diag, architecture.runtime.prose_view, architecture.runtime.registry]
 
-  surface(title = "words.go") {{
+  exports(title = "words.go") {{
     // Parse reads "word=replacement,…"; an empty replacement deletes the word.
     func Parse(s string) map[string]string
     func Provider(words map[string]string) registry.ProseProvider
   }}
 
-  never_in_code: invariant {
+  never_in_code: property {
     mustNot {{ flag a word inside code, an insert, a link or a tag's [attributes](#heron.language.markup.tags.tag_attribute) }}
     verify("scripts/e2e-prose.sh")
   }

@@ -1,4 +1,4 @@
-@realizes(heron.product.system.checker, heron.product.system.linter)
+@realizes(heron.system.checker, heron.system.linter)
 diag: component("internal/core/diag", lang = "go") {
   | The one shape every stage's findings share, from a syntax error to a prose lint, so the
   | command line, the language server and the docs report them alike.
@@ -16,7 +16,7 @@ diag: component("internal/core/diag", lang = "go") {
     after a tab.
   }}
 
-  surface(title = "diag.go") {{
+  exports(title = "diag.go") {{
     type Severity int
     const (
       Error Severity = iota
@@ -64,15 +64,21 @@ diag: component("internal/core/diag", lang = "go") {
     func Format(d Diagnostic, pos func(file string, off int) (int, int)) string
   }}
 
-  deterministic_order: invariant {
+  deterministic_order: property {
     must {{ sort a list by file, offset and message, and drop exact duplicates, so every command prints the same findings in the same order }}
     verify("internal/core/diag/diag_test.go", test = "TestSortAndFormat")
   }
 
-  severity_words: invariant {
+  severity_words: property {
     must {{ encode a severity in JSON as its word: `error`, `warning` or `hint` }}
     verify("internal/core/diag/diag_test.go", test = "TestSortAndFormat")
   }
 
-  obligation(path = "internal/core/diag/diag_test.go") {{ Sorting, the JSON form of severities and the printed line with its related sites. }}
+  property() {
+
+    | Sorting, the JSON form of severities and the printed line with its related sites.
+
+    verify("internal/core/diag/diag_test.go")
+
+  }
 }

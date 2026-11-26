@@ -1,4 +1,4 @@
-@realizes(heron.product.system.checker)
+@realizes(heron.system.checker)
 resolve: component("internal/core/resolve", lang = "go") {
   | Follows an [entry point](#heron.language.core_format.files.entry_point) into one node tree: `import` [mounts](#heron.language.core_format.mounts.mount) packages,
   | `include` places a tree's own files, bindings amend by path, and names resolve through
@@ -34,7 +34,7 @@ resolve: component("internal/core/resolve", lang = "go") {
     and the prelude `std/core`.
   }}
 
-  surface(title = "tree.go") {{
+  exports(title = "tree.go") {{
     type FileID string
     func Canonical(p string) (FileID, error)
 
@@ -83,29 +83,35 @@ resolve: component("internal/core/resolve", lang = "go") {
     func (n *Node) Child(name string) *Node
   }}
 
-  one_identity: invariant {
+  one_identity: property {
     must {{ give a file reached by several spellings, through `..`, a symlink or a relative path, one `FileID`, so the include guard, the parse memo and the language server agree on it }}
     verify("internal/core/resolve/resolve_test.go", test = "TestCanonicalIdentity")
   }
 
-  parse_memo: invariant {
+  parse_memo: property {
     must {{ parse a file again only when its content hash changed since the loader last parsed it }}
     verify("internal/core/check/memo_test.go", test = "TestIncrementalRecomputation")
   }
 
-  finite_on_cycles: invariant {
+  finite_on_cycles: property {
     must {{ terminate on an include cycle, placing each file once, and report an import cycle as an error }}
     verify("internal/core/resolve/resolve_test.go", test = "TestIncludeCycleIsFinite")
     verify("internal/core/resolve/resolve_test.go", test = "TestImportCycleIsAnError")
   }
 
-  raises("import") {{ An import that names no package, a bad or missing major version, or a package that isn't installed: the [import diagnostics](#heron.language.core_format.imports). }}
-  raises("import-cycle") {{ Two packages that import each other. }}
-  raises("include") {{ An include that names no file or folder. }}
-  raises("directive") {{ An `import` or `include` that isn't a list of plain strings. }}
-  raises("conflict") {{ A node declared, exported or set twice: the [conflict diagnostics](#heron.language.core_format.conflicts). }}
-  raises("read") {{ An [entry point](#heron.language.core_format.files.entry_point) that can't be read. }}
-  raises("syntax") {{ The syntax errors of every file read, forwarded from `syntax`. }}
+  responsibility {{ Returns the error import: An import that names no package, a bad or missing major version, or a package that isn't installed: the [import diagnostics](#heron.language.core_format.imports). }}
+  responsibility {{ Returns the error import-cycle: Two packages that import each other. }}
+  responsibility {{ Returns the error include: An include that names no file or folder. }}
+  responsibility {{ Returns the error directive: An `import` or `include` that isn't a list of plain strings. }}
+  responsibility {{ Returns the error conflict: A node declared, exported or set twice: the [conflict diagnostics](#heron.language.core_format.conflicts). }}
+  responsibility {{ Returns the error read: An [entry point](#heron.language.core_format.files.entry_point) that can't be read. }}
+  responsibility {{ Returns the error syntax: The syntax errors of every file read, forwarded from `syntax`. }}
 
-  obligation(path = "internal/core/resolve/resolve_test.go") {{ File identity, include guards and [mounts](#heron.language.core_format.mounts.mount), cycles, declare and enter conflicts, amend order, scoped imports, exports, prose-file headings, local visibility, the standard packages, and the import and include diagnostics. }}
+  property() {
+
+    | File identity, include guards and [mounts](#heron.language.core_format.mounts.mount), cycles, declare and enter conflicts, amend order, scoped imports, exports, prose-file headings, local visibility, the standard packages, and the import and include diagnostics.
+
+    verify("internal/core/resolve/resolve_test.go")
+
+  }
 }

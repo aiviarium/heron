@@ -7,5 +7,5 @@ include = [
 
 | How Heron is built: [unit](#delivery.units) 1's [runtime](#architecture.runtime) and [unit](#delivery.units) 2's
 | [development tools](#architecture.tools). Each Go or TS package is one component, which names the
-| [parts of the system](#heron.product.system) it realizes, what it owns, its interface, what it may import, its
+| [parts of the system](#heron.system) it realizes, what it owns, its interface, what it may import, its
 | invariants, its errors and the tests that hold it to its contract.

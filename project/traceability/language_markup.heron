@@ -179,10 +179,6 @@ language_markup: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestAuthoredPagesRender")
   }
 
-  proves(heron.language.markup.authored_pages.pages.step_resolves_in_tasks) {
-    verify("internal/core/lens/lens_test.go", test = "TestStepResolvesByParent")
-  }
-
   proves(heron.language.markup.authored_pages.pages.steps_only_in_tasks) {
     verify("internal/core/lens/lens_test.go", test = "TestStepOnlyInTasks")
   }
@@ -203,7 +199,7 @@ language_markup: section {
     verify("internal/core/lens/lens_test.go", test = "TestAuthoredPageChecks")
   }
 
-  proves(heron.language.markup.authored_pages.diagnostics.example_fails) {
+  proves(heron.language.markup.authored_pages.errors.example_fails) {
     verify("internal/core/lens/lens_test.go", test = "TestAuthoredExamplesCheck")
   }
 
@@ -261,7 +257,7 @@ language_markup: section {
     verify("internal/core/format/format_test.go", test = "TestLinksKept")
   }
 
-  proves(heron.language.markup.links.diagnostics.unresolved_short_link) {
+  proves(heron.language.markup.links.errors.unresolved_short_link) {
     verify("internal/core/types/links_test.go", test = "TestLinkLookup")
   }
 
@@ -270,7 +266,7 @@ language_markup: section {
     verify("internal/core/resolve/resolve_test.go", test = "TestElementsDeclareNodes")
   }
 
-  proves(heron.language.markup.long_form.diagnostics.heading_needs_name) {
+  proves(heron.language.markup.long_form.errors.heading_needs_name) {
     verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
   }
 
@@ -318,19 +314,19 @@ language_markup: section {
     verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
   }
 
-  proves(heron.language.markup.tags.diagnostics.missing_attribute) {
+  proves(heron.language.markup.tags.errors.missing_attribute) {
     verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
   }
 
-  proves(heron.language.markup.tags.diagnostics.element_needs_id) {
+  proves(heron.language.markup.tags.errors.element_needs_id) {
     verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
   }
 
-  proves(heron.language.markup.tags.diagnostics.code_in_element) {
+  proves(heron.language.markup.tags.errors.code_in_element) {
     verify("internal/core/types/elements_test.go", test = "TestElementCode")
   }
 
-  proves(heron.language.markup.tags.diagnostics.unquoted_attribute) {
+  proves(heron.language.markup.tags.errors.unquoted_attribute) {
     verify("internal/core/types/elements_test.go", test = "TestElementsCheck")
   }
 

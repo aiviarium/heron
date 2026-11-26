@@ -1,4 +1,4 @@
-@realizes(heron.product.system.extension_host)
+@realizes(heron.system.extension_host)
 registry: component("internal/core/registry", lang = "go") {
   | The [extension points](#heron.language.interop.declaring.extension_point) every [unit](#delivery.units) registers through. A built-in part, a part of a
   | later [unit](#delivery.units) and a part an extension implements register the same way, so an earlier
@@ -24,7 +24,7 @@ registry: component("internal/core/registry", lang = "go") {
     binary or a command closes the registry, such as stopping [extension processes](#heron.language.schemas.extensions.extension_process).
   }}
 
-  surface(title = "registry.go") {{
+  exports(title = "registry.go") {{
     func New() *Registry
     func (r *Registry) Close()
     func (r *Registry) OnClose(f func())
@@ -52,7 +52,7 @@ registry: component("internal/core/registry", lang = "go") {
     func (r *Registry) SetLint(l Lint) error
   }}
 
-  surface(title = "funcs.go") {{
+  exports(title = "funcs.go") {{
     type FuncImpl func(ctx context.Context, call *FuncCall) (any, error)
     type FuncCall struct {
       Func string         // the declaration's qualified path, such as "orders.export_orders"
@@ -79,7 +79,7 @@ registry: component("internal/core/registry", lang = "go") {
     func (r *Registry) AddForeign(f Foreign) error
   }}
 
-  surface(title = "parts.go") {{
+  exports(title = "parts.go") {{
     type Macro struct {
       Path   string
       Expand func(ctx context.Context, args map[string]any) (string, error)
@@ -118,7 +118,7 @@ registry: component("internal/core/registry", lang = "go") {
     func (r *Registry) LoadTree(ctx context.Context, res any) error
   }}
 
-  surface(title = "prose.go, records.go, renderers.go and setup.go") {{
+  exports(title = "prose.go, records.go, renderers.go and setup.go") {{
     type ProseProvider struct {
       Name, Summary string
       Check   func(regions []*ProseRegion) []ProseFinding
@@ -150,7 +150,7 @@ registry: component("internal/core/registry", lang = "go") {
     func (r *Registry) AddSetupStep(s SetupStep) error
   }}
 
-  surface(title = "run.go") {{
+  exports(title = "run.go") {{
     type Run struct {
       ID         string
       Call       func(ctx context.Context, target string, args map[string]any) (any, error)
@@ -164,7 +164,7 @@ registry: component("internal/core/registry", lang = "go") {
     func RunOf(ctx context.Context) *Run
   }}
 
-  no_stage_imports: invariant {
+  no_stage_imports: property {
     mustNot {{ import a stage or any package of a later [unit](#delivery.units); it imports only `diag` }}
     verify("internal/tools/docs/components_test.go", test = "TestSpecComponentUses")
   }
@@ -178,88 +178,94 @@ registry: component("internal/core/registry", lang = "go") {
     | a built-in part, or an extension loaded again for a changed tree, takes its place. Every `Add…` has a `MustAdd…`
     | that panics instead of returning the error, for registrations at start-up.
 
-    commands: invariant {
+    commands: property {
       must {{ register a subcommand by its name with a summary, a usage line and a `Run` that receives the environment and the arguments after the name and returns the exit status, and refuse a name registered twice or a command with no name or `Run` }}
       | Then `heron` dispatches to it, and `heron help` lists it sorted by name.
       verify("internal/core/cli/cli_test.go", test = "TestSampleCommand")
     }
 
-    lints: invariant {
+    lints: property {
       must {{ register a lint by its name, as `@lint(allow)` writes it, with a `Run` that receives a `*lint.Input`; `AddLint` refuses a name twice and `SetLint` replaces it }}
       | Then `heron lint` and the language server run it after the core lints' check, and its findings carry its name as their code.
       verify("internal/core/cli/check_test.go", test = "TestSampleLint")
     }
 
-    prose_providers: invariant {
+    prose_providers: property {
       must {{ register a [prose lint provider](#heron.language.markup.prose_view.prose_lint_provider) by its name with `Check`, or with `Prepare` returning a cache key and the check, and refuse a name twice }}
       | Then it sees only uncached regions, must report on each region from that region alone, and its findings are reported as `Name.Rule`.
       verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
     }
 
-    record_kinds: invariant {
+    record_kinds: property {
       must {{ register a record kind by its name, which is also its folder, with the version of its shape and an optional validation of a record's data, and refuse a name twice }}
       | Then `records` writes and reads it through the one store, and a record the validation rejects isn't written.
       verify("internal/core/records/records_test.go", test = "TestSampleRecordKind")
     }
 
-    funcs: invariant {
+    funcs: property {
       must {{ register a func implemented outside Heron by the qualified path of its body-less Heron declaration, and refuse a path twice }}
       | Then `eval` calls it wherever the declaration is called, with arguments as plain data by parameter name and the call's trailing block as `Step`, and a returned `*Thrown` is a Heron error `attempt(…)` catches.
       verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
     }
 
-    foreign_binders: invariant {
+    foreign_binders: property {
       must {{ register the binder of a [module kind](#heron.language.interop.declaring.module_kind), such as `js`, and refuse a kind twice }}
       | Then the first call of a func declared `= module.export` asks the binder of its module's kind for the implementation, once per func.
       verify("internal/core/extension/jshost_test.go", test = "TestSampleFuncThroughTheBinder")
     }
 
-    macros: invariant {
+    macros: property {
       must {{ register a macro's implementation by its declaration's path, replacing an earlier one, with `Expand` returning Heron source }}
       verify("internal/core/eval/eval_test.go", test = "TestMacros")
     }
 
-    transports: invariant {
+    transports: property {
       must {{ register a [transport](#heron.language.apis.transports.transport_kind) by its declaration's path, replacing an earlier one, with `Send` taking an op's path and its request as plain data }}
       | Then a call of an op goes through the transport its binding names.
       verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
     }
 
-    drivers: invariant {
+    drivers: property {
       must {{ register a resource's driver by the resource's path, replacing an earlier one, with `Setup` and optionally `Reset`, `Snapshot`, `Restore`, `Fork` and `Teardown`, leaving nil what it can't do }}
       | Then a run sets an instance up on its first use, concurrent first uses sharing one setup, and tears every instance down at the end, newest first.
       verify("internal/core/registry/run_test.go", test = "TestRunResourceLifecycle")
     }
 
-    generation_targets: invariant {
+    generation_targets: property {
       must {{ register a generation adapter by its declaration's path for a target, replacing an earlier one, and refuse one with no target }}
       | Then `heron generate <target>` runs every adapter of the target, sorted by path, and the targets are those that have an adapter.
       verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
     }
 
-    renderers: invariant {
+    renderers: property {
       must {{ register the renderer of a kind by the kind's path, replacing an earlier one, as a Go `Render` writing through the docs context or a `Plain` render from data; a renderer source registers renderers known only once it runs, as a TS module's are }}
       verify("internal/tools/docs/docs_test.go", test = "TestRendererRegistry")
     }
 
-    setup_steps: invariant {
+    setup_steps: property {
       must {{ register a setup step for a tool by its key in `heron.lock`'s `tools` section, and refuse a key twice }}
       | Then `heron run setup` runs every step after pinning packages and sources, sorted by name, writes the pin each returns, and fails when a pin moved unless it runs with `update`.
       verify("scripts/e2e-setup.sh")
     }
 
-    loaders: invariant {
+    loaders: property {
       must {{ register a loader that registers the parts a checked tree declares, such as what its extensions implement }}
       | Then `LoadTree` runs every loader in registration order before a command uses the tree, and returns the first error while still running the rest.
       verify("internal/core/extension/jshost_test.go", test = "TestSampleLintThroughHeronLint")
     }
 
-    sample_first: invariant {
+    sample_first: property {
       must {{ prove each [extension point](#heron.language.interop.declaring.extension_point) with a sample registered from outside the [unit](#delivery.units) that defines it before any [unit](#delivery.units) relies on it }}
       | For example, `TestSampleCommand` registers a command, `TestSampleLint` a lint, `words` a prose provider and the sample TS package under `web/samples/inventory` a func, a transport, a lint and a resource driver.
       verify("scripts/e2e-interop.sh")
     }
   }
 
-  obligation(path = "internal/core/registry/run_test.go") {{ A run sets each resource up once on first use, tears instances down newest first, and fails uses after it ended. }}
+  property() {
+
+    | A run sets each resource up once on first use, tears instances down newest first, and fails uses after it ended.
+
+    verify("internal/core/registry/run_test.go")
+
+  }
 }

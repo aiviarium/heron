@@ -1,0 +1,375 @@
+language_specifications_layers: section {
+  | The tests that prove the layered model of `std/spec`: layers and links, intent, the
+  | specification and contract kinds, use cases, revisions, the gap report, delivery, the
+  | prose lints and the retired kinds.
+
+  proves(heron.language.specifications.contract.command_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.contract.contract_layer) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
+  }
+
+  proves(heron.language.specifications.contract.error_view) {
+    verify("internal/tools/docs/grammar_test.go", test = "TestDiagnosticsRender")
+  }
+
+  proves(heron.language.specifications.contract.errors.field_unused) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestErrorPlaceholders")
+  }
+
+  proves(heron.language.specifications.contract.errors.placeholder_not_field) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestErrorPlaceholders")
+  }
+
+  proves(heron.language.specifications.contract.placeholders_declared) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestErrorPlaceholders")
+  }
+
+  proves(heron.language.specifications.contract.screen_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.delivery.component_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.delivery.delivery_kinds_in_project) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.delivery.errors.behaviour_in_story) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestStoryStatesNoBehaviour")
+  }
+
+  proves(heron.language.specifications.delivery.story_lists_items) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestStoryStatesNoBehaviour")
+  }
+
+  proves(heron.language.specifications.delivery.story_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.intent.actor_kinds) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.intent.errors.not_an_actor) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.intent.goal_measure_shown) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.intent.goals_never_proven) {
+    verify("internal/core/check/project_test.go", test = "TestConformanceRevisionsAndGaps")
+  }
+
+  proves(heron.language.specifications.intent.intent_layer) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
+  }
+
+  proves(heron.language.specifications.intent.persona_plays_actor) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.intent.references_named_kind) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.layers.derived_lists_shown) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.layers.errors.derives_cycle) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  }
+
+  proves(heron.language.specifications.layers.errors.points_down) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferencesPointUp")
+  }
+
+  proves(heron.language.specifications.layers.errors.revision_below_one) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  }
+
+  proves(heron.language.specifications.layers.errors.wrong_link_target) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  }
+
+  proves(heron.language.specifications.layers.layer_declared) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
+  }
+
+  proves(heron.language.specifications.layers.links.area_goals) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.layers.links.derives_acyclic) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  }
+
+  proves(heron.language.specifications.layers.links.link_kinds) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  }
+
+  proves(heron.language.specifications.layers.links.realizes_annotation) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.layers.references_point_up) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferencesPointUp")
+  }
+
+  proves(heron.language.specifications.layers.revisions.revision_positive) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  }
+
+  proves(heron.language.specifications.layers.same_layer_free) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferencesPointUp")
+  }
+
+  proves(heron.language.specifications.quality_checks.bare_negation) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.compound_rule) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.delivery_words) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.design_words) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.bare_negation) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.compound_rule) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.delivery_word) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.design_word) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.long_scenario) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.measure_missing) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.negated_condition_found) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.errors.scripted_scenario) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.long_scenario) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.measure_missing) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.negated_condition) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.quality_checks.scripted_scenario) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.requirements.constraint_reason) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.errors.constraint_without_reason) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.errors.not_a_subject) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.errors.scenario_form) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.outcome_illustrates_one) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.quality_scenario_measured) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.rationale_shown) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.requirements.scenario_one_form) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.requirements.scenario_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.requirements.spec_layer) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
+  }
+
+  proves(heron.language.specifications.requirements.subject_actor_or_part) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
+  }
+
+  proves(heron.language.specifications.retired.errors.retired_kind_used) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
+  }
+
+  proves(heron.language.specifications.retired.errors.retired_package) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
+  }
+
+  proves(heron.language.specifications.retired.retired_fix) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
+  }
+
+  proves(heron.language.specifications.retired.retired_packages) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
+  }
+
+  proves(heron.language.specifications.retired.retired_reported) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestRetired")
+  }
+
+  proves(heron.language.specifications.traceability.errors.orphan_entry) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.traceability.errors.unhandled_failure) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.traceability.errors.unmotivated) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestUnmotivated")
+  }
+
+  proves(heron.language.specifications.traceability.errors.unserved_goal) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.traceability.gaps.gap_report_shown) {
+    verify("internal/core/check/project_test.go", test = "TestConformanceRevisionsAndGaps")
+  }
+
+  proves(heron.language.specifications.traceability.gaps.orphan_entry) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.traceability.gaps.unhandled_failure) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.traceability.gaps.unmotivated_requirement) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestUnmotivated")
+  }
+
+  proves(heron.language.specifications.traceability.gaps.unrealized_listed) {
+    verify("internal/core/check/project_test.go", test = "TestConformanceRevisionsAndGaps")
+  }
+
+  proves(heron.language.specifications.traceability.gaps.unserved_goal) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
+  }
+
+  proves(heron.language.specifications.traceability.proves_at_revision) {
+    verify("internal/core/check/project_test.go", test = "TestConformanceRevisionsAndGaps")
+  }
+
+  proves(heron.language.specifications.usecases.cockburn_text) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.usecases.errors.extension_outcome) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.errors.include_level) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.errors.no_such_step) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.errors.step_by) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.extension_at_step) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.flow_diagram) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUseCaseFlowDiagram")
+  }
+
+  proves(heron.language.specifications.usecases.one_outcome) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.same_notation_in_heron) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.step_actor) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.step_include) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.step_references_resolve) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.steps_numbered) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.std.grammar.grammar_layer) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
+  }
+
+  proves(heron.language.std.grammar.grammar_view) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.std.grammar.grammar_source) {
+    verify("internal/tools/docs/grammar_test.go", test = "TestSpecGrammarIsUngram")
+  }
+
+  proves(heron.language.grammar.structure.member_shapes.step_segments) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+    verify("grammar/tree-sitter-heron/test/corpus/heron.txt")
+  }
+}

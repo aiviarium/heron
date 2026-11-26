@@ -13,6 +13,7 @@ store: api {
     @query cursor?: String,
   ): op(Page(Pet))
 
+  @realizes(orders.ordering.hold_on_order, orders.ordering.only_available)
   @http<post>("/store/orders")
   @throws(StoreError)
   @performs(orders.pet_lifecycle.held)
@@ -35,6 +36,7 @@ store: api {
   @performs(orders.pet_lifecycle.sold)
   approve_order(@path order_id: Int): op(Order)
 
+  @realizes(orders.ordering.cancel_releases, orders.ordering.delivered_stays)
   @http<delete>("/store/orders/:order_id")
   @throws(StoreError)
   @performs(orders.pet_lifecycle.released)

@@ -63,10 +63,10 @@ language_specifications: section {
 
   proves(heron.language.specifications.requirements.subject_words) {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
 
-  proves(heron.language.specifications.requirements.diagnostics.instead_positive) {
+  proves(heron.language.specifications.requirements.errors.instead_positive) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
 
@@ -82,18 +82,6 @@ language_specifications: section {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
   }
 
-  proves(heron.language.specifications.qualities.quality_body) {
-    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
-  }
-
-  proves(heron.language.specifications.qualities.quality_view) {
-    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
-  }
-
-  proves(heron.language.specifications.qualities.vague_words_measured) {
-    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
-  }
-
   proves(heron.language.specifications.planning.open_view) {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
   }
@@ -104,7 +92,7 @@ language_specifications: section {
 
   proves(heron.language.specifications.traceability.status_shown) {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
 
   proves(heron.language.specifications.traceability.status_placement) {
@@ -119,80 +107,32 @@ language_specifications: section {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.unlinked_term) {
+  proves(heron.language.specifications.quality_checks.errors.unlinked_term) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.ruled_out_synonym) {
+  proves(heron.language.specifications.quality_checks.errors.ruled_out_synonym) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.two_senses) {
+  proves(heron.language.specifications.quality_checks.errors.two_senses) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.unlinked_node) {
+  proves(heron.language.specifications.quality_checks.errors.unlinked_node) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.dead_link) {
+  proves(heron.language.specifications.quality_checks.errors.dead_link) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.weak_modal) {
+  proves(heron.language.specifications.quality_checks.errors.weak_modal) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
   }
 
-  proves(heron.language.specifications.quality_checks.diagnostics.vague_word) {
+  proves(heron.language.specifications.quality_checks.errors.vague_word) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
-  }
-
-  proves(heron.language.specifications.product_kinds.product_bodies) {
-    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
-  }
-
-  proves(heron.language.specifications.product_kinds.actor_kinds) {
-    verify("internal/core/types/types_test.go", test = "TestSpecKinds")
-  }
-
-  proves(heron.language.specifications.product_kinds.actor_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.product_kinds.story_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.product_kinds.usecase_numbering) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.product_kinds.done_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.tech_kinds.component_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.tech_kinds.command_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.tech_kinds.grammar_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.tech_kinds.grammar_source) {
-    verify("internal/tools/docs/grammar_test.go", test = "TestSpecGrammarIsUngram")
-  }
-
-  proves(heron.language.specifications.tech_kinds.screen_view) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
-  }
-
-  proves(heron.language.specifications.tech_kinds.diagnostic_view) {
-    verify("internal/tools/docs/grammar_test.go", test = "TestDiagnosticsRender")
   }
 
   proves(heron.language.specifications.requirements.examples_after_sentence) {
@@ -204,7 +144,7 @@ language_specifications: section {
     verify("internal/core/resolve/sealed_test.go", test = "TestSealedPackage")
   }
 
-  proves(heron.language.specifications.implementations.diagnostics.sealed_node) {
+  proves(heron.language.specifications.implementations.errors.sealed_node) {
     verify("internal/core/resolve/sealed_test.go", test = "TestSealedPackage")
   }
 
@@ -212,7 +152,7 @@ language_specifications: section {
     verify("internal/core/check/project_test.go", test = "TestProjectMode")
   }
 
-  proves(heron.language.specifications.implementations.diagnostics.spec_content) {
+  proves(heron.language.specifications.implementations.errors.spec_content) {
     verify("internal/core/check/project_test.go", test = "TestProjectMode")
   }
 
@@ -220,7 +160,7 @@ language_specifications: section {
     verify("internal/core/check/project_test.go", test = "TestProjectVersions")
   }
 
-  proves(heron.language.specifications.implementations.diagnostics.spec_version) {
+  proves(heron.language.specifications.implementations.errors.spec_version) {
     verify("internal/core/check/project_test.go", test = "TestProjectVersions")
   }
 
@@ -228,7 +168,7 @@ language_specifications: section {
     verify("internal/core/check/project_test.go", test = "TestProjectVersions")
   }
 
-  proves(heron.language.specifications.implementations.diagnostics.project_version) {
+  proves(heron.language.specifications.implementations.errors.project_version) {
     verify("internal/core/check/project_test.go", test = "TestProjectVersions")
   }
 

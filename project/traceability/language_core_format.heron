@@ -25,11 +25,11 @@ language_core_format: section {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.files.diagnostics.not_a_list) {
+  proves(heron.language.core_format.files.errors.not_a_list) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.files.diagnostics.not_plain) {
+  proves(heron.language.core_format.files.errors.not_plain) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
@@ -105,31 +105,31 @@ language_core_format: section {
     verify("internal/core/lint/lint_test.go", test = "TestUnusedLet")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.unknown_kind) {
+  proves(heron.language.core_format.nodes.errors.unknown_kind) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.entered_missing) {
+  proves(heron.language.core_format.nodes.errors.entered_missing) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.unknown_argument) {
+  proves(heron.language.core_format.nodes.errors.unknown_argument) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.missing_argument) {
+  proves(heron.language.core_format.nodes.errors.missing_argument) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.unknown_flag) {
+  proves(heron.language.core_format.nodes.errors.unknown_flag) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.unknown_annotation) {
+  proves(heron.language.core_format.nodes.errors.unknown_annotation) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.diagnostics.unused_let) {
+  proves(heron.language.core_format.nodes.errors.unused_let) {
     verify("internal/core/lint/lint_test.go", test = "TestUnusedLet")
   }
 
@@ -146,15 +146,15 @@ language_core_format: section {
   }
 
   proves(heron.language.core_format.naming.display_names) {
-    verify("internal/tools/docs/docs_test.go", test = "TestProductAndTechKinds")
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
     verify("internal/tools/docs/lenses_test.go", test = "TestUserLens")
   }
 
-  proves(heron.language.core_format.naming.diagnostics.unknown_name) {
+  proves(heron.language.core_format.naming.errors.unknown_name) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.naming.diagnostics.no_member) {
+  proves(heron.language.core_format.naming.errors.no_member) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
@@ -214,39 +214,39 @@ language_core_format: section {
     verify("internal/core/lint/lint_test.go", test = "TestRepeatedImportAndAllow")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.repeated_import) {
+  proves(heron.language.core_format.imports.errors.repeated_import) {
     verify("internal/core/lint/lint_test.go", test = "TestRepeatedImportAndAllow")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.unknown_package) {
+  proves(heron.language.core_format.imports.errors.unknown_package) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.no_major) {
+  proves(heron.language.core_format.imports.errors.no_major) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.bad_major) {
+  proves(heron.language.core_format.imports.errors.bad_major) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.wrong_major) {
+  proves(heron.language.core_format.imports.errors.wrong_major) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.not_installed) {
+  proves(heron.language.core_format.imports.errors.not_installed) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.no_such_import) {
+  proves(heron.language.core_format.imports.errors.no_such_import) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.no_such_include) {
+  proves(heron.language.core_format.imports.errors.no_such_include) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportAndIncludeDiagnostics")
   }
 
-  proves(heron.language.core_format.imports.diagnostics.import_cycle) {
+  proves(heron.language.core_format.imports.errors.import_cycle) {
     verify("internal/core/resolve/resolve_test.go", test = "TestImportCycleIsAnError")
   }
 
@@ -294,7 +294,7 @@ language_core_format: section {
     verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
   }
 
-  proves(heron.language.core_format.amends.diagnostics.no_field) {
+  proves(heron.language.core_format.amends.errors.no_field) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
@@ -310,23 +310,23 @@ language_core_format: section {
     verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
   }
 
-  proves(heron.language.core_format.conflicts.diagnostics.declared_twice) {
+  proves(heron.language.core_format.conflicts.errors.declared_twice) {
     verify("internal/core/resolve/resolve_test.go", test = "TestDeclareEnterConflicts")
   }
 
-  proves(heron.language.core_format.conflicts.diagnostics.set_twice) {
+  proves(heron.language.core_format.conflicts.errors.set_twice) {
     verify("internal/core/resolve/resolve_test.go", test = "TestSetTwiceInOneBody")
   }
 
-  proves(heron.language.core_format.conflicts.diagnostics.set_in_two_files) {
+  proves(heron.language.core_format.conflicts.errors.set_in_two_files) {
     verify("internal/core/resolve/resolve_test.go", test = "TestLaterAmendWinsWhenIncluded")
   }
 
-  proves(heron.language.core_format.conflicts.diagnostics.exported_twice) {
+  proves(heron.language.core_format.conflicts.errors.exported_twice) {
     verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
   }
 
-  proves(heron.language.core_format.conflicts.diagnostics.exported_and_declared) {
+  proves(heron.language.core_format.conflicts.errors.exported_and_declared) {
     verify("internal/core/resolve/resolve_test.go", test = "TestExportsMountOnce")
   }
 
@@ -354,11 +354,11 @@ language_core_format: section {
     verify("internal/core/format/format_test.go", test = "TestLayout")
   }
 
-  proves(heron.language.core_format.values.diagnostics.wrong_type) {
+  proves(heron.language.core_format.values.errors.wrong_type) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.values.diagnostics.not_a_variant) {
+  proves(heron.language.core_format.values.errors.not_a_variant) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
@@ -410,19 +410,19 @@ language_core_format: section {
     verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
   }
 
-  proves(heron.language.core_format.prose_layer.diagnostics.broken_link) {
+  proves(heron.language.core_format.prose_layer.errors.broken_link) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.prose_layer.diagnostics.unknown_tag) {
+  proves(heron.language.core_format.prose_layer.errors.unknown_tag) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.prose_layer.diagnostics.unknown_attribute) {
+  proves(heron.language.core_format.prose_layer.errors.unknown_attribute) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.prose_layer.diagnostics.heading_needs_kind) {
+  proves(heron.language.core_format.prose_layer.errors.heading_needs_kind) {
     verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
   }
 
@@ -454,7 +454,7 @@ language_core_format: section {
     verify("internal/core/types/links_test.go", test = "TestLinkLookup")
   }
 
-  proves(heron.language.core_format.naming.diagnostics.ambiguous_link) {
+  proves(heron.language.core_format.naming.errors.ambiguous_link) {
     verify("internal/core/types/links_test.go", test = "TestLinkLookup")
   }
 }

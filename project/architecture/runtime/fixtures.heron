@@ -1,4 +1,4 @@
-@realizes(heron.product.system.parser, heron.product.system.checker)
+@realizes(heron.system.parser, heron.system.checker)
 fixtures: component("internal/core/fixtures", lang = "go") {
   | Reads the parser and checker fixtures from the spec package: every fenced code block of
   | an `example` node, keyed by the node's path. The spec is their one source; nothing is
@@ -18,7 +18,7 @@ fixtures: component("internal/core/fixtures", lang = "go") {
     setup` installed under `.heron/packages/`.
   }}
 
-  surface(title = "fixtures.go") {{
+  exports(title = "fixtures.go") {{
     type Block struct {
       Path    string `json:"path"`  // the example node's path in the spec package
       Index   int    `json:"index"` // 1-based position among the node's blocks
@@ -47,19 +47,25 @@ fixtures: component("internal/core/fixtures", lang = "go") {
     func SpecFiles(root string) ([]string, error)
   }}
 
-  surface(lang = "sh", title = "Writing the fixtures to a folder") {{
+  exports(lang = "sh", title = "Writing the fixtures to a folder") {{
     go run ./internal/core/fixtures/extract -out DIR
   }}
 
-  examples_are_fixtures: invariant {
+  examples_are_fixtures: property {
     must {{ find a code block in every `example` node of the spec package that has one, under a key no other block has }}
     verify("internal/core/fixtures/spec_test.go", test = "TestFixturesAreTheSpecExamples")
   }
 
-  verify_paths_exist: invariant {
+  verify_paths_exist: property {
     must {{ find on disk the path every `verify` in the project tree names, and in a Go file the test it names }}
     verify("internal/core/fixtures/spec_test.go", test = "TestProjectVerifyPathsExist")
   }
 
-  obligation(path = "internal/core/fixtures/spec_test.go") {{ Examples are found by node path, and every verify path exists. }}
+  property() {
+
+    | Examples are found by node path, and every verify path exists.
+
+    verify("internal/core/fixtures/spec_test.go")
+
+  }
 }

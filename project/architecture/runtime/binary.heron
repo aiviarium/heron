@@ -1,5 +1,5 @@
 @display("The binary")
-@realizes(heron.product.system.command_line)
+@realizes(heron.system.command_line)
 binary: component("cmd/heron", lang = "go") {
   | The one executable every [entry point](#heron.language.core_format.files.entry_point) runs
   | as: a laptop, a CI job, an agent and a worker run the same code at the same version.
@@ -16,7 +16,7 @@ binary: component("cmd/heron", lang = "go") {
 
   /// [Unit](#delivery.units) 1 is always installed. Each later [unit](#delivery.units) appends its registrations
   /// from a file of its own whose build constraint leaves it out of a shorter prefix.
-  surface(title = "cmd/heron/main.go") {{
+  exports(title = "cmd/heron/main.go") {{
     var units = []func(*registry.Registry){
       cli.Register, // 1. language and runtime
       gen.Register, //    generation targets and `heron generate`
@@ -34,7 +34,7 @@ binary: component("cmd/heron", lang = "go") {
     }
   }}
 
-  surface(title = "cmd/heron/unit2.go") {{
+  exports(title = "cmd/heron/unit2.go") {{
     //go:build !unit1
 
     func init() {
@@ -43,53 +43,53 @@ binary: component("cmd/heron", lang = "go") {
     }
   }}
 
-  only_wiring: invariant {
+  only_wiring: property {
     mustNot {{ hold a command, a flag or any logic beyond installing registrations and calling `cli.Main` }}
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
-  unit_files: invariant {
+  unit_files: property {
     must {{ install each [unit](#delivery.units) after the first from a file of its own in `cmd/heron`, named `unit<N>.go`, whose build constraint excludes it under the tag of every shorter prefix }}
     | For example, `unit2.go` starts with `//go:build !unit1`, so `go build -tags unit1 ./cmd/heron` builds [unit](#delivery.units) 1 alone.
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
-  any_prefix_builds: invariant {
+  any_prefix_builds: property {
     must {{ build and pass its checks with any prefix of the [units](#delivery.units): 1, 1–2, 1–3 and all four }}
     | Then a [unit](#delivery.units)-1 binary checks, lints and formats `spec/` and runs [unit](#delivery.units) 1's end-to-end scripts, and has none of a later [unit](#delivery.units)'s commands.
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
-  spec_at_each_prefix: invariant {
+  spec_at_each_prefix: property {
     must {{ check, lint and format `spec/` clean with the binary of every prefix of the [units](#delivery.units), and render it as the documentation site with every prefix that has [unit](#delivery.units) 2's docs target }}
     | Then [unit](#delivery.units) 1 carries no renderer of its own: at the [unit](#delivery.units)-1 stage the spec is checked, from the 1–2 prefix on it's also rendered.
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
     verify("scripts/e2e-docs.sh")
   }
 
-  no_forward_imports: invariant {
+  no_forward_imports: property {
     mustNot {{ let a package of [unit](#delivery.units) 1, or a test of one, import a package of a later [unit](#delivery.units) }}
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
-  one_registry: invariant {
+  one_registry: property {
     must {{ give every [unit](#delivery.units) the same registry, so a command one [unit](#delivery.units) registers sees the lints, providers, targets and steps every other [unit](#delivery.units) registered }}
     | For example, `heron lint` lints with Vale once [unit](#delivery.units) 2 is installed, though `cli` never imports `tools/prose`.
     verify("scripts/e2e-prose.sh")
   }
 
-  units_import_backwards: invariant {
+  units_import_backwards: property {
     mustNot {{ import a later [unit](#delivery.units), or let DevOps and testing and Agents import each other }}
     | They meet through data instead: records, the registry and the server API.
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
-  spec_compiles: invariant {
+  spec_compiles: property {
     must {{ pass `heron check` and `heron lint` on the spec in CI, including the prose lints, with its examples as the fixtures the implementation is tested against }}
     verify("scripts/ci.sh", test = "spec/ and examples/ check and lint clean; spec examples are the fixtures")
   }
 
-  spec_renders: invariant {
+  spec_renders: property {
     must {{ build the spec into the language's documentation site with `heron generate docs`, and serve it live in the spec browser }}
     verify("scripts/ci.sh", test = "docs end to end: petstore and spec/ sites, every link and island")
   }
