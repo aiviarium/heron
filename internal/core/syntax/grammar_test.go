@@ -260,6 +260,8 @@ func TestProse(t *testing.T) {
 		// headings, heron_fences
 		{"md:# T {#t}\n\nText $a.\n\n```heron\nx: y\n```\n", "ProseFile(Heading Insert(Path) HeronFence(Declare(Path NamedType(Path))))", nil},
 		{"md:####### seven\n#no\n", "ProseFile", nil},
+		// heron_fences: inside an element a heron fence is code
+		{"md:<x id=\"a\">\n```heron\ny: z\n```\n</x>\n", "ProseFile(Tag(Path TagAttr(StringLit) Fence TagClose(Path)))", nil},
 		{"md:```heron\nx: y\n", "ProseFile(HeronFence(Declare(Path NamedType(Path))))", []string{"expected the closing fence"}},
 	})
 }

@@ -93,6 +93,12 @@ func displayName(s *Site, n *resolve.Node) string {
 		}
 		return ""
 	}
+	if n.Shape == resolve.ShapeHeading && n.Decl.N != nil && n.Decl.N.Kind == syntax.Heading {
+		// A heading in a prose file shows its text.
+		if t := resolve.HeadingText(ast.Heading{N: n.Decl.N}); t != "" {
+			return t
+		}
+	}
 	if s.kindPath(n) == "tech.command" {
 		// A command reads as it's typed, as `heron check`.
 		if v, ok := argString(kindArgs(n), 0, "name"); ok {

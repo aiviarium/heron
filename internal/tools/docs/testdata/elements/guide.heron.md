@@ -1,3 +1,11 @@
+# Asking {#asking}
+
+Refunds are asked for in the console:
+
+- open the payment
+  and read its state;
+- ask for the refund.
+
 <howto id="do_it" @display="Ask for a refund" @lens="user">
 Ask the console for a refund in two steps.
 

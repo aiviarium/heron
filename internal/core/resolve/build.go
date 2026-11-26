@@ -827,10 +827,35 @@ func (b *builder) proseFile(f *File, target *Node, sc *Scope) {
 		top := stack[len(stack)-1]
 		return top.node, top.scope
 	}
-	for _, it := range (ast.ProseFile{N: f.Tree.Root}).ProseItems() {
-		site := Site{File: f, N: it.Syntax(), Scope: sc}
-		switch it := it.(type) {
-		case ast.Heading:
+	// The text between headings and heron fences is one run, the prose
+	// of the section it's under.
+	var run []syntax.Elem
+	flush := func() {
+		n, sc := cur()
+		if len(run) == 0 {
+			return
+		}
+		block := &syntax.Node{Kind: syntax.ProseFile, Children: run}
+		syntax.Shift(block, func(o int) int { return o })
+		run = nil
+		b.elements(f, sc, block, n, false)
+		if !proseLeft(block, b.t.Elements) {
+			// Only whitespace and nodes of their own.
+			return
+		}
+		n.Prose = append(n.Prose, Site{File: f, N: block, Scope: sc})
+	}
+	for _, ch := range f.Tree.Root.Children {
+		x, isNode := ch.(*syntax.Node)
+		if !isNode || (x.Kind != syntax.Heading && x.Kind != syntax.HeronFence) {
+			run = append(run, ch)
+			continue
+		}
+		flush()
+		site := Site{File: f, N: x, Scope: sc}
+		switch x.Kind {
+		case syntax.Heading:
+			it := ast.Heading{N: x}
 			level := strings.Count(strings.TrimSpace(it.HeadingMark().Text), "#")
 			for len(stack) > 0 && stack[len(stack)-1].level >= level {
 				stack = stack[:len(stack)-1]
@@ -839,7 +864,7 @@ func (b *builder) proseFile(f *File, target *Node, sc *Scope) {
 			name := headingName(it)
 			if name == "" {
 				st, en := it.N.Span()
-				b.t.Diags.Errorf(string(f.ID), st, en, "unnamed", "the heading %q declares a section and needs a {#name}", headingText(it))
+				b.t.Diags.Errorf(string(f.ID), st, en, "unnamed", "the heading %q declares a section and needs a {#name}", HeadingText(it))
 				continue
 			}
 			site.Scope = psc
@@ -850,15 +875,30 @@ func (b *builder) proseFile(f *File, target *Node, sc *Scope) {
 			body := &Scope{Parent: psc, Node: n, File: f}
 			n.Body = body
 			stack = append(stack, open{level, n, body})
-		case ast.HeronFence:
+		case syntax.HeronFence:
 			n, s := cur()
-			b.members(f, it.Members(), n, s)
-		default:
-			n, s := cur()
-			site.Scope = s
-			b.prose(n, site)
+			b.members(f, ast.HeronFence{N: x}.Members(), n, s)
 		}
 	}
+	flush()
+}
+
+// proseLeft reports whether a run of prose holds text besides whitespace
+// and the elements that are nodes of their own.
+func proseLeft(n *syntax.Node, elements map[*syntax.Node]*Node) bool {
+	for _, ch := range n.Children {
+		switch c := ch.(type) {
+		case *syntax.Token:
+			if strings.TrimSpace(c.Text) != "" {
+				return true
+			}
+		case *syntax.Node:
+			if elements[c] == nil {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // headingName is the section name a heading declares: its {#id}. A name
@@ -873,8 +913,9 @@ func headingName(h ast.Heading) string {
 	return ""
 }
 
-// headingText is a heading's text, for a message.
-func headingText(h ast.Heading) string {
+// HeadingText is a heading's text, its {#name} aside: the display name
+// of the section it declares.
+func HeadingText(h ast.Heading) string {
 	var text strings.Builder
 	for _, c := range h.N.Children {
 		switch c := c.(type) {

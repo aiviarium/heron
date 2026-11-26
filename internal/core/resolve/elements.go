@@ -14,12 +14,17 @@ import (
 
 // prose adds a text to a node and declares the nodes its elements name.
 func (b *builder) prose(n *Node, site Site) {
-	n.Prose = append(n.Prose, site)
 	if site.N == nil {
+		n.Prose = append(n.Prose, site)
 		return
 	}
 	// A prose file's item is an inline form itself, an element included.
 	b.elements(site.File, site.Scope, &syntax.Node{Kind: syntax.ProseLine, Children: []syntax.Elem{site.N}}, n, false)
+	if b.t.Elements[site.N] != nil {
+		// The item is a node of its own, not text of n.
+		return
+	}
+	n.Prose = append(n.Prose, site)
 }
 
 // elements walks a text's inline forms for elements that declare nodes.

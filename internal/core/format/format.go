@@ -204,6 +204,11 @@ func (f *fmter) node(n *syntax.Node) {
 	case n.Kind == syntax.ProseBlock:
 		f.push(frame{kind: frameRelative, indent: f.cur + 2, min: f.minIndent(n)})
 		pushed++
+	case n.Kind == syntax.Tag && f.top() != nil && f.top().kind == frameVerbatim:
+		// An element in a prose file keeps its lines as written, its
+		// fenced code included.
+		f.push(frame{kind: frameVerbatim})
+		pushed++
 	case isMember(n.Kind):
 		f.push(frame{kind: frameSame, indent: f.cur})
 		pushed++

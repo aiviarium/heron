@@ -384,10 +384,13 @@ func TestShortLinksRender(t *testing.T) {
 // builds renders as the form does, and `<ref>` as a short link does.
 func TestElementsRender(t *testing.T) {
 	_, f := lensFiles(t, "testdata/elements/index.heron")
-	h := f["do_it.html"]
-	mustHave(t, "how-to", h, `<h1 class="page-title">Ask for a refund</h1>`, `<li class="step" id="do_it.look"><h2 class="h">`,
-		`id="do_it.call"`, `<aside class="callout callout-warning"><div class="prose"><p>A refund can&#39;t be undone.</p></div></aside></li>`)
-	if _, ok := f["dev/do_it.html"]; ok {
+	// A prose file's text is its section's prose, its Markdown read as
+	// Markdown, a list item continued on an indented line included.
+	mustHave(t, "asking", f["explore/asking.html"], `<h1 class="page-title">Asking <span class="kind">section</span></h1>`, `<li>open the payment and read its state;</li>`)
+	h := f["asking.do_it.html"]
+	mustHave(t, "how-to", h, `<h1 class="page-title">Ask for a refund</h1>`, `<li class="step" id="asking.do_it.look"><h2 class="h">`,
+		`id="asking.do_it.call"`, `<aside class="callout callout-warning"><div class="prose"><p>A refund can&#39;t be undone.</p></div></aside></li>`)
+	if _, ok := f["dev/asking.do_it.html"]; ok {
 		t.Error("@lens=\"user\" doesn't keep the how-to to the user lens")
 	}
 	ex := f["explore/refunds.html"]

@@ -189,7 +189,9 @@ func (p *proseBuf) container(n *syntax.Node) {
 				p.text(t)
 				lineStart = false
 			case syntax.Whitespace:
-				if !lineStart {
+				// A prose file's indentation is Markdown's: it continues a
+				// list item.
+				if !lineStart || n.Kind == syntax.ProseFile {
 					p.b.WriteString(ch.Text)
 				}
 			case syntax.Newline:

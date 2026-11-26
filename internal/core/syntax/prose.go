@@ -391,7 +391,8 @@ func (p *parser) lineStart(cx *inlineCtx) {
 	p.ws()
 	if n := fenceLen(p.src[p.pos:]); n > 0 {
 		info := strings.TrimSpace(p.src[p.pos+n : p.pos+restOfLine(p.src, p.pos)])
-		if cx.file && info == "heron" {
+		if cx.file && info == "heron" && cx.tags == 0 {
+			// Inside an element a heron fence is code, as an example's.
 			p.heronFence()
 			return
 		}
