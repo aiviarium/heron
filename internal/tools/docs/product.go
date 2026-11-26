@@ -100,7 +100,7 @@ func (c *Ctx) factList(rows [][2]string) {
 		if r[1] == "" {
 			continue
 		}
-		b.WriteString(`<dt>` + esc(r[0]) + `</dt><dd>` + r[1] + `</dd>`)
+		b.WriteString(`<div class="fact"><dt>` + esc(r[0]) + `</dt><dd>` + r[1] + `</dd></div>`)
 	}
 	if b.Len() > 0 {
 		c.W(`<dl class="facts">`, b.String(), `</dl>`)

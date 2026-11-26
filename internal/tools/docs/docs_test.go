@@ -381,7 +381,7 @@ func TestProductAndTechKinds(t *testing.T) {
 			`<div class="region" id="op_page.body.facts"><a class="anchor region-name" href="#op_page.body.facts">Facts</a>`,
 		},
 		"index.html": {
-			`<span class="status status-delivered">delivered</span></h2><dl class="facts"><dt>Delivers</dt><dd><a class="ref" href="editing.html">Editing</a></dd></dl>`,
+			`<span class="status status-delivered">delivered</span></h2><dl class="facts"><div class="fact"><dt>Delivers</dt><dd><a class="ref" href="editing.html">Editing</a></dd></div></dl>`,
 		},
 		"people.html": {
 			`<a class="anchor" href="#people.ci">Ci</a><span class="aliases">system</span>`,

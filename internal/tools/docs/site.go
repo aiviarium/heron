@@ -453,9 +453,16 @@ func (s *Site) buildPages() {
 	// Previous and next follow the navigation order of each area.
 	for _, a := range s.Areas {
 		var order []*Page
+		seen := map[*Page]bool{}
 		var flat func(ps []*Page)
 		flat = func(ps []*Page) {
 			for _, p := range ps {
+				if seen[p] {
+					// A group can list a page and its children both, as
+					// an api's group lists its ops.
+					continue
+				}
+				seen[p] = true
 				order = append(order, p)
 				flat(p.Children)
 			}
@@ -463,7 +470,7 @@ func (s *Site) buildPages() {
 		flat(a.Pages)
 		for _, g := range a.Groups {
 			if g.Head != nil {
-				order = append(order, g.Head)
+				flat([]*Page{g.Head})
 			}
 			flat(g.Pages)
 		}

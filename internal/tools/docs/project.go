@@ -100,7 +100,10 @@ func renderImplements(c *Ctx) error {
 	n := c.Node
 	s := c.Site
 	c.W(`<section class="node implements" id="`, attr(Anchor(n)), `">`)
-	c.title("")
+	if c.Page != s.Home {
+		// On the home page the page's title is the project's name.
+		c.title("")
+	}
 	if p := s.project; p != nil && p.Node == n {
 		var facts [][2]string
 		if p.Spec != nil {
@@ -109,7 +112,6 @@ func renderImplements(c *Ctx) error {
 		if p.Version != "" {
 			facts = append(facts, [2]string{label("docs.col.version"), `<code>` + esc(p.Version) + `</code>`})
 		}
-		c.W(`<p class="implements-line">`, esc(label("docs.project.implements", "spec", p.SpecName(), "at", p.At)), `</p>`)
 		c.factList(facts)
 	}
 	c.Prose(n)
@@ -222,6 +224,17 @@ func (s *Site) realizes(n *resolve.Node) []*resolve.Node {
 	return out
 }
 
+// hasOwnPage reports whether a node is shown on a page of the tree's other
+// than the home page.
+func (s *Site) hasOwnPage(n *resolve.Node) bool {
+	for a := n.Parent; a != nil; a = a.Parent {
+		if p := s.pageOf[a]; p != nil && p != s.Home {
+			return true
+		}
+	}
+	return false
+}
+
 // specPages adds a project's pages beyond its tree's: the releases and,
 // when no spec site is named, the spec itself, read-only, on which every
 // node of the spec is then shown.
@@ -230,7 +243,11 @@ func (s *Site) specPages(docs *Area) {
 	if len(p.Releases) > 0 {
 		pg := &Page{File: "_releases.html", Title: label("docs.page.releases"), Layout: "releases", Area: docs}
 		s.Pages = append(s.Pages, pg)
-		docs.Pages = append(docs.Pages, pg)
+		if !s.hasOwnPage(p.Releases[0]) {
+			// A tree whose releases sit on a page of its own, such as a
+			// releases section, lists that page once, not this one too.
+			docs.Pages = append(docs.Pages, pg)
+		}
 	}
 	if p.Package == nil || p.Package.Tree == nil || p.Package.Node == nil {
 		return

@@ -264,7 +264,7 @@ func (l *Lenses) Files() ([]File, error) {
 // markTags are the titles of the lenses a mark names, as explore shows
 // them beside a marked node or prose run.
 func (s *Site) markTags(r []*resolve.Node) string {
-	if !s.explore() || r == nil {
+	if !s.explore() || r == nil || s.single() {
 		return ""
 	}
 	var b strings.Builder
@@ -274,10 +274,15 @@ func (s *Site) markTags(r []*resolve.Node) string {
 	return b.String()
 }
 
+// single reports whether the site builds one lens alone, as a tree that
+// chooses none does: its pages read as they did before lenses, without
+// the kinds and marks explore names beside a node to tell lenses apart.
+func (s *Site) single() bool { return s.lenses == nil || len(s.lenses.sites) < 2 }
+
 // kindTag is a node's kind and its lens marks beside its name, in
 // explore.
 func (s *Site) kindTag(n *resolve.Node) string {
-	if !s.explore() || n == nil || s.Opts.Lens == nil {
+	if !s.explore() || n == nil || s.Opts.Lens == nil || s.single() {
 		return ""
 	}
 	out := ""

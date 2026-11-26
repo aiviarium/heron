@@ -71,9 +71,11 @@ func TestProjectSite(t *testing.T) {
 			t.Errorf("component page lacks %q", want)
 		}
 	}
+	// The home page shows what the project implements once, as facts,
+	// under the page's title, which is the project's name.
 	home := pageHTML(t, s, "index.html")
-	if !strings.Contains(home, "Implements shop at 2.1.3") {
-		t.Error("the home page shows what the project implements")
+	if !strings.Contains(home, `<dl class="facts"><div class="fact"><dt>Specification</dt>`) || strings.Contains(home, "Implements shop at") || strings.Contains(home, `<h2 id="`) && strings.Contains(home, `class="node implements"`) && strings.Index(home, `<h2`) < strings.Index(home, `<dl class="facts">`) {
+		t.Error("the home page shows what the project implements, once")
 	}
 }
 
