@@ -215,6 +215,36 @@ func TestVocabularyActionsAndCaching(t *testing.T) {
 	}
 }
 
+// In a prose file, a node's element holds its text: a term's own
+// definition doesn't ask to link the term, and a rule's `<must>` is a must.
+func TestSpecLintsInProseFile(t *testing.T) {
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
+
+include = ["./refunds.heron.md"]
+`)
+	write(t, filepath.Join(dir, "refunds.heron.md"), `# Refunds {#refunds}
+
+<term id="capture_date">
+The day the payment is captured, which is the capture date.
+</term>
+
+<rule id="late" targets="refunds">
+<must>the system should reject a refund after the capture date</must>
+</rule>
+`)
+	got, _ := lintDir(t, dir, lint.NewProseCache())
+	var codes []string
+	for _, f := range got {
+		codes = append(codes, f.code+" "+f.text)
+	}
+	sort.Strings(codes)
+	want := []string{"Spec.MustSaysShould should", "Spec.UnlinkedTerm capture date"}
+	if strings.Join(codes, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("got\n%s\nwant\n%s", strings.Join(codes, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 const specIndex = `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
 
 capture_date: term(aliases = ["captured at"]) {{

@@ -285,6 +285,10 @@ func ProseRestriction(c *types.Checker, site resolve.Site) []*resolve.Node {
 		return nil
 	}
 	if site.N.Kind == syntax.Tag {
+		if c.Tree.ElementNode(site.N) != nil {
+			// A named element's text: its mark is its node's.
+			return nil
+		}
 		return ElementRestriction(c, site)
 	}
 	var out []*resolve.Node

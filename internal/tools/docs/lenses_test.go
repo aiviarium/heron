@@ -206,6 +206,8 @@ Everyone reads this.
 <p @lens="developer, explore">A refund moves the payment to `+"`refunded`"+`.</p>
 
 Inline <em @lens="user">user-only words</em> in a sentence.
+
+<term id="window" @lens="developer">The days a refund can be asked for.</term>
 `)
 	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
 	dev := f["dev/refunds.html"]
@@ -214,6 +216,10 @@ Inline <em @lens="user">user-only words</em> in a sentence.
 	ex := f["explore/refunds.html"]
 	mustHave(t, "explore", ex, "Open the payment", "A refund moves the payment", "user-only words",
 		`<div class="marked"> <span class="lens-mark">User</span>`, `<span class="marked"> <span class="lens-mark">User</span>`)
+	// A named element's `@lens` is its node's mark, not a mark on its text.
+	if strings.Contains(ex, `<span class="lens-mark">Developer</span><p>The days`) {
+		t.Error("a named element's mark marks its text too")
+	}
 }
 
 // The developer lens lists sections as topics and sums each rule up as

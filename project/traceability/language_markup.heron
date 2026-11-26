@@ -89,6 +89,14 @@ language_markup: section {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
+  proves(heron.language.markup.prose_view.element_regions) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLintsInProseFile")
+  }
+
+  proves(heron.language.markup.tags.variadic_attributes) {
+    verify("internal/core/types/elements_test.go", test = "TestElementVariadicAttribute")
+  }
+
   proves(heron.language.markup.tags.attribute_values) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
     verify("internal/core/types/elements_test.go", test = "TestElementsCheck")

@@ -388,6 +388,13 @@ func (p *projector) inline(e syntax.Elem) {
 			}
 		}
 	case syntax.Tag:
+		if o := p.owners[n]; o != nil && o != p.owner {
+			// An element that declares a node: its text is that node's,
+			// as a term's own definition is, in a run of its own.
+			owner, source := p.owner, p.source
+			p.begin(o, p.source)
+			defer p.begin(owner, source)
+		}
 		open := s
 		i := 0
 		for ; i < len(n.Children); i++ {
