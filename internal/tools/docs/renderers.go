@@ -143,7 +143,7 @@ func (c *Ctx) fields(n *resolve.Node) {
 	}
 	c.W(`<dl class="facts">`)
 	for _, r := range rows {
-		c.W(`<dt>`, esc(sentenceCase(r.Name)), `</dt><dd><code>`, c.Site.exprHTML(r.Value, r.ValueSite), `</code></dd>`)
+		c.W(`<div class="fact"><dt>`, esc(sentenceCase(r.Name)), `</dt><dd><code>`, c.Site.exprHTML(r.Value, r.ValueSite), `</code></dd></div>`)
 	}
 	c.W(`</dl>`)
 	for _, ch := range n.Children {
@@ -163,11 +163,16 @@ func (c *Ctx) childrenOrLinks() error {
 		if len(links) == 0 {
 			return
 		}
+		// Each page below, by its title and the first sentence of its
+		// prose, as the home page lists its groups.
 		c.W(`<ul class="page-links">`)
 		for _, l := range links {
-			c.W(`<li>`)
-			c.Link(l, displayName(c.Site, l))
-			c.W(`</li>`)
+			p := c.Site.pageOf[l]
+			c.W(`<li><a href="`, attr(c.Site.href(p.File)), `"><span class="home-link-title">`, esc(p.Title), `</span>`)
+			if t := c.Site.pageSentence(p); t != "" {
+				c.W(`<span class="home-link-text">`, t, `</span>`)
+			}
+			c.W(`</a></li>`)
 		}
 		c.W(`</ul>`)
 		links = nil

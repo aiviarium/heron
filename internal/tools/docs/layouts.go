@@ -1,8 +1,6 @@
 package docs
 
 import (
-	"strings"
-
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
@@ -51,7 +49,7 @@ func (s *Site) landing(c *Ctx) error {
 		for _, q := range p.Children {
 			c.W(`<a class="tile" href="`, attr(s.href(q.File)), `"><span class="tile-title">`, esc(q.Title), `</span>`)
 			if q.Node != nil {
-				if t := firstParagraph(s.proseHTML(q.Node)); t != "" {
+				if t := inlineParagraph(s.proseHTML(q.Node)); t != "" {
 					c.W(`<span class="tile-text">`, t, `</span>`)
 				}
 			}
@@ -70,18 +68,4 @@ func (s *Site) landing(c *Ctx) error {
 		}
 	}
 	return nil
-}
-
-// firstParagraph returns the text of the first paragraph of rendered
-// prose, without its links.
-func firstParagraph(h string) string {
-	i := strings.Index(h, "<p>")
-	if i < 0 {
-		return ""
-	}
-	j := strings.Index(h[i:], "</p>")
-	if j < 0 {
-		return ""
-	}
-	return esc(htmlUnescape(stripTags(h[i+3 : i+j])))
 }

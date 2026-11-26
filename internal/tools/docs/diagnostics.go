@@ -85,7 +85,7 @@ func renderDiagnostic(c *Ctx) error {
 			c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 		}
 		c.W(`</p>`)
-		if fix := firstSentence(firstParagraph(s.proseHTML(n))); fix != "" {
+		if fix := firstSentence(inlineParagraph(s.proseHTML(n))); fix != "" {
 			c.W(`<p class="diag-fix">`, fix, `</p>`)
 		}
 		c.W(`</div>`)
@@ -161,11 +161,8 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 		}
 		c.W(`<li`, id, cls, `><p class="diag-line"><code class="diag-code">`, esc(cd), `</code> `)
 		c.W(s.linkHTML(d, messageHTML(fieldString(d, "message")), "diag-message"))
-		if p := s.anchorOf[d]; p != nil {
-			c.W(` <a class="chip" href="`, attr(s.href(p.File)), `">`, esc(p.Title), `</a>`)
-		}
 		c.W(`</p>`)
-		if fix := firstSentence(firstParagraph(s.proseHTML(d))); fix != "" {
+		if fix := firstSentence(inlineParagraph(s.proseHTML(d))); fix != "" {
 			c.W(`<p class="diag-fix">`, fix, `</p>`)
 		}
 		c.W(`</li>`)

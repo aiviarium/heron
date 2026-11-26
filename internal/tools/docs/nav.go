@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/lens"
@@ -38,8 +39,18 @@ func (s *Site) applyNav(docs *Area) {
 	case lens.NavTask:
 		groups := s.taskGroups(docs)
 		var rest []*Page
-		for _, p := range docs.Pages {
-			if p != s.Home {
+		for _, p := range s.referencePages(docs.Pages) {
+			if p == s.Home {
+				continue
+			}
+			if p.Layout == "diagnostics" {
+				// The diagnostics page, as the errors a person meets.
+				p.Title = label("docs.page.errors")
+			}
+			rest = append(rest, p)
+		}
+		for _, p := range s.Pages {
+			if p.Layout == "glossary" {
 				rest = append(rest, p)
 			}
 		}
@@ -48,6 +59,13 @@ func (s *Site) applyNav(docs *Area) {
 		}
 		docs.Groups = append(groups, docs.Groups...)
 		docs.Pages = nil
+		for _, a := range s.Areas {
+			if a.Key == "glossary" {
+				// The glossary is listed in the reference, so its tab
+				// shows the same navigation rather than a list of one.
+				a.Groups, a.Pages = docs.Groups, nil
+			}
+		}
 	}
 }
 
@@ -138,6 +156,35 @@ func (s *Site) taskGroups(docs *Area) []NavGroup {
 	return groups
 }
 
+// referencePages drops from TASK's reference the pages that hold nothing
+// the lens shows but their own prose and authored pages, which the
+// navigation already lists in their groups.
+func (s *Site) referencePages(ps []*Page) []*Page {
+	var out []*Page
+	for _, p := range ps {
+		p.Children = s.referencePages(p.Children)
+		if p.Node != nil && len(p.Children) == 0 && !s.holdsReference(p.Node) {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// holdsReference reports whether a node holds a node the lens shows
+// that isn't an authored page or a container of them.
+func (s *Site) holdsReference(n *resolve.Node) bool {
+	for _, ch := range n.Children {
+		if ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || !own(ch) || !s.placed(ch) || s.authored(ch) {
+			continue
+		}
+		if !s.isContainer(ch) || s.holdsReference(ch) {
+			return true
+		}
+	}
+	return false
+}
+
 func removePage(ps []*Page, p *Page) []*Page {
 	var out []*Page
 	for _, q := range ps {
@@ -149,9 +196,9 @@ func removePage(ps []*Page, p *Page) []*Page {
 	return out
 }
 
-// homeTiles writes a lens's home page below the root's prose: TASK shows
-// a tile per entry page, or for its first three authored pages; TOPIC a
-// tile per top-level section.
+// homeTiles writes a lens's home page below the root's prose: TASK its
+// primary page, the first entry page or else the first tutorial, then a
+// group per group of its navigation; TOPIC a group per topic.
 func (s *Site) homeTiles(c *Ctx) {
 	var area *Area
 	for _, a := range s.Areas {
@@ -162,53 +209,87 @@ func (s *Site) homeTiles(c *Ctx) {
 	if area == nil {
 		return
 	}
+	var primary *Page
 	if s.nav() == lens.NavTask {
-		var pages []*Page
 		if l := s.Opts.Lens; l != nil {
 			for _, n := range l.Entry {
-				if p := s.pageOf[n]; p != nil {
-					pages = append(pages, p)
+				if p := s.pageOf[n]; p != nil && primary == nil {
+					primary = p
 				}
 			}
 		}
-		if len(pages) == 0 {
+		if primary == nil {
 			for _, p := range s.Pages {
-				if s.isAuthoredPage(p) && len(pages) < 3 {
-					pages = append(pages, p)
+				if primary == nil && p.Node != nil && s.kindPath(p.Node) == "docs.tutorial" {
+					primary = p
 				}
 			}
 		}
-		s.tiles(c, pages)
-		return
 	}
-	var topics []*Page
-	for _, g := range area.Groups {
-		if g.Head != nil {
-			topics = append(topics, g.Head)
-		} else {
-			topics = append(topics, g.Pages...)
+	if primary != nil {
+		c.W(`<a class="home-primary" href="`, attr(s.href(primary.File)), `"><span class="home-primary-title">`, esc(primary.Title), `</span>`)
+		if t := s.pageSentence(primary); t != "" {
+			c.W(`<span class="home-primary-text">`, t, `</span>`)
 		}
+		c.W(`<span class="home-primary-arrow" aria-hidden="true">→</span></a>`)
 	}
-	s.tiles(c, topics)
-}
-
-// tiles writes a grid of tiles, one per page, each with the first
-// sentence of the page's prose.
-func (s *Site) tiles(c *Ctx, pages []*Page) {
-	if len(pages) == 0 {
-		return
-	}
-	c.W(`<div class="tiles">`)
-	for _, q := range pages {
-		c.W(`<a class="tile" href="`, attr(s.href(q.File)), `"><span class="tile-title">`, esc(q.Title), `</span>`)
-		if q.Node != nil {
-			if t := firstSentence(firstParagraph(s.proseHTML(q.Node))); t != "" {
-				c.W(`<span class="tile-text">`, t, `</span>`)
+	c.W(`<div class="home-groups">`)
+	for _, g := range area.Groups {
+		var pages []*Page
+		for _, p := range g.Pages {
+			if p != primary {
+				pages = append(pages, p)
 			}
 		}
-		c.W(`</a>`)
+		if len(pages) == 0 && g.Head == nil {
+			continue
+		}
+		c.W(`<section class="home-group">`)
+		if g.Title != "" {
+			title := esc(g.Title)
+			if g.Head != nil {
+				title = `<a href="` + attr(s.href(g.Head.File)) + `">` + title + `</a>`
+			}
+			c.W(`<h2 class="home-group-title">`, title, `</h2>`)
+		}
+		c.W(`<ul class="home-links">`)
+		for _, p := range pages {
+			c.W(`<li><a href="`, attr(s.href(p.File)), `"><span class="home-link-title">`, esc(p.Title), `</span>`)
+			if t := s.pageSentence(p); t != "" {
+				c.W(`<span class="home-link-text">`, t, `</span>`)
+			}
+			c.W(`</a></li>`)
+		}
+		c.W(`</ul></section>`)
 	}
 	c.W(`</div>`)
+}
+
+// pageSentence is the first sentence of a page's prose in the lens, as
+// text without links.
+func (s *Site) pageSentence(p *Page) string {
+	if p.Node == nil {
+		return ""
+	}
+	return firstSentence(inlineParagraph(s.proseHTML(p.Node)))
+}
+
+// linkTagRe matches what a summary inside a link drops: the tags of other
+// links, the lens tags after them and hover-card spans.
+var linkTagRe = regexp.MustCompile(`<span class="lens-tag">[^<]*</span>|</?a\b[^>]*>|</?span\b[^>]*>`)
+
+// inlineParagraph is the first paragraph of rendered prose with its inline
+// code kept and its links reduced to their text, to sit inside a link.
+func inlineParagraph(h string) string {
+	i := strings.Index(h, "<p>")
+	if i < 0 {
+		return ""
+	}
+	j := strings.Index(h[i:], "</p>")
+	if j < 0 {
+		return ""
+	}
+	return strings.TrimSpace(linkTagRe.ReplaceAllString(h[i+3:i+j], ""))
 }
 
 // firstSentence cuts rendered text after its first sentence.

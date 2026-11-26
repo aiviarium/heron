@@ -187,7 +187,7 @@ func (c *Ctx) summary() error {
 	n := c.Node
 	s := c.Site
 	head := esc(displayName(s, n))
-	if t := firstSentence(firstParagraph(s.proseHTML(n))); t != "" {
+	if t := firstSentence(inlineParagraph(s.proseHTML(n))); t != "" {
 		head = `<strong>` + head + `</strong> ` + t
 	}
 	c.W(`<details class="node-summary" id="`, attr(Anchor(n)), `"><summary>`, head, `</summary>`)

@@ -9,6 +9,7 @@
     "page": {
       "glossary": "Glossary",
       "diagnostics": "Diagnostics",
+      "errors": "Errors",
       "conformance": "Conformance",
       "releases": "Releases",
       "spec": "Specification"
