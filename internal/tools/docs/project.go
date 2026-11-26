@@ -45,16 +45,19 @@ func (s *Site) conformancePage(c *Ctx) error {
 			continue
 		}
 		c.Heading(2, g.id, label("docs.conformance.gap_"+g.key), "")
-		c.W(`<p>`, esc(label("docs.conformance.gap_"+g.key+"_note")), `</p><ul class="gap-list">`)
-		for _, it := range g.items {
-			inner := `<code>` + esc(it) + `</code>`
-			if n := s.specNode(it); n != nil {
-				c.W(`<li>`, s.linkHTML(n, inner, "spec-ref"), `</li>`)
-			} else {
-				c.W(`<li>`, inner, `</li>`)
+		c.W(`<p>`, esc(label("docs.conformance.gap_"+g.key+"_note")), `</p>`)
+		for _, grp := range project.GapGroups(g.items) {
+			c.W(`<details class="gap-group"><summary><code>`, esc(grp.Area), `</code> <span class="gap-count">`, strconv.Itoa(len(grp.Items)), `</span></summary><ul class="gap-list">`)
+			for _, it := range grp.Items {
+				inner := `<code>` + esc(strings.TrimPrefix(it, grp.Area+".")) + `</code>`
+				if n := s.specNode(it); n != nil {
+					c.W(`<li>`, s.linkHTML(n, inner, "spec-ref"), `</li>`)
+				} else {
+					c.W(`<li>`, inner, `</li>`)
+				}
 			}
+			c.W(`</ul></details>`)
 		}
-		c.W(`</ul>`)
 	}
 	if ch := rep.Changes; ch != nil {
 		title := label("docs.conformance.changes", "spec", rep.Spec, "from", ch.From, "to", ch.To)

@@ -278,6 +278,7 @@ language_specifications_layers: section {
 
   proves(heron.language.specifications.traceability.gaps.gap_report_shown) {
     verify("internal/core/check/project_test.go", test = "TestConformanceRevisionsAndGaps")
+    verify("internal/core/project/gaps_test.go", test = "TestGapGroups")
   }
 
   proves(heron.language.specifications.traceability.gaps.orphan_entry) {

@@ -337,7 +337,7 @@ proves(shop.receipt, shop.no_receipt) {
 		t.Errorf("unrealized: %v", rep.Gaps.Unrealized)
 	}
 	md := string(rep.Markdown())
-	for _, s := range []string{"1 outdated, proven at an earlier revision only", "## Behaviour no contract entry realizes", "- `pay_once`"} {
+	for _, s := range []string{"1 outdated, proven at an earlier revision only", "## Behaviour no contract entry realizes", "- `pay_once`", "<details><summary>pay_once (1)</summary>"} {
 		if !strings.Contains(md, s) {
 			t.Errorf("markdown lacks %q:\n%s", s, md)
 		}

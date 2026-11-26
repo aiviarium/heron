@@ -243,8 +243,12 @@ func (r *Report) Markdown() []byte {
 			continue
 		}
 		fmt.Fprintf(&b, "\n## %s\n\n%s\n\n", g.title, g.about)
-		for _, it := range g.items {
-			fmt.Fprintf(&b, "- `%s`\n", it)
+		for _, grp := range GapGroups(g.items) {
+			fmt.Fprintf(&b, "<details><summary>%s (%d)</summary>\n\n", grp.Area, len(grp.Items))
+			for _, it := range grp.Items {
+				fmt.Fprintf(&b, "- `%s`\n", it)
+			}
+			b.WriteString("\n</details>\n")
 		}
 	}
 	if ch := r.Changes; ch != nil {
@@ -297,4 +301,32 @@ func orDash(s string) string {
 		return "?"
 	}
 	return s
+}
+
+// GapGroup is the entries of a gap in one area of the spec.
+type GapGroup struct {
+	Area  string
+	Items []string
+}
+
+// GapGroups groups a gap's entries by their area, the first two names of
+// their path, in the order the areas first appear.
+func GapGroups(items []string) []GapGroup {
+	var out []GapGroup
+	at := map[string]int{}
+	for _, it := range items {
+		segs := strings.SplitN(it, ".", 3)
+		area := segs[0]
+		if len(segs) == 3 {
+			area = segs[0] + "." + segs[1]
+		}
+		i, ok := at[area]
+		if !ok {
+			i = len(out)
+			at[area] = i
+			out = append(out, GapGroup{Area: area})
+		}
+		out[i].Items = append(out[i].Items, it)
+	}
+	return out
 }
