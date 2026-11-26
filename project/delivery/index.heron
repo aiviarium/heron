@@ -2,9 +2,9 @@
 // roadmap, the process and the trace from requirements to tests.
 include = [
   "./units.heron",
-  "./process.heron",
-  "./first_build.heron",
-  "./roadmap.heron",
+  "./process.heron.md",
+  "./first_build.heron.md",
+  "./roadmap.heron.md",
   "./traceability.heron",
   "./unit_1/",
   "./unit_2/",

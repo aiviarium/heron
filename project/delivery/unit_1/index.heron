@@ -1,7 +1,7 @@
 // Unit 1, the language and runtime: its increments and what done means for it.
 include = [
   "./increments.heron",
-  "./done.heron",
+  "./done.heron.md",
 ]
 
 | [Unit](#delivery.units) 1, the language and runtime: its increments, in the order they were built, and what done means for it.
