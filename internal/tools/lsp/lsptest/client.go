@@ -158,7 +158,7 @@ func (c *Client) Call(method string, params, out any) error {
 	select {
 	case m := <-ch:
 		if m.Error != nil {
-			return fmt.Errorf("%s: %s", method, m.Error.Message)
+			return fmt.Errorf("%s: %s (%d)", method, m.Error.Message, m.Error.Code)
 		}
 		if out != nil {
 			return json.Unmarshal(m.Result, out)

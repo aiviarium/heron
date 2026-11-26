@@ -107,6 +107,11 @@ func TestDefinitionAcrossFilesAndFromImportStrings(t *testing.T) {
 	if err := f.c.Call("heron/source", map[string]any{"uri": locs[0].URI}, &src); err != nil || !strings.Contains(src.Text, "section") {
 		t.Fatalf("heron/source: %v %q", err, src.Text)
 	}
+	// A URI that names no file: an invalid-parameters error, as the
+	// language server API's no_file says.
+	if err := f.c.Call("heron/source", map[string]any{"uri": "heron:/std/nothing.heron"}, &src); err == nil || !strings.Contains(err.Error(), "no file heron:/std/nothing.heron") || !strings.Contains(err.Error(), "-32602") {
+		t.Fatalf("heron/source of no file: %v", err)
+	}
 	// A kind in the standard package.
 	if err := f.c.Call("textDocument/definition", pos(f.indexURI, lsptest.At(indexSrc, "section", 0, 2)), &locs); err != nil {
 		t.Fatal(err)

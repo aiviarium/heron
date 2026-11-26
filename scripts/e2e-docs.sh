@@ -17,6 +17,14 @@ rm -rf "$tmp/petstore/.heron"
 test -f "$tmp/petstore/.heron/docs/store.place_order.html"
 test -f "$tmp/petstore/.heron/docs/versions.json"
 
+# The RPC example: a service over HTTP, gRPC, Connect and JSON-RPC.
+cp -r examples/parcels "$tmp/parcels"
+rm -rf "$tmp/parcels/.heron"
+(cd "$tmp/parcels" && "$tmp/heron" generate docs proto openrpc >/dev/null)
+test -f "$tmp/parcels/.heron/docs/parcels.navigate.html"
+test -f "$tmp/parcels/.heron/proto/acme/parcels/v1/parcels.proto"
+test -f "$tmp/parcels/.heron/openrpc/parcels.json"
+
 # Heron's own spec, the package this repository imports, as the language's
 # documentation site.
 spec=$(go run ./internal/core/fixtures/specdir)
@@ -56,6 +64,10 @@ grep -q '<article class="entry" id="changes.v1_1">' "$d/changes.html"
 
 export NODE_PATH="${NODE_PATH:-/opt/node-tools/node_modules}"
 node web/docs/scripts/e2e.cjs "$tmp/petstore/.heron/docs"
+node web/docs/scripts/e2e.cjs "$tmp/parcels/.heron/docs"
+# The binding switch and Try it over Connect and JSON-RPC, against a mock
+# of the parcels service.
+node web/docs/scripts/e2e-rpc.cjs "$tmp/parcels/.heron/docs"
 node web/docs/scripts/e2e.cjs "$tmp/spec/.heron/docs"
 node web/docs/scripts/e2e.cjs "$tmp/shop/.heron/docs"
 node web/docs/scripts/e2e.cjs "$tmp/lenses/.heron/docs"
@@ -64,4 +76,5 @@ node web/docs/scripts/e2e.cjs "$d"
 if [ "${1:-}" = "--screenshots" ]; then
   mkdir -p web/screenshots
   node web/docs/scripts/screenshots.cjs "$tmp/petstore/.heron/docs" "$tmp/spec/.heron/docs" web/screenshots "$d"
+  node web/docs/scripts/e2e-rpc.cjs "$tmp/parcels/.heron/docs" web/screenshots
 fi

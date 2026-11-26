@@ -1153,7 +1153,11 @@ func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
 			if j > 0 {
 				h = " hidden"
 			}
-			w.WriteString(`<div class="lang" data-lang="` + f.k + `"` + h + `><pre><code>` + highlightSnippet(lang, code) + `</code></pre></div>`)
+			hl := highlightSnippet(lang, code)
+			if lang == "curl" {
+				hl = highlightShell(code)
+			}
+			w.WriteString(`<div class="lang" data-lang="` + f.k + `"` + h + `><pre><code>` + hl + `</code></pre></div>`)
 		}
 		// A stream's requests, in order.
 		if me != nil && len(exs[i].requests) > 1 {
@@ -1497,6 +1501,37 @@ func (c *Ctx) protoTabs(n *resolve.Node, heron string) bool {
 	c.W(`<div role="tabpanel" hidden>`, s.codeFrame("json", label("docs.label.json_form"), highlightJSON(js), js), `</div>`)
 	c.W(`</div>`)
 	return true
+}
+
+// highlightShell colours a command: the program's name, and the JSON of a
+// single-quoted argument or of a heredoc's lines.
+func highlightShell(code string) string {
+	var out []string
+	for i, line := range strings.Split(code, "\n") {
+		l := line
+		if i == 0 {
+			if sp := strings.IndexByte(l, ' '); sp > 0 {
+				out = append(out, `<span class="tk-kw">`+esc(l[:sp])+`</span>`+shellRest(l[sp:]))
+				continue
+			}
+		}
+		if strings.HasPrefix(strings.TrimSpace(l), "{") {
+			out = append(out, highlightJSON(l))
+			continue
+		}
+		out = append(out, shellRest(l))
+	}
+	return strings.Join(out, "\n")
+}
+
+// shellRest colours the JSON inside a line's '{…}' argument.
+func shellRest(l string) string {
+	i := strings.Index(l, "'{")
+	j := strings.LastIndex(l, "}'")
+	if i < 0 || j < i {
+		return esc(l)
+	}
+	return esc(l[:i+1]) + highlightJSON(l[i+1:j+1]) + esc(l[j+1:])
 }
 
 // highlightProto colours a .proto excerpt by its keywords, types, names

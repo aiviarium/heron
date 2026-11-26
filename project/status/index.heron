@@ -124,8 +124,23 @@ language_apis_planned: status<planned>(
   heron.language.apis.examples.outcome_types,
   heron.language.apis.examples.examples_checked,
   heron.language.apis.examples.errors.two_outcomes,
+  heron.language.apis.grpc.status_codes.error_status,
+  heron.language.apis.grpc.status_codes.connect_errors,
+  heron.language.apis.grpc.calls.default_deadline,
+  heron.language.apis.grpc.calls.connect_unary,
+  heron.language.apis.grpc.calls.connect_streams,
+  heron.language.apis.jsonrpc.methods.null_results,
+  heron.language.apis.jsonrpc.methods.notifications_unanswered,
+  heron.language.apis.jsonrpc.methods.batches,
+  heron.language.apis.jsonrpc.params.by_name,
+  heron.language.apis.jsonrpc.params.by_position,
+  heron.language.apis.jsonrpc.params.whole_params,
+  heron.language.apis.jsonrpc.wire.framed_messages,
+  heron.language.apis.jsonrpc.error_objects.error_object,
 ) {
-  | Not built yet. The 16 requirements of [language.apis](#heron.language.apis).
+  | Not built yet. The 29 requirements of [language.apis](#heron.language.apis): the wire
+  | behaviour of the standard transports, whose gRPC, Connect and JSON-RPC calls the docs
+  | already show as the spec projects them.
 }
 
 language_specifications_planned: status<planned>(

@@ -27,6 +27,7 @@ include = [
   "./tools_server.heron",
   "./tools_server_api.heron",
   "./tools_frontend.heron",
+  "./rpc_bindings.heron",
 ]
 
 | Which test or script proves each requirement of [the spec](#heron), one page per area of it. A

@@ -449,9 +449,28 @@ func (s *Site) buildPages() {
 		}
 	}
 	if len(s.apis) > 1 || len(s.apis) == 1 && len(rest) > 0 {
+		// The types no api names follow the last api of the scope that
+		// declares them, as a protocol's envelope follows its methods.
+		lastAPI := map[*resolve.Node]*resolve.Node{}
+		for _, a := range s.apis {
+			lastAPI[a.Parent] = a
+		}
+		extra := map[*resolve.Node][]*resolve.Node{}
+		var left []*resolve.Node
+		for _, t := range rest {
+			if a := lastAPI[t.Parent]; a != nil && t.Parent != s.Tree.Root {
+				extra[a] = append(extra[a], t)
+				continue
+			}
+			left = append(left, t)
+		}
+		rest = left
 		// Insert from the last api back, so earlier groups keep their place.
 		for i := len(s.apis) - 1; i >= 0; i-- {
 			a := s.apis[i]
+			if len(extra[a]) > 0 {
+				typeGroupAt(label("docs.nav.types_in", "scope", displayName(s, a.Parent)), extra[a], apiGroup[a])
+			}
 			typeGroupAt(label("docs.nav.types_in", "scope", displayName(s, a)), byAPI[a], apiGroup[a])
 		}
 	} else {
@@ -467,7 +486,7 @@ func (s *Site) buildPages() {
 		}
 		byScope[t.Parent] = append(byScope[t.Parent], t)
 	}
-	if len(scopes) > 1 {
+	if len(scopes) > 1 || len(scopes) == 1 && len(s.apis) > 1 {
 		for _, sc := range scopes {
 			title := label("docs.nav.types")
 			if sc != nil && sc != s.Tree.Root && sc.Name != "" {

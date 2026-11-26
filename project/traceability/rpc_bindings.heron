@@ -1,0 +1,355 @@
+// The proofs of the RPC bindings: gRPC, Connect and JSON-RPC, their
+// generators and their docs, across the spec's areas.
+rpc_bindings: section {
+  | The tests that prove the requirements of the spec's RPC bindings: [gRPC and Connect](#heron.language.apis.grpc),
+  | [JSON-RPC](#heron.language.apis.jsonrpc), the [proto](#heron.tools.proto) and [OpenRPC](#heron.tools.openrpc) generators and
+  | the docs' views of services and methods.
+
+  proves(heron.language.core_format.nodes.annotations.ambiguous_annotations) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestAmbiguousCode")
+  }
+
+  proves(heron.language.core_format.nodes.errors.ambiguous_annotation) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestAmbiguousCode")
+  }
+
+  proves(heron.language.apis.rpc.streaming_kinds) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestStreamExamples")
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+  }
+
+  proves(heron.language.apis.rpc.stream_example_values) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestStreamExamples")
+  }
+
+  proves(heron.language.apis.rpc.servers_shown) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+  }
+
+  proves(heron.language.apis.grpc.service.proto_ops) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.service.proto_arguments) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.service.package_names) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.service.service_name) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.service.method_name) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.service.default_protocol) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+  }
+
+  proves(heron.language.apis.grpc.messages.request_fields) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+  }
+
+  proves(heron.language.apis.grpc.messages.response_field) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.messages.message_names_taken) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.messages.type_messages) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestMessages")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.messages.client_stream_alone) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.numbering.auto_numbers) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestMessages")
+  }
+
+  proves(heron.language.apis.grpc.numbering.all_or_none) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.numbering.unique_numbers) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.numbering.number_range) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.numbering.reserved_numbers) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.types.scalar_mapping) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestMessages")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.types.int_encodings) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.types.enum_values) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestMessages")
+    verify("internal/tools/docs/rpc_test.go", test = "TestMessageTypePage")
+  }
+
+  proves(heron.language.apis.grpc.types.union_oneof) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestMessages")
+  }
+
+  proves(heron.language.apis.grpc.types.json_names) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestMessages")
+    verify("internal/tools/docs/rpc_test.go", test = "TestMessageTypePage")
+  }
+
+  proves(heron.language.apis.grpc.types.unmappable_types) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.status_codes.uncoded_errors) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
+  }
+
+  proves(heron.language.apis.grpc.calls.metadata_params) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
+  }
+
+  proves(heron.language.apis.grpc.calls.idempotency_level) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoFiles")
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+  }
+
+  proves(heron.language.apis.grpc.errors.proto_outside_service) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.proto_argument_misplaced) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.invalid_proto_package) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.stream_with_fields) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.mixed_numbering) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.duplicate_field_number) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.field_number_out_of_range) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.reserved_field_number) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.no_proto_mapping) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
+  }
+
+  proves(heron.language.apis.grpc.errors.uncoded_grpc_error) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
+  }
+
+  proves(heron.language.apis.jsonrpc.methods.method_names) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPC")
+  }
+
+  proves(heron.language.apis.jsonrpc.methods.unique_methods) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.methods.jsonrpc_arguments) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.methods.no_streams) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.methods.notifications_throw_nothing) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.params.params_alone) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.error_objects.reserved_codes) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
+  }
+
+  proves(heron.language.apis.jsonrpc.error_objects.uncoded_jsonrpc) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.duplicate_method) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.jsonrpc_argument_misplaced) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.jsonrpc_stream) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.notification_throws) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.params_not_alone) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.reserved_error_code) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
+  }
+
+  proves(heron.language.apis.jsonrpc.errors.uncoded_jsonrpc_error) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
+  }
+
+  proves(heron.cli.generate.on_request_targets) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.lsp_api.errors.no_file) {
+    verify("internal/tools/lsp/features_test.go", test = "TestDefinitionAcrossFilesAndFromImportStrings")
+  }
+
+  proves(heron.tools.proto.proto_target) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoFiles")
+  }
+
+  proves(heron.tools.proto.proto_contents) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoFiles")
+  }
+
+  proves(heron.tools.proto.proto_lint_clean) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestProtoFiles")
+  }
+
+  proves(heron.tools.proto.proto_extra) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.openrpc.openrpc_target) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.openrpc.openrpc_methods) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.openrpc.openrpc_schemas) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.openrpc.openrpc_extra) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.frontend.screens.api_page.service.service_lead) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+    verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
+  }
+
+  proves(heron.tools.frontend.screens.api_page.service.methods_grouped) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+  }
+
+  proves(heron.tools.frontend.screens.api_page.service.signature_each) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+  }
+
+  proves(heron.tools.frontend.screens.api_page.service.both_indexes) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.sidebar.types_by_api) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.binding_switch) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.op_bindings) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.rpc_header) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.jsonrpc_header) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.rpc_facts) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.body.parameters.rpc_messages) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.body.parameters.jsonrpc_params) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.body.responses.errors_by_code) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.examples.rpc_example_forms) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.examples.rpc_try_it) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.examples.grpc_no_try_it) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
+    verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
+  }
+
+  proves(heron.tools.frontend.screens.type_page.signature.proto_definition) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestMessageTypePage")
+  }
+}

@@ -14,7 +14,7 @@ interface OpData {
   method: string
   path: string
   params: Param[] | null
-  examples: Record<string, unknown>[]
+  examples?: Record<string, unknown>[]
   /** The op's method on the generated client, when the page's own server publishes it. */
   client?: string
   stream?: boolean
@@ -47,7 +47,7 @@ export function TryIt(props: { root: HTMLElement }) {
   const params = () => op.params ?? []
 
   const fill = () => {
-    const ex = op.examples[example()] ?? {}
+    const ex = op.examples?.[example()] ?? {}
     const v: Record<string, string> = {}
     for (const p of params()) v[p.name] = text(ex[p.name])
     setValues(v)

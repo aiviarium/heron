@@ -450,3 +450,26 @@ func TestProtoFiles(t *testing.T) {
 		}
 	}
 }
+
+// An example's stream is a list of the stream's messages, in order, and
+// every op has a streaming kind, whatever binds it.
+func TestStreamExamples(t *testing.T) {
+	src := "import = [\"std/types@1\"]\nP: type { x: Int }\nsvc: api {\n  nav(ps: Stream(P)): op(Stream(P)) {\n    ok: example {\n      ps = [P(x = 1), P(x = 2)]\n      returns = [P(x = 3)]\n    }\n    bad: example {\n      ps = P(x = 1)\n    }\n    worse: example {\n      ps = [\"x\"]\n    }\n  }\n  one(p: P): op(P)\n}\n"
+	_, res := build(t, map[string]string{"index.heron": src})
+	got := diags(res)
+	if strings.Count(got, "expected a list of the stream's messages") != 1 || !strings.Contains(got, "expected P, got a string") {
+		t.Errorf("got %q", got)
+	}
+	var nav, one *resolve.Node
+	res.Tree.Walk(func(n *resolve.Node) {
+		switch n.Name {
+		case "nav":
+			nav = n
+		case "one":
+			one = n
+		}
+	})
+	if rpc.StreamKind(res.Checker, nav) != rpc.BidiStreaming || rpc.StreamKind(res.Checker, one) != rpc.Unary {
+		t.Error("streaming kinds")
+	}
+}

@@ -75,6 +75,9 @@ step "Vale, pinned, from the Go proxy (GitHub release downloads are blocked here
 command -v vale >/dev/null || go install github.com/vale-cli/vale/v3/cmd/vale@v3.28.1
 export HERON_REQUIRE_VALE=1
 
+step "buf, pinned, from npm: the generated .proto files are built and linted by the Go tests"
+command -v buf >/dev/null || { (cd "$tmp" && npm install --silent --no-audit --no-fund @bufbuild/buf@1.47.2 >/dev/null) && export PATH="$PATH:$tmp/node_modules/.bin"; }
+
 step "go test"
 go test ./...
 
@@ -98,8 +101,8 @@ step "tree-sitter grammar: generated parser current, corpus, the same fixtures, 
 
 step "the repository's tree (the spec package and the project tree) and examples/ check and lint clean"
 go build -o "$tmp/heron" ./cmd/heron
-"$tmp/heron" check . examples/petstore web/samples/docs-site
-"$tmp/heron" lint . examples/petstore web/samples/docs-site
+"$tmp/heron" check . examples/petstore examples/parcels web/samples/docs-site
+"$tmp/heron" lint . examples/petstore examples/parcels web/samples/docs-site
 
 step "conformance: every requirement of the spec is proven, planned or untested, and the project's docs build"
 if grep -rqs --include='*.heron' -E '^[a-z_]+: implements\(' project; then
@@ -142,8 +145,8 @@ if go list -test -deps ./internal/core/... ./std/... | grep -q '/internal/tools'
 go build -tags unit1 -o "$tmp/heron1" ./cmd/heron
 if "$tmp/heron1" lsp </dev/null >/dev/null 2>&1; then echo "the unit-1 binary has unit 2's lsp"; exit 1; fi
 "$tmp/heron1" fmt --check index.heron project fixtures std examples
-"$tmp/heron1" check . examples/petstore
-"$tmp/heron1" lint . examples/petstore
+"$tmp/heron1" check . examples/petstore examples/parcels
+"$tmp/heron1" lint . examples/petstore examples/parcels
 HERON_TAGS=unit1 scripts/e2e-setup.sh >/dev/null
 HERON_TAGS=unit1 scripts/e2e-tasks.sh >/dev/null
 HERON_TAGS=unit1 scripts/e2e-interop.sh >/dev/null
