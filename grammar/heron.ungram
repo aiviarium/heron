@@ -116,7 +116,7 @@ ShortLink = LinkOpen LinkTick* Path ShortLinkEnd
 Insert = Dollar? DollarBrace? Path? Flags? Args? Expr? RBrace?
 Tag = TagOpen Path TagAttr* TagEnd? TagSelfEnd? Inline* TagClose?
 TagClose = TagCloseOpen Path TagEnd
-TagAttr = Ident Eq? StringLit? LBrace? Expr? RBrace?
+TagAttr = At? Ident Eq? StringLit? LBrace? Expr? RBrace?
 Fence = FenceLine*
 
 // Prose files (.heron.md).

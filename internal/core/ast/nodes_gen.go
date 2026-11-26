@@ -1216,6 +1216,7 @@ type TagAttr struct{ N *syntax.Node }
 // Syntax returns the underlying node.
 func (n TagAttr) Syntax() *syntax.Node { return n.N }
 
+func (n TagAttr) At() *syntax.Token     { return token(n.N, syntax.At, 0) }
 func (n TagAttr) Ident() *syntax.Token  { return token(n.N, syntax.Ident, 0) }
 func (n TagAttr) Eq() *syntax.Token     { return token(n.N, syntax.Eq, 0) }
 func (n TagAttr) StringLit() StringLit  { return StringLit{child(n.N, kindIs(syntax.StringLit), 0)} }

@@ -704,6 +704,7 @@ func (p *parser) tag(cx *inlineCtx) bool {
 	nameStart := p.pos
 	p.path(false)
 	name := p.src[nameStart:p.pos]
+	base := s.diags // the diagnostics before this element's own
 	for {
 		p.ws()
 		if p.at("/>") {
@@ -715,12 +716,21 @@ func (p *parser) tag(cx *inlineCtx) bool {
 			p.tok(TagEnd, 1)
 			break
 		}
-		n := p.identLen()
+		at := 0
+		if p.peek(0) == '@' {
+			// `@name="args"`: an annotation on the element's node.
+			at = 1
+		}
+		n := p.identLenAt(p.pos + at)
 		if n == 0 {
 			p.restore(s)
 			return false
 		}
 		am := p.mark()
+		if at == 1 {
+			p.tok(At, 1)
+		}
+		attr := p.src[p.pos : p.pos+n]
 		p.tok(Ident, n)
 		if p.peek(0) == '=' {
 			p.tok(Eq, 1)
@@ -738,12 +748,29 @@ func (p *parser) tag(cx *inlineCtx) bool {
 				}
 				p.tok(RBrace, 1)
 			default:
-				p.restore(s)
-				return false
+				// An element is never repaired: an unquoted value is an
+				// error, and the element stays in the tree.
+				k := 0
+				for p.pos+k < len(p.src) {
+					c := p.src[p.pos+k]
+					if c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '>' || c == '"' || c == '{' || strings.HasPrefix(p.src[p.pos+k:], "/>") {
+						break
+					}
+					k++
+				}
+				if k == 0 {
+					p.restore(s)
+					return false
+				}
+				p.errAt(p.pos, p.pos+k, "the value of "+attr+" needs quotes or braces")
+				base = len(p.diags)
+				p.tok(Error, k)
+				p.wrap(am, TagAttr)
+				continue
 			}
 		}
 		p.wrap(am, TagAttr)
-		if len(p.diags) > s.diags {
+		if len(p.diags) > base {
 			p.restore(s)
 			return false
 		}

@@ -173,3 +173,30 @@ func FenceLines(n *Node) []string {
 	}
 	return lines
 }
+
+// Shift moves the tokens of a tree parsed apart onto offsets of another
+// text, as a kind element's attributes read as arguments, and recomputes
+// the nodes' spans from them.
+func Shift(n *Node, to func(int) int) {
+	start, end := -1, -1
+	for _, ch := range n.Children {
+		var s, e int
+		switch c := ch.(type) {
+		case *Token:
+			c.Start = to(c.Start)
+			s, e = c.Start, c.Start+len(c.Text)
+		case *Node:
+			Shift(c, to)
+			s, e = c.start, c.end
+		}
+		if start < 0 || s < start {
+			start = s
+		}
+		if e > end {
+			end = e
+		}
+	}
+	if start >= 0 {
+		n.start, n.end = start, end
+	}
+}

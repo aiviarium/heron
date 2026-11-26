@@ -239,6 +239,10 @@ func TestProse(t *testing.T) {
 		// tags
 		{sec("  | <note/> <n kind=\"tip\" open>x</n>"), wrap("ProseLines(ProseLine(Tag(Path) Tag(Path TagAttr(StringLit) TagAttr TagClose(Path))))"), nil},
 		{sec("  | a < b and <- c"), wrap("ProseLines(ProseLine)"), nil},
+		// an @name attribute is an annotation on the element; an
+		// unquoted value is an error that keeps the element
+		{sec("  | <step id=\"a\" @lens=\"user\" @wip>x</step>"), wrap("ProseLines(ProseLine(Tag(Path TagAttr(StringLit) TagAttr(StringLit) TagAttr TagClose(Path))))"), nil},
+		{sec("  | <toc depth=2 />"), wrap("ProseLines(ProseLine(Tag(Path TagAttr)))"), []string{"the value of depth needs quotes or braces"}},
 		// fences
 		{sec("  | ~~~json\n  | {\"$a\": [1]}\n  | ~~~"), wrap("ProseLines(ProseLine(Fence))"), nil},
 		{"x {{\n  ````\n  ```\n  ````\n}}", "File(TextNode(Path ProseBlock(Fence)))", nil},
