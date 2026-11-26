@@ -68,11 +68,12 @@ type API struct {
 	Records []*Record
 }
 
-// Load checks the base entry with the extension files included and returns
-// the ops and types to write: those of the extension files when there are
-// any, otherwise all of the tree's own.
-func Load(base string, exts []string) (*API, error) {
-	baseID, err := resolve.Canonical(base)
+// Load checks the tree of the spec package's entry, with the extension
+// files included, and returns the ops and types to write: those of the
+// extension files when there are any, otherwise those of the folder that
+// declares `spec_server`.
+func Load(entryPath string, exts []string) (*API, error) {
+	baseID, err := resolve.Canonical(entryPath)
 	if err != nil {
 		return nil, err
 	}
@@ -92,42 +93,54 @@ func Load(base string, exts []string) (*API, error) {
 			emit[id] = true
 			inc = append(inc, strconv.Quote(string(id)))
 		}
-		entry = resolve.FileID(filepath.Join(filepath.Dir(string(baseID)), ".apigen-entry.heron"))
+		entry = resolve.FileID(filepath.Join(filepath.Dir(string(emitFirst(exts))), ".apigen-entry.heron"))
 		s.Loader.Overlay[entry] = "include = [" + strings.Join(inc, ", ") + "]\n"
 	}
 	res := s.Check(entry)
 	if res.Diags.HasErrors() {
 		var b strings.Builder
 		for _, d := range res.Diags {
-			b.WriteString(diag.Format(d, s.Pos) + "\n")
+			if d.Severity == diag.Error {
+				b.WriteString(diag.Format(d, s.Pos) + "\n")
+			}
 		}
 		return nil, fmt.Errorf("the API doesn't check:\n%s", b.String())
 	}
-	emits := func(n *resolve.Node) bool {
-		if n.Decl.File == nil || n.Decl.File.ID.IsStd() || (len(emit) > 0 && n.Decl.File.ID == entry) {
-			return false
-		}
-		return len(emit) == 0 || emit[n.Decl.File.ID]
-	}
 	c := res.Checker
-	a := &API{}
 	var server *resolve.Node
-	for _, n := range res.Tree.Root.Children {
-		switch {
-		case n.Name == "spec_server":
+	res.Tree.Walk(func(n *resolve.Node) {
+		if n.Name == "spec_server" && server == nil && c.KindOf(n) != nil && c.KindOf(n).Name == "api" {
 			server = n
-		case c.IsType(n) && emits(n) && !c.IsEnum(n):
-			r := &Record{Name: n.Name, Doc: docOf(n)}
-			for _, m := range n.Children {
-				d := ast.Declare{N: m.Decl.N}
-				r.Fields = append(r.Fields, Field{Name: m.Name, Doc: docOf(m), Type: refOf(d.Type(), d.Question() != nil)})
-			}
-			a.Records = append(a.Records, r)
 		}
-	}
+	})
 	if server == nil {
 		return nil, fmt.Errorf("no spec_server api in the tree")
 	}
+	apiDir := filepath.Dir(string(server.Decl.File.ID))
+	emits := func(n *resolve.Node) bool {
+		if n.Decl.File == nil || n.Decl.File.ID.IsStd() {
+			return false
+		}
+		if len(emit) > 0 {
+			return emit[n.Decl.File.ID]
+		}
+		return filepath.Dir(string(n.Decl.File.ID)) == apiDir
+	}
+	a := &API{}
+	res.Tree.Walk(func(n *resolve.Node) {
+		if n.Name == "" || !c.IsType(n) || c.IsEnum(n) || !emits(n) || n.Parent == server {
+			return
+		}
+		if k := c.KindOf(n); k != nil && k.Name != "type" {
+			return
+		}
+		r := &Record{Name: n.Name, Doc: docOf(n)}
+		for _, m := range n.Children {
+			d := ast.Declare{N: m.Decl.N}
+			r.Fields = append(r.Fields, Field{Name: m.Name, Doc: docOf(m), Type: refOf(d.Type(), d.Question() != nil)})
+		}
+		a.Records = append(a.Records, r)
+	})
 	basePath := ""
 	for _, an := range (ast.Declare{N: server.Decl.N}).Annotations() {
 		if resolve.PathText(an.Path().N) != "http" {
@@ -139,6 +152,7 @@ func Load(base string, exts []string) (*API, error) {
 			}
 		}
 	}
+	baseID = server.Decl.File.ID
 	first := 0 // the base file's ops come first, in their order
 	for _, n := range server.Children {
 		if !emits(n) {
@@ -241,8 +255,26 @@ func exprRef(e ast.Expr) Type {
 	return Type{Name: "Any"}
 }
 
+func emitFirst(exts []string) string { return exts[0] }
+
+// docOf is a node's docs: its `///` lines, else its prose.
 func docOf(n *resolve.Node) string {
 	var lines []string
+	if len(n.Docs) == 0 {
+		for _, p := range n.Prose {
+			if p.N == nil {
+				continue
+			}
+			for _, l := range strings.Split(p.N.Text(), "\n") {
+				l = strings.TrimSpace(l)
+				l = strings.TrimSpace(strings.TrimPrefix(l, "|"))
+				if l != "" {
+					lines = append(lines, l)
+				}
+			}
+		}
+		return strings.Join(lines, " ")
+	}
 	for _, s := range n.Docs {
 		for _, l := range strings.Split(s.N.Text(), "\n") {
 			l = strings.TrimSpace(l)

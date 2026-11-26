@@ -3,6 +3,7 @@ package lsp
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -48,7 +49,7 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	rng := l.rng(ts, te)
 	switch {
 	case t.file != "":
-		return Hover{Contents: MarkupContent{Kind: "markdown", Value: "`" + displayID(t.file) + "`"}, Range: &rng}, nil
+		return Hover{Contents: MarkupContent{Kind: "markdown", Value: "`" + s.displayID(t.file) + "`"}, Range: &rng}, nil
 	case t.local != nil:
 		kind := "let"
 		if t.local.Param {
@@ -76,7 +77,7 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 		facts = append(facts, "`"+p+"`")
 	}
 	if site, _, _ := declSpan(n); site.File != nil {
-		facts = append(facts, displayID(site.File.ID))
+		facts = append(facts, s.displayID(site.File.ID))
 	}
 	if len(facts) > 0 {
 		b.WriteString("\n\n" + strings.Join(facts, " · "))
@@ -84,9 +85,17 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	return Hover{Contents: MarkupContent{Kind: "markdown", Value: b.String()}, Range: &rng}, nil
 }
 
-func displayID(id resolve.FileID) string {
+// displayID names a file in hover text: a standard file as std/…, a file
+// under a workspace root by its path relative to it, never by where the
+// server keeps it.
+func (s *Session) displayID(id resolve.FileID) string {
 	if id.IsStd() {
 		return "std/" + strings.TrimPrefix(string(id), "std:")
+	}
+	for _, r := range s.roots {
+		if rel, err := filepath.Rel(string(r), string(id)); err == nil && !strings.HasPrefix(rel, "..") {
+			return filepath.ToSlash(rel)
+		}
 	}
 	return string(id)
 }

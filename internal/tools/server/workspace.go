@@ -25,6 +25,9 @@ type Workspace struct {
 	Entry resolve.FileID
 	Reg   *registry.Registry
 
+	writeMu sync.Mutex // serializes writes, so if_match is checked and written at once
+	events  *hub
+
 	mu   sync.Mutex
 	sess *check.Session
 	last *check.Result
@@ -45,7 +48,9 @@ func OpenWorkspace(entry string, r *registry.Registry) (*Workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Workspace{Root: id.Dir(), Entry: id, Reg: r, sess: check.NewSession()}, nil
+	w := &Workspace{Root: id.Dir(), Entry: id, Reg: r, sess: check.NewSession()}
+	w.events = newHub(w)
+	return w, nil
 }
 
 // Rel returns a file's path relative to the workspace, with slashes.

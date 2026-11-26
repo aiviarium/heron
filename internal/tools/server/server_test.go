@@ -127,9 +127,9 @@ func TestBaseOps(t *testing.T) {
 		t.Errorf("outline: %+v", out.Nodes)
 	}
 	src, _ := os.ReadFile("../../../examples/petstore/services/store/tasks.heron")
-	off := strings.Index(string(src), "test: task")
+	off := int64(strings.Index(string(src), "test: task"))
 	var pv api.Preview
-	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: int64(off), Overlays: map[string]string{}}, &pv)
+	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: &off, Overlays: map[string]string{}}, &pv)
 	if pv.Path != "store_svc.test" || pv.Kind != "task" || !strings.Contains(pv.HTML, "test") {
 		t.Errorf("preview: %+v", pv)
 	}

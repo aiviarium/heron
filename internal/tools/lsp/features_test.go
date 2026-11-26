@@ -61,10 +61,15 @@ func TestHoverShowsDocs(t *testing.T) {
 	if err := f.c.Call("textDocument/hover", pos(f.indexURI, lsptest.At(indexSrc, "Order", 0, 1)), &h); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Order: type", "An order someone places.", "kind `type`"} {
+	for _, want := range []string{"Order: type", "An order someone places.", "kind `type`", " · model.heron"} {
 		if !strings.Contains(h.Contents.Value, want) {
 			t.Errorf("hover lacks %q:\n%s", want, h.Contents.Value)
 		}
+	}
+	// A file is named relative to the workspace, never by where the
+	// server keeps it.
+	if strings.Contains(h.Contents.Value, f.dir) {
+		t.Errorf("hover names the server's folder:\n%s", h.Contents.Value)
 	}
 	// On a local, the let.
 	if err := f.c.Call("textDocument/hover", pos(f.indexURI, lsptest.At(indexSrc, "$greeting", 0, 2)), &h); err != nil {

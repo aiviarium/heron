@@ -16,11 +16,12 @@ import (
 // assets point into it.
 const DocsPrefix = "/docs/"
 
-func docsSite(res *check.Result, r *registry.Registry) *docs.Site {
+func docsSite(res *check.Result, r *registry.Registry, served map[string]bool) *docs.Site {
 	return docs.New(res.Tree, res.Checker, docs.Options{
-		Registry: r,
-		Href:     func(file string) string { return DocsPrefix + file },
-		Assets:   DocsPrefix + "_assets/",
+		Registry:  r,
+		Href:      func(file string) string { return DocsPrefix + file },
+		Assets:    DocsPrefix + "_assets/",
+		ServedOps: served,
 	})
 }
 
@@ -37,7 +38,7 @@ func fragment(f *docs.Fragment) string {
 
 // RenderNode renders one node as its docs page or section.
 func (d DocsRenderer) RenderNode(res *check.Result, n *resolve.Node) (string, error) {
-	f, err := docsSite(res, d.Registry).RenderNode(n)
+	f, err := docsSite(res, d.Registry, nil).RenderNode(n)
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +47,7 @@ func (d DocsRenderer) RenderNode(res *check.Result, n *resolve.Node) (string, er
 
 // RenderFile renders every top-level node of a file.
 func (d DocsRenderer) RenderFile(res *check.Result, file resolve.FileID) (string, error) {
-	f, err := docsSite(res, d.Registry).RenderFile(file)
+	f, err := docsSite(res, d.Registry, nil).RenderFile(file)
 	if err != nil {
 		return "", err
 	}
@@ -57,6 +58,8 @@ func (d DocsRenderer) RenderFile(res *check.Result, file resolve.FileID) (string
 // renderer as `heron generate docs`, under DocsPrefix.
 type specBrowser struct {
 	ws *Workspace
+	// served are the ops the server routes, whose pages offer Try it.
+	served map[string]bool
 
 	mu   sync.Mutex
 	res  *check.Result
@@ -81,7 +84,7 @@ func (b *specBrowser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		if b.res != a.Res {
-			b.res, b.site = a.Res, docsSite(a.Res, b.ws.Reg)
+			b.res, b.site = a.Res, docsSite(a.Res, b.ws.Reg, b.served)
 		}
 		if p == "_assets/data.js" {
 			body, ctype = b.site.DataJS(), "text/javascript; charset=utf-8"

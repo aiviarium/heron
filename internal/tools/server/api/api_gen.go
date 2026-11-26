@@ -14,14 +14,24 @@ var (
 	_ = http.MethodGet
 )
 
-// What the preview renders: the files being edited, as typed, and where the cursor is.
+// What the preview renders: the files being edited, as typed, and where the cursor is, as a position or as an offset.
 type PreviewRequest struct {
 	// The file the cursor is in, relative to the workspace.
 	File string `json:"file"`
-	// The byte offset of the cursor in that file.
-	Offset int64 `json:"offset"`
+	// The cursor as the language server protocol counts: a 0-based line and a 0-based character offset in UTF-16 code units. It wins over `offset`.
+	Position *Position `json:"position,omitempty"`
+	// The cursor as a 0-based offset in bytes of the file's UTF-8 text.
+	Offset *int64 `json:"offset,omitempty"`
 	// Unsaved text of open files, by path relative to the workspace.
 	Overlays map[string]string `json:"overlays"`
+}
+
+// A place in a text as the language server protocol counts it.
+type Position struct {
+	// 0-based.
+	Line int64 `json:"line"`
+	// 0-based, in UTF-16 code units.
+	Character int64 `json:"character"`
 }
 
 // The current node as the docs render it.
@@ -80,22 +90,94 @@ type LspMessage struct {
 // The repository the server runs on.
 type Workspace struct {
 	Name string `json:"name"`
-	// The folder on disk, which language-server URIs start with.
+	// The folder on disk.
 	Root string `json:"root"`
-	// The entry point, relative to the workspace.
-	Entry  string   `json:"entry"`
-	Branch string   `json:"branch"`
-	Files  []string `json:"files"`
+	// The `file:` URI of the folder: every language-server URI of a workspace file starts with it, and the rest is the file's path.
+	RootUri string `json:"root_uri"`
+	// The [entry point](#language.core_format.files.entry_point), relative to the workspace.
+	Entry  string `json:"entry"`
+	Branch string `json:"branch"`
+	// The files the tree reaches, relative to the workspace.
+	Files []string `json:"files"`
 }
 
-// A file's text, by path relative to the workspace.
-type FileText struct {
+// Every file and folder under a folder of the workspace.
+type FileList struct {
+	Entries []FileEntry `json:"entries"`
+}
+
+// A file or a folder, by path relative to the workspace.
+type FileEntry struct {
+	Path string `json:"path"`
+	Dir  bool   `json:"dir"`
+	// In bytes; 0 for a folder.
+	Size int64 `json:"size"`
+	// When it last changed, as RFC 3339.
+	Mtime string `json:"mtime"`
+	// Whether the tree reaches the file.
+	InTree bool `json:"in_tree"`
+}
+
+// A file's content and what identifies this version of it.
+type FileContent struct {
+	Path string `json:"path"`
+	// The content: text, or base64 when `encoding` is `base64`.
+	Text string `json:"text"`
+	// `utf-8` or `base64`.
+	Encoding string `json:"encoding"`
+	Size     int64  `json:"size"`
+	Mtime    string `json:"mtime"`
+	// Changes whenever the content does; `write_file` takes it as `if_match`.
+	Etag string `json:"etag"`
+}
+
+// A file to save.
+type WriteRequest struct {
 	Path string `json:"path"`
 	Text string `json:"text"`
+	// `utf-8`, the default, or `base64`.
+	Encoding *string `json:"encoding,omitempty"`
+	// Save only while the file has this entity tag; empty for a file that mustn't exist yet.
+	IfMatch *string `json:"if_match,omitempty"`
 }
 
+// What a write, a rename or a new folder left on disk.
 type Saved struct {
+	Path  string `json:"path"`
+	Size  int64  `json:"size"`
+	Mtime string `json:"mtime"`
+	Etag  string `json:"etag"`
+}
+
+// A file or folder that was removed.
+type Removed struct {
 	Path string `json:"path"`
+}
+
+// A move from one path of the workspace to another.
+type RenameRequest struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+// A path of the workspace.
+type PathRequest struct {
+	Path string `json:"path"`
+}
+
+// One change in the workspace.
+type WorkspaceEvent struct {
+	// `ready`, which opens the stream once the server is watching, then `file`, `problems` or `results`.
+	Type string `json:"type"`
+	// For a `file` event, the file, relative to the workspace.
+	Path *string `json:"path,omitempty"`
+	// For a `file` event: `created`, `changed` or `removed`.
+	Change *string `json:"change,omitempty"`
+}
+
+// The standard packages' files, as `std/doc/package.heron`.
+type StdFiles struct {
+	Files []string `json:"files"`
 }
 
 // The tree with the given unsaved texts.
@@ -108,7 +190,7 @@ type Problems struct {
 	Problems []Problem `json:"problems"`
 }
 
-// One diagnostic, with 1-based lines and columns.
+// One diagnostic, with 1-based lines and characters.
 type Problem struct {
 	File      string `json:"file"`
 	Line      int64  `json:"line"`
@@ -166,16 +248,41 @@ type OutlineNode struct {
 
 // Service implements the ops.
 type Service interface {
+	// The node at a position of a file rendered as the docs render it, with the files being edited as typed.
 	Preview(ctx context.Context, request *PreviewRequest) (*Preview, error)
+	// The latest results of the nodes under a path, such as each task's last run.
 	Results(ctx context.Context, path string) (*NodeResults, error)
+	// One stored record, such as a run, by its id.
 	GetRecord(ctx context.Context, id string) (*Record, error)
+	// The language server, one JSON-RPC message per websocket frame.
 	Lsp(w http.ResponseWriter, r *http.Request)
+	// The workspace: its [entry point](#language.core_format.files.entry_point), the files its tree reaches, its branch and the root URI the language server's URIs start with.
 	Workspace(ctx context.Context) (*Workspace, error)
-	ReadFile(ctx context.Context, path string) (*FileText, error)
-	WriteFile(ctx context.Context, request *FileText) (*Saved, error)
+	// Every file and folder under the workspace, or under one folder of it, whether the tree reaches it or not, with its size and the time it last changed.
+	ListFiles(ctx context.Context, dir string) (*FileList, error)
+	// A file's content, as text or, with `encoding` set to `base64`, as base64, with its size, modification time and entity tag.
+	ReadFile(ctx context.Context, path string, encoding string) (*FileContent, error)
+	// Saves a file, creating its folders, and answers its new size, modification time and entity tag; with `if_match`, only while the file still has that tag.
+	WriteFile(ctx context.Context, request *WriteRequest) (*Saved, error)
+	// Removes a file, or an empty folder.
+	DeleteFile(ctx context.Context, path string) (*Removed, error)
+	// Moves a file or a folder to another path of the workspace.
+	RenameFile(ctx context.Context, request *RenameRequest) (*Saved, error)
+	// Creates a folder and the folders above it.
+	MakeDir(ctx context.Context, request *PathRequest) (*Saved, error)
+	// A stream of what changes in the workspace while the client listens: files written, created or removed, by anyone, the tree's problems and the nodes' results.
+	Watch(ctx context.Context, send func(*WorkspaceEvent) error) error
+	// The files of the standard packages built into the server.
+	StdFiles(ctx context.Context) (*StdFiles, error)
+	// A standard file's text, read-only, by its path as `std_files` lists it.
+	StdSource(ctx context.Context, path string) (*FileContent, error)
+	// Every diagnostic of the tree with the given unsaved texts, with what reported it.
 	Problems(ctx context.Context, request *TreeRequest) (*Problems, error)
+	// Runs a task and streams its output, then its result.
 	RunTask(ctx context.Context, request *RunRequest, send func(*RunEvent) error) error
+	// The nodes a file declares, which of them run, and the lines they span.
 	Outline(ctx context.Context, request *OutlineRequest) (*Outline, error)
+	// The files generation would write, without writing them.
 	Generated(ctx context.Context, request *TreeRequest) (*GeneratedFiles, error)
 }
 
@@ -222,9 +329,19 @@ func Routes(s Service) []route.Route {
 			}
 			route.WriteJSON(w, out)
 		}},
+		{Op: "spec_server.list_files", Method: "GET", Path: "/api/v1/files", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			p_dir := r.URL.Query().Get("dir")
+			out, err := s.ListFiles(r.Context(), p_dir)
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
 		{Op: "spec_server.read_file", Method: "GET", Path: "/api/v1/file", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
 			p_path := r.URL.Query().Get("path")
-			out, err := s.ReadFile(r.Context(), p_path)
+			p_encoding := r.URL.Query().Get("encoding")
+			out, err := s.ReadFile(r.Context(), p_path, p_encoding)
 			if err != nil {
 				route.WriteError(w, err)
 				return
@@ -232,12 +349,70 @@ func Routes(s Service) []route.Route {
 			route.WriteJSON(w, out)
 		}},
 		{Op: "spec_server.write_file", Method: "POST", Path: "/api/v1/file", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
-			p_request := &FileText{}
+			p_request := &WriteRequest{}
 			if err := route.DecodeBody(r, p_request); err != nil {
 				route.WriteError(w, err)
 				return
 			}
 			out, err := s.WriteFile(r.Context(), p_request)
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
+		{Op: "spec_server.delete_file", Method: "DELETE", Path: "/api/v1/file", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			p_path := r.URL.Query().Get("path")
+			out, err := s.DeleteFile(r.Context(), p_path)
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
+		{Op: "spec_server.rename_file", Method: "POST", Path: "/api/v1/file/rename", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			p_request := &RenameRequest{}
+			if err := route.DecodeBody(r, p_request); err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			out, err := s.RenameFile(r.Context(), p_request)
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
+		{Op: "spec_server.make_dir", Method: "POST", Path: "/api/v1/dir", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			p_request := &PathRequest{}
+			if err := route.DecodeBody(r, p_request); err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			out, err := s.MakeDir(r.Context(), p_request)
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
+		{Op: "spec_server.watch", Method: "GET", Path: "/api/v1/events", Stream: true, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			ev := route.NewEvents(w)
+			if err := s.Watch(r.Context(), func(e *WorkspaceEvent) error { return ev.Send(e) }); err != nil {
+				ev.Fail(err)
+			}
+		}},
+		{Op: "spec_server.std_files", Method: "GET", Path: "/api/v1/std", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			out, err := s.StdFiles(r.Context())
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
+		{Op: "spec_server.std_source", Method: "GET", Path: "/api/v1/std/file", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			p_path := r.URL.Query().Get("path")
+			out, err := s.StdSource(r.Context(), p_path)
 			if err != nil {
 				route.WriteError(w, err)
 				return

@@ -43,9 +43,11 @@ func (r Route) Pattern() string {
 	return r.Method + " " + p
 }
 
-// Error is an error with an HTTP status, returned by a handler.
+// Error is an error with an HTTP status, returned by a handler, and the id
+// of the API's error it is, sent as the body's code.
 type Error struct {
 	Status  int
+	Code    string
 	Message string
 }
 
@@ -54,6 +56,11 @@ func (e *Error) Error() string { return e.Message }
 // Errorf returns an *Error with a status.
 func Errorf(status int, format string, args ...any) error {
 	return &Error{Status: status, Message: fmt.Sprintf(format, args...)}
+}
+
+// Coded returns an *Error with a status and the id of the API's error.
+func Coded(status int, code, format string, args ...any) error {
+	return &Error{Status: status, Code: code, Message: fmt.Sprintf(format, args...)}
 }
 
 // WriteJSON writes a value as a 200 response.
@@ -65,13 +72,17 @@ func WriteJSON(w http.ResponseWriter, v any) {
 // WriteError writes an error as JSON with its status.
 func WriteError(w http.ResponseWriter, err error) {
 	status := http.StatusInternalServerError
+	body := map[string]string{"error": err.Error()}
 	var e *Error
 	if errors.As(err, &e) {
 		status = e.Status
+		if e.Code != "" {
+			body["code"] = e.Code
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	_ = json.NewEncoder(w).Encode(body)
 }
 
 // DecodeBody reads a JSON body into v.

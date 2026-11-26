@@ -352,7 +352,12 @@ func TS(a *API) []byte {
 func (a *API) tsParams(op *Op) []string {
 	var ps []string
 	for _, p := range op.Params {
-		ps = append(ps, tsName(p.Name)+": "+tsType(p.Type))
+		t := p.Type
+		opt := ""
+		if t.Optional {
+			opt, t.Optional = "?", false
+		}
+		ps = append(ps, tsName(p.Name)+opt+": "+tsType(t))
 	}
 	return ps
 }

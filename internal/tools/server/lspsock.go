@@ -28,7 +28,9 @@ func LanguageServer(r *registry.Registry) LSP {
 // serveLSP accepts the editor's socket and runs one language-server
 // session over it until either side closes.
 func serveLSP(w http.ResponseWriter, r *http.Request, serve LSP, root string) {
-	c, err := websocket.Accept(w, r, nil)
+	// guardOrigins has already refused every origin that isn't the
+	// server's own or an allowed one.
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
 	if err != nil {
 		return
 	}

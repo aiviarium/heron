@@ -31,11 +31,11 @@ go run ./internal/core/extension/protocol/internal/protogen \
   -go "$tmp/protocol_gen.go" -ts "$tmp/protocol.gen.ts"
 diff -q "$tmp/protocol_gen.go" internal/core/extension/protocol/protocol_gen.go
 diff -q "$tmp/protocol.gen.ts" web/runtime/src/protocol.gen.ts
-go run ./internal/tools/server/apigen -base internal/tools/server/api/server.heron \
+go run ./internal/tools/server/apigen \
   -go "$tmp/api_gen.go" -pkg api -ts "$tmp/api.gen.ts"
 diff -q "$tmp/api_gen.go" internal/tools/server/api/api_gen.go
 diff -q "$tmp/api.gen.ts" web/shell/src/api.gen.ts
-go run ./internal/tools/server/apigen -base internal/tools/server/api/server.heron \
+go run ./internal/tools/server/apigen \
   -ext internal/tools/server/internal/sample/sample.heron \
   -go "$tmp/sample_gen.go" -pkg sample -ts "$tmp/sample.gen.ts"
 diff -q "$tmp/sample_gen.go" internal/tools/server/internal/sample/sample_gen.go

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,36 +31,12 @@ type service struct {
 var _ api.Service = (*service)(nil)
 
 func (s *service) Workspace(ctx context.Context) (*api.Workspace, error) {
-	out := &api.Workspace{Name: filepath.Base(s.ws.Root), Root: s.ws.Root, Entry: s.ws.Rel(s.ws.Entry), Branch: s.ws.Branch(), Files: []string{}}
+	out := &api.Workspace{Name: filepath.Base(s.ws.Root), Root: s.ws.Root, RootUri: rootURI(s.ws.Root), Entry: s.ws.Rel(s.ws.Entry), Branch: s.ws.Branch(), Files: []string{}}
 	err := s.ws.Analyze(nil, func(a *Analysis) error {
 		out.Files = append(out.Files, a.Files()...)
 		return nil
 	})
 	return out, err
-}
-
-func (s *service) ReadFile(ctx context.Context, path string) (*api.FileText, error) {
-	id, err := s.ws.Abs(path)
-	if err != nil {
-		return nil, route.Errorf(http.StatusBadRequest, "%v", err)
-	}
-	b, err := os.ReadFile(string(id))
-	if err != nil {
-		return nil, route.Errorf(http.StatusNotFound, "%s: no such file", path)
-	}
-	return &api.FileText{Path: path, Text: string(b)}, nil
-}
-
-func (s *service) WriteFile(ctx context.Context, req *api.FileText) (*api.Saved, error) {
-	id, err := s.ws.Abs(req.Path)
-	if err != nil {
-		return nil, route.Errorf(http.StatusBadRequest, "%v", err)
-	}
-	if err := os.WriteFile(string(id), []byte(req.Text), 0o644); err != nil {
-		return nil, err
-	}
-	s.ws.Invalidate()
-	return &api.Saved{Path: req.Path}, nil
 }
 
 func (s *service) Problems(ctx context.Context, req *api.TreeRequest) (*api.Problems, error) {
@@ -100,7 +77,7 @@ func (s *service) Outline(ctx context.Context, req *api.OutlineRequest) (*api.Ou
 	out := &api.Outline{File: req.File, Nodes: []api.OutlineNode{}}
 	id, err := s.ws.Abs(req.File)
 	if err != nil {
-		return nil, route.Errorf(http.StatusBadRequest, "%v", err)
+		return nil, errNotInWorkspace(req.File)
 	}
 	err = s.ws.Analyze(req.Overlays, func(a *Analysis) error {
 		out.Nodes = a.outline(id)
@@ -112,11 +89,23 @@ func (s *service) Outline(ctx context.Context, req *api.OutlineRequest) (*api.Ou
 func (s *service) Preview(ctx context.Context, req *api.PreviewRequest) (*api.Preview, error) {
 	id, err := s.ws.Abs(req.File)
 	if err != nil {
-		return nil, route.Errorf(http.StatusBadRequest, "%v", err)
+		return nil, errNotInWorkspace(req.File)
 	}
 	var out *api.Preview
 	err = s.ws.Analyze(req.Overlays, func(a *Analysis) error {
-		out = a.preview(s.shell.Renderer, id, int(req.Offset))
+		off := 0
+		if req.Offset != nil {
+			off = int(*req.Offset)
+		}
+		if req.Position != nil {
+			text, ok := req.Overlays[req.File]
+			if !ok {
+				b, _ := os.ReadFile(string(id))
+				text = string(b)
+			}
+			off = utf16Offset(text, int(req.Position.Line), int(req.Position.Character))
+		}
+		out = a.preview(s.shell.Renderer, id, off)
 		return nil
 	})
 	if err != nil {
@@ -147,7 +136,7 @@ func (s *service) GetRecord(ctx context.Context, id string) (*api.Record, error)
 			return &api.Record{Kind: r.Kind, ID: r.ID, Time: r.Time.UTC().Format("2006-01-02T15:04:05.000Z"), Data: r.Data}, nil
 		}
 	}
-	return nil, route.Errorf(http.StatusNotFound, "no record %s", id)
+	return nil, route.Coded(http.StatusNotFound, "server.NO_RECORD", "no record %s", id)
 }
 
 // runResults is the built-in result provider: each task's last run.
@@ -203,7 +192,7 @@ var runs sync.Map
 
 func (s *service) RunTask(ctx context.Context, req *api.RunRequest, send func(*api.RunEvent) error) error {
 	if _, busy := runs.LoadOrStore(req.Path, true); busy {
-		return route.Errorf(http.StatusConflict, "%s is already running", req.Path)
+		return route.Coded(http.StatusConflict, "server.ALREADY_RUNNING", "%s is already running", req.Path)
 	}
 	defer runs.Delete(req.Path)
 	exe, err := os.Executable()
@@ -251,7 +240,7 @@ func (s *service) Generated(ctx context.Context, req *api.TreeRequest) (*api.Gen
 		in := &gen.Input{Tree: a.Res.Tree, Checker: a.Res.Checker, Dir: s.ws.Root}
 		for _, g := range s.ws.Reg.Generators("") {
 			// The docs are previewed live, as the spec browser.
-			if g.Target == "docs" {
+			if g.Target == "docs" || g.OnRequest {
 				continue
 			}
 			files, err := g.Generate(ctx, in)
@@ -269,8 +258,44 @@ func (s *service) Generated(ctx context.Context, req *api.TreeRequest) (*api.Gen
 
 func (s *service) Lsp(w http.ResponseWriter, r *http.Request) {
 	if s.shell.LSP == nil {
-		route.WriteError(w, route.Errorf(http.StatusServiceUnavailable, "no language server is installed"))
+		route.WriteError(w, route.Coded(http.StatusServiceUnavailable, "server.NO_LANGUAGE_SERVER", "no language server is installed"))
 		return
 	}
 	serveLSP(w, r, s.shell.LSP, s.ws.Root)
+}
+
+// rootURI is the file: URI of the workspace's folder, with a trailing
+// slash, that every language-server URI of its files starts with.
+func rootURI(root string) string {
+	u := url.URL{Scheme: "file", Path: filepath.ToSlash(root)}
+	s := u.String()
+	if !strings.HasSuffix(s, "/") {
+		s += "/"
+	}
+	return s
+}
+
+// utf16Offset turns a 0-based line and a 0-based UTF-16 column into a byte
+// offset of text, clamped to the line.
+func utf16Offset(text string, line, char int) int {
+	off := 0
+	for i := 0; i < line; i++ {
+		j := strings.IndexByte(text[off:], '\n')
+		if j < 0 {
+			return len(text)
+		}
+		off += j + 1
+	}
+	n := 0
+	for i, r := range text[off:] {
+		if n >= char || r == '\n' {
+			return off + i
+		}
+		if r >= 0x10000 {
+			n += 2
+		} else {
+			n++
+		}
+	}
+	return len(text)
 }
