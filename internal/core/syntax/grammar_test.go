@@ -228,7 +228,14 @@ func TestProse(t *testing.T) {
 		{sec("  | an open ` $x"), wrap("ProseLines(ProseLine(Insert(Path)))"), nil},
 		// links
 		{sec("  | [a](#b.c) [d](https://x.y/$p)"), wrap("ProseLines(ProseLine(Link(Path) Link(Insert(Path))))"), nil},
-		{sec("  | [a] b [c](d e)"), wrap("ProseLines(ProseLine)"), nil},
+		{sec("  | [a b] c [d](e f)"), wrap("ProseLines(ProseLine)"), nil},
+		// short_links: a name or a dotted path in brackets, in backticks
+		// or not, is a short link; other bracketed text, an escaped
+		// bracket and a bracket in code are text.
+		{sec("  | [a] [`b.c`] [d.e_f]"), wrap("ProseLines(ProseLine(ShortLink(Path) ShortLink(Path) ShortLink(Path)))"), nil},
+		{sec("  | [entry points…] [ ] [1] [a b] \\[a] `[a]` [``a``]"), wrap("ProseLines(ProseLine)"), nil},
+		{"x {{ see [y] }}", "File(TextNode(Path ProseBlock(ShortLink(Path))))", nil},
+		{"md:See [y].\n", "ProseFile(ShortLink(Path))", nil},
 		// tags
 		{sec("  | <note/> <n kind=\"tip\" open>x</n>"), wrap("ProseLines(ProseLine(Tag(Path) Tag(Path TagAttr(StringLit) TagAttr TagClose(Path))))"), nil},
 		{sec("  | a < b and <- c"), wrap("ProseLines(ProseLine)"), nil},

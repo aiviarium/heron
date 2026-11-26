@@ -500,7 +500,7 @@ func (p *parser) inlines(cx *inlineCtx) {
 		case c == '`':
 			p.codeSpan()
 		case c == '[':
-			if !p.link(cx) {
+			if !p.link(cx) && (cx.link > 0 || !p.shortLink()) {
 				p.tok(Text, 1)
 			}
 		case c == '$' && p.insertAhead():
@@ -600,6 +600,68 @@ func (p *parser) link(cx *inlineCtx) bool {
 	}
 	p.tok(LinkClose, 1)
 	p.wrap(m, Link)
+	return true
+}
+
+// byteAt is the byte at an offset of the source, or 0 past its end.
+func (p *parser) byteAt(o int) byte {
+	if o >= 0 && o < len(p.src) {
+		return p.src[o]
+	}
+	return 0
+}
+
+// shortLinkLen reports the length of a short link at the cursor, `[name]`
+// or “[`name`]“ with a name or a dotted path of names, not followed by
+// `(`, and whether its path is in backticks; 0 when the brackets aren't one.
+func (p *parser) shortLinkLen() (int, bool) {
+	o := p.pos + 1
+	tick := p.byteAt(o) == '`' && p.byteAt(o+1) != '`'
+	if tick {
+		o++
+	}
+	for {
+		n := p.identLenAt(o)
+		if n == 0 {
+			return 0, false
+		}
+		o += n
+		if p.byteAt(o) == '.' && p.identLenAt(o+1) > 0 {
+			o++
+			continue
+		}
+		break
+	}
+	if tick {
+		if p.byteAt(o) != '`' {
+			return 0, false
+		}
+		o++
+	}
+	if p.byteAt(o) != ']' || p.byteAt(o+1) == '(' {
+		return 0, false
+	}
+	return o + 1 - p.pos, tick
+}
+
+// shortLink parses `[name]` or “[`name`]“, and reports false (with
+// nothing consumed) when the brackets aren't one.
+func (p *parser) shortLink() bool {
+	n, tick := p.shortLinkLen()
+	if n == 0 {
+		return false
+	}
+	m := p.mark()
+	p.tok(LinkOpen, 1)
+	if tick {
+		p.tok(LinkTick, 1)
+	}
+	p.path(false)
+	if tick {
+		p.tok(LinkTick, 1)
+	}
+	p.tok(ShortLinkEnd, 1)
+	p.wrap(m, ShortLink)
 	return true
 }
 

@@ -66,6 +66,8 @@ const (
 	LinkOpen
 	LinkMid
 	LinkClose
+	LinkTick
+	ShortLinkEnd
 	Hash
 	Url
 	TagOpen
@@ -128,6 +130,7 @@ const (
 	ProseLine
 	ProseBlock
 	Link
+	ShortLink
 	Insert
 	Tag
 	TagClose
@@ -202,6 +205,8 @@ var kindNames = [...]string{
 	LinkOpen:         "LinkOpen",
 	LinkMid:          "LinkMid",
 	LinkClose:        "LinkClose",
+	LinkTick:         "LinkTick",
+	ShortLinkEnd:     "ShortLinkEnd",
 	Hash:             "Hash",
 	Url:              "Url",
 	TagOpen:          "TagOpen",
@@ -263,6 +268,7 @@ var kindNames = [...]string{
 	ProseLine:        "ProseLine",
 	ProseBlock:       "ProseBlock",
 	Link:             "Link",
+	ShortLink:        "ShortLink",
 	Insert:           "Insert",
 	Tag:              "Tag",
 	TagClose:         "TagClose",

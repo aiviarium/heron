@@ -258,7 +258,7 @@ func AsType(n *syntax.Node) Type {
 	return nil
 }
 
-// Inline is one of: Link, Insert, Tag, Fence.
+// Inline is one of: Link, ShortLink, Insert, Tag, Fence.
 //
 //sumtype:decl
 type Inline interface {
@@ -269,7 +269,7 @@ type Inline interface {
 // IsInlineKind reports whether nodes of kind k are Inline.
 func IsInlineKind(k syntax.Kind) bool {
 	switch k {
-	case syntax.Link, syntax.Insert, syntax.Tag, syntax.Fence:
+	case syntax.Link, syntax.ShortLink, syntax.Insert, syntax.Tag, syntax.Fence:
 		return true
 	}
 	return false
@@ -283,6 +283,8 @@ func AsInline(n *syntax.Node) Inline {
 	switch n.Kind {
 	case syntax.Link:
 		return Link{n}
+	case syntax.ShortLink:
+		return ShortLink{n}
 	case syntax.Insert:
 		return Insert{n}
 	case syntax.Tag:
@@ -293,7 +295,7 @@ func AsInline(n *syntax.Node) Inline {
 	return nil
 }
 
-// ProseItem is one of: Heading, HeronFence, Link, Insert, Tag, Fence.
+// ProseItem is one of: Heading, HeronFence, Link, ShortLink, Insert, Tag, Fence.
 //
 //sumtype:decl
 type ProseItem interface {
@@ -304,7 +306,7 @@ type ProseItem interface {
 // IsProseItemKind reports whether nodes of kind k are ProseItem.
 func IsProseItemKind(k syntax.Kind) bool {
 	switch k {
-	case syntax.Heading, syntax.HeronFence, syntax.Link, syntax.Insert, syntax.Tag, syntax.Fence:
+	case syntax.Heading, syntax.HeronFence, syntax.Link, syntax.ShortLink, syntax.Insert, syntax.Tag, syntax.Fence:
 		return true
 	}
 	return false
@@ -322,6 +324,8 @@ func AsProseItem(n *syntax.Node) ProseItem {
 		return HeronFence{n}
 	case syntax.Link:
 		return Link{n}
+	case syntax.ShortLink:
+		return ShortLink{n}
 	case syntax.Insert:
 		return Insert{n}
 	case syntax.Tag:
@@ -1136,6 +1140,20 @@ func (n Link) Inserts() []Insert {
 }
 func (n Link) LinkClose() *syntax.Token { return token(n.N, syntax.LinkClose, 0) }
 
+// ShortLink is a typed view of a syntax.ShortLink node.
+type ShortLink struct{ N *syntax.Node }
+
+// Syntax returns the underlying node.
+func (n ShortLink) Syntax() *syntax.Node { return n.N }
+
+func (ShortLink) isInline()    {}
+func (ShortLink) isProseItem() {}
+
+func (n ShortLink) LinkOpen() *syntax.Token     { return token(n.N, syntax.LinkOpen, 0) }
+func (n ShortLink) LinkTicks() []*syntax.Token  { return tokens(n.N, syntax.LinkTick) }
+func (n ShortLink) Path() Path                  { return Path{child(n.N, kindIs(syntax.Path), 0)} }
+func (n ShortLink) ShortLinkEnd() *syntax.Token { return token(n.N, syntax.ShortLinkEnd, 0) }
+
 // Insert is a typed view of a syntax.Insert node.
 type Insert struct{ N *syntax.Node }
 
@@ -1357,6 +1375,8 @@ func Cast(n *syntax.Node) Node {
 		return Scope{n}
 	case syntax.Set:
 		return Set{n}
+	case syntax.ShortLink:
+		return ShortLink{n}
 	case syntax.StringLit:
 		return StringLit{n}
 	case syntax.StringPart:

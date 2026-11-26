@@ -30,7 +30,7 @@ token Quote StringText Escape Dollar DollarBrace Raw
 
 // Prose: line prefixes, text, and the forms inside text.
 token Pipe DocPrefix Text CodeSpan FenceLine
-token LinkOpen LinkMid LinkClose Hash Url
+token LinkOpen LinkMid LinkClose LinkTick ShortLinkEnd Hash Url
 token TagOpen TagCloseOpen TagEnd TagSelfEnd
 token HeadingMark HeadingId
 
@@ -110,8 +110,9 @@ IntersectionType = lhs:Type Amp rhs:Type
 ProseLines = ProseLine*
 ProseLine = Pipe Inline*
 ProseBlock = LBrace2 Inline* RBrace2
-Inline = Link | Insert | Tag | Fence
+Inline = Link | ShortLink | Insert | Tag | Fence
 Link = LinkOpen Inline* LinkMid Hash? Path? Url? Insert* LinkClose
+ShortLink = LinkOpen LinkTick* Path ShortLinkEnd
 Insert = Dollar? DollarBrace? Path? Flags? Args? Expr? RBrace?
 Tag = TagOpen Path TagAttr* TagEnd? TagSelfEnd? Inline* TagClose?
 TagClose = TagCloseOpen Path TagEnd
