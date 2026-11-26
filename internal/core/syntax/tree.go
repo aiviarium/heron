@@ -154,6 +154,14 @@ func LineCol(src string, off int) (line, col int) {
 func FenceLines(n *Node) []string {
 	var lines []string
 	open := false
+	piped := false
+	for _, ch := range n.Children {
+		if t, ok := ch.(*Token); ok && t.Kind == Pipe {
+			piped = true
+		}
+	}
+	newlines := 0 // line breaks since the last line, in a fence without prefixes
+	indent := ""  // a line's indentation, a token of its own there
 	for _, ch := range n.Children {
 		t, ok := ch.(*Token)
 		if !ok {
@@ -163,12 +171,27 @@ func FenceLines(n *Node) []string {
 		case Pipe:
 			lines = append(lines, "")
 			open = true
+		case Newline:
+			if !piped {
+				// In a prose file an empty line of a fence has no token
+				// of its own: a second break in a row is one.
+				if newlines > 0 && len(lines) > 0 {
+					lines = append(lines, "")
+				}
+				newlines++
+				indent = ""
+			}
+		case Whitespace:
+			if !piped {
+				indent += t.Text
+			}
 		case FenceLine:
 			if !open {
 				lines = append(lines, "")
 			}
-			lines[len(lines)-1] = t.Text
+			lines[len(lines)-1] = indent + t.Text
 			open = false
+			newlines, indent = 0, ""
 		}
 	}
 	return lines

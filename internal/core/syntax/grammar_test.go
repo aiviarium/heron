@@ -316,3 +316,24 @@ func TestRecoveryDepth(t *testing.T) {
 		t.Fatalf("got %d nesting diagnostics, want 1: %v", deep, tr.Diags)
 	}
 }
+
+// A fence's lines read as written: in a prose file, where an empty line
+// and a line's indentation have no `|` before them, as in `|` lines,
+// where the space after each `|` is the renderer's to remove.
+func TestFenceLines(t *testing.T) {
+	for _, c := range []struct{ name, src, want string }{
+		{"t.heron.md", "<x id=\"a\">\n```heron\na {\n\n  b\n}\n```\n</x>\n", "```heron|a {||  b|}|```"},
+		{"t.heron", "s: section {\n  | ```heron\n  | a {\n  |\n  |   b\n  | }\n  | ```\n}\n", " ```heron| a {||   b| }| ```"},
+	} {
+		var got []string
+		Parse(c.name, c.src).Root.Walk(func(n *Node) bool {
+			if n.Kind == Fence {
+				got = FenceLines(n)
+			}
+			return true
+		})
+		if strings.Join(got, "|") != c.want {
+			t.Errorf("%s: %q", c.name, got)
+		}
+	}
+}
