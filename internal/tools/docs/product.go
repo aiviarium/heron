@@ -7,9 +7,9 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-// The renderers of std/product: actors and personas, epics of stories
-// with their criteria, use cases with numbered flows, increments,
-// milestones and done criteria.
+// The renderers of the intent kinds and of std/project's delivery: goals,
+// actors and personas, parts, scenarios, stories, increments, milestones
+// and done criteria.
 
 func addProductRenderers() {
 	for k, f := range map[string]RenderFunc{

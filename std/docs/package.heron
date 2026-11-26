@@ -17,7 +17,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     /// renderer, or the generic view of its fields and children.
     renderers?: List(module)
     /// How many levels of sections get pages of their own; 2 unless set.
-    /// Components, commands, epics, use cases and screens get pages at any
+    /// Components, commands, use cases and screens get pages at any
     /// depth.
     depth?: Int
     accept(kind = layout)

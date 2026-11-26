@@ -214,7 +214,7 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 				continue
 			}
 			if !RequirementKinds[KindPath(c, target)] {
-				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or status names a rule, criterion, transition, diagnostic, invariant or quality", target.Path())
+				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or status names a rule, a constraint, a scenario, a use case or its step, a transition or an error", target.Path())
 			}
 		}
 	}
@@ -300,7 +300,7 @@ func (p *Project) Requirements() []*Requirement {
 }
 
 // PracticeSubject reports whether a requirement's `by` names a person or
-// an agent: an std/product actor of kind PERSON, the default, or AGENT, or
+// an agent: an std/spec actor of kind PERSON, the default, or AGENT, or
 // a persona. What it asks of them is a practice of the people and agents
 // who author and build, which no test of the code proves, unless a proof
 // links one, as a test of contrast or of visible text can.

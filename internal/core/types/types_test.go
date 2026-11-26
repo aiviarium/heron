@@ -261,7 +261,7 @@ ping(): op
 	}
 }
 
-// The kinds of std/spec, std/product and std/tech check their bodies,
+// The kinds of std/spec check their bodies,
 // their fields and the variants a lifecycle names.
 func TestSpecKinds(t *testing.T) {
 	base := "import = [\"std/doc@1\", \"std/types@1\", \"std/spec@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"

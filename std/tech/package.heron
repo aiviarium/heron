@@ -1,7 +1,0 @@
-// std/tech is merged into std/spec, which holds its contract kinds; grammars
-// are std/grammar's and code components std/project's.
-import = ["std/schema@1"]
-
-@retired("import std/spec@1, which holds its kinds; grammars are std/grammar's")
-tech: package(version = "1.1") {
-}

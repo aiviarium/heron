@@ -98,9 +98,6 @@ schema: package(version = "1.0") {
     CONTRACT: Self
   }
 
-  /// A kind kept only so a tree that uses it learns what to write instead.
-  retired(use: String): annotation(on = [kind, package])
-
   /// The three modes the parser reads a body in.
   Mode: enum {
     structure: Self

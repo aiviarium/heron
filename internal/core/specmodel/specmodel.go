@@ -1,7 +1,6 @@
 // Package specmodel checks what std/spec's layers ask of a tree: the layer
-// of each node, references that never point down, the links' targets, the
-// retired kinds and packages, and the shapes of the kinds that need more
-// than a schema says: rules, constraints, scenarios, personas, use cases
+// of each node, references that never point down, the links' targets, and
+// the shapes of the kinds that need more than a schema says: rules, constraints, scenarios, personas, use cases
 // and errors.
 package specmodel
 
@@ -178,7 +177,6 @@ func KindName(c *types.Checker, n *resolve.Node) string {
 func Check(t *resolve.Tree, c *types.Checker) diag.List {
 	var ds diag.List
 	project.Own(t, func(n *resolve.Node) bool {
-		retired(c, n, &ds)
 		if l := LayerOf(c, n); l != None {
 			for _, r := range OwnRefs(c, t, n) {
 				tl := LayerOf(c, r.Target)
@@ -195,7 +193,6 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 		shapes(t, c, n, &ds)
 		return true
 	})
-	retiredImports(t, c, &ds)
 	return ds
 }
 
@@ -208,96 +205,7 @@ func displayPath(n *resolve.Node) string {
 	return p
 }
 
-// retiredUse is the advice of a retired kind's @retired, or "".
-func RetiredUse(c *types.Checker, k *resolve.Node) string {
-	if k == nil {
-		return ""
-	}
-	for _, a := range k.Annotations {
-		an := ast.Annotation{N: a.N}
-		if an.N == nil || an.Path().N == nil {
-			continue
-		}
-		if segs := resolve.PathSegs(an.Path().N); len(segs) == 0 || segs[len(segs)-1] != "retired" {
-			continue
-		}
-		for _, x := range an.Args().Args() {
-			var e ast.Expr
-			switch x := x.(type) {
-			case ast.PositionalArg:
-				e = x.Expr()
-			case ast.NamedArg:
-				e = x.Expr()
-			}
-			if e != nil {
-				if s, ok := resolve.StringValue(e.Syntax()); ok {
-					return s
-				}
-			}
-		}
-		return "it has no replacement"
-	}
-	return ""
-}
 
-func retired(c *types.Checker, n *resolve.Node, ds *diag.List) {
-	k := c.KindOf(n)
-	use := RetiredUse(c, k)
-	if use == "" {
-		return
-	}
-	at := n.Decl
-	p := kindPathNode(n)
-	if p != nil {
-		at = resolve.Site{File: n.Decl.File, N: p, Scope: n.Decl.Scope}
-	}
-	errAt(ds, at, "retired", "%s is retired; %s", k.Name, use)
-	// The mechanical migrations rewrite the kind's name.
-	to := map[string]string{"invariant": "rule", "obligation": "rule", "component": "part", "criterion": "scenario", "outOfScope": "nongoal"}[k.Name]
-	if to == "" || p == nil || at.File == nil || (k.Name == "obligation" || k.Name == "component") && len(project.KindArgs(n).Args()) > 0 {
-		return
-	}
-	s, e := p.Span()
-	d := &(*ds)[len(*ds)-1]
-	d.Fixes = []diag.Fix{{Title: "Write " + to + " instead of " + k.Name, Edits: []diag.Edit{{File: string(at.File.ID), Start: s, End: e, New: to}}}}
-}
-
-// kindPathNode is the syntax of a node's kind name, where it has one.
-func kindPathNode(n *resolve.Node) *syntax.Node {
-	if n.Decl.N == nil {
-		return nil
-	}
-	switch n.Decl.N.Kind {
-	case syntax.Declare:
-		if nt, ok := (ast.Declare{N: n.Decl.N}).Type().(ast.NamedType); ok {
-			return nt.Path().N
-		}
-	case syntax.Value:
-		if nt, ok := (ast.Value{N: n.Decl.N}).Type().(ast.NamedType); ok {
-			return nt.Path().N
-		}
-	case syntax.Invoke:
-		return ast.Invoke{N: n.Decl.N}.Path().N
-	case syntax.Tag:
-		return ast.Tag{N: n.Decl.N}.Path().N
-	}
-	return nil
-}
-
-func retiredImports(t *resolve.Tree, c *types.Checker, ds *diag.List) {
-	for _, p := range t.Imports {
-		site, ok := t.ImportSites[p]
-		if p.Node == nil || !ok || site.N == nil {
-			continue
-		}
-		if use := RetiredUse(c, p.Node); use != "" {
-			errAt(ds, site, "retired", "%s is merged into std/spec; %s", p.Name, use)
-			s, e := site.Span()
-			d := &(*ds)[len(*ds)-1]
-			d.Fixes = []diag.Fix{{Title: "Import std/spec@1", Edits: []diag.Edit{{File: string(site.File.ID), Start: s, End: e, New: `"std/spec@1"`}}}}
-		}
-	}
-}
 
 func article(w string) string {
 	if w != "" && strings.ContainsRune("aeiou", rune(w[0])) {

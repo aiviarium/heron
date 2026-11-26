@@ -266,38 +266,6 @@ e: error("x") {
 		"placeholder: field d of e appears in neither its title nor its related message")
 }
 
-// A retired kind or package is an error naming what to write instead,
-// with the fix where the change is mechanical.
-func TestRetired(t *testing.T) {
-	res := checkSrc(t, `import = ["std/doc@1", "std/spec@1", "std/tech@1"]
-
-old: invariant {{ x }}
-c: criterion {
-  given {{ g }}
-}
-r: rule {
-  must {{ x }}
-  unless {{ y }}
-}
-`)
-	wantAll(t, res,
-		"retired: std/tech is merged into std/spec",
-		"retired: invariant is retired; write a rule with no condition",
-		"retired: criterion is retired; write a scenario",
-		"retired: unless is retired; write while")
-	fixes := map[string]bool{}
-	for _, d := range res.Diags {
-		for _, f := range d.Fixes {
-			fixes[f.Title] = true
-		}
-	}
-	for _, w := range []string{"Write rule instead of invariant", "Write scenario instead of criterion", "Import std/spec@1"} {
-		if !fixes[w] {
-			t.Errorf("no fix %q in %v", w, fixes)
-		}
-	}
-}
-
 // A story lists spec items; it states no behaviour of its own.
 func TestStoryStatesNoBehaviour(t *testing.T) {
 	res := checkSrc(t, `import = ["std/doc@1", "std/spec@1", "std/project@1"]

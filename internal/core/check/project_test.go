@@ -47,10 +47,9 @@ built: status<untested>(x) {{ Built with the first cut. }}
 first: release("1.0.0+build1", date = "2026-11-01") {{ The first release. }}
 `
 
-// std/project's kinds check clean with std/spec and std/product in scope,
-// in either import order: std/project's package node doesn't hide
-// std/spec's project kind, and its <planned> doesn't clash with
-// std/product's.
+// std/project's kinds check clean with std/spec in scope, in either
+// import order: std/project's package node doesn't hide std/spec's
+// project kind.
 func TestProjectKindsCheck(t *testing.T) {
 	for _, imports := range []string{
 		`["std/doc@1", "std/spec@1", "std/project@1"]`,

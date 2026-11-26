@@ -341,9 +341,6 @@ func TestNestedSignatureDedented(t *testing.T) {
 	}
 }
 
-// The kinds of std/product and std/tech render as their views: a story's
-// sentence and criteria, a use case's numbered flows, a command's tables,
-// a component's contract and a grammar's linked productions.
 // The layers' kinds render as the spec says: goals with their measure and
 // what serves them, use cases as Cockburn writes them, errors with their
 // projections, rules with their rationale and derived lists.

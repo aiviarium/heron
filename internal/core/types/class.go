@@ -64,7 +64,7 @@ func (c *Checker) metaOf(n *resolve.Node) *meta {
 			if nt, ok := tt.(ast.NamedType); ok && m.t.decl != nil && c.IsKind(m.t.decl) && n.Parent != nil && c.KindOf(n.Parent) != nil && !c.Accepts(n.Parent, m.t.decl) {
 				// Of the kinds the name could mean, the one the enclosing
 				// kind accepts wins, as for a call: std/docs's step in a
-				// how-to, where std/product's step is in scope too.
+				// how-to, where another package's step is in scope too.
 				pred := func(x *resolve.Node) bool { return c.IsKind(x) && c.Accepts(n.Parent, x) }
 				if k := c.lookupPath(n.Decl.Scope, n.Decl.File, off(nt.N), resolve.PathSegs(nt.Path().N), pred); k != nil && pred(k) {
 					m.t.decl = k
@@ -828,8 +828,8 @@ func (c *Checker) FlagDecl(name string, sc *resolve.Scope, file *resolve.File, a
 
 // FlagFor resolves a flag written on an instance of kind k: of the flags
 // the name could mean, the first that attaches to k, or else the first,
-// so std/project's <planned> on a status and std/product's on a story
-// both resolve where the two packages are imported together.
+// so a <planned> declared by two packages imported together resolves to
+// the one that attaches to the kind.
 func (c *Checker) FlagFor(name string, k *resolve.Node, sc *resolve.Scope, file *resolve.File, at int) *resolve.Node {
 	n := c.lookupPath(sc, file, at, []string{name}, func(n *resolve.Node) bool {
 		if !c.IsFlag(n) {

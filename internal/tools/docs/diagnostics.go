@@ -8,7 +8,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-// The view of std/tech's diagnostic kind: a card on its section's page,
+// The view of std/spec's error kind: a card on its section's page,
 // with its code, severity, messages and the component that reports it, and
 // one generated index of every diagnostic in the tree.
 

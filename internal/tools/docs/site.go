@@ -295,8 +295,7 @@ func (s *Site) hasDocs(n *resolve.Node) bool {
 	}
 	for _, c := range n.Children {
 		switch k := s.kindPath(c); {
-		case strings.HasPrefix(k, "spec.") && k != "spec.project", strings.HasPrefix(k, "doc."),
-			strings.HasPrefix(k, "product."), strings.HasPrefix(k, "tech."):
+		case strings.HasPrefix(k, "spec.") && k != "spec.project", strings.HasPrefix(k, "doc."), strings.HasPrefix(k, "grammar."):
 			return true
 		}
 	}

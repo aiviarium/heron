@@ -8,8 +8,8 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-// The renderers of std/tech: component pages with their contract and
-// dependency links, command pages laid out as a CLI reference, and
+// The renderers of the contract kinds: component pages with their contract
+// and dependency links, command pages laid out as a CLI reference, and
 // grammars as EBNF blocks whose names link production to production.
 
 func addTechRenderers() {

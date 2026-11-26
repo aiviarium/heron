@@ -239,8 +239,8 @@ func TestAuthoredExamplesCheck(t *testing.T) {
 	}
 }
 
-// std/docs's step is the kind of a how-to's child and std/product's of a
-// use case's, with both packages imported in either order.
+// std/docs's step is the kind of a how-to's child, with the packages
+// imported in either order.
 func TestStepResolvesByParent(t *testing.T) {
 	for _, imports := range []string{
 		`["std/doc@1", "std/spec@1", "std/docs@1"]`,

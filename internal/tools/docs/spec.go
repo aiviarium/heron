@@ -150,9 +150,6 @@ func (s *Site) sentence(n *resolve.Node) string {
 	}
 	b.WriteString(` <strong class="strength">` + esc(kindWords(strength)) + `</strong> `)
 	b.WriteString(behaviour)
-	if u := s.childOfKind(n, "spec.unless"); u != nil {
-		b.WriteString(", " + esc(kindWords("unless")) + " " + s.inlineHTML(u))
-	}
 	out := strings.TrimRight(b.String(), " ")
 	if !strings.HasSuffix(stripTags(out), ".") {
 		out += "."
@@ -599,14 +596,8 @@ func renderTransition(c *Ctx) error {
 		}
 	}
 	name := s.linkHTML(n, `<code>`+esc(n.Name)+`</code>`, "")
-	if len(lead) > 0 || s.childOfKind(n, "spec.unless") != nil {
-		sent := name
-		if len(lead) > 0 {
-			sent = capitalise(strings.Join(lead, ", ")) + ": " + name
-		}
-		if u := s.childOfKind(n, "spec.unless"); u != nil {
-			sent += ", " + esc(kindWords("unless")) + " " + s.inlineHTML(u)
-		}
+	if len(lead) > 0 {
+		sent := capitalise(strings.Join(lead, ", ")) + ": " + name
 		c.W(`<p class="sentence">`, sent, `</p>`)
 	} else {
 		c.W(`<p class="sentence">`, name, `</p>`)

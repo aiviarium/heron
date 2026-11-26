@@ -585,12 +585,6 @@ func (b *builder) imports(site Site, e ast.Expr, sc *Scope) {
 			sc.Imports = append(sc.Imports, p)
 			b.t.Imports = append(b.t.Imports, p)
 		}
-		if b.t.ImportSites == nil {
-			b.t.ImportSites = map[*Package]Site{}
-		}
-		if _, ok := b.t.ImportSites[p]; !ok {
-			b.t.ImportSites[p] = ent.site
-		}
 		b.mount(p, ent.site)
 	}
 }

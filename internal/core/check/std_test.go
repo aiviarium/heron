@@ -23,8 +23,7 @@ func TestEveryStdPackageChecks(t *testing.T) {
 	}
 	var imports []string
 	for _, d := range dirs {
-		// The retired packages report their import, as the spec says.
-		if d.IsDir() && d.Name() != "product" && d.Name() != "tech" {
+		if d.IsDir() {
 			imports = append(imports, `"std/`+d.Name()+`@1"`)
 		}
 	}
