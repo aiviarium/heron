@@ -361,10 +361,10 @@ func TestLayeredKinds(t *testing.T) {
 			`exit <code>2</code>`,
 		},
 		"editing.check_tree.html": {
-			`<li id="editing.check_tree.2"><a class="ref" href="index.html#checker">checker</a> parses every file.</li>`,
-			`<span class="uc-num">2a</span> A file can&#39;t be read</dt>`,
-			`<p class="mark uc-outcome">Back to 1</p>`,
-			`<p class="mark uc-outcome">Fails</p>`,
+			`<li id="editing.check_tree.2"><span class="uc-num">2</span><span class="uc-text"><a class="ref" href="index.html#checker">checker</a> parses every file.</span></li>`,
+			`<span class="uc-num">2a</span><span class="uc-text">A file can&#39;t be read</span></dt>`,
+			`<li class="uc-outcome"><span class="uc-num">→</span><span class="uc-text mark">Back to 1</span></li>`,
+			`<span class="uc-text mark">Fails</span>`, `<span class="uc-num">2a1</span>`,
 		},
 		"cli.check.html": {
 			`<h1 class="page-title">heron check</h1>`,

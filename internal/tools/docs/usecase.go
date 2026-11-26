@@ -2,6 +2,7 @@ package docs
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -94,29 +95,20 @@ func renderUsecase(c *Ctx) error {
 		}
 		c.W(`<ol class="uc-steps">`)
 		for _, st := range p.Steps {
-			c.W(`<li id="`, attr(Anchor(n)+"."+st.Num), `">`, s.rangeHTML(body, st.Start, st.End), `</li>`)
+			c.W(`<li id="`, attr(Anchor(n)+"."+st.Num), `"><span class="uc-num">`, esc(st.Num), `</span><span class="uc-text">`, s.rangeHTML(body, st.Start, st.End), `</span></li>`)
 		}
 		c.W(`</ol>`)
 		if len(p.Exts) > 0 {
 			c.W(`<div class="label">`, esc(label("docs.label.extensions")), `</div><dl class="uc-ext">`)
 			for _, x := range p.Exts {
-				c.W(`<div class="uc-ext-item" id="`, attr(Anchor(n)+"."+x.Num), `"><dt><span class="uc-num">`, esc(x.Num), `</span> `, esc(x.Cond), `</dt><dd>`)
-				if len(x.Steps) > 0 {
-					c.W(`<ol class="uc-steps">`)
-					for _, st := range x.Steps {
-						c.W(`<li>`, s.rangeHTML(body, st.Start, st.End), `</li>`)
-					}
-					c.W(`</ol>`)
+				c.W(`<div class="uc-ext-item" id="`, attr(Anchor(n)+"."+x.Num), `"><dt><span class="uc-num">`, esc(x.Num), `</span><span class="uc-text">`, esc(x.Cond), `</span></dt><dd><ol class="uc-steps">`)
+				for _, st := range x.Steps {
+					c.W(`<li><span class="uc-num">`, esc(strings.ReplaceAll(st.Num, ".", "")), `</span><span class="uc-text">`, s.rangeHTML(body, st.Start, st.End), `</span></li>`)
 				}
-				switch x.Outcome {
-				case usecase.Fails:
-					c.W(`<p class="mark uc-outcome">`, esc(label("docs.usecase.fails")), `</p>`)
-				case usecase.Succeeds:
-					c.W(`<p class="mark uc-outcome">`, esc(label("docs.usecase.succeeds")), `</p>`)
-				case usecase.BackTo:
-					c.W(`<p class="mark uc-outcome">`, esc(label("docs.usecase.back_to", "step", fmt.Sprint(x.BackTo))), `</p>`)
+				if out := outcomeLabel(x); out != "" {
+					c.W(`<li class="uc-outcome"><span class="uc-num">→</span><span class="uc-text mark">`, esc(out), `</span></li>`)
 				}
-				c.W(`</dd></div>`)
+				c.W(`</ol></dd></div>`)
 			}
 			c.W(`</dl>`)
 			if len(p.Exts) >= 2 && s.Opts.Lens != nil && s.Opts.Lens.Name != "user" && s.Opts.Lens.Name != "agent" {
@@ -146,7 +138,7 @@ func flowSVG(uc usecase.UseCase) string {
 	fmt.Fprintf(&b, `<figure class="uc-flow"><svg viewBox="0 0 420 %d" role="img" aria-label="%s">`, height, attr(label("docs.label.flow")))
 	for i, st := range uc.Steps {
 		y := rowY(i)
-		fmt.Fprintf(&b, `<rect x="10" y="%d" width="%d" height="%d" rx="4" class="uc-box"/><text x="20" y="%d" class="uc-label">%s</text>`, y, w, h, y+18, esc(st.Num))
+		fmt.Fprintf(&b, `<rect x="10" y="%d" width="%d" height="%d" rx="4" class="uc-box"/><text x="20" y="%d" class="uc-label"><tspan class="uc-label-num">%s</tspan> %s</text>`, y, w, h, y+18, esc(st.Num), esc(clip(st.Text, 18)))
 		if i > 0 {
 			fmt.Fprintf(&b, `<line x1="85" y1="%d" x2="85" y2="%d" class="uc-edge"/>`, y-gap, y)
 		}
@@ -160,19 +152,24 @@ func flowSVG(uc usecase.UseCase) string {
 		col[x.At]++
 		fmt.Fprintf(&b, `<line x1="%d" y1="%d" x2="250" y2="%d" class="uc-edge"/>`, 10+w, y+h/2, y+h/2)
 		fmt.Fprintf(&b, `<rect x="250" y="%d" width="%d" height="%d" rx="4" class="uc-box uc-ext-box"/>`, y, w, h)
-		out := ""
-		switch x.Outcome {
-		case usecase.Fails:
-			out = label("docs.usecase.fails")
-		case usecase.Succeeds:
-			out = label("docs.usecase.succeeds")
-		case usecase.BackTo:
-			out = label("docs.usecase.back_to", "step", fmt.Sprint(x.BackTo))
-		}
+		out := outcomeLabel(x)
 		fmt.Fprintf(&b, `<text x="258" y="%d" class="uc-label">%s · %s</text>`, y+18, esc(x.Num), esc(out))
 	}
 	b.WriteString(`</svg></figure>`)
 	return b.String()
+}
+
+// outcomeLabel is how an extension ends, in the catalogue's words.
+func outcomeLabel(x usecase.Ext) string {
+	switch x.Outcome {
+	case usecase.Fails:
+		return label("docs.usecase.fails")
+	case usecase.Succeeds:
+		return label("docs.usecase.succeeds")
+	case usecase.BackTo:
+		return label("docs.usecase.back_to", "step", fmt.Sprint(x.BackTo))
+	}
+	return ""
 }
 
 // backlinks are the links written on lower nodes, walked in reverse: for
@@ -259,3 +256,24 @@ func (s *Site) entryRealizes(entry, rule *resolve.Node) bool {
 	}
 	return false
 }
+
+// clip shortens plain text to at most n runes, with an ellipsis, its
+// links' brackets and targets dropped.
+func clip(t string, n int) string {
+	t = linkTargets.ReplaceAllString(t, "$1")
+	t = shortLinks.ReplaceAllStringFunc(t, func(m string) string {
+		// A short link reads as its target's last name.
+		m = strings.Trim(m, "[]")
+		return strings.ReplaceAll(m[strings.LastIndexByte(m, '.')+1:], "_", " ")
+	})
+	t = strings.NewReplacer("[", "", "]", "", "`", "").Replace(strings.TrimSpace(t))
+	if r := []rune(t); len(r) > n {
+		return strings.TrimSpace(string(r[:n-1])) + "…"
+	}
+	return t
+}
+
+var (
+	linkTargets = regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`)
+	shortLinks  = regexp.MustCompile(`\[[A-Za-z_][\w.]*\]`)
+)
