@@ -1,0 +1,220 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "fileTypes": [
+    "heron"
+  ],
+  "name": "Heron",
+  "patterns": [
+    {
+      "include": "#structure"
+    }
+  ],
+  "repository": {
+    "prose": {
+      "patterns": [
+        {
+          "match": "\\\\[$<\\[|\\]`\\\\*_#]",
+          "name": "constant.character.escape.heron"
+        },
+        {
+          "match": "\\[`?[A-Za-z_]\\w*(\\.[A-Za-z_]\\w*)*`?\\](\\([^)]*\\))?",
+          "name": "markup.underline.link.heron"
+        },
+        {
+          "match": "\\[[^\\]]*\\]\\([^)]*\\)",
+          "name": "markup.underline.link.heron"
+        },
+        {
+          "match": "`+[^`]*`+",
+          "name": "markup.inline.raw.string.heron"
+        },
+        {
+          "begin": "\\$\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.interpolation.heron"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.interpolation.heron"
+            }
+          },
+          "name": "meta.interpolation.heron",
+          "patterns": [
+            {
+              "include": "#structure"
+            }
+          ]
+        },
+        {
+          "match": "\\$[A-Za-z_][\\w.]*",
+          "name": "variable.other.insert.heron"
+        },
+        {
+          "begin": "(</?)([A-Za-z_][\\w.]*)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.heron"
+            },
+            "2": {
+              "name": "entity.name.tag.heron"
+            }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.heron"
+            }
+          },
+          "patterns": [
+            {
+              "match": "@[A-Za-z_]\\w*",
+              "name": "entity.name.function.decorator.heron"
+            },
+            {
+              "match": "[A-Za-z_][\\w-]*",
+              "name": "entity.other.attribute-name.heron"
+            },
+            {
+              "match": "\"[^\"]*\"",
+              "name": "string.quoted.double.attribute.heron"
+            }
+          ]
+        },
+        {
+          "match": "\\*\\*|~~|\\*",
+          "name": "punctuation.definition.markdown.heron"
+        }
+      ]
+    },
+    "structure": {
+      "patterns": [
+        {
+          "match": "^\\s*///.*$",
+          "name": "comment.line.documentation.heron"
+        },
+        {
+          "match": "//.*$",
+          "name": "comment.line.double-slash.heron"
+        },
+        {
+          "begin": "^\\s*(\\|)(\\s*([-*+]|\\d+[.)])\\s)?|(=\\|)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.prose.heron"
+            },
+            "3": {
+              "name": "punctuation.definition.markdown.heron"
+            },
+            "4": {
+              "name": "punctuation.definition.prose.heron"
+            }
+          },
+          "contentName": "text.prose.heron",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#prose"
+            }
+          ]
+        },
+        {
+          "begin": "\\{\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.prose.heron"
+            }
+          },
+          "contentName": "text.prose.heron",
+          "end": "\\}\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.prose.heron"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#prose"
+            }
+          ]
+        },
+        {
+          "match": "@[A-Za-z_][\\w.]*",
+          "name": "entity.name.function.decorator.heron"
+        },
+        {
+          "begin": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.heron"
+            }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.heron"
+            }
+          },
+          "name": "string.quoted.double.heron",
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.heron"
+            },
+            {
+              "begin": "\\$\\{",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.section.interpolation.heron"
+                }
+              },
+              "end": "\\}",
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.section.interpolation.heron"
+                }
+              },
+              "name": "meta.interpolation.heron",
+              "patterns": [
+                {
+                  "include": "#structure"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "match": "`[^`]*`",
+          "name": "markup.inline.raw.string.heron"
+        },
+        {
+          "match": "\\b\\d+(\\.\\d+)?([a-z]+)?\\b",
+          "name": "constant.numeric.heron"
+        },
+        {
+          "match": "\\b(import|include|do|let|if|else|for|in|return|true|false|null|and|or|not|match)\\b",
+          "name": "keyword.control.heron"
+        },
+        {
+          "match": "\\b[A-Z]\\w*",
+          "name": "entity.name.type.heron"
+        },
+        {
+          "match": "\\b[a-z_]\\w*",
+          "name": "variable.other.heron"
+        },
+        {
+          "match": "[{}()\\[\\]<>]",
+          "name": "punctuation.section.bracket.heron"
+        },
+        {
+          "match": "[=:,.?|$#]",
+          "name": "punctuation.separator.heron"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.heron"
+}
