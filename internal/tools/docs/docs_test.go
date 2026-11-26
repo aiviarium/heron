@@ -361,7 +361,7 @@ func TestLayeredKinds(t *testing.T) {
 			`exit <code>2</code>`,
 		},
 		"editing.check_tree.html": {
-			`<li id="editing.check_tree.2"><span class="uc-num">2</span><span class="uc-text"><a class="ref" href="index.html#checker">checker</a> parses every file.</span></li>`,
+			`<li id="editing.check_tree.2"><span class="uc-num">2</span><span class="uc-text">The <a class="ref" href="index.html#checker">checker</a> parses every file.</span></li>`, `<h2 id="editing.check_tree-main" class="h">`, `<h2 id="editing.check_tree-extensions" class="h">`,
 			`<span class="uc-num">2a</span><span class="uc-text">A file can&#39;t be read</span></dt>`,
 			`<li class="uc-outcome"><span class="uc-num">→</span><span class="uc-text mark">Back to 1</span></li>`,
 			`<span class="uc-text mark">Fails</span>`, `<span class="uc-num">2a1</span>`,
@@ -396,7 +396,8 @@ func TestLayeredKinds(t *testing.T) {
 			`<span class="derived-label">Illustrated by <span class="derived-mark">derived</span></span> <a class="ref" href="editing.html#editing.saved">Saved</a>`,
 			`The <a class="ref subject" href="people.html#people.writer">writer</a> <strong class="strength">should</strong>`,
 		},
-		"trust.html": {
+		"index.html#goal": {
+			`<div class="goal-block" id="trust"><div class="goal-head"><span class="label">Goal</span>`,
 			`<dt>Measure</dt><dd>Nine trees in ten check clean on the first CI run.</dd>`,
 			`<span class="derived-label">Served by <span class="derived-mark">derived</span></span>`,
 		},
@@ -406,7 +407,7 @@ func TestLayeredKinds(t *testing.T) {
 		got[f.Path] = string(f.Content)
 	}
 	for file, snippets := range want {
-		h, ok := got[file]
+		h, ok := got[strings.Split(file, "#")[0]]
 		if !ok {
 			t.Errorf("no page %s", file)
 			continue

@@ -305,6 +305,14 @@ language_specifications_layers: section {
     verify("internal/core/check/project_test.go", test = "TestConformanceRevisionsAndGaps")
   }
 
+  proves(heron.language.specifications.usecases.step_subject) {
+    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  }
+
+  proves(heron.language.specifications.usecases.usecase_outline) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestUseCaseFlowDiagram")
+  }
+
   proves(heron.language.specifications.usecases.cockburn_text) {
     verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }

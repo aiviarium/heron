@@ -93,17 +93,27 @@ func renderUsecase(c *Ctx) error {
 				c.W(`<p>`, intro, `</p>`)
 			}
 		}
+		lv := 2
+		if !c.isPage() {
+			lv = c.Level + 1
+		}
+		src := body.File.Src
+		c.Heading(lv, Anchor(n)+"-main", label("docs.label.main_path"), "")
 		c.W(`<ol class="uc-steps">`)
 		for _, st := range p.Steps {
-			c.W(`<li id="`, attr(Anchor(n)+"."+st.Num), `"><span class="uc-num">`, esc(st.Num), `</span><span class="uc-text">`, s.rangeHTML(body, st.Start, st.End), `</span></li>`)
+			c.W(`<li id="`, attr(Anchor(n)+"."+st.Num), `"><span class="uc-num">`, esc(st.Num), `</span><span class="uc-text">`, asSubject(src, st.Start, s.rangeHTML(body, st.Start, st.End)), `</span></li>`)
 		}
 		c.W(`</ol>`)
 		if len(p.Exts) > 0 {
-			c.W(`<div class="label">`, esc(label("docs.label.extensions")), `</div><dl class="uc-ext">`)
+			c.Heading(lv, Anchor(n)+"-extensions", label("docs.label.extensions"), "")
+			c.W(`<dl class="uc-ext">`)
 			for _, x := range p.Exts {
+				if lv < 3 {
+					*c.outline = append(*c.outline, Heading{ID: Anchor(n) + "." + x.Num, Title: x.Num + " " + x.Cond, Level: lv + 1})
+				}
 				c.W(`<div class="uc-ext-item" id="`, attr(Anchor(n)+"."+x.Num), `"><dt><span class="uc-num">`, esc(x.Num), `</span><span class="uc-text">`, esc(x.Cond), `</span></dt><dd><ol class="uc-steps">`)
 				for _, st := range x.Steps {
-					c.W(`<li><span class="uc-num">`, esc(strings.ReplaceAll(st.Num, ".", "")), `</span><span class="uc-text">`, s.rangeHTML(body, st.Start, st.End), `</span></li>`)
+					c.W(`<li><span class="uc-num">`, esc(strings.ReplaceAll(st.Num, ".", "")), `</span><span class="uc-text">`, asSubject(src, st.Start, s.rangeHTML(body, st.Start, st.End)), `</span></li>`)
 				}
 				if out := outcomeLabel(x); out != "" {
 					c.W(`<li class="uc-outcome"><span class="uc-num">→</span><span class="uc-text mark">`, esc(out), `</span></li>`)
@@ -122,6 +132,27 @@ func renderUsecase(c *Ctx) error {
 	return nil
 }
 
+// asSubject reads a step that opens with its party's link as a sentence
+// with that party as its subject: "The editor underlines…", where the
+// link's text is a common noun, starting lowercase.
+func asSubject(src string, start int, h string) string {
+	for start < len(src) && (src[start] == ' ' || src[start] == '\t' || src[start] == '\n' || src[start] == '|') {
+		start++
+	}
+	h = strings.TrimSpace(h)
+	if start >= len(src) || src[start] != '[' || !strings.HasPrefix(h, "<a ") {
+		return h
+	}
+	i := strings.IndexByte(h, '>')
+	if i < 0 || i+1 >= len(h) {
+		return h
+	}
+	if r := h[i+1]; r < 'a' || r > 'z' {
+		return h
+	}
+	return label("docs.usecase.the") + " " + h
+}
+
 func lineStart(src string, at int) int { return strings.LastIndexByte(src[:at], '\n') + 1 }
 
 func stripBraces(h string) string {
@@ -131,16 +162,17 @@ func stripBraces(h string) string {
 // flowSVG draws a use case's main path down the left and each extension
 // to the right of the step it branches off, with where it goes.
 func flowSVG(uc usecase.UseCase) string {
-	const w, h, gap = 150, 28, 14
+	const w, xw, h, gap = 190, 140, 28, 14
+	const xx = 10 + w + 50
 	rowY := func(i int) int { return 10 + i*(h+gap) }
 	height := rowY(len(uc.Steps)) + 10
 	var b strings.Builder
-	fmt.Fprintf(&b, `<figure class="uc-flow"><svg viewBox="0 0 420 %d" role="img" aria-label="%s">`, height, attr(label("docs.label.flow")))
+	fmt.Fprintf(&b, `<figure class="uc-flow"><svg viewBox="0 0 %d %d" role="img" aria-label="%s">`, xx+xw+10, height, attr(label("docs.label.flow")))
 	for i, st := range uc.Steps {
 		y := rowY(i)
-		fmt.Fprintf(&b, `<rect x="10" y="%d" width="%d" height="%d" rx="4" class="uc-box"/><text x="20" y="%d" class="uc-label"><tspan class="uc-label-num">%s</tspan> %s</text>`, y, w, h, y+18, esc(st.Num), esc(clip(st.Text, 18)))
+		fmt.Fprintf(&b, `<rect x="10" y="%d" width="%d" height="%d" rx="4" class="uc-box"/><text x="20" y="%d" class="uc-label"><tspan class="uc-label-num">%s</tspan> %s</text>`, y, w, h, y+18, esc(st.Num), esc(clip(st.Text, 22)))
 		if i > 0 {
-			fmt.Fprintf(&b, `<line x1="85" y1="%d" x2="85" y2="%d" class="uc-edge"/>`, y-gap, y)
+			fmt.Fprintf(&b, `<line x1="%d" y1="%d" x2="%d" y2="%d" class="uc-edge"/>`, 10+w/2, y-gap, 10+w/2, y)
 		}
 	}
 	col := map[int]int{}
@@ -150,10 +182,10 @@ func flowSVG(uc usecase.UseCase) string {
 		}
 		y := rowY(x.At-1) + col[x.At]*6
 		col[x.At]++
-		fmt.Fprintf(&b, `<line x1="%d" y1="%d" x2="250" y2="%d" class="uc-edge"/>`, 10+w, y+h/2, y+h/2)
-		fmt.Fprintf(&b, `<rect x="250" y="%d" width="%d" height="%d" rx="4" class="uc-box uc-ext-box"/>`, y, w, h)
+		fmt.Fprintf(&b, `<line x1="%d" y1="%d" x2="%d" y2="%d" class="uc-edge"/>`, 10+w, y+h/2, xx, y+h/2)
+		fmt.Fprintf(&b, `<rect x="%d" y="%d" width="%d" height="%d" rx="4" class="uc-box uc-ext-box"/>`, xx, y, xw, h)
 		out := outcomeLabel(x)
-		fmt.Fprintf(&b, `<text x="258" y="%d" class="uc-label">%s · %s</text>`, y+18, esc(x.Num), esc(out))
+		fmt.Fprintf(&b, `<text x="%d" y="%d" class="uc-label">%s · %s</text>`, xx+8, y+18, esc(x.Num), esc(out))
 	}
 	b.WriteString(`</svg></figure>`)
 	return b.String()
@@ -260,12 +292,18 @@ func (s *Site) entryRealizes(entry, rule *resolve.Node) bool {
 // clip shortens plain text to at most n runes, with an ellipsis, its
 // links' brackets and targets dropped.
 func clip(t string, n int) string {
+	t0 := t
 	t = linkTargets.ReplaceAllString(t, "$1")
 	t = shortLinks.ReplaceAllStringFunc(t, func(m string) string {
 		// A short link reads as its target's last name.
 		m = strings.Trim(m, "[]")
 		return strings.ReplaceAll(m[strings.LastIndexByte(m, '.')+1:], "_", " ")
 	})
+	if strings.HasPrefix(strings.TrimSpace(t0), "[") {
+		if r := []rune(strings.TrimSpace(t)); len(r) > 0 && r[0] >= 'a' && r[0] <= 'z' {
+			t = label("docs.usecase.the") + " " + strings.TrimSpace(t)
+		}
+	}
 	t = strings.NewReplacer("[", "", "]", "", "`", "").Replace(strings.TrimSpace(t))
 	if r := []rune(t); len(r) > n {
 		return strings.TrimSpace(string(r[:n-1])) + "…"

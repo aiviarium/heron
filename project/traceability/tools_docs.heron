@@ -1,6 +1,14 @@
 tools_docs: section {
   | The tests that prove the requirements of the spec's [tools.docs](#heron.tools.docs).
 
+  proves(heron.tools.docs.site.stale_pages) {
+    verify("internal/tools/docs/stale_test.go", test = "TestStalePagesRemoved")
+  }
+
+  proves(heron.tools.docs.rendering.goals_not_pages) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestIntentFirst")
+  }
+
   proves(heron.tools.docs.site.page_files) {
     verify("internal/tools/docs/docs_test.go", test = "TestLinksResolve")
   }

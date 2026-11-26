@@ -127,6 +127,11 @@ func Register(r *registry.Registry) {
 		}
 		vj, _ := json.Marshal(versions)
 		out = append(out, registry.GeneratedFile{Path: OutDir + "/versions.json", Content: append(vj, '\n'), Ignored: true})
+		manifest, err := removeStale(filepath.Join(gi.Dir, OutDir), out)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, registry.GeneratedFile{Path: OutDir + "/" + manifestName, Content: manifest, Ignored: true})
 		return out, nil
 	}}); err != nil {
 		panic(err)
@@ -147,4 +152,33 @@ func releasedVersions(dir string) []string {
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(out)))
 	return out
+}
+
+// manifestName is the file listing what the last run wrote in OutDir.
+const manifestName = ".manifest"
+
+// removeStale removes the files the previous run's manifest lists that
+// this run doesn't write, and returns this run's manifest. A file the
+// previous manifest doesn't list is someone else's and stays.
+func removeStale(dir string, files []registry.GeneratedFile) ([]byte, error) {
+	now := map[string]bool{}
+	var lines []string
+	for _, f := range files {
+		rel := strings.TrimPrefix(f.Path, OutDir+"/")
+		now[rel] = true
+		lines = append(lines, rel)
+	}
+	sort.Strings(lines)
+	if old, err := os.ReadFile(filepath.Join(dir, manifestName)); err == nil {
+		for _, rel := range strings.Split(string(old), "\n") {
+			rel = strings.TrimSpace(rel)
+			if rel == "" || now[rel] || strings.Contains(rel, "..") {
+				continue
+			}
+			if err := os.Remove(filepath.Join(dir, filepath.FromSlash(rel))); err != nil && !os.IsNotExist(err) {
+				return nil, err
+			}
+		}
+	}
+	return []byte(strings.Join(lines, "\n") + "\n"), nil
 }

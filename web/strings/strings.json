@@ -177,6 +177,7 @@
       "adds": "Adds",
       "changes": "Changes",
       "plays": "Plays",
+      "main_path": "Main path",
       "extensions": "Extensions",
       "success": "Success",
       "minimal": "Minimal guarantee",
@@ -240,6 +241,7 @@
       "and": "And"
     },
     "usecase": {
+      "the": "The",
       "fails": "Fails",
       "succeeds": "Succeeds",
       "back_to": "Back to {step}",

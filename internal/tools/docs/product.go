@@ -265,8 +265,7 @@ func renderScenario(c *Ctx) error {
 func renderGoal(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="term goal" id="`, attr(Anchor(n)), `">`)
-	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></dt><dd>`)
+	c.W(`<div class="goal-block" id="`, attr(Anchor(n)), `"><div class="goal-head"><span class="label">`, esc(label("docs.label.goal")), `</span> <a class="anchor goal-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></div>`)
 	c.Prose(n)
 	var rows [][2]string
 	if m, ok := argString(kindArgs(n), 0, "measure"); ok {
@@ -277,7 +276,7 @@ func renderGoal(c *Ctx) error {
 	}
 	c.factList(rows)
 	c.W(c.derivedLists(n))
-	c.W(`</dd></div>`)
+	c.W(`</div>`)
 	return nil
 }
 

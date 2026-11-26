@@ -258,16 +258,19 @@ func TestIntentFirst(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	sync := f["dev/kite.sync.html"]
 	main := sync[strings.Index(sync, `id="main"`):]
-	order := []string{`href="kite.sync.same_everywhere.html"`, `id="kite.sync.copies_changed"`, `id="kite.sync.unreadable"`}
+	order := []string{`<div class="goal-block" id="kite.sync.same_everywhere">`, `id="kite.sync.copies_changed"`, `id="kite.sync.unreadable"`}
 	for i := 1; i < len(order); i++ {
 		if a, b := strings.Index(main, order[i-1]), strings.Index(main, order[i]); a < 0 || b < 0 || a > b {
 			t.Errorf("%s after %s", order[i-1], order[i])
 		}
 	}
-	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
-	if a, b := strings.Index(nav, "kite.sync.same_everywhere.html"), strings.Index(nav, "kite.sync.retries.html"); a < 0 || b < 0 || a > b {
-		t.Errorf("the goal isn't first among the section's pages in\n%s", nav)
+	mustHave(t, "goal block", main, `<span class="label">Goal</span>`)
+	// A goal has no page and no place in the navigation.
+	if _, ok := f["dev/kite.sync.same_everywhere.html"]; ok {
+		t.Error("a goal has a page")
 	}
+	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
+	mustNotHave(t, "nav", nav, "same_everywhere")
 	ex := f["explore/kite.sync.html"]
 	ex = ex[strings.Index(ex, `id="main"`):]
 	if strings.Index(ex, `kite.sync.same_everywhere`) < strings.Index(ex, `id="kite.sync.copies_changed"`) {
@@ -508,6 +511,13 @@ func TestUseCaseFlowDiagram(t *testing.T) {
 		}
 	}
 	mustHave(t, "dev use case", dev, `<figure class="uc-flow">`, `<span class="uc-num">2b</span>`)
+	// The outline names the main path and each extension, never bare step
+	// numbers.
+	ol := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`).FindString(dev)
+	mustHave(t, "use case outline", ol, `>Main path<`, `>Extensions<`, `2b `)
+	if regexp.MustCompile(`>\d+<`).MatchString(ol) {
+		t.Errorf("bare step numbers in the outline:\n%s", ol)
+	}
 	if strings.Contains(user, `uc-flow`) {
 		t.Error("a flow diagram in the user lens")
 	}

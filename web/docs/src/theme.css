@@ -672,3 +672,11 @@ body:not([data-lens="explore"]):not([data-lens=""]) .diag > .rule-meta { display
 .gap-group > summary { display: flex; align-items: center; gap: var(--h-space-2); min-height: var(--h-size-row); padding: 4px 0; cursor: pointer; font-size: var(--h-font-size-ui); color: var(--h-text); }
 .gap-count { margin-left: auto; font: 12px var(--h-font-mono); color: var(--h-text-faint); }
 .gap-group .gap-list { margin: 0 0 var(--h-space-3); padding-left: var(--h-space-5); font-size: var(--h-font-size-ui); line-height: 1.8; }
+
+/* --- intent: goals open their area --- */
+.goal-block { max-width: var(--h-size-measure); margin: var(--h-space-4) 0 var(--h-space-4); padding: var(--h-space-3) var(--h-space-4); border: 1px solid var(--h-border); border-left: 3px solid var(--h-accent); border-radius: var(--h-radius-card); background: var(--h-bg-raised); }
+.goal-head { display: flex; align-items: baseline; gap: var(--h-space-2); margin-bottom: var(--h-space-1); }
+.goal-head .label { color: var(--h-accent); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+.goal-name { font-weight: var(--h-font-weight-semibold); color: var(--h-text); text-decoration: none; }
+.goal-block .prose, .goal-block > p { margin: 0 0 var(--h-space-2); }
+.goal-block .facts { margin: 0; }

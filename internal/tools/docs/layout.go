@@ -111,12 +111,20 @@ func (s *Site) home(c *Ctx) error {
 		if h := s.proseHTML(n); h != "" {
 			c.W(`<div class="lead prose">`, h, `</div>`)
 		}
+		// The package's goals open its home page, before the tiles.
+		d := c.at(n, c.Level)
+		for _, ch := range n.Children {
+			if s.isIntent(ch) && s.shown(ch) && s.pageOf[ch] == nil {
+				if err := d.Render(ch); err != nil {
+					return err
+				}
+			}
+		}
 		s.homeTiles(c)
 		// The nodes the root holds that have no page of their own still
 		// have their place here.
-		d := c.at(n, c.Level)
 		for _, ch := range s.inOrder(n.Children) {
-			if !s.shown(ch) || s.pageOf[ch] != nil {
+			if !s.shown(ch) || s.pageOf[ch] != nil || s.isIntent(ch) {
 				continue
 			}
 			if err := d.Render(ch); err != nil {
@@ -457,7 +465,7 @@ func (s *Site) outline(p *Page, f *Fragment) []Heading {
 	shown := func(n *resolve.Node) []*resolve.Node {
 		var out []*resolve.Node
 		for _, ch := range n.Children {
-			if ch.Name == "" || !own(ch) || ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || s.anchorOf[ch] != p || s.pageOf[ch] != nil {
+			if ch.Name == "" || !own(ch) || ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || ch.Shape == resolve.ShapeStep || s.anchorOf[ch] != p || s.pageOf[ch] != nil {
 				continue
 			}
 			if strings.Contains(f.HTML, `id="`+attr(Anchor(ch))+`"`) {

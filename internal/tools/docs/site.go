@@ -255,7 +255,6 @@ func (s *Site) isError(n *resolve.Node) bool {
 var pageKinds = map[string]bool{
 	"project.component": true,
 	"spec.command":      true,
-	"spec.goal":         true,
 	"spec.usecase":      true,
 	"spec.screen":       true,
 }
@@ -357,19 +356,6 @@ func (s *Site) buildPages() {
 		}
 	}
 	walk(s.Tree.Root, nil, 0)
-	if !s.explore() {
-		// An area's intent pages, its goals, come first among its pages.
-		var intentFirst func(ps []*Page)
-		intentFirst = func(ps []*Page) {
-			sort.SliceStable(ps, func(i, j int) bool {
-				return s.isIntent(ps[i].Node) && !s.isIntent(ps[j].Node)
-			})
-			for _, p := range ps {
-				intentFirst(p.Children)
-			}
-		}
-		intentFirst(docs.Pages)
-	}
 
 	// The API reference: the sections in its layout, each api with its
 	// ops, then types, lifecycles and errors.
