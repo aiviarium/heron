@@ -80,9 +80,12 @@ func PinGitImports(ctx context.Context, root string, imports []resolve.GitImport
 		}
 		seen[g.Name] = true
 		pin, ok := lock.Packages[g.Name]
-		major, _ := resolve.TagMajor(pin.Ref)
+		// A pin at a version tag holds for the import's major version; one
+		// at a branch, as before a package's first release, holds by its
+		// commit.
+		major, tagged := resolve.TagMajor(pin.Ref)
 		holds := ok && pin.URL == g.URL && pin.Path == g.Path && pin.Commit != "" &&
-			(pin.Ref == g.Ref || g.Ref == "" && major == g.Major)
+			(pin.Ref == g.Ref || g.Ref == "" && (!tagged || major == g.Major))
 		if holds && (!update || g.Ref != "") {
 			continue
 		}
