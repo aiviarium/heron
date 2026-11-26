@@ -257,8 +257,8 @@ func (s *Site) isError(n *resolve.Node) bool {
 }
 
 // pageKinds are the kinds whose nodes get pages of their own at any depth:
-// a component, a command, an epic, a use case and a screen are each read on
-// their own.
+// a component, a command, a use case and a screen are each read on their
+// own.
 var pageKinds = map[string]bool{
 	"project.component": true,
 	"spec.command":      true,

@@ -37,8 +37,8 @@ func init() {
 		"core.task":       renderTask,
 		"spec.transition": renderTransition,
 	}
-	addProductRenderers()
-	addTechRenderers()
+	addIntentRenderers()
+	addContractRenderers()
 	addProjectRenderers()
 	addAuthoredRenderers()
 }

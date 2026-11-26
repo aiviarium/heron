@@ -12,14 +12,14 @@ import (
 // and dependency links, command pages laid out as a CLI reference, and
 // grammars as EBNF blocks whose names link production to production.
 
-func addTechRenderers() {
+func addContractRenderers() {
 	for k, f := range map[string]RenderFunc{
 		"project.component":      renderComponent,
 		"spec.command":           renderCommand,
 		"grammar.grammar":        renderGrammar,
 		"grammar.production":     renderGrammarPart,
 		"grammar.token":          renderGrammarPart,
-		"project.property":       renderInvariant,
+		"project.property":       renderProperty,
 		"project.responsibility": renderStepAlone,
 		"project.exports":        renderSurface,
 		"spec.argument":          renderStepAlone,
@@ -160,7 +160,7 @@ func renderComponent(c *Ctx) error {
 		}
 	}
 	if is := s.childrenOfKind(n, "project.property"); len(is) > 0 {
-		c.Heading(c.Level+1, Anchor(n)+".invariants", label("docs.heading.invariants"), "")
+		c.Heading(c.Level+1, Anchor(n)+".properties", label("docs.heading.properties"), "")
 		for _, i := range is {
 			if err := c.Render(i); err != nil {
 				return err
@@ -287,10 +287,10 @@ func (c *Ctx) renderSurfaceOf(n *resolve.Node, lang string) {
 	c.W(`</div>`)
 }
 
-func renderInvariant(c *Ctx) error {
+func renderProperty(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="rule invariant" id="`, attr(Anchor(n)), `">`)
+	c.W(`<div class="rule property" id="`, attr(Anchor(n)), `">`)
 	for _, ch := range n.Children {
 		k := s.kindPath(ch)
 		if !strengthKinds[k] {

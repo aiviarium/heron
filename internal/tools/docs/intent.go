@@ -11,7 +11,7 @@ import (
 // actors and personas, parts, scenarios, stories, increments, milestones
 // and done criteria.
 
-func addProductRenderers() {
+func addIntentRenderers() {
 	for k, f := range map[string]RenderFunc{
 		"spec.actor":        renderActor,
 		"spec.persona":      renderPersona,
@@ -150,7 +150,7 @@ func renderPersona(c *Ctx) error {
 	return nil
 }
 
-// renderWork is the view of an epic, increment or milestone: its heading
+// renderWork is the view of an increment or a milestone: its heading
 // with its status, its facts, its prose and its children.
 func renderWork(c *Ctx, class string, facts [][2]string) error {
 	n := c.Node
@@ -226,9 +226,9 @@ func gwtLine(key, h string) string {
 func renderScenario(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="criterion scenario" id="`, attr(Anchor(n)), `">`)
+	c.W(`<div class="scenario" id="`, attr(Anchor(n)), `">`)
 	if n.Name != "" {
-		c.W(`<a class="anchor criterion-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
+		c.W(`<a class="anchor scenario-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
 	}
 	c.Prose(n)
 	lines := func(kind, first string) {

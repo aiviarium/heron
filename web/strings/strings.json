@@ -90,7 +90,7 @@
       "header_params": "Headers",
       "implemented_by": "Implemented by",
       "implements": "Implements",
-      "invariants": "Properties",
+      "properties": "Properties",
       "main_flow": "Main flow",
       "messages": "Messages",
       "methods": "Methods",
