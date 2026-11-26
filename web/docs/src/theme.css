@@ -572,7 +572,7 @@ code.t { color: var(--h-type); }
 .slot-before, .slot-after { margin: var(--h-space-6) 0; }
 .slot[data-of] { margin: var(--h-space-3) 0; }
 .layout.no-sidebar { grid-template-columns: minmax(0, 1fr) 232px; }
-.no-sidebar .page { max-width: var(--h-size-measure); }
+.no-sidebar .page { max-width: var(--h-size-measure); justify-self: center; }
 .lead { font-size: var(--h-font-size-prose); line-height: var(--h-font-line-prose); color: var(--h-text); max-width: var(--h-size-measure); }
 .lead p { margin-top: 0; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--h-space-3); margin: var(--h-space-8) 0; }

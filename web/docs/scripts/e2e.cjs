@@ -78,7 +78,10 @@ const url = (f) => "file://" + path.join(dir, f)
     if (!file.startsWith(dir)) return res.writeHead(403).end()
     fs.readFile(file, (err, body) => {
       if (err) return res.writeHead(404).end()
-      res.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream" }).end(body)
+      // Cached as GitHub Pages caches a site: without it Chromium refetches
+      // the stylesheet on every navigation and now and then skips the
+      // view transition.
+      res.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream", "cache-control": "public, max-age=600" }).end(body)
     })
   })
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve))
@@ -105,13 +108,18 @@ const url = (f) => "file://" + path.join(dir, f)
   for (const [scheme, chosen] of [["dark", null], ["light", null], ["light", "dark"], ["dark", "light"]]) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, reducedMotion: "no-preference" })
     await ctx.addInitScript(() => {
+      // The frames from the first one painted: pagereveal fires just
+      // before it. (A frame callback asked for earlier can keep the browser
+      // from starting the transition at all.)
       const m = (window.__frames = [])
-      addEventListener("pagereveal", (e) => { window.__vt = !!e.viewTransition })
       const f = () => {
         if (document.body) m.push({ bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector("main")?.getBoundingClientRect().left })
         if (m.length < 5) requestAnimationFrame(f)
       }
-      requestAnimationFrame(f)
+      addEventListener("pagereveal", (e) => {
+        window.__vt = !!e.viewTransition
+        requestAnimationFrame(f)
+      })
     })
     const p = await ctx.newPage()
     await p.goto(served(linkTo))
@@ -119,7 +127,8 @@ const url = (f) => "file://" + path.join(dir, f)
     await p.reload()
     for (let i = 0; i < 3; i++) {
       await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-      const from = await p.evaluate(() => document.querySelector("main").getBoundingClientRect().left)
+      // A landing page has no navigation and a frame of its own.
+      const from = await p.evaluate(() => (document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null))
       const next = await p.evaluate((i) => {
         const as = [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))
         const a = as[(i * 5 + 2) % as.length]
@@ -129,13 +138,14 @@ const url = (f) => "file://" + path.join(dir, f)
       if (!next) break
       await Promise.all([p.waitForNavigation(), p.click("a[data-e2e=next]")])
       await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-      await p.waitForTimeout(50)
-      const r = await p.evaluate(() => ({ first: window.__frames[0], bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector("main").getBoundingClientRect().left, vt: window.__vt, page: document.body.dataset.page }))
+      // Past the transition, so the next navigation doesn't start in it.
+      await p.waitForTimeout(300)
+      const r = await p.evaluate(() => ({ first: window.__frames[0], bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null, vt: window.__vt, page: document.body.dataset.page }))
       const want = chosen ?? scheme
       const dark = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, b) => a + +b, 0) < 384
       if (!r.first || r.first.bg !== r.bg) fail.push(`theme flash: ${r.page} paints ${r.first?.bg} first, then ${r.bg} (${scheme} system, ${chosen ?? "no"} choice)`)
       if (dark(r.bg) !== (want === "dark")) fail.push(`theme: ${r.page} is ${r.bg} in the ${want} theme`)
-      if (Math.abs(r.x - from) > 1) fail.push(`frame shift: the page moves ${r.x - from} px going to ${r.page}`)
+      if (from !== null && r.x !== null && Math.abs(r.x - from) > 1) fail.push(`frame shift: the page moves ${r.x - from} px going to ${r.page}`)
       if (!r.vt) fail.push(`view transition: none going to ${r.page}`)
     }
     await ctx.close()
