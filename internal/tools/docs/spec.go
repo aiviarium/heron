@@ -176,12 +176,24 @@ func (s *Site) fullSentence(n *resolve.Node) string {
 	if sent == "" {
 		return ""
 	}
-	tail := ""
-	if t := s.childOfKind(n, "spec.then"); t != nil {
-		tail += ", " + esc(label("docs.rule.so")) + " " + s.inlineHTML(t)
-	}
-	if t := s.childOfKind(n, "spec.instead"); t != nil {
-		tail += ", " + esc(label("docs.rule.instead")) + " " + s.inlineHTML(t)
+	// A clause that already holds the connective it would be joined with
+	// becomes the next sentence, so no sentence repeats it.
+	tail, next := "", ""
+	for _, c := range []struct{ kind, key string }{{"spec.then", "docs.rule.so"}, {"spec.instead", "docs.rule.instead"}} {
+		t := s.childOfKind(n, c.kind)
+		if t == nil {
+			continue
+		}
+		join := label(c.key)
+		h := s.inlineHTML(t)
+		if holdsWords(stripTags(h), join) {
+			next += " " + capitalise(strings.TrimSpace(h))
+			if !strings.HasSuffix(stripTags(next), ".") {
+				next += "."
+			}
+			continue
+		}
+		tail += ", " + esc(join) + " " + h
 	}
 	out := sent
 	if tail != "" {
@@ -190,7 +202,25 @@ func (s *Site) fullSentence(n *resolve.Node) string {
 			out += "."
 		}
 	}
-	return out + s.afterSentence(n)
+	return out + next + s.afterSentence(n)
+}
+
+// holdsWords reports whether text holds a phrase's last word as a word of
+// its own, as "and must instead" is held by a clause with "instead".
+func holdsWords(text, phrase string) bool {
+	f := strings.Fields(phrase)
+	if len(f) == 0 {
+		return false
+	}
+	w := strings.ToLower(f[len(f)-1])
+	for _, x := range strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r == '\'')
+	}) {
+		if x == w {
+			return true
+		}
+	}
+	return false
 }
 
 // afterSentence is what follows a rule's sentence in its paragraph: each
@@ -230,7 +260,8 @@ func (c *Ctx) targetChips(n *resolve.Node) string {
 	}
 	var b strings.Builder
 	for _, t := range c.Site.targets(n) {
-		if t == n.Parent || c.Page != nil && t == c.Page.Node {
+		if t == n.Parent || c.Page != nil && (t == c.Page.Node || c.Site.anchorOf[t] == c.Page) {
+			// A target on the same page reads from where the rule is.
 			continue
 		}
 		b.WriteString(` ` + c.Site.linkHTML(t, esc(c.refText(t)), "chip"))
@@ -300,7 +331,11 @@ func renderRule(c *Ctx) error {
 	if n.Name != "" {
 		link = ` <a class="rule-link" href="#` + attr(Anchor(n)) + `" aria-label="` + attr(displayName(s, n)) + `">#</a>`
 	}
-	head := sent + statusBadge(n) + c.targetChips(n) + c.qualityFacts(n) + link
+	head := sent + statusBadge(n) + c.qualityFacts(n) + link
+	if chips := c.targetChips(n); chips != "" {
+		// The targets lead the sentence, as a small tag above it.
+		head = `<span class="rule-targets">` + strings.TrimSpace(chips) + `</span>` + head
+	}
 	if s.summarized(n) {
 		rest := c.at(n, c.Level)
 		rest.out = &strings.Builder{}

@@ -134,21 +134,51 @@ func renderContainer(c *Ctx) error {
 	return nil
 }
 
-// inOrder is a node's children as the lens renders them: those it renders
-// in full first, then its summary lines, each group in the tree's order.
+// inOrder is a node's children as a lens other than explore renders
+// them: the nodes that are none of the others, such as examples, APIs and
+// diagrams; then its rules; then its terms; then its sections; then its
+// diagnostics last; each group in the tree's order. Explore keeps the
+// tree's order.
 func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
 	if s.explore() {
 		return children
 	}
-	var full, sum []*resolve.Node
+	var groups [5][]*resolve.Node
 	for _, ch := range children {
-		if s.summarized(ch) {
-			sum = append(sum, ch)
-		} else {
-			full = append(full, ch)
+		g := 0
+		switch k := s.kindPath(ch); {
+		case k == "spec.rule" || k == "spec.quality" || k == "spec.guidance" || s.summarized(ch):
+			g = 1
+		case k == "doc.term":
+			g = 2
+		case k == "tech.diagnostic" || s.isContainer(ch) && s.onlyDiagnostics(ch):
+			g = 4
+		case s.isContainer(ch):
+			g = 3
 		}
+		groups[g] = append(groups[g], ch)
 	}
-	return append(full, sum...)
+	var out []*resolve.Node
+	for _, g := range groups {
+		out = append(out, g...)
+	}
+	return out
+}
+
+// onlyDiagnostics reports whether a section holds diagnostics and nothing
+// else the lens shows.
+func (s *Site) onlyDiagnostics(n *resolve.Node) bool {
+	any := false
+	for _, ch := range n.Children {
+		if ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || !s.placed(ch) {
+			continue
+		}
+		if s.kindPath(ch) != "tech.diagnostic" {
+			return false
+		}
+		any = true
+	}
+	return any
 }
 
 // summary writes a node a lens sums up: its title and first sentence,
@@ -242,6 +272,16 @@ func (c *Ctx) Link(n *resolve.Node, text string) {
 }
 
 func (s *Site) linkHTML(n *resolve.Node, inner, class string) string {
+	return s.link(n, inner, class, false)
+}
+
+// proseLinkHTML is a link written in prose: one that leads to another
+// lens names that lens after its text.
+func (s *Site) proseLinkHTML(n *resolve.Node, inner string) string {
+	return s.link(n, inner, "", true)
+}
+
+func (s *Site) link(n *resolve.Node, inner, class string, tagged bool) string {
 	u := s.URL(n)
 	cls := "ref"
 	if class != "" {
@@ -260,8 +300,10 @@ func (s *Site) linkHTML(n *resolve.Node, inner, class string) string {
 	if u == "" {
 		return `<span class="` + cls + `"` + card + `>` + inner + `</span>`
 	}
-	if t := s.lensTag(n); t != "" && s.specURL(n) == "" {
-		inner += ` <span class="lens-tag">` + esc(t) + `</span>`
+	if tagged {
+		if t := s.lensTag(n); t != "" && s.specURL(n) == "" {
+			inner += ` <span class="lens-tag">` + esc(t) + `</span>`
+		}
 	}
 	return `<a class="` + cls + `" href="` + attr(u) + `"` + card + `>` + inner + `</a>`
 }

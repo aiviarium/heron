@@ -274,7 +274,7 @@ func (p *proseBuf) link(l ast.Link) string {
 	if strength := p.s.ruleStrength(t); strength != "" {
 		text += ` <span class="lvl">` + esc(kindWords(strength)) + `</span>`
 	}
-	return p.s.linkHTML(t, text, "")
+	return p.s.proseLinkHTML(t, text)
 }
 
 func (p *proseBuf) insert(in ast.Insert) string {
