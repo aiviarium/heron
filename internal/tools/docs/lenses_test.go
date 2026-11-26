@@ -368,3 +368,12 @@ func TestProseInCode(t *testing.T) {
 	mustHave(t, "docs.css", string(css), `.tk-prose{color:var(--h-text)}`)
 	mustNotHave(t, "docs.css", string(css), `.tk-prose{color:var(--h-syntax-comment)}`, `.tk-comment,.tk-prose`)
 }
+
+// A short link reads as its node does inside a sentence, a term by its
+// word, and in backticks as its path in code, each linking to the node.
+func TestShortLinksRender(t *testing.T) {
+	_, f := lensFiles(t, kite)
+	h := f["kite.more.tips.html"]
+	mustHave(t, "tips", h, `A <a class="ref ref-term" href="kite.sync.html#kite.sync.conflict" data-card="kite.sync.conflict">conflict</a> needs you`,
+		`<a class="ref" href="kite.cli.sync.html#kite.cli.sync.dry_run"`, `><code>dry_run</code></a> previews`, `>store line</a> step`)
+}

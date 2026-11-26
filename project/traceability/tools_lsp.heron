@@ -136,4 +136,8 @@ tools_lsp: section {
   proves(heron.tools.lsp.extensions.capabilities) {
     verify("scripts/e2e-lsp.sh")
   }
+
+  proves(heron.tools.lsp.definition.definition_short_link) {
+    verify("internal/tools/lsp/features_test.go", test = "TestShortLinkDefinitionAndHover")
+  }
 }

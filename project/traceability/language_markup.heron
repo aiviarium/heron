@@ -230,4 +230,20 @@ language_markup: section {
   proves(heron.language.markup.lens_marks.mark_checked_on_prose) {
     verify("internal/core/lens/lens_test.go", test = "TestUnknownLens")
   }
+
+  proves(heron.language.markup.links.short_links_resolve) {
+    verify("internal/core/types/links_test.go", test = "TestLinkLookup")
+  }
+
+  proves(heron.language.markup.links.short_link_text) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestShortLinksRender")
+  }
+
+  proves(heron.language.markup.links.links_kept_by_format) {
+    verify("internal/core/format/format_test.go", test = "TestLinksKept")
+  }
+
+  proves(heron.language.markup.links.diagnostics.unresolved_short_link) {
+    verify("internal/core/types/links_test.go", test = "TestLinkLookup")
+  }
 }

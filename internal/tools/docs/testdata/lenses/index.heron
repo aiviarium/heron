@@ -70,7 +70,8 @@ kite: package(version = "1.4.0") {
     @lens(user)
     tips: concept {
       | Keep the folder small: Kite copies changed notes only, so a large folder syncs as
-      | fast as a small one.
+      | fast as a small one. A [conflict] needs you, and [`dry_run`] previews a sync, as does
+      | the [store_line] step.
     }
   }
 

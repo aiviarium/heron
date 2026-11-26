@@ -441,4 +441,20 @@ language_core_format: section {
   proves(heron.language.core_format.code_layer.do_needs_a_kind) {
     verify("internal/core/types/types_test.go", test = "TestBodyAccepts")
   }
+
+  proves(heron.language.core_format.naming.link_lookup) {
+    verify("internal/core/types/links_test.go", test = "TestLinkLookup")
+  }
+
+  proves(heron.language.core_format.naming.own_tree_first) {
+    verify("internal/core/types/links_test.go", test = "TestLinkLookupOwnTreeFirst")
+  }
+
+  proves(heron.language.core_format.naming.ambiguous_links) {
+    verify("internal/core/types/links_test.go", test = "TestLinkLookup")
+  }
+
+  proves(heron.language.core_format.naming.diagnostics.ambiguous_link) {
+    verify("internal/core/types/links_test.go", test = "TestLinkLookup")
+  }
 }

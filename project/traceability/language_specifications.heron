@@ -243,4 +243,8 @@ language_specifications: section {
   proves(heron.language.specifications.implementations.versions.release_tags) {
     verify("scripts/e2e-project.sh")
   }
+
+  proves(heron.language.specifications.quality_checks.unlinked_node_fix) {
+    verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
 }

@@ -429,4 +429,8 @@ language_grammar: section {
   proves(heron.language.grammar.productions.surface_is_the_design) {
     verify("internal/core/syntax/fixtures_test.go", test = "TestFixturesParse")
   }
+
+  proves(heron.language.grammar.prose.inline_forms.short_links) {
+    verify("internal/core/syntax/grammar_test.go", test = "TestProse")
+  }
 }
