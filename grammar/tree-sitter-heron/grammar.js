@@ -282,7 +282,8 @@ module.exports = grammar({
 
     map: ($) => seq('{', repeat(seq($.map_entry, optional(','))), '}'),
 
-    map_entry: ($) => seq($.path, '=', $._expression),
+    // A key may be a string, as in `{ "fragile" = "yes" }`.
+    map_entry: ($) => seq(alias($._member_path, $.path), '=', $._expression),
 
     parenthesized: ($) => seq('(', $._expression, ')'),
 

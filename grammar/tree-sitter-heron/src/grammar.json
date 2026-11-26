@@ -1777,8 +1777,13 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "path"
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_member_path"
+          },
+          "named": true,
+          "value": "path"
         },
         {
           "type": "STRING",

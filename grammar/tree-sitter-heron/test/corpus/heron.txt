@@ -546,3 +546,25 @@ late: scenario(illustrates = refund.2a) {
     (struct_body
       (prose_lines
         (prose_line (text) (short_link) (text))))))
+
+================================================================================
+A map with a string key
+================================================================================
+
+labels = { "fragile" = "yes", tier = 1 }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (set
+    name: (path
+      (identifier))
+    value: (map
+      (map_entry
+        (path
+          (string))
+        (string))
+      (map_entry
+        (path
+          (identifier))
+        (number)))))
