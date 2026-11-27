@@ -437,7 +437,11 @@ func TestAgentContractForms(t *testing.T) {
 		"- HTTP GET `/v1/parcels/:id`",
 		"- gRPC `/acme.parcels.v1.ParcelsService/GetParcel` (unary)",
 		"- JSON-RPC method `parcels.get`",
-		"· HTTP 404 · gRPC NOT_FOUND · JSON-RPC -32004",
+		"· HTTP 404 · gRPC NOT_FOUND · JSON-RPC -32004 · Sparrow not_found (5)",
+		"- Sparrow method `acme.parcels/getParcel` (id 0, unary, `GetParcelInput` → `Parcel`, idempotent)",
+		"- Sparrow method `acme.parcels/navigate` (id 4, bidi, `stream<Position>` → `stream<Instruction>`, input_end, output_end)",
+		"· HTTP 422 · gRPC INVALID_ARGUMENT · Sparrow sigil InvalidAddress (80)",
+		"Sparrow service `Parcels` (id 0) of facet `acme.parcels` 1.0.0 (id 16, hash `01",
 		"- param `tenant`: The account the parcel belongs to",
 		"- example labelled: id = \"p_1042\"",
 	} {

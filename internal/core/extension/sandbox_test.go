@@ -14,6 +14,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/extension/protocol"
 	"github.com/aiviarium/heron/internal/core/lint"
 	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/sparrow/go/transport/pipe"
 )
 
 // The test binary doubles as an extension written in Go: with
@@ -34,7 +35,7 @@ func (p *probe) Initialize(ctx context.Context, in *protocol.InitializeParams) (
 	if v := os.Getenv("HERON_TEST_PROTOCOL"); v != "" {
 		version = v
 	}
-	out := &protocol.InitializeResult{Protocol: version, Extension: protocol.PeerInfo{Name: "probe", Version: "1.0.0"}, Capabilities: protocol.Capabilities{Methods: []string{"call"}}}
+	out := &protocol.InitializeResult{Protocol: version, Extension: protocol.PeerInfo{Name: "probe", Version: "1.0.0"}}
 	for _, d := range in.Declarations {
 		out.Implements = append(out.Implements, protocol.Implemented{Path: d.Path, Point: d.Point})
 	}
@@ -59,6 +60,10 @@ func (p *probe) Call(ctx context.Context, c *protocol.CallParams) (protocol.Valu
 		return nil, &protocol.Error{Code: protocol.CodeThrown, Type: "ProbeError", Message: "as declared", Data: map[string]any{"message": "as declared"}}
 	}
 	return nil, fmt.Errorf("no target %s", c.Target)
+}
+
+func (p *probe) CallStream(ctx context.Context, c *protocol.CallParams) (protocol.Value, error) {
+	return p.Call(ctx, c)
 }
 
 func (p *probe) Lint(ctx context.Context, l *protocol.LintParams) (*protocol.LintResult, error) {
@@ -94,8 +99,11 @@ func (p *probe) Shutdown(context.Context, *protocol.Empty) (*protocol.Empty, err
 }
 
 func serveProbe() {
-	c := protocol.NewConn(os.Stdin, os.Stdout, protocol.Options{Handlers: protocol.ExtensionHandlers(&probe{})})
-	c.Serve()
+	c, err := protocol.Dial(context.Background(), pipe.Stdio(nil), protocol.Options{Handlers: protocol.ExtensionHandlers(&probe{})})
+	if err != nil {
+		os.Exit(3)
+	}
+	<-c.Done()
 }
 
 func TestExtensionRunsWithItsLimits(t *testing.T) {

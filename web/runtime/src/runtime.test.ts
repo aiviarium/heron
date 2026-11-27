@@ -6,30 +6,36 @@ import { describe, expect, it } from "vitest";
 import { Conn, RpcError } from "./conn.js";
 import { HeronError, serveExtension, toRpcError } from "./extension.js";
 import { serveHost } from "./host.js";
-import { codeCancelled, codeThrown, methods, type InitializeParams, type InitializeResult } from "./protocol.gen.js";
+import { Codec } from "@aiviarium/sparrow-rpc";
+import { codeCancelled, codeThrown, facets, methods, version, type InitializeParams, type InitializeResult } from "./protocol.gen.js";
 import { defineFunc, defineLint, defineResource, defineTransport } from "./sdk.js";
-import { Decimal, Duration, Ref, Variant, cbor, json } from "./values.js";
+import { Binder, Decimal, Duration, Ref, Variant, fromValue, toValue } from "./values.js";
+import { facetDef } from "./conn.js";
 
-function pair(opts: { wire?: typeof cbor } = {}) {
+// a is heron's side, b the extension's, over the pipe binding.
+function pair() {
   const ab = new PassThrough();
   const ba = new PassThrough();
-  const a = new Conn(ba, ab, { wire: opts.wire, toError: toRpcError });
-  const b = new Conn(ab, ba, { wire: opts.wire, toError: toRpcError });
+  const a = new Conn(ba, ab, { role: "host", toError: toRpcError });
+  const b = new Conn(ab, ba, { toError: toRpcError });
   return { a, b };
 }
 
 const init = (declarations: InitializeParams["declarations"], root = "/"): InitializeParams => ({
-  protocol: "1.0",
+  protocol: version,
   host: { name: "test", version: "0" },
   root,
   declarations,
-  limits: { max_frame: 1 << 20, max_in_flight: 8, timeout_ms: 5000 },
-  capabilities: { methods: [] },
+  limits: { max_message: 1 << 20, max_in_flight: 8, timeout_ms: 5000 },
 });
 
 describe("values", () => {
   it("round-trip with their Heron types", () => {
-    for (const wire of [cbor]) {
+    const f = facetDef(facets.host);
+    const codec = new Codec(f);
+    const vid = new Binder(f).typeNamed("Value")!;
+    const wire = { encode: (x: unknown) => codec.encode(vid, toValue(x)), decode: (b: Uint8Array) => fromValue(codec.decode(vid, b)) };
+    {
       const v = {
         big: 2n ** 70n,
         dec: Decimal.parse("40.00"),
@@ -57,28 +63,26 @@ describe("values", () => {
 });
 
 describe("conn", () => {
-  for (const wire of [cbor, json]) {
-    it(`calls both ways over ${wire.name}`, async () => {
-      const { a, b } = pair({ wire });
-      a.handle("ping", (p) => ({ pong: p.n + 1 }));
-      b.handle("ping", (p) => ({ pong: p.n * 10 }));
-      expect(await a.call("ping", { n: 2 })).toEqual({ pong: 20 });
-      expect(await b.call("ping", { n: 2 })).toEqual({ pong: 3 });
-    });
-  }
+  it("calls both ways over the pipe binding", async () => {
+    const { a, b } = pair();
+    a.handle(methods.secret, (p) => `s-${p.name}`);
+    b.handle(methods.call, (p) => ({ pong: p.args.n * 10 }));
+    expect(await a.call(methods.call, { target: "t", args: { n: 2 } })).toEqual({ pong: 20 });
+    expect(await b.call(methods.secret, { name: "x" })).toBe("s-x");
+  });
   it("sends thrown Heron errors with their type", async () => {
     const { a, b } = pair();
-    b.handle("x", () => {
+    b.handle(methods.call, () => {
       throw new HeronError("NotFound", "no such pet", { id: 3 });
     });
-    await expect(a.call("x", {})).rejects.toMatchObject({ code: codeThrown, type: "NotFound", data: { id: 3 } });
+    await expect(a.call(methods.call, { target: "x", args: {} })).rejects.toMatchObject({ code: codeThrown, type: "NotFound", data: { id: 3 } });
   });
   it("cancels", async () => {
     const { a, b } = pair();
     let aborted = false;
-    b.handle("slow", (_p, rc) => new Promise((r) => rc.signal.addEventListener("abort", () => ((aborted = true), r(null)))));
+    b.handle(methods.call, (_p, rc) => new Promise((r) => rc.signal.addEventListener("abort", () => ((aborted = true), r(null)))));
     const ac = new AbortController();
-    const p = a.call("slow", {}, { signal: ac.signal });
+    const p = a.call(methods.call, { target: "slow", args: {} }, { signal: ac.signal });
     setTimeout(() => ac.abort(), 10);
     await expect(p).rejects.toMatchObject({ code: codeCancelled });
     await new Promise((r) => setTimeout(r, 20));
@@ -86,17 +90,21 @@ describe("conn", () => {
   });
   it("streams", async () => {
     const { a, b } = pair();
-    b.handle("count", (_p, rc) => {
-      for (let i = 0; i < 3; i++) rc.stream(i);
+    b.handle(methods.callStream, async (_p, rc) => {
+      for (let i = 0; i < 3; i++) await rc.stream(i);
       return null;
     });
     const got: unknown[] = [];
-    for await (const i of a.callStream("count", {})) got.push(i);
+    for await (const i of a.callStream(methods.callStream, { target: "count", args: {} })) got.push(i);
     expect(got).toEqual([0, 1, 2]);
+    expect(await a.call(methods.callStream, { target: "count", args: {} })).toEqual([0, 1, 2]);
   });
   it("fails calls in flight when the peer goes away", async () => {
-    const { a } = pair();
-    const p = a.call("never", {});
+    const { a, b } = pair();
+    b.handle(methods.call, () => new Promise(() => {}));
+    await a.ready;
+    const p = a.call(methods.call, { target: "never", args: {} });
+    await new Promise((r) => setTimeout(r, 20));
     a.close(new Error("gone"));
     await expect(p).rejects.toBeInstanceOf(RpcError);
   });
@@ -151,7 +159,7 @@ describe("serveHost", () => {
     const ab = new PassThrough();
     const ba = new PassThrough();
     const host = serveHost(ab, ba, { onShutdown: () => {} });
-    const client = new Conn(ba, ab);
+    const client = new Conn(ba, ab, { role: "host" });
     const res = (await client.call(methods.initialize, init([{ path: "twice", point: "func", module: "./m.mjs", export: "twice" }], dir))) as InitializeResult;
     expect(res.implements).toEqual([{ path: "twice", point: "func" }]);
     expect(await client.call(methods.call, { target: "twice", args: { n: 21 } })).toBe(42);
@@ -164,7 +172,7 @@ describe("serveHost", () => {
     const ab = new PassThrough();
     const ba = new PassThrough();
     serveHost(ab, ba, { onShutdown: () => {} });
-    const client = new Conn(ba, ab);
+    const client = new Conn(ba, ab, { role: "host" });
     await expect(client.call(methods.initialize, init([{ path: "a", point: "lint", module: "./m.mjs", export: "answer" }], dir))).rejects.toThrow(
       /export answer isn't an implementation made with @heron\/runtime/,
     );
@@ -183,7 +191,7 @@ describe("serveHost", () => {
     const ab = new PassThrough();
     const ba = new PassThrough();
     serveHost(ab, ba, { onShutdown: () => {} });
-    const client = new Conn(ba, ab);
+    const client = new Conn(ba, ab, { role: "host" });
     const res = (await client.call(methods.initialize, init([{ path: "renderers:r", point: "renderer", module: "./r.mjs", export: "*" }], dir))) as InitializeResult;
     expect(res.implements).toEqual([{ path: "renderers:r", point: "renderer", kinds: ["g.badge", "g.steps"] }]);
     expect(await client.call(methods.render, { renderer: "renderers:r", kind: "g.steps", path: "a", children: "<li>x</li>" })).toEqual({ html: "<ol><li>x</li></ol>" });

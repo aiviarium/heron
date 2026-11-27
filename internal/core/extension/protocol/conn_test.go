@@ -1,32 +1,63 @@
 package protocol
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"io"
 	"math/big"
+	"net"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/aiviarium/sparrow/go/cbor"
+	"github.com/aiviarium/sparrow/go/schema"
+	"github.com/aiviarium/sparrow/go/transport/pipe"
+	"github.com/aiviarium/sparrow/go/value"
+	"github.com/aiviarium/sparrow/go/wire"
 )
 
-func pair(t *testing.T, wire Wire, a, b map[string]Handler, limits Limits) (*Conn, *Conn) {
+// pair connects heron's side, serving host, to an extension's side,
+// serving ext, over the pipe binding.
+func pair(t *testing.T, host, ext map[string]Handler, limits Limits) (*Conn, *Conn) {
 	t.Helper()
-	ar, bw := io.Pipe()
-	br, aw := io.Pipe()
-	ca := NewConn(ar, aw, Options{Wire: wire, Handlers: a, Limits: limits})
-	cb := NewConn(br, bw, Options{Wire: wire, Handlers: b, Limits: limits})
-	go ca.Serve()
-	go cb.Serve()
-	t.Cleanup(func() { aw.Close(); bw.Close() })
-	return ca, cb
+	return pairWith(t, Options{Handlers: host, Limits: limits}, Options{Handlers: ext, Limits: limits})
+}
+
+func pairWith(t *testing.T, hopts, eopts Options) (*Conn, *Conn) {
+	t.Helper()
+	a, b := net.Pipe()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	type res struct {
+		c   *Conn
+		err error
+	}
+	hc := make(chan res, 1)
+	go func() {
+		c, err := Accept(ctx, pipe.New(a, nil), hopts)
+		hc <- res{c, err}
+	}()
+	e, err := Dial(ctx, pipe.New(b, nil), eopts)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	h := <-hc
+	if h.err != nil {
+		t.Fatalf("accept: %v", h.err)
+	}
+	t.Cleanup(func() { a.Close(); b.Close() })
+	return h.c, e
 }
 
 type echoHost struct{}
 
 func (echoHost) Node(ctx context.Context, p *NodeParams) (*Node, error) {
-	return &Node{Path: p.Path, Kind: "types.type"}, nil
+	if p.Path == "nothing" {
+		return nil, nil
+	}
+	return &Node{Path: p.Path, Kind: "types.type", Children: []Node{{Path: p.Path + ".id", Name: "id"}}}, nil
 }
 func (echoHost) Call(ctx context.Context, p *CallParams) (Value, error) {
 	switch p.Target {
@@ -35,13 +66,6 @@ func (echoHost) Call(ctx context.Context, p *CallParams) (Value, error) {
 	case "slow":
 		<-ctx.Done()
 		return nil, ctx.Err()
-	case "stream":
-		for i := 0; i < 3; i++ {
-			if err := StreamItem(ctx, i); err != nil {
-				return nil, err
-			}
-		}
-		return nil, nil
 	case "run":
 		return RunOf(ctx), nil
 	}
@@ -53,39 +77,106 @@ func (echoHost) Temp(ctx context.Context, p *NameParams) (string, error) {
 	return "/tmp/" + p.Name, nil
 }
 
-func TestCallsBothWays(t *testing.T) {
-	for _, wire := range []Wire{CBOR, JSON} {
-		t.Run(wire.Name(), func(t *testing.T) {
-			a, b := pair(t, wire, HostHandlers(echoHost{}), HostHandlers(echoHost{}), DefaultLimits())
-			ctx := context.Background()
-			for _, c := range []*Conn{a, b} {
-				n, err := HostClient{c}.Node(ctx, &NodeParams{Path: "store.pets"})
-				if err != nil || n.Path != "store.pets" || n.Kind != "types.type" {
-					t.Fatalf("node: %v %+v", err, n)
-				}
-				s, err := HostClient{c}.Secret(ctx, &NameParams{Name: "x"})
-				if err != nil || s != "s3cret" {
-					t.Fatalf("secret: %v %q", err, s)
+// ext is an extension that streams, echoes and answers initialize.
+func extHandlers() map[string]Handler {
+	return map[string]Handler{
+		MethodInitialize: func(ctx context.Context, decode func(any) error) (any, error) {
+			var p InitializeParams
+			if err := decode(&p); err != nil {
+				return nil, err
+			}
+			out := &InitializeResult{Protocol: p.Protocol, Extension: PeerInfo{Name: "ext", Version: "1"}}
+			for _, d := range p.Declarations {
+				out.Implements = append(out.Implements, Implemented{Path: d.Path, Point: d.Point})
+			}
+			return out, nil
+		},
+		MethodCall: func(ctx context.Context, decode func(any) error) (any, error) {
+			var p CallParams
+			if err := decode(&p); err != nil {
+				return nil, err
+			}
+			return p.Args["value"], nil
+		},
+		MethodCallStream: func(ctx context.Context, decode func(any) error) (any, error) {
+			for i := 0; i < 3; i++ {
+				if err := StreamItem(ctx, int64(i)); err != nil {
+					return nil, err
 				}
 			}
-		})
+			return nil, nil
+		},
+	}
+}
+
+// Each side publishes its facet and calls the other's: the extension
+// heron's host, heron the extension's.
+func TestCallsBothWays(t *testing.T) {
+	h, e := pair(t, HostHandlers(echoHost{}), extHandlers(), DefaultLimits())
+	ctx := context.Background()
+	n, err := HostClient{e}.Node(ctx, &NodeParams{Path: "store.pets"})
+	if err != nil || n.Path != "store.pets" || n.Kind != "types.type" || len(n.Children) != 1 || n.Children[0].Name != "id" {
+		t.Fatalf("node: %v %+v", err, n)
+	}
+	if n, err := (HostClient{e}).Node(ctx, &NodeParams{Path: "nothing"}); err != nil || n.Path != "" {
+		t.Fatalf("no node: %v %+v", err, n)
+	}
+	s, err := HostClient{e}.Secret(ctx, &NameParams{Name: "x"})
+	if err != nil || s != "s3cret" {
+		t.Fatalf("secret: %v %q", err, s)
+	}
+	res, err := ExtensionClient{h}.Initialize(ctx, &InitializeParams{Protocol: Version, Root: "/r",
+		Declarations: []Declaration{{Path: "a.f", Point: PointFunc}, {Path: "a.l", Point: PointLint}}, Limits: DefaultLimits()})
+	if err != nil || res.Protocol != Version || len(res.Implements) != 2 || res.Implements[1].Point != PointLint {
+		t.Fatalf("initialize: %v %+v", err, res)
+	}
+	// Calls are numbered as Sparrow does: the extension, the client, even;
+	// heron, the server, odd.
+	if h.Session().Role() != wire.Server || e.Session().Role() != wire.Client {
+		t.Fatal("heron is the server, the process the client")
+	}
+}
+
+// Both facets are generated from the messages, valid, and the ones each
+// side publishes.
+func TestFacets(t *testing.T) {
+	h, e := pair(t, nil, nil, DefaultLimits())
+	for _, c := range []struct {
+		conn       *Conn
+		local, far string
+	}{{h, FacetHost, FacetExtension}, {e, FacetExtension, FacetHost}} {
+		if c.conn.local.Name != c.local || c.conn.peer.Name != c.far || c.conn.peer.ID != schema.FirstFreeFacetID {
+			t.Errorf("%s sees %s at %d", c.conn.local.Name, c.conn.peer.Name, c.conn.peer.ID)
+		}
+	}
+	for _, name := range []string{FacetExtension, FacetHost} {
+		f, err := FacetDef(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.Validate(); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+		if f.Type(f.Types[0].ID).Name != "Value" {
+			t.Errorf("%s: Value isn't first", name)
+		}
 	}
 }
 
 func TestValuesKeepTheirTypes(t *testing.T) {
-	a, _ := pair(t, CBOR, nil, HostHandlers(echoHost{}), DefaultLimits())
+	_, e := pair(t, HostHandlers(echoHost{}), nil, DefaultLimits())
 	huge, _ := new(big.Int).SetString("123456789012345678901234567890", 10)
 	dec, _ := ParseDecimal("40.00")
-	when := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	when := time.Date(2026, 1, 2, 3, 4, 5, 6, time.UTC)
 	for _, v := range []any{
-		int64(-7), int64(12), int64(13), int64(32), uint64(1) << 63, huge, 1.5, "text", []byte{0, 1, 2}, true, nil,
+		int64(-7), int64(12), int64(13), int64(32), uint64(1) << 63, huge, new(big.Int).Neg(huge), 1.5, "text", []byte{0, 1, 2}, true, nil,
 		dec, when, Duration(1500), Ref("store.pets"), Set{"a", "b"},
 		Variant{Name: "card", Value: map[string]any{"last4": "4242"}},
 		Prose{"type": "root", "children": []any{}},
 		[]any{"x", int64(1)}, map[string]any{"k": "v"},
 	} {
 		var got any
-		err := a.Call(context.Background(), MethodCall, &CallParams{Target: "echo", Args: map[string]Value{"value": v}}, &got)
+		err := e.Call(context.Background(), MethodCall, &CallParams{Target: "echo", Args: map[string]Value{"value": v}}, &got)
 		if err != nil {
 			t.Fatalf("%T: %v", v, err)
 		}
@@ -120,76 +211,156 @@ func normal(v any) any {
 	return v
 }
 
+// Each Heron value is its own variant of the Value union, so Sparrow's
+// tags 1 and 37 are the only ones on the wire.
+func TestCBORTags(t *testing.T) {
+	huge, _ := new(big.Int).SetString("123456789012345678901234567890", 10)
+	dec, _ := ParseDecimal("40.00")
+	cases := []struct {
+		v   any
+		tag uint64
+	}{
+		{nil, vNull}, {true, vBool}, {int64(-3), vInt}, {uint64(1) << 63, vUint}, {huge, vBigint}, {new(big.Int).Neg(huge), vBigint},
+		{2.5, vFloat}, {"s", vString}, {[]byte{1}, vBytes}, {dec, vDecimal},
+		{time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC), vTime}, {Duration(1500), vDuration},
+		{[]any{int64(1)}, vList}, {Set{"a"}, vSet}, {map[string]any{"a": int64(1)}, vMap},
+		{Variant{Name: "card", Value: int64(1)}, vVariant}, {Ref("store.pets"), vRef}, {Prose{"type": "root"}, vProse},
+	}
+	f, _ := FacetDef(FacetHost)
+	codec, err := value.New(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vid, _ := newBinder(f).typeNamed("Value")
+	for _, c := range cases {
+		u, err := encodeValue(c.v)
+		if err != nil || u.Tag != c.tag {
+			t.Errorf("%T: variant %d %v, want %d", c.v, u.Tag, err, c.tag)
+			continue
+		}
+		b, err := codec.EncodeInner(schema.Named(vid), u)
+		if err != nil {
+			t.Errorf("%T: %v", c.v, err)
+			continue
+		}
+		if err := cbor.Validate(b, cbor.Options{}); err != nil {
+			t.Errorf("%T: not Sparrow's CBOR: %v", c.v, err)
+		}
+		x, err := codec.DecodeInner(schema.Named(vid), b)
+		if err != nil {
+			t.Errorf("%T: %v", c.v, err)
+			continue
+		}
+		back, err := decodeValue(x)
+		if err != nil {
+			t.Errorf("%T: %v", c.v, err)
+			continue
+		}
+		if c.v != nil && reflect.TypeOf(back) != reflect.TypeOf(c.v) && !(c.tag == vUint) {
+			t.Errorf("%T came back as %T", c.v, back)
+		}
+	}
+	if s, _ := encodeValue(dec); s.Value != "40.00" {
+		t.Errorf("decimal %v", s.Value)
+	}
+}
+
+// A map's entries are written in the order of their keys, so equal values
+// encode to equal bytes whatever order a Go map yields them in.
+func TestCanonicalMapOrder(t *testing.T) {
+	f, _ := FacetDef(FacetHost)
+	codec, _ := value.New(f)
+	vid, _ := newBinder(f).typeNamed("Value")
+	var first []byte
+	for i := 0; i < 20; i++ {
+		u, _ := encodeValue(map[string]any{"c": 3, "a": 1, "b": 2})
+		b, err := codec.EncodeInner(schema.Named(vid), u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first == nil {
+			first = b
+			if bytes.Index(b, []byte("a")) > bytes.Index(b, []byte("c")) {
+				t.Fatalf("keys out of order: %x", b)
+			}
+		} else if !bytes.Equal(b, first) {
+			t.Fatalf("got %x, want %x", b, first)
+		}
+	}
+}
+
 func TestThrownErrorsCarryTheirType(t *testing.T) {
-	a, _ := pair(t, CBOR, nil, HostHandlers(echoHost{}), DefaultLimits())
-	_, err := HostClient{a}.Call(context.Background(), &CallParams{Target: "throw"})
-	var e *Error
-	if !errors.As(err, &e) || e.Code != CodeThrown || e.Type != "NotFound" {
+	_, e := pair(t, HostHandlers(echoHost{}), nil, DefaultLimits())
+	_, err := HostClient{e}.Call(context.Background(), &CallParams{Target: "throw"})
+	var pe *Error
+	if !errors.As(err, &pe) || pe.Code != CodeThrown || pe.Type != "NotFound" || pe.Message != "not found" {
 		t.Fatalf("got %v", err)
 	}
-	if m, ok := e.Data.(map[string]any); !ok || m["message"] != "not found" {
-		t.Fatalf("data %#v", e.Data)
+	if m, ok := pe.Data.(map[string]any); !ok || m["message"] != "not found" {
+		t.Fatalf("data %#v", pe.Data)
 	}
-	err = a.Call(context.Background(), "nope", nil, nil)
-	if !errors.As(err, &e) || e.Code != CodeMethodNotFound {
+	err = e.Call(context.Background(), "nope", nil, nil)
+	if !errors.As(err, &pe) || pe.Code != CodeMethodNotFound {
 		t.Fatalf("got %v", err)
 	}
 }
 
 func TestCancellationReachesTheHandler(t *testing.T) {
-	a, b := pair(t, CBOR, nil, HostHandlers(echoHost{}), DefaultLimits())
+	stopped := make(chan struct{})
+	host := map[string]Handler{
+		MethodCall: func(ctx context.Context, decode func(any) error) (any, error) {
+			<-ctx.Done()
+			close(stopped)
+			return nil, ctx.Err()
+		},
+	}
+	_, e := pair(t, host, nil, DefaultLimits())
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() { time.Sleep(50 * time.Millisecond); cancel() }()
-	_, err := HostClient{a}.Call(ctx, &CallParams{Target: "slow"})
-	var e *Error
-	if !errors.As(err, &e) || e.Code != CodeCancelled {
+	_, err := HostClient{e}.Call(ctx, &CallParams{Target: "slow"})
+	var pe *Error
+	if !errors.As(err, &pe) || pe.Code != CodeCancelled {
 		t.Fatalf("got %v", err)
 	}
-	deadline := time.Now().Add(2 * time.Second)
-	for {
-		b.mu.Lock()
-		n := len(b.serving)
-		b.mu.Unlock()
-		if n == 0 {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("the handler kept running after $/cancel")
-		}
-		time.Sleep(10 * time.Millisecond)
+	select {
+	case <-stopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the handler kept running after Cancel")
 	}
 }
 
 func TestTimeoutFromLimits(t *testing.T) {
 	l := DefaultLimits()
 	l.TimeoutMs = 50
-	a, _ := pair(t, CBOR, nil, HostHandlers(echoHost{}), l)
-	_, err := HostClient{a}.Call(context.Background(), &CallParams{Target: "slow"})
-	var e *Error
-	if !errors.As(err, &e) || e.Code != CodeTimeout {
+	_, e := pair(t, HostHandlers(echoHost{}), nil, l)
+	_, err := HostClient{e}.Call(context.Background(), &CallParams{Target: "slow"})
+	var pe *Error
+	if !errors.As(err, &pe) || pe.Code != CodeTimeout {
 		t.Fatalf("got %v", err)
 	}
 }
 
+// A streamed result is call_stream's Items; a plain call of it reads them
+// as a list.
 func TestStreaming(t *testing.T) {
-	a, _ := pair(t, CBOR, nil, HostHandlers(echoHost{}), DefaultLimits())
+	h, _ := pair(t, nil, extHandlers(), DefaultLimits())
 	var items []int64
-	err := a.CallStream(context.Background(), MethodCall, &CallParams{Target: "stream"}, nil, func(decode func(any) error) error {
-		var i int64
-		if err := decode(&i); err != nil {
-			return err
-		}
-		items = append(items, i)
+	err := ExtensionClient{h}.CallStream(context.Background(), &CallParams{Target: "stream"}, func(v Value) error {
+		items = append(items, v.(int64))
 		return nil
 	})
 	if err != nil || !reflect.DeepEqual(items, []int64{0, 1, 2}) {
 		t.Fatalf("%v %v", err, items)
 	}
+	var all any
+	if err := h.Call(context.Background(), MethodCallStream, &CallParams{Target: "stream"}, &all); err != nil || !reflect.DeepEqual(all, []any{int64(0), int64(1), int64(2)}) {
+		t.Fatalf("%v %#v", err, all)
+	}
 }
 
 func TestRunIDTravels(t *testing.T) {
-	a, _ := pair(t, CBOR, nil, HostHandlers(echoHost{}), DefaultLimits())
-	got, err := HostClient{a}.Call(WithRun(context.Background(), "run-42"), &CallParams{Target: "run"})
+	_, e := pair(t, HostHandlers(echoHost{}), nil, DefaultLimits())
+	got, err := HostClient{e}.Call(WithRun(context.Background(), "run-42"), &CallParams{Target: "run"})
 	if err != nil || got != "run-42" {
 		t.Fatalf("%v %v", err, got)
 	}
@@ -197,124 +368,128 @@ func TestRunIDTravels(t *testing.T) {
 
 func TestFrameLimit(t *testing.T) {
 	l := DefaultLimits()
-	l.MaxFrame = 1024
-	a, _ := pair(t, CBOR, nil, HostHandlers(echoHost{}), l)
-	_, err := HostClient{a}.Call(context.Background(), &CallParams{Target: "echo", Args: map[string]Value{"value": strings.Repeat("x", 2048)}})
-	var e *Error
-	if !errors.As(err, &e) || e.Code != CodeLimitExceeded {
+	l.MaxMessage = 16384
+	_, e := pair(t, HostHandlers(echoHost{}), nil, l)
+	_, err := HostClient{e}.Call(context.Background(), &CallParams{Target: "echo", Args: map[string]Value{"value": strings.Repeat("x", 20000)}})
+	var pe *Error
+	if !errors.As(err, &pe) || pe.Code != CodeLimitExceeded {
 		t.Fatalf("got %v", err)
+	}
+	// The session survives a refused message.
+	if s, err := (HostClient{e}).Secret(context.Background(), &NameParams{Name: "x"}); err != nil || s != "s3cret" {
+		t.Fatalf("after: %v %q", err, s)
 	}
 }
 
 func TestClosedConnectionFailsCallsInFlight(t *testing.T) {
-	ar, bw := io.Pipe()
-	br, aw := io.Pipe()
-	go io.Copy(io.Discard, br)
-	a := NewConn(ar, aw, Options{})
-	go a.Serve()
+	entered := make(chan struct{})
+	host := map[string]Handler{
+		MethodCall: func(ctx context.Context, decode func(any) error) (any, error) {
+			close(entered)
+			<-ctx.Done()
+			return nil, ctx.Err()
+		},
+	}
+	a, b := net.Pipe()
+	ctx := context.Background()
+	hc := make(chan *Conn, 1)
+	go func() {
+		c, _ := Accept(ctx, pipe.New(a, nil), Options{Handlers: host})
+		hc <- c
+	}()
+	e, err := Dial(ctx, pipe.New(b, nil), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := <-hc
 	errc := make(chan error, 1)
-	go func() { errc <- a.Call(context.Background(), MethodCall, &CallParams{Target: "x"}, nil) }()
-	time.Sleep(20 * time.Millisecond)
-	bw.Close()
+	go func() { errc <- e.Call(ctx, MethodCall, &CallParams{Target: "x"}, nil) }()
+	<-entered
+	a.Close()
 	select {
 	case err := <-errc:
 		if !errors.Is(err, ErrClosed) {
 			t.Fatalf("got %v", err)
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("the call didn't fail")
+	}
+	select {
+	case <-h.Done():
+	case <-time.After(5 * time.Second):
+		t.Fatal("heron's side didn't end")
 	}
 }
 
-// The edges of the protocol: the frame's header, a method nobody serves, a
-// handler that fails, more requests than may be in flight, a payload that
-// isn't a message, and the $/log and $/progress notifications.
+// The edges of the protocol: a method nobody serves, a handler that fails,
+// more calls than may be in flight, the log notification and Progress.
 func TestProtocolEdges(t *testing.T) {
-	var b strings.Builder
-	if err := WriteFrame(&b, []byte("hi"), 0); err != nil || b.String() != "\x00\x00\x00\x02hi" {
-		t.Errorf("frame %q %v", b.String(), err)
-	}
 	ctx := context.Background()
 	release := make(chan struct{})
-	handlers := map[string]Handler{
-		"fail": func(ctx context.Context, decode func(any) error) (any, error) { return nil, errors.New("boom") },
-		"wait": func(ctx context.Context, decode func(any) error) (any, error) { <-release; return "done", nil },
+	logs := make(chan string, 4)
+	host := map[string]Handler{
+		MethodSecret: func(ctx context.Context, decode func(any) error) (any, error) { return nil, errors.New("boom") },
+		MethodTemp: func(ctx context.Context, decode func(any) error) (any, error) {
+			_ = Progress(ctx, 1, 2, "half")
+			<-release
+			return "done", nil
+		},
 	}
 	l := DefaultLimits()
 	l.MaxInFlight = 1
-	a, _ := pair(t, CBOR, nil, handlers, l)
+	_, e := pairWith(t, Options{Handlers: host, Limits: l, Notifications: map[string]func(func(any) error){
+		MethodLog: func(decode func(any) error) {
+			var p LogParams
+			_ = decode(&p)
+			logs <- string(p.Level) + " " + p.Message
+		},
+	}}, Options{Limits: l})
 	codeOf := func(err error) int64 {
-		var e *Error
-		if errors.As(err, &e) {
-			return e.Code
+		var pe *Error
+		if errors.As(err, &pe) {
+			return pe.Code
 		}
 		return 0
 	}
-	if err := a.Call(ctx, "nope", &Empty{}, nil); codeOf(err) != CodeMethodNotFound {
-		t.Errorf("unknown method: %v", err)
+	if err := e.Call(ctx, MethodNode, &NodeParams{Path: "x"}, nil); codeOf(err) != CodeMethodNotFound {
+		t.Errorf("unserved method: %v", err)
 	}
-	if err := a.Call(ctx, "fail", &Empty{}, nil); codeOf(err) != CodeInternalError || !strings.Contains(err.Error(), "boom") {
+	if err := e.Call(ctx, MethodSecret, &NameParams{}, nil); codeOf(err) != CodeInternalError || !strings.Contains(err.Error(), "boom") {
 		t.Errorf("failing handler: %v", err)
 	}
 	first := make(chan error, 1)
-	go func() { first <- a.Call(ctx, "wait", &Empty{}, nil) }()
-	time.Sleep(20 * time.Millisecond)
-	if err := a.Call(ctx, "wait", &Empty{}, nil); codeOf(err) != CodeLimitExceeded {
+	go func() { first <- e.Call(ctx, MethodTemp, &NameParams{}, nil) }()
+	time.Sleep(50 * time.Millisecond)
+	if err := e.Call(ctx, MethodTemp, &NameParams{}, nil); codeOf(err) != CodeLimitExceeded {
 		t.Errorf("over max_in_flight: %v", err)
 	}
 	close(release)
 	if err := <-first; err != nil {
-		t.Errorf("the first request: %v", err)
+		t.Errorf("the first call: %v", err)
 	}
-
-	ar, bw := io.Pipe()
-	br, aw := io.Pipe()
-	got := make(chan string, 4)
-	c := NewConn(ar, aw, Options{Notifications: map[string]func(func(any) error){
-		MethodLog: func(decode func(any) error) {
-			var p LogParams
-			decode(&p)
-			got <- "log " + string(p.Level) + " " + p.Message
-		},
-		MethodProgress: func(decode func(any) error) {
-			var p ProgressParams
-			decode(&p)
-			got <- "progress " + p.Message
-		},
-	}})
-	go c.Serve()
-	t.Cleanup(func() { aw.Close(); bw.Close() })
-	go func() {
-		WriteFrame(bw, []byte{0xff, 0x00}, 0)
-		for _, n := range []any{
-			&Message{Method: MethodLog, Params: mustRaw(t, &LogParams{Level: "warning", Message: "careful"})},
-			&Message{Method: MethodProgress, Params: mustRaw(t, &ProgressParams{ID: 1, Message: "half"})},
-		} {
-			p, _ := CBOR.Marshal(n)
-			WriteFrame(bw, p, 0)
-		}
-	}()
-	reply, err := ReadFrame(br, 0)
-	var m Message
-	if err != nil || CBOR.Unmarshal(reply, &m) != nil || m.Error == nil || m.Error.Code != CodeParseError {
-		t.Errorf("unreadable payload: %v %+v", err, m.Error)
+	if err := NotifyLog(e, &LogParams{Level: SeverityWarning, Message: "careful"}); err != nil {
+		t.Fatal(err)
 	}
-	for _, want := range []string{"log warning careful", "progress half"} {
-		select {
-		case g := <-got:
-			if g != want {
-				t.Errorf("got %q, want %q", g, want)
-			}
-		case <-time.After(2 * time.Second):
-			t.Fatalf("no %q", want)
+	select {
+	case g := <-logs:
+		if g != "warning careful" {
+			t.Errorf("got %q", g)
 		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("no log")
 	}
 }
 
-func mustRaw(t *testing.T, v any) Raw {
-	b, err := CBOR.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
+// A process that doesn't speak Sparrow is refused in the handshake.
+func TestUnreadableMessage(t *testing.T) {
+	a, b := net.Pipe()
+	defer b.Close()
+	go func() {
+		_, _ = b.Write(wire.AppendFrame(nil, []byte{0xff, 0x00}))
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := Accept(ctx, pipe.New(a, nil), Options{HandshakeTimeout: 2 * time.Second}); err == nil {
+		t.Fatal("accepted a peer that sent no Hello")
 	}
-	return Raw(b)
 }

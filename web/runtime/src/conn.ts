@@ -1,24 +1,36 @@
-// One side of a protocol connection: length-prefixed frames over a pair of
-// streams, requests both ways, cancellation with $/cancel and streamed
-// results with $/stream. The Go side is internal/core/extension/protocol.
+// One side of the extension protocol: a Sparrow session on the pipe binding
+// over a pair of streams. The extension's side publishes heron.extension and
+// is the Sparrow client; heron's side publishes heron.host. Calls both ways,
+// cancellation, deadlines, progress and streamed results are Sparrow's own.
+// The Go side is internal/core/extension/protocol.
 import type { Readable, Writable } from "node:stream";
+import { Router, Session, SparrowError, cbor as spcbor, makeSchema, schema as spschema, type CallContext, type Facet, type Method, type TypeRef } from "@aiviarium/sparrow-rpc";
+import { pipeConn } from "@aiviarium/sparrow-rpc/pipe";
 import {
   codeCancelled,
   codeForeignError,
   codeInternalError,
+  codeInvalidParams,
+  codeInvalidRequest,
   codeLimitExceeded,
   codeMethodNotFound,
+  codeParseError,
+  codeThrown,
   codeTimeout,
-  methods,
-  type ErrorObject,
+  facetExtensionHex,
+  facetHostHex,
+  facets,
+  version,
   type Limits,
-  type Message,
 } from "./protocol.gen.js";
-import { cbor, type Wire } from "./values.js";
+import { Binder } from "./values.js";
 
-export const defaultLimits: Limits = { max_frame: 16 << 20, max_in_flight: 64, timeout_ms: 30_000 };
+export const defaultLimits: Limits = { max_message: 16 << 20, max_in_flight: 64, timeout_ms: 30_000 };
 
-/** An error response, or what a handler throws to send one with a code. */
+/** The metadata key that carries a run's id. */
+export const runKey = "heron.run";
+
+/** An error answer, or what a handler throws to send one with a code. */
 export class RpcError extends Error {
   constructor(
     readonly code: number,
@@ -33,18 +45,24 @@ export class RpcError extends Error {
 
 /** What a handler is called with besides its params. */
 export interface RequestContext {
-  /** Aborted when the caller sends $/cancel or the connection ends. */
+  /** Aborted when the caller cancels, the deadline passes or the session ends. */
   signal: AbortSignal;
-  /** The run the request belongs to. */
+  /** The run the call belongs to. */
   run?: string;
-  /** Sends one item of a streamed result. */
-  stream(item: unknown): void;
+  /** Sends one item of a streamed result, for a method whose result is a Stream. */
+  stream(item: unknown): Promise<void>;
+  /** Reports progress to the caller as Sparrow's Progress. */
+  progress(done: number, total?: number, note?: string): Promise<void>;
 }
 
 export type Handler = (params: any, rc: RequestContext) => unknown | Promise<unknown>;
 
+/** Which side of the protocol a connection is. */
+export type Role = "extension" | "host";
+
 export interface ConnOptions {
-  wire?: Wire;
+  /** The extension's side, the default, or heron's. */
+  role?: Role;
   limits?: Limits;
   handlers?: Record<string, Handler>;
   notifications?: Record<string, (params: any) => void>;
@@ -52,43 +70,58 @@ export interface ConnOptions {
   toError?: (e: unknown) => RpcError;
 }
 
-interface Pending {
-  resolve(v: unknown): void;
-  reject(e: unknown): void;
-  onItem?: (item: unknown) => void;
+// The Sparrow status of each code, from the protocol's errors table; a
+// status without details reads back as the first code that has it.
+const codeStatus: [number, string][] = [
+  [codeParseError, "protocol_error"],
+  [codeInvalidParams, "invalid_argument"],
+  [codeInvalidRequest, "invalid_argument"],
+  [codeMethodNotFound, "unimplemented"],
+  [codeInternalError, "internal"],
+  [codeCancelled, "cancelled"],
+  [codeForeignError, "unknown"],
+  [codeThrown, "aborted"],
+  [codeLimitExceeded, "resource_exhausted"],
+  [codeLimitExceeded, "message_too_large"],
+  [codeTimeout, "deadline_exceeded"],
+];
+const statusOf = (code: number) => codeStatus.find(([c]) => c === code)?.[1] ?? "unknown";
+const codeOf = (status: string) => codeStatus.find(([, s]) => s === status)?.[0] ?? codeInternalError;
+
+/** The facet heron.extension or heron.host, as the messages define it. */
+export function facetDef(name: string): Facet {
+  const hex = name === facets.extension ? facetExtensionHex : name === facets.host ? facetHostHex : undefined;
+  if (!hex) throw new Error(`no facet ${name}`);
+  return spschema.decodeFacet(spcbor.fromHex(hex));
 }
 
-/** Removes undefined members, which have no Heron value, from plain objects. */
-function clean(v: unknown): unknown {
-  if (Array.isArray(v)) return v.map(clean);
-  if (v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype) {
-    const out: Record<string, unknown> = {};
-    for (const [k, x] of Object.entries(v)) if (x !== undefined) out[k] = clean(x);
-    return out;
-  }
-  return v;
+function methodOf(f: Facet, name: string): Method | undefined {
+  for (const s of f.services) for (const m of s.methods) if (m.name === name) return m;
+  return undefined;
 }
+
+const isStream = (t: TypeRef): t is [3, TypeRef] => Array.isArray(t) && t[0] === 3;
 
 export class Conn {
-  readonly wire: Wire;
+  readonly role: Role;
   limits: Limits;
+  /** Settles once the handshake is done; a failed handshake ends the connection. */
+  readonly ready: Promise<void>;
+  readonly closed: Promise<void>;
   private handlers: Record<string, Handler>;
   private notifications: Record<string, (params: any) => void>;
   private toError: (e: unknown) => RpcError;
-  private nextId = 0;
-  private pending = new Map<number, Pending>();
-  private serving = new Map<number, AbortController>();
-  private buf: Buffer = Buffer.alloc(0);
+  private local: Facet;
+  private lb: Binder;
+  private peer?: Facet;
+  private pb?: Binder;
+  private session?: Session;
   private closedWith: Error | undefined;
-  readonly closed: Promise<void>;
   private markClosed!: () => void;
+  private inFlight = new Set<(e: unknown) => void>();
 
-  constructor(
-    private input: Readable,
-    private output: Writable,
-    opts: ConnOptions = {},
-  ) {
-    this.wire = opts.wire ?? cbor;
+  constructor(input: Readable, output: Writable, opts: ConnOptions = {}) {
+    this.role = opts.role ?? "extension";
     this.limits = opts.limits ?? defaultLimits;
     this.handlers = opts.handlers ?? {};
     this.notifications = opts.notifications ?? {};
@@ -96,9 +129,36 @@ export class Conn {
       opts.toError ??
       ((e) => (e instanceof RpcError ? e : new RpcError(codeInternalError, e instanceof Error ? e.message : String(e))));
     this.closed = new Promise((r) => (this.markClosed = r));
-    input.on("data", (chunk: Buffer) => this.onData(chunk));
-    input.on("end", () => this.close(new Error("the connection closed")));
-    input.on("error", (e) => this.close(e));
+    const [localName, peerName] = this.role === "extension" ? [facets.extension, facets.host] : [facets.host, facets.extension];
+    this.local = facetDef(localName);
+    this.lb = new Binder(this.local);
+    const router = new Router().fallback((input: unknown, ctx: CallContext) => this.serve(input, ctx));
+    const sopts = {
+      schema: makeSchema(localName, version, [this.local]),
+      handlers: router,
+      params: { maxMessageSize: Math.max(this.limits.max_message, 16384), maxConcurrentCalls: Math.max(this.limits.max_in_flight, 1) },
+      maxClientSchemaSize: -1,
+    };
+    const tc = pipeConn(input, output);
+    const start = this.role === "extension" ? Session.connect(tc, sopts) : Session.accept(tc, sopts);
+    this.ready = start.then(
+      (s) => {
+        this.session = s;
+        this.peer = s.peerFacet(peerName) ?? undefined;
+        if (!this.peer) {
+          s.close();
+          throw new RpcError(codeForeignError, `the peer doesn't publish ${peerName}`);
+        }
+        this.pb = new Binder(this.peer);
+        void s.closed.then((info) => this.close(new Error(info.reason || "the connection closed")));
+        if (this.closedWith) s.close();
+      },
+      (e) => {
+        this.close(e instanceof Error ? e : new Error(String(e)));
+        throw e;
+      },
+    );
+    this.ready.catch(() => {});
   }
 
   handle(method: string, h: Handler): void {
@@ -109,175 +169,146 @@ export class Conn {
     this.notifications[method] = f;
   }
 
-  private write(m: Message): void {
-    const payload = this.wire.encode(clean(m));
-    if (this.limits.max_frame > 0 && payload.length > this.limits.max_frame) {
-      throw new RpcError(codeLimitExceeded, `frame of ${payload.length} bytes is over the limit of ${this.limits.max_frame}`);
-    }
-    const hdr = Buffer.alloc(4);
-    hdr.writeUInt32BE(payload.length, 0);
-    this.output.write(Buffer.concat([hdr, payload]));
+  private async peerMethod(method: string): Promise<Method> {
+    if (this.closedWith) throw new RpcError(codeForeignError, this.closedWith.message);
+    await this.ready;
+    const m = methodOf(this.peer!, method);
+    if (!m) throw new RpcError(codeMethodNotFound, `method ${JSON.stringify(method)} isn't served`);
+    return m;
   }
 
-  /** Sends a request and resolves with its result. */
-  call<R = unknown>(
-    method: string,
-    params: unknown,
-    opts: { signal?: AbortSignal; run?: string; onItem?: (item: unknown) => void } = {},
-  ): Promise<R> {
-    if (this.closedWith) return Promise.reject(this.closedWith);
-    const id = ++this.nextId;
+  private callOpts(opts: { signal?: AbortSignal; run?: string }) {
+    return {
+      signal: opts.signal,
+      timeoutMs: this.limits.timeout_ms > 0 ? this.limits.timeout_ms : undefined,
+      metadata: opts.run ? { [runKey]: opts.run } : undefined,
+    };
+  }
+
+  /** Tracks a call so close fails it at once, whatever the session does. */
+  private track<R>(p: Promise<R>): Promise<R> {
     return new Promise<R>((resolve, reject) => {
-      let timer: NodeJS.Timeout | undefined;
-      const done = () => {
-        this.pending.delete(id);
-        if (timer) clearTimeout(timer);
-        opts.signal?.removeEventListener("abort", onAbort);
-      };
-      const onAbort = () => {
-        done();
-        this.notify(methods.cancel, { id });
-        reject(new RpcError(codeCancelled, `${method} was cancelled`));
-      };
-      this.pending.set(id, {
-        resolve: (v) => (done(), resolve(v as R)),
-        reject: (e) => (done(), reject(e)),
-        onItem: opts.onItem,
-      });
-      if (opts.signal) {
-        if (opts.signal.aborted) return onAbort();
-        opts.signal.addEventListener("abort", onAbort);
-      }
-      if (this.limits.timeout_ms > 0) {
-        timer = setTimeout(() => {
-          done();
-          this.notify(methods.cancel, { id });
-          reject(new RpcError(codeTimeout, `${method} timed out`));
-        }, this.limits.timeout_ms);
-      }
-      try {
-        this.write({ id, method, params, run: opts.run });
-      } catch (e) {
-        done();
-        reject(e);
-      }
+      const fail = (e: unknown) => reject(e);
+      this.inFlight.add(fail);
+      p.then(resolve, reject).finally(() => this.inFlight.delete(fail));
     });
   }
 
-  /** Sends a request whose result streams, yielding each item. */
-  async *callStream(method: string, params: unknown, opts: { signal?: AbortSignal; run?: string } = {}): AsyncIterable<unknown> {
-    const items: unknown[] = [];
-    let wake: (() => void) | undefined;
-    let finished = false;
-    let failure: unknown;
-    this.call(method, params, { ...opts, onItem: (i) => (items.push(i), wake?.()) }).then(
-      () => ((finished = true), wake?.()),
-      (e) => ((failure = e), (finished = true), wake?.()),
+  /** Calls a method of the peer's facet and resolves with its result. */
+  call<R = unknown>(method: string, params: unknown, opts: { signal?: AbortSignal; run?: string; onItem?: (item: unknown) => void } = {}): Promise<R> {
+    return this.track(
+      (async () => {
+        const m = await this.peerMethod(method);
+        if (isStream(m.output)) {
+          const items: unknown[] = [];
+          for await (const i of this.callStream(method, params, opts)) {
+            items.push(i);
+            opts.onItem?.(i);
+          }
+          return items as R;
+        }
+        try {
+          const out = await this.session!.call(this.peer!.id, m.id, this.pb!.toWire(m.input, params ?? {}), this.callOpts(opts));
+          return this.pb!.fromWire(m.output, out) as R;
+        } catch (e) {
+          throw this.failure(method, e, opts.signal);
+        }
+      })(),
     );
-    for (;;) {
-      if (items.length) {
-        yield items.shift();
-        continue;
-      }
-      if (finished) break;
-      await new Promise<void>((r) => (wake = r));
-      wake = undefined;
-    }
-    if (failure) throw failure;
   }
 
+  /** Calls a method whose result streams, yielding each item. */
+  async *callStream(method: string, params: unknown, opts: { signal?: AbortSignal; run?: string } = {}): AsyncIterable<unknown> {
+    const m = await this.peerMethod(method);
+    if (!isStream(m.output)) {
+      yield await this.call(method, params, opts);
+      return;
+    }
+    const elem = m.output[1];
+    try {
+      for await (const item of this.session!.stream(this.peer!.id, m.id, this.pb!.toWire(m.input, params ?? {}), this.callOpts(opts))) {
+        yield this.pb!.fromWire(elem, item);
+      }
+    } catch (e) {
+      throw this.failure(method, e, opts.signal);
+    }
+  }
+
+  /** Sends a notification the peer's facet declares, such as log. */
   notify(method: string, params: unknown): void {
-    if (!this.closedWith) this.write({ method, params });
+    if (this.closedWith) return;
+    void this.peerMethod(method).then(
+      (m) => this.session!.notify(this.peer!.id, m.id, this.pb!.toWire(m.input, params)),
+      () => {},
+    );
   }
 
-  private onData(chunk: Buffer): void {
-    this.buf = this.buf.length ? Buffer.concat([this.buf, chunk]) : chunk;
-    while (this.buf.length >= 4) {
-      const n = this.buf.readUInt32BE(0);
-      if (this.limits.max_frame > 0 && n > this.limits.max_frame) {
-        this.close(new RpcError(codeLimitExceeded, `frame of ${n} bytes is over the limit of ${this.limits.max_frame}`));
-        return;
-      }
-      if (this.buf.length < 4 + n) return;
-      const payload = this.buf.subarray(4, 4 + n);
-      this.buf = this.buf.subarray(4 + n);
-      let m: Message;
-      try {
-        m = this.wire.decode(new Uint8Array(payload)) as Message;
-      } catch {
-        continue;
-      }
-      this.dispatch(m);
+  /** A failed call as an RpcError with the protocol's code. */
+  private failure(method: string, e: unknown, signal?: AbortSignal): RpcError {
+    if (e instanceof RpcError) return e;
+    if (signal?.aborted) return new RpcError(codeCancelled, `${method} was cancelled`);
+    if (!(e instanceof SparrowError)) return this.toError(e);
+    const d = e.details as { typeName?: string; value?: unknown } | undefined;
+    if (d && d.typeName === "ErrorDetails") {
+      const b = this.pb ?? this.lb;
+      const id = b.typeNamed("ErrorDetails")!;
+      const ed = b.fromWire(id, d.value) as { code: number; type?: string; data?: unknown };
+      return new RpcError(Number(ed.code), e.rawMessage, ed.type, ed.data);
     }
+    if (e.code === "deadline_exceeded") return new RpcError(codeTimeout, `${method} timed out`);
+    if (e.code === "unavailable" || e.code === "going_away") return new RpcError(codeForeignError, this.closedWith?.message ?? e.rawMessage);
+    return new RpcError(codeOf(e.code), e.rawMessage);
   }
 
-  private dispatch(m: Message): void {
-    if (m.id !== undefined && m.id !== null && m.method === undefined) {
-      const p = this.pending.get(Number(m.id));
-      if (!p) return;
-      if (m.error) p.reject(new RpcError(Number(m.error.code), m.error.message, m.error.type, m.error.data));
-      else p.resolve(m.result ?? null);
-      return;
-    }
-    if (m.id !== undefined && m.id !== null) {
-      void this.serve(Number(m.id), m);
-      return;
-    }
-    if (m.method === methods.cancel) {
-      this.serving.get(Number((m.params as { id: number }).id))?.abort();
-      return;
-    }
-    if (m.method === methods.stream) {
-      const { id, item } = m.params as { id: number; item: unknown };
-      this.pending.get(Number(id))?.onItem?.(item);
-      return;
-    }
-    const f = m.method ? this.notifications[m.method] : undefined;
-    if (f) f(m.params);
+  /** A handler's failure as Sparrow's Error, with ErrorDetails. */
+  private sparrowError(e: unknown): SparrowError {
+    const err = this.toError(e);
+    const id = this.lb.typeNamed("ErrorDetails")!;
+    const value = this.lb.toWire(id, { code: err.code, type: err.type, data: err.data });
+    return new SparrowError(statusOf(err.code), err.message, { type: id, value });
   }
 
-  private async serve(id: number, m: Message): Promise<void> {
-    const h = this.handlers[m.method!];
-    if (!h) {
-      this.write({ id, error: { code: codeMethodNotFound, message: `method ${JSON.stringify(m.method)} isn't served` } });
-      return;
+  private async serve(input: unknown, ctx: CallContext): Promise<unknown> {
+    const m = ctx.method;
+    const params = this.lb.fromWire(m.input, input);
+    if (ctx.notification) {
+      this.notifications[m.name]?.(params);
+      return undefined;
     }
-    if (this.limits.max_in_flight > 0 && this.serving.size >= this.limits.max_in_flight) {
-      this.write({ id, error: { code: codeLimitExceeded, message: `more than ${this.limits.max_in_flight} requests in flight` } });
-      return;
-    }
-    const ac = new AbortController();
-    this.serving.set(id, ac);
+    const h = this.handlers[m.name];
+    if (!h) throw this.sparrowError(new RpcError(codeMethodNotFound, `method ${JSON.stringify(m.name)} isn't served`));
+    const run = ctx.metadata.get(runKey);
+    const out = m.output;
     const rc: RequestContext = {
-      signal: ac.signal,
-      run: m.run,
-      stream: (item) => this.notify(methods.stream, { id, item }),
+      signal: ctx.signal,
+      run: typeof run === "string" ? run : undefined,
+      stream: (item) => {
+        if (!isStream(out)) return Promise.reject(new Error(`${m.name} doesn't stream its result`));
+        return ctx.send(this.lb.toWire(out[1], item));
+      },
+      progress: (done, total, note) => ctx.progress(done, total ?? null, note ?? null),
     };
-    let out: Message;
+    let result: unknown;
     try {
-      const result = await h(m.params, rc);
-      out = ac.signal.aborted ? { id, error: { code: codeCancelled, message: "cancelled" } } : { id, result: result ?? null };
+      result = await h(params, rc);
     } catch (e) {
-      const err = this.toError(e);
-      const eo: ErrorObject = { code: err.code, message: err.message, type: err.type, data: err.data };
-      out = { id, error: eo };
-    } finally {
-      this.serving.delete(id);
+      throw this.sparrowError(e);
     }
+    if (ctx.signal.aborted) throw this.sparrowError(new RpcError(codeCancelled, "cancelled"));
+    if (isStream(out)) return undefined;
     try {
-      this.write(out);
+      return this.lb.toWire(out, result ?? null);
     } catch (e) {
-      const err = this.toError(e);
-      this.write({ id, error: { code: err.code, message: `result: ${err.message}` } });
+      throw this.sparrowError(new RpcError(codeInternalError, `result: ${e instanceof Error ? e.message : String(e)}`));
     }
   }
 
   close(e: Error): void {
     if (this.closedWith) return;
     this.closedWith = e;
-    for (const p of this.pending.values()) p.reject(new RpcError(codeForeignError, e.message));
-    this.pending.clear();
-    for (const ac of this.serving.values()) ac.abort();
+    for (const fail of this.inFlight) fail(new RpcError(codeForeignError, e.message));
+    this.inFlight.clear();
+    this.session?.close();
     this.markClosed();
   }
 }

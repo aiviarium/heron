@@ -27,6 +27,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
+	"github.com/aiviarium/sparrow/go/schema"
 )
 
 // typeRef is a type as written: List(Node), String?.
@@ -62,13 +63,15 @@ type constant struct {
 }
 
 type method struct {
-	iface        string // Extension, Host or Notifications
+	iface        string // Extension or Host
 	name         string // the func's name
 	wire         string
 	doc          string
 	params       typeRef
 	result       *typeRef
 	notification bool
+	// stream is a result of Stream(T): result is T.
+	stream bool
 }
 
 type proto struct {
@@ -76,6 +79,9 @@ type proto struct {
 	records []record
 	enums   []enum
 	methods []method
+	// order is the records' and enums' names in the order the file
+	// declares them, which numbers their Sparrow types.
+	order []string
 }
 
 func main() {
@@ -104,7 +110,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, "protogen:", err)
 		os.Exit(1)
 	}
-	src, err := goFile(p)
+	facets, err := p.facets()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "protogen:", err)
+		os.Exit(1)
+	}
+	src, err := goFile(p, facets)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "protogen:", err)
 		os.Exit(1)
@@ -113,7 +124,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "protogen:", err)
 		os.Exit(1)
 	}
-	if err := os.WriteFile(*tsOut, tsFile(p), 0o644); err != nil {
+	if err := os.WriteFile(*tsOut, tsFile(p, facets), 0o644); err != nil {
 		fmt.Fprintln(os.Stderr, "protogen:", err)
 		os.Exit(1)
 	}
@@ -180,10 +191,11 @@ func load(entry, path string) (*proto, error) {
 				e.variants = append(e.variants, v.Name)
 			}
 			p.enums = append(p.enums, e)
+			p.order = append(p.order, n.Name)
 		case isAPI(c, n):
-			// Each side's methods: an api bound by std/jsonrpc, its ops
-			// named on the wire by @jsonrpc, one without a result a
-			// notification.
+			// Each side's methods: an api is a facet, its ops its
+			// methods by name, one without a result a notification and
+			// one whose result is a Stream a server stream.
 			for _, f := range n.Children {
 				if f.Name != "" && f.Decl.N != nil && f.Decl.N.Kind == syntax.Declare {
 					p.methods = append(p.methods, methodOf(goName(n.Name), f))
@@ -196,6 +208,7 @@ func load(entry, path string) (*proto, error) {
 				r.fields = append(r.fields, field{name: m.Name, doc: docOf(m), ty: refOf(d.Type(), d.Question() != nil)})
 			}
 			p.records = append(p.records, r)
+			p.order = append(p.order, n.Name)
 		}
 	}
 	return p, nil
@@ -209,21 +222,6 @@ func isAPI(c *types.Checker, n *resolve.Node) bool {
 func methodOf(iface string, n *resolve.Node) method {
 	d := ast.Declare{N: n.Decl.N}
 	m := method{iface: iface, name: n.Name, wire: n.Name, doc: docOf(n)}
-	for _, a := range d.Annotations() {
-		if resolve.PathText(a.Path().N) != "jsonrpc" {
-			continue
-		}
-		for _, arg := range a.Args().Args() {
-			switch arg := arg.(type) {
-			case ast.PositionalArg:
-				m.wire, _ = resolve.StringValue(arg.Expr().Syntax())
-			case ast.NamedArg:
-				if arg.Ident() != nil && arg.Ident().Text == "method" {
-					m.wire, _ = resolve.StringValue(arg.Expr().Syntax())
-				}
-			}
-		}
-	}
 	if ps := d.Params().Params(); len(ps) == 1 {
 		m.params = refOf(ps[0].Type(), false)
 	}
@@ -232,6 +230,10 @@ func methodOf(iface string, n *resolve.Node) method {
 		for _, a := range nt.Args().Args() {
 			if pa, ok := a.(ast.PositionalArg); ok {
 				r := exprRef(pa.Expr())
+				if r.name == "Stream" && len(r.args) == 1 {
+					r = r.args[0]
+					m.stream = true
+				}
 				m.result = &r
 				m.notification = false
 			}
@@ -339,9 +341,6 @@ func (p *proto) goType(t typeRef, inMessage bool) string {
 	case "Bytes":
 		return "[]byte"
 	case "Any":
-		if inMessage {
-			return "Raw"
-		}
 		return "Value"
 	case "List":
 		return "[]" + p.goType(t.args[0], false)
@@ -367,7 +366,267 @@ func comment(b *bytes.Buffer, indent, doc string) {
 	fmt.Fprintf(b, "%s// %s\n", indent, doc)
 }
 
-func goFile(p *proto) ([]byte, error) {
+// facetName names an api's facet: heron.<api>.
+func facetName(api string) string { return "heron." + strings.ToLower(api) }
+
+// facetDef is one api's facet, built from the messages, with its canonical
+// CBOR.
+type facetDef struct {
+	iface string
+	name  string
+	def   *schema.Facet
+	cbor  []byte
+	hash  []byte
+}
+
+// The Sparrow types every facet that reaches Any defines first: the Value
+// union and the struct VariantValue, as data_mapping's table gives them.
+const (
+	valueID   = schema.FirstFreeTypeID
+	variantID = schema.FirstFreeTypeID + 1
+)
+
+func valueTypes() []schema.TypeDef {
+	v := schema.Named(valueID)
+	str := schema.Named(schema.TypeString)
+	variants := []struct {
+		name string
+		t    schema.TypeRef
+	}{
+		{"null", schema.Named(schema.TypeUnit)},
+		{"bool", schema.Named(schema.TypeBool)},
+		{"int", schema.Named(schema.TypeInt)},
+		{"uint", schema.Named(schema.TypeUint)},
+		{"bigint", str},
+		{"float", schema.Named(schema.TypeFloat64)},
+		{"string", str},
+		{"bytes", schema.Named(schema.TypeBytes)},
+		{"decimal", str},
+		{"time", str},
+		{"duration", schema.Named(schema.TypeInt)},
+		{"list", schema.List(v)},
+		{"set", schema.List(v)},
+		{"map", schema.MapOf(str, v)},
+		{"variant", schema.Named(variantID)},
+		{"ref", str},
+		{"prose", schema.MapOf(str, v)},
+	}
+	u := schema.TypeDef{Kind: schema.KindUnion, ID: valueID, Name: "Value", Annotations: schema.Annotations{}}
+	for i, x := range variants {
+		u.Fields = append(u.Fields, schema.Field{Tag: uint64(i), Name: x.name, Type: x.t, Annotations: schema.Annotations{}})
+	}
+	vv := schema.TypeDef{Kind: schema.KindStruct, ID: variantID, Name: "VariantValue", Annotations: schema.Annotations{}, Fields: []schema.Field{
+		{Tag: 0, Name: "name", Type: str, Annotations: schema.Annotations{}},
+		{Tag: 1, Name: "value", Type: v, Annotations: schema.Annotations{}},
+	}}
+	return []schema.TypeDef{u, vv}
+}
+
+// facets builds the facets heron.extension and heron.host. Types are
+// numbered from 66 in the order the file declares them, after Value and
+// VariantValue, and enum values' sigils from 64 likewise, so a type has
+// the same ID in both facets; each facet defines the types its methods
+// reach, and ErrorDetails, which its errors carry.
+func (p *proto) facets() ([]facetDef, error) {
+	typeID := map[string]uint64{}
+	sigils := map[string][]uint64{}
+	nextSigil := schema.FirstFreeSigil
+	for i, n := range p.order {
+		typeID[n] = schema.FirstFreeTypeID + 2 + uint64(i)
+		for _, e := range p.enums {
+			if e.name == n {
+				for range e.variants {
+					sigils[n] = append(sigils[n], nextSigil)
+					nextSigil++
+				}
+			}
+		}
+	}
+	var ref func(t typeRef) (schema.TypeRef, error)
+	ref = func(t typeRef) (schema.TypeRef, error) {
+		var r schema.TypeRef
+		switch t.name {
+		case "String":
+			r = schema.Named(schema.TypeString)
+		case "Int":
+			r = schema.Named(schema.TypeInt)
+		case "Bool":
+			r = schema.Named(schema.TypeBool)
+		case "Float":
+			r = schema.Named(schema.TypeFloat64)
+		case "Bytes":
+			r = schema.Named(schema.TypeBytes)
+		case "Any":
+			r = schema.Named(valueID)
+		case "List":
+			e, err := ref(t.args[0])
+			if err != nil {
+				return r, err
+			}
+			r = schema.List(e)
+		case "Map":
+			e, err := ref(t.args[1])
+			if err != nil {
+				return r, err
+			}
+			r = schema.MapOf(schema.Named(schema.TypeString), e)
+		default:
+			id, ok := typeID[t.name]
+			if !ok {
+				return r, fmt.Errorf("no type %s for the facets", t.name)
+			}
+			r = schema.Named(id)
+		}
+		return r, nil
+	}
+	defs := map[string]schema.TypeDef{}
+	for _, rec := range p.records {
+		td := schema.TypeDef{Kind: schema.KindStruct, ID: typeID[rec.name], Name: rec.name, Fields: []schema.Field{}, Annotations: schema.Annotations{}}
+		for i, f := range rec.fields {
+			t, err := ref(f.ty)
+			if err != nil {
+				return nil, err
+			}
+			fl := schema.Field{Tag: uint64(i), Name: f.name, Type: t, Annotations: schema.Annotations{}}
+			if f.ty.optional {
+				fl.Flags |= schema.FieldOptional
+			}
+			td.Fields = append(td.Fields, fl)
+		}
+		defs[rec.name] = td
+	}
+	sigilDefs := map[string][]schema.Sigil{}
+	for _, e := range p.enums {
+		td := schema.TypeDef{Kind: schema.KindEnum, ID: typeID[e.name], Name: e.name, Values: sigils[e.name], Annotations: schema.Annotations{}}
+		defs[e.name] = td
+		for i, v := range e.variants {
+			sigilDefs[e.name] = append(sigilDefs[e.name], schema.Sigil{ID: sigils[e.name][i], Name: e.name + "." + v, Kind: schema.SigilEnumValue, Annotations: schema.Annotations{}})
+		}
+	}
+	byID := map[uint64]string{}
+	for n, id := range typeID {
+		byID[id] = n
+	}
+	var out []facetDef
+	for _, iface := range []string{"Extension", "Host"} {
+		f := &schema.Facet{ID: schema.FirstFreeFacetID, Name: facetName(iface), Version: majorOf(p.version()) + ".0.0",
+			Types: []schema.TypeDef{}, Services: []schema.Service{}, Sigils: []schema.Sigil{}, Retired: []schema.Retired{}, Annotations: schema.Annotations{}}
+		svc := schema.Service{ID: 0, Name: strings.ToLower(iface), Methods: []schema.Method{}, Annotations: schema.Annotations{}}
+		reached := map[string]bool{}
+		usesValue := false
+		var reach func(t schema.TypeRef)
+		reach = func(t schema.TypeRef) {
+			switch t.Kind {
+			case schema.RefList, schema.RefOptional, schema.RefStream:
+				reach(*t.Elem)
+				return
+			case schema.RefMap:
+				reach(*t.Key)
+				reach(*t.Elem)
+				return
+			case schema.RefByteStream:
+				return
+			}
+			if t.ID == valueID {
+				usesValue = true
+				return
+			}
+			n, ok := byID[t.ID]
+			if !ok || reached[n] {
+				return
+			}
+			reached[n] = true
+			for _, fl := range defs[n].Fields {
+				reach(fl.Type)
+			}
+		}
+		reach(schema.Named(typeID["ErrorDetails"]))
+		for _, m := range p.methods {
+			if m.iface != iface {
+				continue
+			}
+			in, err := ref(m.params)
+			if err != nil {
+				return nil, err
+			}
+			sm := schema.Method{ID: uint64(len(svc.Methods)), Name: m.wire, Input: in, Output: schema.Named(schema.TypeUnit), Errors: []uint64{}, Annotations: schema.Annotations{}}
+			switch {
+			case m.notification:
+				sm.Flags |= schema.MethodNotification
+			case m.stream:
+				o, err := ref(*m.result)
+				if err != nil {
+					return nil, err
+				}
+				sm.Output = schema.Stream(o)
+				sm.Flags |= schema.MethodOutputEnd
+			default:
+				o, err := ref(*m.result)
+				if err != nil {
+					return nil, err
+				}
+				// A record result may be null, as node's when nothing is
+				// at the path.
+				if p.isRecord(m.result.name) {
+					o = schema.Optional(o)
+				}
+				sm.Output = o
+			}
+			reach(sm.Input)
+			reach(sm.Output)
+			svc.Methods = append(svc.Methods, sm)
+		}
+		if usesValue {
+			f.Types = append(f.Types, valueTypes()...)
+		}
+		for _, n := range p.order {
+			if reached[n] {
+				f.Types = append(f.Types, defs[n])
+				f.Sigils = append(f.Sigils, sigilDefs[n]...)
+			}
+		}
+		f.Services = append(f.Services, svc)
+		if err := f.Validate(); err != nil {
+			return nil, fmt.Errorf("facet %s: %w", f.Name, err)
+		}
+		b, err := f.Canonical().Encode()
+		if err != nil {
+			return nil, err
+		}
+		h, err := f.Hash()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, facetDef{iface: iface, name: f.Name, def: f, cbor: b, hash: h})
+	}
+	return out, nil
+}
+
+func (p *proto) version() string {
+	for _, c := range p.consts {
+		if c.name == "version" {
+			return strings.Trim(c.value, `"`)
+		}
+	}
+	return "0"
+}
+
+func majorOf(v string) string { return strings.SplitN(v, ".", 2)[0] }
+
+func goBytes(b []byte) string {
+	var s strings.Builder
+	for i, x := range b {
+		if i%16 == 0 {
+			s.WriteString("\n\t")
+		} else {
+			s.WriteString(" ")
+		}
+		fmt.Fprintf(&s, "0x%02x,", x)
+	}
+	return s.String() + "\n"
+}
+
+func goFile(p *proto, facets []facetDef) ([]byte, error) {
 	var b bytes.Buffer
 	b.WriteString("// Code generated by protogen from the spec package's language/interop/protocol_messages.heron. DO NOT EDIT.\n\n")
 	b.WriteString("package protocol\n\nimport \"context\"\n\n")
@@ -392,13 +651,21 @@ func goFile(p *proto) ([]byte, error) {
 			if f.ty.optional {
 				tag += ",omitempty"
 			}
-			fmt.Fprintf(&b, "\t%s %s `cbor:%q json:%q`\n", goName(f.name), p.goType(f.ty, r.name == "Message"), tag, tag)
+			fmt.Fprintf(&b, "\t%s %s `json:%q`\n", goName(f.name), p.goType(f.ty, false), tag)
 		}
 		b.WriteString("}\n\n")
 	}
+	b.WriteString("// The facets, by name.\nconst (\n")
+	for _, f := range facets {
+		fmt.Fprintf(&b, "\tFacet%s = %q\n", f.iface, f.name)
+	}
+	b.WriteString(")\n\n")
+	for _, f := range facets {
+		fmt.Fprintf(&b, "// facet%sCBOR is the facet %s in canonical CBOR; its facet hash is %x.\nvar facet%sCBOR = []byte{%s}\n\n", f.iface, f.name, f.hash, f.iface, goBytes(f.cbor))
+	}
 	// Method names, once per wire name.
 	seen := map[string]bool{}
-	b.WriteString("// The methods, by wire name.\nconst (\n")
+	b.WriteString("// The methods, by name in their facet.\nconst (\n")
 	for _, m := range p.methods {
 		if seen[m.wire] {
 			continue
@@ -408,12 +675,13 @@ func goFile(p *proto) ([]byte, error) {
 	}
 	b.WriteString(")\n\n")
 	b.WriteString("// Caller sends a request and decodes its result.\ntype Caller interface {\n\tCall(ctx context.Context, method string, params, result any) error\n}\n\n")
+	b.WriteString("// StreamCaller sends a request whose result streams, and decodes each item.\ntype StreamCaller interface {\n\tCallStream(ctx context.Context, method string, params any, item func(decode func(any) error) error) error\n}\n\n")
 	b.WriteString("// Notifier sends a notification.\ntype Notifier interface {\n\tNotify(method string, params any) error\n}\n\n")
-	b.WriteString("// Handler serves one method: it decodes its params and returns its result.\ntype Handler func(ctx context.Context, decode func(any) error) (any, error)\n\n")
+	b.WriteString("// Handler serves one method: it decodes its params and returns its result. A\n// handler of a streamed method sends each item with StreamItem.\ntype Handler func(ctx context.Context, decode func(any) error) (any, error)\n\n")
 	for _, iface := range []string{"Extension", "Host"} {
-		fmt.Fprintf(&b, "// %s is what a peer serves.\ntype %s interface {\n", iface, iface)
+		fmt.Fprintf(&b, "// %s is what the facet %s serves.\ntype %s interface {\n", iface, facetName(iface), iface)
 		for _, m := range p.methods {
-			if m.iface != iface {
+			if m.iface != iface || m.notification {
 				continue
 			}
 			comment(&b, "\t", m.doc)
@@ -422,10 +690,15 @@ func goFile(p *proto) ([]byte, error) {
 		b.WriteString("}\n\n")
 		fmt.Fprintf(&b, "// %sClient calls a peer that serves %s.\ntype %sClient struct{ C Caller }\n\n", iface, iface, iface)
 		for _, m := range p.methods {
-			if m.iface != iface {
+			if m.iface != iface || m.notification {
 				continue
 			}
 			res := p.resultGo(m)
+			if m.stream {
+				fmt.Fprintf(&b, "func (c %sClient) %s(ctx context.Context, p *%s, item func(%s) error) error {\n", iface, goName(m.name), goName(m.params.name), res)
+				fmt.Fprintf(&b, "\treturn c.C.(StreamCaller).CallStream(ctx, %q, p, func(decode func(any) error) error {\n\t\tvar v %s\n\t\tif err := decode(&v); err != nil {\n\t\t\treturn err\n\t\t}\n\t\treturn item(v)\n\t})\n}\n\n", m.wire, strings.TrimPrefix(res, "*"))
+				continue
+			}
 			fmt.Fprintf(&b, "func (c %sClient) %s(ctx context.Context, p *%s) (%s, error) {\n", iface, goName(m.name), goName(m.params.name), res)
 			if strings.HasPrefix(res, "*") {
 				fmt.Fprintf(&b, "\tvar out %s\n\terr := c.C.Call(ctx, %q, p, &out)\n\treturn &out, err\n}\n\n", res[1:], m.wire)
@@ -433,22 +706,21 @@ func goFile(p *proto) ([]byte, error) {
 				fmt.Fprintf(&b, "\tvar out %s\n\terr := c.C.Call(ctx, %q, p, &out)\n\treturn out, err\n}\n\n", res, m.wire)
 			}
 		}
-		fmt.Fprintf(&b, "// %sHandlers serves an implementation of %s by wire name.\nfunc %sHandlers(impl %s) map[string]Handler {\n\treturn map[string]Handler{\n", iface, iface, iface, iface)
+		fmt.Fprintf(&b, "// %sHandlers serves an implementation of %s by method name.\nfunc %sHandlers(impl %s) map[string]Handler {\n\treturn map[string]Handler{\n", iface, iface, iface, iface)
 		for _, m := range p.methods {
-			if m.iface != iface {
+			if m.iface != iface || m.notification {
 				continue
 			}
 			fmt.Fprintf(&b, "\t\t%q: func(ctx context.Context, decode func(any) error) (any, error) {\n\t\t\tvar p %s\n\t\t\tif err := decode(&p); err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\treturn impl.%s(ctx, &p)\n\t\t},\n", m.wire, goName(m.params.name), goName(m.name))
 		}
 		b.WriteString("\t}\n}\n\n")
-	}
-	b.WriteString("// Notifications either side may send.\n")
-	for _, m := range p.methods {
-		if m.iface != "Notifications" {
-			continue
+		for _, m := range p.methods {
+			if m.iface != iface || !m.notification {
+				continue
+			}
+			comment(&b, "", m.doc)
+			fmt.Fprintf(&b, "func Notify%s(n Notifier, p *%s) error { return n.Notify(%q, p) }\n\n", goName(m.name), goName(m.params.name), m.wire)
 		}
-		comment(&b, "", m.doc)
-		fmt.Fprintf(&b, "func Notify%s(n Notifier, p *%s) error { return n.Notify(%q, p) }\n\n", goName(m.name), goName(m.params.name), m.wire)
 	}
 	return format.Source(b.Bytes())
 }
@@ -503,7 +775,7 @@ func tsComment(b *bytes.Buffer, indent, doc string) {
 	}
 }
 
-func tsFile(p *proto) []byte {
+func tsFile(p *proto, facets []facetDef) []byte {
 	var b bytes.Buffer
 	b.WriteString("// Code generated by protogen from the spec package's language/interop/protocol_messages.heron. DO NOT EDIT.\n\n")
 	for _, c := range p.consts {
@@ -535,8 +807,24 @@ func tsFile(p *proto) []byte {
 		}
 		b.WriteString("}\n\n")
 	}
+	b.WriteString("/** The facets, by name. */\nexport const facets = {\n")
+	for _, f := range facets {
+		fmt.Fprintf(&b, "  %s: %q,\n", tsName(f.iface), f.name)
+	}
+	b.WriteString("} as const;\n\n")
+	for _, f := range facets {
+		fmt.Fprintf(&b, "/** The facet %s in canonical CBOR, as hex; its facet hash is %x. */\nexport const facet%sHex =\n", f.name, f.hash, f.iface)
+		h := fmt.Sprintf("%x", f.cbor)
+		var parts []string
+		for len(h) > 96 {
+			parts = append(parts, fmt.Sprintf("  %q", h[:96]))
+			h = h[96:]
+		}
+		parts = append(parts, fmt.Sprintf("  %q", h))
+		b.WriteString(strings.Join(parts, " +\n") + ";\n\n")
+	}
 	seen := map[string]bool{}
-	b.WriteString("/** The methods, by wire name. */\nexport const methods = {\n")
+	b.WriteString("/** The methods, by name in their facet. */\nexport const methods = {\n")
 	for _, m := range p.methods {
 		if seen[m.wire] {
 			continue
@@ -545,8 +833,8 @@ func tsFile(p *proto) []byte {
 		fmt.Fprintf(&b, "  %s: %q,\n", tsName(m.name), m.wire)
 	}
 	b.WriteString("} as const;\n\n")
-	for _, iface := range []string{"Extension", "Host", "Notifications"} {
-		fmt.Fprintf(&b, "/** The params and result of each method of %s, by wire name. */\nexport interface %sMethods {\n", iface, iface)
+	for _, iface := range []string{"Extension", "Host"} {
+		fmt.Fprintf(&b, "/** The params and result of each method of %s, by name; a stream's result is its items' type. */\nexport interface %sMethods {\n", facetName(iface), iface)
 		var names []string
 		lines := map[string]string{}
 		for _, m := range p.methods {
@@ -560,8 +848,15 @@ func tsFile(p *proto) []byte {
 					res += " | null"
 				}
 			}
+			kind := "unary"
+			switch {
+			case m.notification:
+				kind = "notification"
+			case m.stream:
+				kind = "stream"
+			}
 			names = append(names, m.wire)
-			lines[m.wire] = fmt.Sprintf("  %q: { params: %s; result: %s };\n", m.wire, p.tsType(m.params), res)
+			lines[m.wire] = fmt.Sprintf("  %q: { params: %s; result: %s; kind: %q };\n", m.wire, p.tsType(m.params), res, kind)
 		}
 		sort.Strings(names)
 		for _, n := range names {

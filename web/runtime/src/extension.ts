@@ -74,7 +74,7 @@ export function serveExtension(conn: Conn, opts: ServeOptions): void {
     secret: (name) => conn.call(methods.secret, { name }, { signal: rc.signal, run: rc.run }),
     temp: (name) => join(init?.temp ?? "/tmp/heron", rc.run ?? "local", name),
     log: (message, level = "info") => conn.notify(methods.log, { level, message }),
-    progress: (message, done, total) => conn.notify(methods.progress, { id: 0, message, done, total }),
+    progress: (message, done, total) => void rc.progress(done ?? 0, total, message).catch(() => {}),
   });
 
   const unhandle = (v: unknown): unknown => {
@@ -112,12 +112,21 @@ export function serveExtension(conn: Conn, opts: ServeOptions): void {
       protocol: protocolVersion,
       extension: { name: opts.name, version: opts.version },
       implements: implemented,
-      capabilities: {
-        methods: Object.values(methods).filter((m) => !m.startsWith("$/")),
-        streaming: true,
-        cancellation: true,
-      },
     };
+  });
+
+  // A func that returns an AsyncIterable streams: call_stream sends each
+  // item as it comes, and a plain call answers with them as a list.
+  const isIterable = (out: unknown): out is AsyncIterable<unknown> => !!out && typeof out === "object" && Symbol.asyncIterator in out;
+  conn.handle(methods.callStream, async (p: CallParams, rc) => {
+    const i = impl(p.target, "func");
+    const out = await i.fn(p.args ?? {}, ctxFor(rc));
+    if (isIterable(out)) {
+      for await (const item of out) await rc.stream(item);
+    } else {
+      await rc.stream(out);
+    }
+    return null;
   });
 
   conn.handle(methods.call, async (p: CallParams, rc) => {
@@ -127,9 +136,10 @@ export function serveExtension(conn: Conn, opts: ServeOptions): void {
     switch (i.point) {
       case "func": {
         const out = await i.fn(p.args ?? {}, ctx);
-        if (out && typeof out === "object" && Symbol.asyncIterator in out) {
-          for await (const item of out as AsyncIterable<unknown>) rc.stream(item);
-          return null;
+        if (isIterable(out)) {
+          const items: unknown[] = [];
+          for await (const item of out) items.push(item);
+          return items;
         }
         return out;
       }

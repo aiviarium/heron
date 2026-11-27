@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aiviarium/heron/internal/core/extension/protocol"
+	"github.com/aiviarium/sparrow/go/transport/pipe"
 )
 
 // Process is one supervised extension process: started on first use,
@@ -25,7 +26,6 @@ type Process struct {
 	Env  []string
 	// Sandbox applies the declared limits with namespaces.
 	Sandbox bool
-	Wire    protocol.Wire
 	Limits  protocol.Limits
 	Init    protocol.InitializeParams
 	// Host serves the extension's calls back into Heron.
@@ -151,16 +151,11 @@ func (p *Process) start(ctx context.Context) (*protocol.Conn, *protocol.Initiali
 			return nil, nil, ForeignError("%s: starting %s: %v", p.Spec.Name, strings.Join(p.Argv, " "), err)
 		}
 	}
-	wire := p.Wire
-	if wire == nil {
-		wire = protocol.CBOR
-	}
 	limits := p.Limits
-	if limits.MaxFrame == 0 {
+	if limits.MaxMessage == 0 {
 		limits = protocol.DefaultLimits()
 	}
 	opts := protocol.Options{
-		Wire:   wire,
 		Limits: limits,
 		Notifications: map[string]func(func(any) error){
 			protocol.MethodLog: func(decode func(any) error) {
@@ -169,27 +164,28 @@ func (p *Process) start(ctx context.Context) (*protocol.Conn, *protocol.Initiali
 					fmt.Fprintf(logw, "%s: %s: %s\n", p.Spec.Name, l.Level, l.Message)
 				}
 			},
-			protocol.MethodProgress: func(func(any) error) {},
 		},
 	}
 	if p.Host != nil {
 		opts.Handlers = protocol.HostHandlers(p.Host)
 	}
-	conn := protocol.NewConn(stdout, stdin, opts)
 	exited := make(chan struct{})
-	go func() {
-		conn.Serve()
-		stdin.Close()
-	}()
 	go func() {
 		cmd.Wait()
 		close(exited)
 	}()
 	p.cmd, p.exited = cmd, exited
-	init := p.Init
-	init.Limits = limits
+	// The process is the Sparrow client on its standard input and output
+	// (the pipe binding); heron answers its Hello.
 	hctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	conn, err := protocol.Accept(hctx, pipe.NewSplit(stdout, stdin, nil), opts)
+	if err != nil {
+		cmd.Process.Kill()
+		return nil, nil, ForeignError("%s: the handshake failed: %v", p.Spec.Name, err)
+	}
+	init := p.Init
+	init.Limits = limits
 	res, err := protocol.ExtensionClient{C: conn}.Initialize(hctx, &init)
 	if err != nil {
 		cmd.Process.Kill()
@@ -234,7 +230,7 @@ func (p *Process) Call(ctx context.Context, method string, params, result any) e
 	return p.CallStream(ctx, method, params, result, nil)
 }
 
-// CallStream is Call for a streamed result.
+// CallStream calls a method whose result streams, with each item.
 func (p *Process) CallStream(ctx context.Context, method string, params, result any, item func(func(any) error) error) error {
 	conn, _, err := p.ensure(ctx)
 	if err != nil {
@@ -243,7 +239,11 @@ func (p *Process) CallStream(ctx context.Context, method string, params, result 
 	p.mu.Lock()
 	exited := p.exited
 	p.mu.Unlock()
-	err = conn.CallStream(ctx, method, params, result, item)
+	if item != nil {
+		err = conn.CallStream(ctx, method, params, item)
+	} else {
+		err = conn.Call(ctx, method, params, result)
+	}
 	if err == nil {
 		return nil
 	}

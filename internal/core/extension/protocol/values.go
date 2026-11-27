@@ -1,7 +1,9 @@
 // Package protocol is the extension protocol: the messages and methods
 // generated from the spec package's language/interop/protocol_messages.heron,
-// the values that cross the boundary as
-// their Heron types, and the wire encodings and framing.
+// as the Sparrow facets heron.extension and heron.host, the values that
+// cross the boundary as their Heron types, in the Value union, and the
+// Sparrow session that carries them over a process's standard input and
+// output (the pipe binding).
 package protocol
 
 //go:generate go run ./internal/protogen -root ../../../.. -go protocol_gen.go -ts ../../../../web/runtime/src/protocol.gen.ts
@@ -17,19 +19,6 @@ import (
 // uint64 or *big.Int, float64, string, []byte, Decimal, time.Time,
 // Duration, []any, Set, map[string]any, Variant, Ref or Prose.
 type Value = any
-
-// The Heron type tags. The standard CBOR tags are used where they exist:
-// 0 and 1 for times, 2 and 3 for bignums, 4 for decimal fractions and 258
-// for sets; what has no standard tag gets one of these, in the range IANA
-// assigns first come, first served.
-const (
-	TagVariant  uint64 = 1214603777 // [variant name, value]
-	TagDuration uint64 = 1214603778 // whole milliseconds
-	TagProse    uint64 = 1214603779 // an mdast tree
-	TagRef      uint64 = 1214603780 // a node path
-	TagSet      uint64 = 258
-	TagDecimal  uint64 = 4
-)
 
 // Variant is a value of a union: the variant's name and its value.
 type Variant struct {
@@ -91,8 +80,8 @@ func (d Decimal) String() string {
 	return sign + s[:len(s)-n] + "." + s[len(s)-n:]
 }
 
-// The JSON wire, for reading traffic while debugging, writes tagged values
-// as objects with a "$" key.
+// In JSON, as `heron check --json` and logs print values, the typed values
+// are objects with a "$" key.
 
 func (v Variant) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]any{"$variant": v.Name, "value": v.Value})

@@ -1,6 +1,8 @@
 // Package rpc projects a tree's apis onto their RPC bindings: gRPC
 // services, served over gRPC, gRPC-Web and Connect, with their methods,
-// messages and enums, by std/proto; and JSON-RPC methods by std/jsonrpc.
+// messages and enums, by std/proto; JSON-RPC methods by std/jsonrpc; and
+// the services, methods and type definitions of Sparrow facets by
+// std/sparrow (sparrow.go).
 // The docs, the proto and openrpc generators and the checker all read the
 // one projection built here, so every name and number agrees.
 package rpc
@@ -49,15 +51,20 @@ type Model struct {
 	Packages map[string]*Package
 	// JSONAPIs are the apis with JSON-RPC methods, in tree order.
 	JSONAPIs []*JSONAPI
-	methods  map[*resolve.Node]*Method
-	jsonOps  map[*resolve.Node]*JSONMethod
+	// Facets are the Sparrow facets of the apis with @sparrow, by facet id.
+	Facets        []*SparrowFacet
+	sparrowFacets map[string]*SparrowFacet
+	sparrowOps    map[*resolve.Node]*SparrowMethod
+	methods       map[*resolve.Node]*Method
+	jsonOps       map[*resolve.Node]*JSONMethod
 	// typeIn maps a Heron type to the package and message or enum it is.
 	typeIn map[*resolve.Node]*Message
 	enumIn map[*resolve.Node]*Enum
 
 	Diags diag.List
 	// Lints are the findings `heron lint` reports: errors without a code
-	// on a binding and JSON-RPC codes in the reserved range.
+	// on a binding, JSON-RPC codes in the reserved range and Sparrow ids
+	// left to the order things are reached in.
 	Lints []Finding
 
 	r           *reader
@@ -184,18 +191,23 @@ type EnumValue struct {
 
 // Error is an error an op throws, with its projections.
 type Error struct {
-	Node      *resolve.Node
-	IsNode    bool   // an error node of std/spec rather than a type
-	ID        string // an error node's id
-	Status    string // HTTP
-	GRPC      string // the gRPC code's name, as NOT_FOUND; "" without @code
-	JSONRPC   string // the JSON-RPC code, as -32004; "" without @code
-	Message   string // the error's message, or an error node's title
-	Fields    []ErrorField
-	Detail    *Message // the error detail message of a type, in the service's package
-	Throws    resolve.Site
-	FromAPI   bool
-	JSONCodes resolve.Site
+	Node    *resolve.Node
+	IsNode  bool   // an error node of std/spec rather than a type
+	ID      string // an error node's id
+	Status  string // HTTP
+	GRPC    string // the gRPC code's name, as NOT_FOUND; "" without @code
+	JSONRPC string // the JSON-RPC code, as -32004; "" without @code
+	Sparrow string // the Sparrow core code's name, as not_found; "" without @code
+	// SparrowSigil is the sigil of its own an error without a core code is
+	// answered with by a Sparrow method; SparrowSigilAt is its @sigil.
+	SparrowSigil   *SparrowSigil
+	SparrowSigilAt resolve.Site
+	Message        string // the error's message, or an error node's title
+	Fields         []ErrorField
+	Detail         *Message // the error detail message of a type, in the service's package
+	Throws         resolve.Site
+	FromAPI        bool
+	JSONCodes      resolve.Site
 }
 
 // ErrorField is a field an error carries.
@@ -474,6 +486,9 @@ type Finding struct {
 	Node    *resolve.Node
 	Site    resolve.Site
 	Message string
+	// Lint is the lint that reports it: "" for rpc-code, sparrow-id for a
+	// Sparrow id left to the order things are reached in.
+	Lint string
 }
 
 func (m *Model) warnf(n *resolve.Node, s resolve.Site, format string, args ...any) {
@@ -485,12 +500,14 @@ var packageName = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$`)
 // Build projects the tree's own apis onto their RPC bindings.
 func Build(t *resolve.Tree, c *types.Checker) *Model {
 	m := &Model{
-		Packages: map[string]*Package{},
-		methods:  map[*resolve.Node]*Method{},
-		jsonOps:  map[*resolve.Node]*JSONMethod{},
-		typeIn:   map[*resolve.Node]*Message{},
-		enumIn:   map[*resolve.Node]*Enum{},
-		r:        &reader{c: c},
+		Packages:      map[string]*Package{},
+		methods:       map[*resolve.Node]*Method{},
+		jsonOps:       map[*resolve.Node]*JSONMethod{},
+		sparrowFacets: map[string]*SparrowFacet{},
+		sparrowOps:    map[*resolve.Node]*SparrowMethod{},
+		typeIn:        map[*resolve.Node]*Message{},
+		enumIn:        map[*resolve.Node]*Enum{},
+		r:             &reader{c: c},
 	}
 	var apis []*resolve.Node
 	m.implementor = map[*resolve.Node][]*resolve.Node{}
@@ -535,8 +552,10 @@ func Build(t *resolve.Tree, c *types.Checker) *Model {
 		if a != nil {
 			m.buildService(a)
 			m.buildJSON(a)
+			m.buildSparrow(a)
 		}
 	}
+	m.finishSparrow()
 	m.reservedCodes(t)
 	m.Diags = m.Diags.Sort()
 	return m
@@ -1340,7 +1359,12 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 			case "jsonrpc":
 				e.JSONRPC = strings.TrimSpace(exprString(arg(a.a, 0, "code")))
 				e.JSONCodes = a.site
+			case "sparrow":
+				e.Sparrow = variantName(arg(a.a, 0, "code"))
 			}
+		}
+		if a := find(as, "sparrow", "sigil"); a != nil && a.pkg == "sparrow" {
+			e.SparrowSigilAt = a.site
 		}
 		out = append(out, e)
 	}

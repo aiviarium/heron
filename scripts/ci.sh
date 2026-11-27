@@ -109,6 +109,8 @@ need() {
   case "$built" in *" $n "*) return ;; esac
   case "$n" in
   web)
+    step "sparrow: the checkout beside heron, and its TS package, which web/runtime links"
+    scripts/sparrow-setup.sh
     step "web: install the workspace and build @heron/runtime"
     (cd web && pnpm install --frozen-lockfile --silent && pnpm --filter @heron/runtime build)
     ;;
