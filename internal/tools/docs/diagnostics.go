@@ -24,13 +24,9 @@ func fieldString(n *resolve.Node, name string) string {
 
 // diagnosticSeverity is a diagnostic's severity as written, or "error".
 func diagnosticSeverity(n *resolve.Node) string {
-	if e := namedArg(kindArgs(n), "severity"); e != nil {
-		t := strings.TrimSpace(e.Syntax().Text())
+	if t := annText(n, "severity"); t != "" {
 		t = strings.Trim(t[strings.LastIndex(t, ".")+1:], `"`)
 		return strings.ToLower(t)
-	}
-	if v, ok := argString(kindArgs(n), 1, "severity"); ok {
-		return strings.ToLower(v)
 	}
 	return "error"
 }
@@ -115,8 +111,8 @@ func renderDiagnostic(c *Ctx) error {
 		meta = append(meta, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
 	}
 	for _, pr := range []struct{ arg, key string }{{"status", "docs.label.status"}, {"exit", "docs.col.code"}} {
-		if e := namedArg(kindArgs(n), pr.arg); e != nil {
-			meta = append(meta, esc(pr.arg)+` <code>`+esc(strings.TrimSpace(e.Syntax().Text()))+`</code>`)
+		if t := annText(n, pr.arg); t != "" {
+			meta = append(meta, esc(pr.arg)+` <code>`+esc(t)+`</code>`)
 		}
 	}
 	if r := fieldString(n, "related"); r != "" {

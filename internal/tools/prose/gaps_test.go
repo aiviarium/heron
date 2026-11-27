@@ -18,24 +18,29 @@ desk: part {{ The support console. }}
 refunds: section {
   self_service: goal {{ Customers fix a wrong charge themselves. }}
 
-  late: rule(by = desk) {
+  @by(desk)
+  late: rule {
     must {{ refund the amount and/or offer credit }}
   }
 
-  never: rule(by = desk) {
+  @by(desk)
+  never: rule {
     mustNot {{ never refund twice }}
   }
 
-  odd: rule(by = desk) {
+  @by(desk)
+  odd: rule {
     while {{ it's not the case that the payment is held }}
     must {{ refund it }}
   }
 
-  stored: rule(by = desk) {
+  @by(desk)
+  stored: rule {
     must {{ keep the refund in the database for a sprint }}
   }
 
-  click_flow: scenario(illustrates = refunds.late) {
+  @illustrates(refunds.late)
+  click_flow: scenario {
     given {{ a payment }}
     given {{ a customer }}
     given {{ a desk }}
@@ -106,7 +111,8 @@ func TestUnmotivated(t *testing.T) {
 
 desk: part {{ The console. }}
 
-r: rule(by = desk) {
+@by(desk)
+r: rule {
   must {{ refund }}
 }
 
@@ -121,7 +127,7 @@ c: constraint(reason = "The card network says so.") {
 			un = append(un, f.text)
 		}
 	}
-	if len(un) != 1 || !strings.HasPrefix(un[0], "r: rule") {
+	if len(un) != 1 || !strings.Contains(un[0], "r: rule") {
 		t.Errorf("unmotivated: %q", un)
 	}
 }

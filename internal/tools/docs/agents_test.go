@@ -27,7 +27,7 @@ func agentFiles(t *testing.T, entry string, opts AgentOptions) []AgentFile {
 	}
 	res := check.NewSession().Check(id)
 	if res.Diags.HasErrors() {
-		t.Fatalf("%s doesn't check", entry)
+		t.Fatalf("%s doesn't check: %v", entry, res.Diags)
 	}
 	files, err := Agents(res.Tree, res.Checker, opts)
 	if err != nil {
@@ -116,9 +116,22 @@ func TestAgentExportOfSpec(t *testing.T) {
 	// The agent's question: what must the checker do when field numbers
 	// collide? The index names the file, and the file holds the rule.
 	idx := string(files[0].Content)
-	for _, want := range []string{"## How to read these files", "## Files", "[Numbering](language.apis.grpc.numbering.md)", "tokens)"} {
+	// The index maps the top areas alone; each area's file maps the files
+	// below it, so the index stays within the budget.
+	for _, want := range []string{"## How to read these files", "## Areas", "[Language](language.md)", "tokens)"} {
 		if !strings.Contains(idx, want) {
 			t.Errorf("INDEX.md lacks %q", want)
+		}
+	}
+	if strings.Contains(idx, "language.apis.grpc.numbering.md") {
+		t.Error("INDEX.md maps a file below a top area")
+	}
+	if n := Tokens(files[0].Content); n > 2000 {
+		t.Errorf("INDEX.md is %d tokens, want at most 2000", n)
+	}
+	for _, step := range [][2]string{{"language.md", "language.apis.md"}, {"language.apis.md", "language.apis.grpc.md"}, {"language.apis.grpc.md", "language.apis.grpc.numbering.md"}} {
+		if f := fileByPath(files, step[0]); f == nil || !strings.Contains(string(f.Content), "## Files below") || !strings.Contains(string(f.Content), "]("+step[1]+")") {
+			t.Errorf("%s doesn't map %s under Files below", step[0], step[1])
 		}
 	}
 	f := fileByPath(files, "language.apis.grpc.numbering.md")
@@ -222,7 +235,7 @@ func TestAgentUsecaseLines(t *testing.T) {
 	}
 }
 
-const agentTree = `import = ["std/schema@1", "std/doc@1", "std/spec@1", "std/docs@1"]
+const agentTree = `import = ["std/schema@1", "std/doc@1", "std/spec@1", "std/http@1", "std/docs@1"]
 
 shop: package(version = "1.0") {
   | A shop that sells things.
@@ -235,13 +248,15 @@ shop: package(version = "1.0") {
     order_term: term(aliases = ["order"]) {{ A request to buy things, with a total. }}
 
     @lens(user)
-    place: rule(serves = [sell]) {
+    @serves(sell)
+    place: rule {
       when {{ a customer places an [order_term] }}
       must {{ record it }}
       then {{ it can be paid }}
     }
 
-    happy: scenario(illustrates = place) {
+    @illustrates(place)
+    happy: scenario {
       given {{ a cart }}
       when {{ the customer checks out }}
       then {{ an order is recorded }}
@@ -249,7 +264,8 @@ shop: package(version = "1.0") {
 
     @realizes(orders.place)
     @display("Out of stock")
-    out_of_stock: error("shop.OUT_OF_STOCK", status = 409) {
+    @status(409)
+    out_of_stock: error("shop.OUT_OF_STOCK") {
       title = "{item} is out of stock"
       item: field(String)
     }
@@ -357,7 +373,7 @@ func TestAgentExportSplitsAndOrders(t *testing.T) {
 		}
 	}
 	idx := string(files[0].Content)
-	for _, want := range []string{"# Shop: agent export", "A shop that sells things.", "- goal [sell](_root.md#sell): Customers buy what they want.", "- [Orders](orders.md): How orders are placed. (~", "- [Orders (part 2)](orders.2.md) (~"} {
+	for _, want := range []string{"# Shop: agent export", "A shop that sells things.", "- goal [sell](_root.md#sell): Customers buy what they want.", "- [Orders](orders.md): How orders are placed. (~"} {
 		if !strings.Contains(idx, want) {
 			t.Errorf("INDEX.md lacks %q:\n%s", want, idx)
 		}

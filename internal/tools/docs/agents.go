@@ -606,6 +606,7 @@ func (e *agentExport) write() []AgentFile {
 			files = append(files, AgentFile{Path: e.files[u][i], Title: title, ID: u.id, Summary: sum, Content: b})
 		}
 	}
+	files = withChildMaps(files)
 	idx := AgentFile{Path: AgentIndex, Title: e.siteTitle(), Content: e.index(files)}
 	llms := AgentFile{Path: LLMsTxt, Title: e.siteTitle(), Content: e.llms(files, "")}
 	return append([]AgentFile{idx, llms}, files...)
@@ -908,7 +909,11 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 		ls = append(ls, "applies: "+s.inlineMD(ap))
 	}
 	for _, a := range []string{"reason", "rationale", "measure"} {
-		if v, ok := argString(kindArgs(n), -1, a); ok && v != "" {
+		v, ok := argString(kindArgs(n), -1, a)
+		if a == "rationale" {
+			v, ok = annString(n, a)
+		}
+		if ok && v != "" {
 			ls = append(ls, a+": "+v)
 		}
 	}
@@ -927,7 +932,7 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 		refs = append(refs, "targets "+e.links(ts))
 	}
 	for _, a := range []string{"serves", "derives", "relies"} {
-		if ts := s.argRefs(n, a); len(ts) > 0 {
+		if ts := s.annRefs(n, a); len(ts) > 0 {
 			refs = append(refs, a+" "+e.links(ts))
 		}
 	}
@@ -969,10 +974,10 @@ func (e *agentExport) scenario(n *resolve.Node) string {
 			ls = append(ls, strings.TrimPrefix(k, "spec.")+": "+s.inlineMD(ch))
 		}
 	}
-	if t := s.argRef(n, -1, "illustrates"); t != nil {
+	if t := s.annRef(n, "illustrates"); t != nil {
 		ls = append(ls, "illustrates "+s.mdLink(t, stableID(t)))
 	}
-	if ts := s.argRefs(n, "serves"); len(ts) > 0 {
+	if ts := s.annRefs(n, "serves"); len(ts) > 0 {
 		ls = append(ls, "serves "+e.links(ts))
 	}
 	out := lines(ls...)
@@ -1001,7 +1006,7 @@ func (e *agentExport) usecase(n *resolve.Node) string {
 		level = variantName(x)
 	}
 	facts = append(facts, "level "+level)
-	if ts := s.argRefs(n, "serves"); len(ts) > 0 {
+	if ts := s.annRefs(n, "serves"); len(ts) > 0 {
 		facts = append(facts, "serves "+e.links(ts))
 	}
 	ls := []string{strings.Join(facts, " · ")}
@@ -1141,10 +1146,7 @@ func (e *agentExport) command(n *resolve.Node) string {
 	}
 	errs := append(s.childrenOfKind(n, "spec.error"), s.argRefList(n, "errors")...)
 	for _, x := range errs {
-		code := ""
-		if v := namedArg(kindArgs(x), "exit"); v != nil {
-			code = strings.TrimSpace(v.Syntax().Text())
-		}
+		code := annText(x, "exit")
 		title := ""
 		if t := x.Child("title"); t != nil && t.Value != nil {
 			title, _ = resolve.StringValue(t.Value.Syntax())
@@ -1203,16 +1205,12 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 	args := kindArgs(n)
 	id, _ := argString(args, 0, "id")
 	f := []string{"id `" + id + "`"}
-	sev := "error"
-	if x := namedArg(args, "severity"); x != nil {
-		sev = variantName(x)
+	f = append(f, "severity "+diagnosticSeverity(n))
+	if x := annText(n, "status"); x != "" {
+		f = append(f, "HTTP "+x)
 	}
-	f = append(f, "severity "+sev)
-	if x := namedArg(args, "status"); x != nil {
-		f = append(f, "HTTP "+strings.TrimSpace(x.Syntax().Text()))
-	}
-	if x := namedArg(args, "exit"); x != nil {
-		f = append(f, "exit "+strings.TrimSpace(x.Syntax().Text()))
+	if x := annText(n, "exit"); x != "" {
+		f = append(f, "exit "+x)
 	}
 	g, j, sp := e.rpcCodes(n)
 	if g != "" {
@@ -1432,8 +1430,8 @@ func (e *agentExport) op(n *resolve.Node) string {
 				}
 			}
 		}
-		if x := namedArg(kindArgs(er.typ), "exit"); x != nil && s.kindPath(er.typ) == "spec.error" {
-			f = append(f, "exit "+strings.TrimSpace(x.Syntax().Text()))
+		if x := annText(er.typ, "exit"); x != "" && s.kindPath(er.typ) == "spec.error" {
+			f = append(f, "exit "+x)
 		}
 		ls = append(ls, strings.Join(f, " · "))
 	}
@@ -1744,26 +1742,80 @@ func (e *agentExport) index(files []AgentFile) []byte {
 - Lists marked (derived), such as realized by and illustrated by, are worked out from links written on other nodes, never written on this one.
 - Sizes are approximate tokens: a file's bytes over four.
 `)
-	b.WriteString("\n## Files\n\n")
+	b.WriteString("\n## Areas\n\nThe top areas of the tree. Each area's file ends with the map of the files below it, so any file is two or three links from here.\n\n")
+	b.WriteString(fileMap(topFiles(files)))
+	return []byte(e.resolveLinks(b.String()))
+}
+
+// fileMap writes one line per file: its link, its summary and its size.
+func fileMap(files []AgentFile) string {
 	var fl []string
 	for _, f := range files {
-		l := "[" + mdLinkText(f.Title) + "](" + f.Path + ")"
+		l := "- [" + mdLinkText(f.Title) + "](" + f.Path + ")"
 		if f.Summary != "" {
 			l += ": " + clipLine(unlink(f.Summary), summaryWidth)
 		}
 		l += " (~" + strconv.Itoa(Tokens(f.Content)) + " tokens)"
-		fl = append(fl, e.indent(f)+"- "+l)
+		fl = append(fl, l)
 	}
-	b.WriteString(strings.Join(fl, "\n") + "\n")
-	return []byte(e.resolveLinks(b.String()))
+	return strings.Join(fl, "\n") + "\n"
 }
 
-// indent nests a file in the map under the file of its section.
-func (e *agentExport) indent(f AgentFile) string {
-	if f.ID == "" {
-		return ""
+// parentID is the id of the file a file's map line belongs in: the
+// longest other file id that is a dotted prefix of its own, or "" at the
+// top.
+func parentID(id string, ids map[string]bool) string {
+	for i := strings.LastIndex(id, "."); i > 0; i = strings.LastIndex(id[:i], ".") {
+		if ids[id[:i]] {
+			return id[:i]
+		}
 	}
-	return strings.Repeat("  ", strings.Count(f.ID, "."))
+	return ""
+}
+
+// topFiles are the files with no area file above them, parts left out.
+func topFiles(files []AgentFile) []AgentFile {
+	ids := fileIDs(files)
+	var out []AgentFile
+	for _, f := range files {
+		if f.Summary != "" && (f.ID == "" || parentID(f.ID, ids) == "") {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func fileIDs(files []AgentFile) map[string]bool {
+	ids := map[string]bool{}
+	for _, f := range files {
+		if f.ID != "" {
+			ids[f.ID] = true
+		}
+	}
+	return ids
+}
+
+// withChildMaps ends the first part of each area file with the map of the
+// area files directly below it, so the export is read top down.
+func withChildMaps(files []AgentFile) []AgentFile {
+	ids := fileIDs(files)
+	kids := map[string][]AgentFile{}
+	for _, f := range files {
+		if f.ID != "" && f.Summary != "" {
+			if p := parentID(f.ID, ids); p != "" {
+				kids[p] = append(kids[p], f)
+			}
+		}
+	}
+	seen := map[string]bool{}
+	for i, f := range files {
+		if f.ID == "" || seen[f.ID] || len(kids[f.ID]) == 0 {
+			continue
+		}
+		seen[f.ID] = true
+		files[i].Content = append(files[i].Content, []byte("\n## Files below\n\n"+fileMap(kids[f.ID]))...)
+	}
+	return files
 }
 
 // llms writes llms.txt, its links under prefix.

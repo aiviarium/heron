@@ -50,7 +50,8 @@ overview: section {
   | <note kind="tip">Tags are kinds in scope.</note>
 }
 
-late: rule(overview) {
+@targets(overview)
+late: rule {
   if {{ it arrives late }}
   must {{ reject it }}
   example {{ day 31: rejected }}
@@ -276,7 +277,7 @@ func TestSpecKinds(t *testing.T) {
 		"p: project(path = \".\") {\n  depends_on = [nobody]\n}\n":                                        "unknown name nobody",
 		"p: project(path = \".\") {\n  owner = \"x\"\n}\n":                                                "p (a project) has no field owner",
 		"p: project(path = \".\") {\n  t: task do {\n    log(\"x\")\n  }\n}\n":                            "",
-		"r: rule(Status) {{ The system must keep a status. }}\n":                                          "",
+		"@targets(Status)\nr: rule {{ The system must keep a status. }}\n":                                "",
 		"g: part {\n  r: rule {\n    must {{ x }}\n  }\n}\n":                                              "",
 	} {
 		got := check(t, base+src)
@@ -287,5 +288,25 @@ func TestSpecKinds(t *testing.T) {
 		if !found {
 			t.Errorf("%q: want %q, got %v", src, want, got)
 		}
+	}
+}
+
+// A kind's or an annotation's required parameters come first: one after an
+// optional or a variadic parameter is reported.
+func TestRequiredParamsFirst(t *testing.T) {
+	got := check(t, `import = ["std/schema@1"]
+
+x: package(version = "1.0") {
+  late(level?: String, actor: Int): kind
+  after(items<variadic>: Int, code: Int): annotation
+  ok(actor: Int, level?: String, items<variadic>?: Int): kind
+}
+`)
+	want := []string{
+		"param-order: required parameter actor follows level; declare required parameters first",
+		"param-order: required parameter code follows items; declare required parameters first",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }
