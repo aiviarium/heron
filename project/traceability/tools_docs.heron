@@ -74,6 +74,14 @@ tools_docs: section {
     verify("scripts/e2e-docs.sh")
   }
 
+  proves(heron.tools.docs.page_layout.frame_uses_window) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.controls_look_like_controls) {
+    verify("scripts/e2e-docs.sh")
+  }
+
   proves(heron.tools.docs.page_layout.quiet_scrollers) {
     verify("scripts/e2e-docs.sh")
   }

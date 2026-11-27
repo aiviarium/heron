@@ -9,6 +9,7 @@ import { Cards } from "./islands/cards"
 import { Diagram } from "./islands/diagram"
 import { Search } from "./islands/search"
 import { TryIt } from "./islands/tryit"
+import { Version } from "./islands/version"
 import { bindings } from "./islands/bindings"
 import { inPlace } from "./navigate"
 
@@ -232,6 +233,10 @@ function page() {
   expand()
   if (document.querySelector("[data-card]")) mount(() => <Cards />)
   for (const root of $$("[data-island=examples]")) mount(() => <TryIt root={root} />)
+  for (const root of $$("[data-island=version]")) {
+    const dispose = render(() => <Version root={root} />, root)
+    teardown.push(dispose)
+  }
   for (const root of $$(".diagram[data-island=diagram]")) {
     const dispose = render(() => <Diagram root={root} />, root)
     teardown.push(dispose)

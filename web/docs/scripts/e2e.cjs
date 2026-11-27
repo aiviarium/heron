@@ -212,6 +212,75 @@ const url = (f) => "file://" + path.join(dir, f)
     await p.close()
   }
 
+  // The frame uses the window: the navigation at its left edge and the
+  // right column at its right edge, and on a window wider than the frame,
+  // equal room on both sides.
+  {
+    const p = await browser.newPage({ viewport: { width: 1873, height: 1000 } })
+    const framed = pages.find((f) => /<nav class="sidebar"/.test(fs.readFileSync(path.join(dir, f), "utf8")) && /<nav class="outline"/.test(fs.readFileSync(path.join(dir, f), "utf8")))
+    if (framed) {
+      for (const w of [1873, 2560]) {
+        await p.setViewportSize({ width: w, height: 1000 })
+        await p.goto(served(framed))
+        const r = await p.evaluate(() => {
+          const side = document.querySelector(".sidebar").getBoundingClientRect()
+          const aside = document.querySelector(".aside").getBoundingClientRect()
+          return { left: side.left, right: document.documentElement.clientWidth - aside.right }
+        })
+        if (w === 1873 && (r.left > 48 || r.right > 48)) fail.push(`frame: at ${w} px the navigation starts ${Math.round(r.left)} px in and the right column ends ${Math.round(r.right)} px short of the edge`)
+        if (Math.abs(r.left - r.right) > 48) fail.push(`frame: at ${w} px ${Math.round(r.left)} px of room on the left and ${Math.round(r.right)} px on the right`)
+      }
+    }
+    // The top bar's controls read as controls at rest, and the version
+    // switch is a select the keyboard opens and moves through.
+    await p.setViewportSize({ width: 1440, height: 900 })
+    await p.goto(served(linkTo))
+    await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+    const c = await p.evaluate(() => {
+      const bad = []
+      const tab = document.querySelector(".tabs a[aria-current]")
+      if (tab && /rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(tab, "::after").backgroundColor)) bad.push("the current tab has no mark")
+      for (const [sel, what] of [[".lens-switch", "the lens switcher"], [".search-btn", "search"], ["[data-island=theme]", "the theme switch"], [".select-trigger", "the version switch"]]) {
+        const e = document.querySelector(sel)
+        if (sel === ".lens-switch" && !e) continue
+        if (!e) { bad.push(`${what} isn't there`); continue }
+        if (getComputedStyle(e).borderTopWidth === "0px") bad.push(`${what} has no visible edge at rest`)
+      }
+      return bad
+    })
+    for (const m of c) fail.push(`top bar: ${m}`)
+    if (await p.$(".select-trigger")) {
+      await p.focus(".select-trigger")
+      await p.keyboard.press("ArrowDown")
+      const open = await p.waitForSelector(".select-content .select-item", { state: "visible", timeout: 2000 }).then(() => true, () => false)
+      if (!open) fail.push("version: the keyboard doesn't open the version switch")
+      await p.keyboard.press("Escape")
+    }
+    await p.close()
+  }
+
+  // Lens marks: a quiet row of tags at the start of what's marked, on one
+  // line, never floated apart.
+  {
+    const marked = pages.find((f) => /<div class="marked">\s*<span class="lens-mark">[^<]*<\/span>\s*<span class="lens-mark">/.test(fs.readFileSync(path.join(dir, f), "utf8")))
+    if (marked) {
+      const p = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+      await p.goto(served(marked))
+      const bad = await p.evaluate(() => {
+        for (const m of document.querySelectorAll(".marked")) {
+          const tags = [...m.querySelectorAll(":scope > .lens-mark")]
+          if (tags.length < 2) continue
+          const tops = new Set(tags.map((t) => Math.round(t.getBoundingClientRect().top)))
+          const floated = tags.some((t) => getComputedStyle(t).float !== "none")
+          if (tops.size > 1 || floated) return true
+        }
+        return false
+      })
+      if (bad) fail.push(`lens marks: on ${marked} a block's lens tags aren't one row at its start`)
+      await p.close()
+    }
+  }
+
   // Quiet scroll areas: no scrollbar at rest on the page's own scroll areas,
   // nothing that always scrolls; and a how-to's step numbers joined by a line.
   {
