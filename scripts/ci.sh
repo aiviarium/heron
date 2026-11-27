@@ -221,16 +221,19 @@ lane_web() {
 # go test ./..., in two lanes: the language server's package, whose test
 # opens the whole spec package in every order, and every other package.
 lsp_pkg=github.com/aiviarium/heron/internal/tools/lsp
+# The tests check the spec package over and over; collecting garbage less
+# often (GOGC=400) takes a third off their CPU time, for memory they have.
+gotest() { GOGC=${GOGC:-400} go test ${gocount[@]+"${gocount[@]}"} "$@"; }
 lane_gotest() {
   step "go test, every package but the language server's (golsp)"
   local pkgs
   pkgs=$(go list ./... | grep -vx "$lsp_pkg")
-  go test "${gocount[@]}" $pkgs
+  gotest $pkgs
 }
 
 lane_golsp() {
   step "go test the language server"
-  go test "${gocount[@]}" "$lsp_pkg"
+  gotest "$lsp_pkg"
 }
 
 lane_gorace() {
