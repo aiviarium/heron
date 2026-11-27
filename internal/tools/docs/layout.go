@@ -436,9 +436,11 @@ const navScrollScript = `<script>(function(){var n=document.currentScript.previo
 // and the first paint; without one the system's preference holds.
 // themeScript also settles the promises of a page transition the browser
 // skips (as it does for pages opened from file://), so a skipped
-// transition is never an unhandled rejection.
+// transition is never an unhandled rejection, including one the browser
+// rejects before the page's pageswap or pagereveal handler sees it.
 const themeScript = `<script>try{var t=localStorage.getItem("heron-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}` +
-	`["pageswap","pagereveal"].forEach(function(k){addEventListener(k,function(e){var v=e.viewTransition;if(v){[v.ready,v.finished,v.updateCallbackDone].forEach(function(q){q&&q.catch(function(){})})}})})</script>`
+	`["pageswap","pagereveal"].forEach(function(k){addEventListener(k,function(e){var v=e.viewTransition;if(v){[v.ready,v.finished,v.updateCallbackDone].forEach(function(q){q&&q.catch(function(){})})}})});` +
+	`addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&(r.name==="InvalidStateError"||r.name==="AbortError")&&/transition/i.test(r.message))e.preventDefault()})</script>`
 
 // canvasStyle colours the canvas in the page's theme from the first
 // frame any engine paints, before the stylesheet has loaded: the page

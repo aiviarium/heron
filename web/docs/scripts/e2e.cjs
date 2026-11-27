@@ -181,9 +181,14 @@ const url = (f) => "file://" + path.join(dir, f)
     const p = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     await p.goto(served(linkTo))
     await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-    const hrefs = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href"))).slice(0, 2).map((a) => a.getAttribute("href")))
     const titles = [await p.title()]
-    for (const h of hrefs) {
+    const hrefs = []
+    for (let i = 0; i < 2; i++) {
+      // The next link from the page now shown, which may be another area's
+      // or a landing page without the navigation.
+      const h = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].find((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))?.getAttribute("href"))
+      if (!h) break
+      hrefs.push(h)
       await Promise.all([p.waitForURL((u) => u.pathname.endsWith("/" + h)), p.click(`.sidebar a[href="${h}"]:visible >> nth=0`)])
       await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
       titles.push(await p.title())
