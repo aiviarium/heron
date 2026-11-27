@@ -299,15 +299,20 @@ const url = (f) => "file://" + path.join(dir, f)
       })
       if (!order) fail.push("lens: the lens switch isn't right before the version switch")
       await p.focus(".lens-trigger")
+      await p.waitForFunction(() => document.activeElement?.matches(".lens-trigger"), null, { timeout: 5000 }).catch(() => {})
       await p.keyboard.press("ArrowDown")
-      const opts = await p.waitForSelector(".select-content .select-item", { state: "visible", timeout: 2000 }).then(() => p.$$eval(".select-content .select-item", (els) => els.length), () => 0)
+      // The trigger's own list: a closed list can stay in the page, hidden.
+      const lensList = "#" + (await p.getAttribute(".lens-trigger", "aria-controls")) + " .select-item"
+      const opts = await p.waitForSelector(lensList, { state: "visible", timeout: 5000 }).then(() => p.$$eval(lensList, (els) => els.length), () => 0)
       if (opts < 2) fail.push("lens: the keyboard doesn't open the lens switch's options")
       await p.keyboard.press("Escape")
     }
     if (await p.$(".version .select-trigger")) {
       await p.focus(".version .select-trigger")
+      await p.waitForFunction(() => document.activeElement?.matches(".version .select-trigger"), null, { timeout: 5000 }).catch(() => {})
       await p.keyboard.press("ArrowDown")
-      const open = await p.waitForSelector(".select-content .select-item", { state: "visible", timeout: 2000 }).then(() => true, () => false)
+      const list = "#" + (await p.getAttribute(".version .select-trigger", "aria-controls")) + " .select-item"
+      const open = await p.waitForSelector(list, { state: "visible", timeout: 5000 }).then(() => true, () => false)
       if (!open) fail.push("version: the keyboard doesn't open the version switch")
       await p.keyboard.press("Escape")
     }
@@ -397,12 +402,13 @@ const url = (f) => "file://" + path.join(dir, f)
     }
   }
 
-  // Each rule a page shows carries its mark in the gutter, the link to it.
-  {
-    const ruled = pages.find((f) => /<div class="rule[ "]/.test(fs.readFileSync(path.join(dir, f), "utf8")))
+  // Each rule and each lifecycle transition a page shows carries its mark
+  // in the gutter, the link to it.
+  for (const want of [/<div class="rule(?: quality)?" id=/, /<div class="rule transition" id=/]) {
+    const ruled = pages.find((f) => want.test(fs.readFileSync(path.join(dir, f), "utf8")))
     if (ruled) {
       const src = fs.readFileSync(path.join(dir, ruled), "utf8")
-      const rules = [...src.matchAll(/<div class="rule(?: quality)?" id="([^"]+)"><p class="sentence">(<a class="rule-link[^"]*" href="[^"#]*#([^"]+)")?/g)]
+      const rules = [...src.matchAll(/<div class="rule(?: quality| transition)?" id="([^"]+)"><p class="sentence">(<a class="rule-link[^"]*" href="[^"#]*#([^"]+)")?/g)]
       // A rule shown away from its place links to its home instead.
       const bare = rules.filter((m) => !m[2] || (m[3] !== m[1] && !m[1].startsWith(m[3])))
       if (bare.length) fail.push(`gutter: on ${ruled} ${bare.length} of ${rules.length} rules lack the mark that links to them, such as ${bare[0][1]}`)

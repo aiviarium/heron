@@ -140,6 +140,7 @@ tools_docs: section {
 
   proves(heron.tools.docs.rendering.gutter_marks) {
     verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
     verify("scripts/e2e-docs.sh")
   }
 
