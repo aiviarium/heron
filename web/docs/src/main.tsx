@@ -13,6 +13,10 @@ import { Version } from "./islands/version"
 import { bindings } from "./islands/bindings"
 import { inPlace } from "./navigate"
 
+/** Whether an element is rendered: not inside a closed disclosure, whose
+ * content Chromium hides with content-visibility rather than display. */
+const shown = (e: HTMLElement) => (e.checkVisibility ? e.checkVisibility() : e.offsetParent !== null)
+
 const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => [...root.querySelectorAll<T>(sel)]
 
 /** What a page's islands leave behind, undone before the next page. */
@@ -188,12 +192,12 @@ function navScroll() {
   })
   addEventListener("pagehide", save)
   // Back from the bfcache: what's saved is this page's again.
-  const shown = (e: PageTransitionEvent) => { if (e.persisted) followed = null }
-  addEventListener("pageshow", shown)
+  const restored = (e: PageTransitionEvent) => { if (e.persisted) followed = null }
+  addEventListener("pageshow", restored)
   teardown.push(() => {
     save()
     removeEventListener("pagehide", save)
-    removeEventListener("pageshow", shown)
+    removeEventListener("pageshow", restored)
   })
 }
 
@@ -236,7 +240,7 @@ function tree() {
     a.tabIndex = -1
   }
   sync()
-  const current = items.find((a) => a.getAttribute("aria-current") === "page") ?? items.find((a) => a.offsetParent !== null)
+  const current = items.find((a) => a.getAttribute("aria-current") === "page") ?? items.find(shown)
   if (current) current.tabIndex = 0
   const save = () => {
     const open = $$<HTMLDetailsElement>("details[data-key]", root).filter((d) => d.open).map((d) => d.dataset.key)
@@ -244,7 +248,7 @@ function tree() {
   }
   const onToggle = () => { sync(); save() }
   root.addEventListener("toggle", onToggle, true)
-  const visible = () => items.filter((a) => a.offsetParent !== null)
+  const visible = () => items.filter(shown)
   const focus = (a: HTMLElement | undefined) => {
     if (!a) return
     for (const x of items) x.tabIndex = -1

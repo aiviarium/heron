@@ -106,6 +106,14 @@ const url = (f) => "file://" + path.join(dir, f)
   // between two pages), every frame across the swap has the page's theme,
   // the frame doesn't move, and the swap runs in a view transition where
   // the engine has one.
+  // Follows a link and waits until its page is shown: in place, when the
+  // page counts one more page shown (data-navs), or loaded whole.
+  const follow = async (p, selector) => {
+    const before = await p.evaluate(() => Number(document.documentElement.dataset.navs) || 0)
+    await p.click(selector)
+    await p.waitForFunction((n) => (Number(document.documentElement.dataset.navs) || 0) > n || !document.documentElement.dataset.navs && n > 0, before, { timeout: 15000 }).catch(() => {})
+    await p.waitForFunction(() => document.documentElement.dataset.islands === "ready", null, { timeout: 15000 })
+  }
   const linkTo = pages.includes("index.html") && sidebarOf("index.html") ? "index.html" : pages.find((f) => (sidebarOf(f).match(/<a href="[^"#:]+"/g) || []).length > 3) ?? pages[0]
   const engines = [["chromium", browser]]
   if (process.env.HERON_E2E_FIREFOX !== "0") {
@@ -139,7 +147,7 @@ const url = (f) => "file://" + path.join(dir, f)
         // A landing page has no navigation and a frame of its own.
         const from = await p.evaluate(() => (document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null))
         const next = await p.evaluate((i) => {
-          const as = [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))
+          const as = [...document.querySelectorAll(".sidebar a[href]")].filter((a) => (a.checkVisibility ? a.checkVisibility() : a.offsetParent) && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))
           const a = as[(i * 5 + 2) % as.length]
           if (!a) return null
           a.dataset.e2e = "next"
@@ -154,7 +162,8 @@ const url = (f) => "file://" + path.join(dir, f)
         }, i)
         if (!next) break
         const vtsBefore = await p.evaluate(() => window.__vts)
-        await Promise.all([p.waitForURL((u) => u.pathname.endsWith("/" + next.replace(/#.*/, ""))), p.click("a[data-e2e=next]")])
+        await follow(p, "a[data-e2e=next]")
+        if (!p.url().split("#")[0].endsWith("/" + next.replace(/#.*/, ""))) fail.push(`${engine}: following the link to ${next} shows ${p.url()}`)
         await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
         await p.waitForTimeout(300)
         const r = await p.evaluate(() => ({ inPlace: window.__doc === true, frames: window.__frames ?? [], vts: window.__vts, canVt: "startViewTransition" in document, bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null, page: document.body.dataset.page }))
@@ -186,10 +195,10 @@ const url = (f) => "file://" + path.join(dir, f)
     for (let i = 0; i < 2; i++) {
       // The next link from the page now shown, which may be another area's
       // or a landing page without the navigation.
-      const h = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].find((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))?.getAttribute("href"))
+      const h = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].find((a) => (a.checkVisibility ? a.checkVisibility() : a.offsetParent) && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))?.getAttribute("href"))
       if (!h) break
       hrefs.push(h)
-      await Promise.all([p.waitForURL((u) => u.pathname.endsWith("/" + h)), p.click(`.sidebar a[href="${h}"]:visible >> nth=0`)])
+      await follow(p, `.sidebar a[href="${h}"]:visible >> nth=0`)
       await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
       titles.push(await p.title())
     }
@@ -203,7 +212,7 @@ const url = (f) => "file://" + path.join(dir, f)
     // on it.
     await p.goto(served(linkTo))
     await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-    const ahead = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))[3]?.getAttribute("href"))
+    const ahead = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].filter((a) => (a.checkVisibility ? a.checkVisibility() : a.offsetParent) && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))[3]?.getAttribute("href"))
     if (ahead) {
       const fetched = p.waitForRequest((r) => r.url().endsWith("/" + ahead), { timeout: 3000 }).then(() => true, () => false)
       await p.hover(`.sidebar a[href="${ahead}"]:visible >> nth=0`)
@@ -326,7 +335,7 @@ const url = (f) => "file://" + path.join(dir, f)
       const second = await p.evaluate(() => document.activeElement.getAttribute("href"))
       if (!second || second === first) fail.push("nav tree: the down arrow doesn't move to the next entry")
       const closed = await p.evaluate(() => {
-        const d = [...document.querySelectorAll(".sidebar .nav-branch:not([open])")].find((x) => x.offsetParent !== null)
+        const d = [...document.querySelectorAll(".sidebar .nav-branch:not([open])")].find((x) => (x.checkVisibility ? x.checkVisibility() : x.offsetParent !== null))
         const a = d && d.querySelector(":scope > summary > a")
         if (a) a.focus()
         return a ? d.dataset.key : null
@@ -413,7 +422,7 @@ const url = (f) => "file://" + path.join(dir, f)
   const long = pages.filter((f) => items(f) > 40).sort((a, b) => items(b) - items(a))[0]
   if (long) {
     await readyServed(long)
-    const hrefs = await page.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].map((a, i) => (a.dataset.i = String(i), a.offsetParent && !a.getAttribute("aria-current") ? a.getAttribute("href") : null)))
+    const hrefs = await page.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].map((a, i) => (a.dataset.i = String(i), (a.checkVisibility ? a.checkVisibility() : a.offsetParent) && !a.getAttribute("aria-current") ? a.getAttribute("href") : null)))
     // Down the list but not at its end, and put at the top of the
     // navigation: kept, the position differs from scrolling the entry into
     // view, which would leave it at the bottom.

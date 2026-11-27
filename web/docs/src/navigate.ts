@@ -121,6 +121,10 @@ export async function navigate(href: string, opts: { push?: boolean; scroll?: nu
     await vt.updateCallbackDone.catch(() => {})
   } else run()
   if (opts.push !== false) history.pushState({ heron: true, y: 0 }, "", url.href)
+  // Each page shown in place is counted, so a test or a tool waits for the
+  // swap to finish rather than for a load that never comes.
+  const root = document.documentElement
+  root.dataset.navs = String((Number(root.dataset.navs) || 0) + 1)
   // The new page has the reader's attention: the page itself, not the link
   // that led to it, holds focus, as it would after a load.
   const main = document.getElementById("main")
