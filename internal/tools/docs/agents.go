@@ -605,6 +605,7 @@ func (e *agentExport) write() []AgentFile {
 			files = append(files, AgentFile{Path: e.files[u][i], Title: title, ID: u.id, Summary: sum, Content: b})
 		}
 	}
+	files = withChildMaps(files)
 	idx := AgentFile{Path: AgentIndex, Title: e.siteTitle(), Content: e.index(files)}
 	llms := AgentFile{Path: LLMsTxt, Title: e.siteTitle(), Content: e.llms(files, "")}
 	return append([]AgentFile{idx, llms}, files...)
@@ -1695,26 +1696,80 @@ func (e *agentExport) index(files []AgentFile) []byte {
 - Lists marked (derived), such as realized by and illustrated by, are worked out from links written on other nodes, never written on this one.
 - Sizes are approximate tokens: a file's bytes over four.
 `)
-	b.WriteString("\n## Files\n\n")
+	b.WriteString("\n## Areas\n\nThe top areas of the tree. Each area's file ends with the map of the files below it, so any file is two or three links from here.\n\n")
+	b.WriteString(fileMap(topFiles(files)))
+	return []byte(e.resolveLinks(b.String()))
+}
+
+// fileMap writes one line per file: its link, its summary and its size.
+func fileMap(files []AgentFile) string {
 	var fl []string
 	for _, f := range files {
-		l := "[" + mdLinkText(f.Title) + "](" + f.Path + ")"
+		l := "- [" + mdLinkText(f.Title) + "](" + f.Path + ")"
 		if f.Summary != "" {
 			l += ": " + clipLine(unlink(f.Summary), summaryWidth)
 		}
 		l += " (~" + strconv.Itoa(Tokens(f.Content)) + " tokens)"
-		fl = append(fl, e.indent(f)+"- "+l)
+		fl = append(fl, l)
 	}
-	b.WriteString(strings.Join(fl, "\n") + "\n")
-	return []byte(e.resolveLinks(b.String()))
+	return strings.Join(fl, "\n") + "\n"
 }
 
-// indent nests a file in the map under the file of its section.
-func (e *agentExport) indent(f AgentFile) string {
-	if f.ID == "" {
-		return ""
+// parentID is the id of the file a file's map line belongs in: the
+// longest other file id that is a dotted prefix of its own, or "" at the
+// top.
+func parentID(id string, ids map[string]bool) string {
+	for i := strings.LastIndex(id, "."); i > 0; i = strings.LastIndex(id[:i], ".") {
+		if ids[id[:i]] {
+			return id[:i]
+		}
 	}
-	return strings.Repeat("  ", strings.Count(f.ID, "."))
+	return ""
+}
+
+// topFiles are the files with no area file above them, parts left out.
+func topFiles(files []AgentFile) []AgentFile {
+	ids := fileIDs(files)
+	var out []AgentFile
+	for _, f := range files {
+		if f.Summary != "" && (f.ID == "" || parentID(f.ID, ids) == "") {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func fileIDs(files []AgentFile) map[string]bool {
+	ids := map[string]bool{}
+	for _, f := range files {
+		if f.ID != "" {
+			ids[f.ID] = true
+		}
+	}
+	return ids
+}
+
+// withChildMaps ends the first part of each area file with the map of the
+// area files directly below it, so the export is read top down.
+func withChildMaps(files []AgentFile) []AgentFile {
+	ids := fileIDs(files)
+	kids := map[string][]AgentFile{}
+	for _, f := range files {
+		if f.ID != "" && f.Summary != "" {
+			if p := parentID(f.ID, ids); p != "" {
+				kids[p] = append(kids[p], f)
+			}
+		}
+	}
+	seen := map[string]bool{}
+	for i, f := range files {
+		if f.ID == "" || seen[f.ID] || len(kids[f.ID]) == 0 {
+			continue
+		}
+		seen[f.ID] = true
+		files[i].Content = append(files[i].Content, []byte("\n## Files below\n\n"+fileMap(kids[f.ID]))...)
+	}
+	return files
 }
 
 // llms writes llms.txt, its links under prefix.

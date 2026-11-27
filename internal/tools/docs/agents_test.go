@@ -116,9 +116,22 @@ func TestAgentExportOfSpec(t *testing.T) {
 	// The agent's question: what must the checker do when field numbers
 	// collide? The index names the file, and the file holds the rule.
 	idx := string(files[0].Content)
-	for _, want := range []string{"## How to read these files", "## Files", "[Numbering](language.apis.grpc.numbering.md)", "tokens)"} {
+	// The index maps the top areas alone; each area's file maps the files
+	// below it, so the index stays within the budget.
+	for _, want := range []string{"## How to read these files", "## Areas", "[Language](language.md)", "tokens)"} {
 		if !strings.Contains(idx, want) {
 			t.Errorf("INDEX.md lacks %q", want)
+		}
+	}
+	if strings.Contains(idx, "language.apis.grpc.numbering.md") {
+		t.Error("INDEX.md maps a file below a top area")
+	}
+	if n := Tokens(files[0].Content); n > 2000 {
+		t.Errorf("INDEX.md is %d tokens, want at most 2000", n)
+	}
+	for _, step := range [][2]string{{"language.md", "language.apis.md"}, {"language.apis.md", "language.apis.grpc.md"}, {"language.apis.grpc.md", "language.apis.grpc.numbering.md"}} {
+		if f := fileByPath(files, step[0]); f == nil || !strings.Contains(string(f.Content), "## Files below") || !strings.Contains(string(f.Content), "]("+step[1]+")") {
+			t.Errorf("%s doesn't map %s under Files below", step[0], step[1])
 		}
 	}
 	f := fileByPath(files, "language.apis.grpc.numbering.md")
@@ -357,7 +370,7 @@ func TestAgentExportSplitsAndOrders(t *testing.T) {
 		}
 	}
 	idx := string(files[0].Content)
-	for _, want := range []string{"# Shop: agent export", "A shop that sells things.", "- goal [sell](_root.md#sell): Customers buy what they want.", "- [Orders](orders.md): How orders are placed. (~", "- [Orders (part 2)](orders.2.md) (~"} {
+	for _, want := range []string{"# Shop: agent export", "A shop that sells things.", "- goal [sell](_root.md#sell): Customers buy what they want.", "- [Orders](orders.md): How orders are placed. (~"} {
 		if !strings.Contains(idx, want) {
 			t.Errorf("INDEX.md lacks %q:\n%s", want, idx)
 		}

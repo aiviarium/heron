@@ -30,6 +30,10 @@ tools_docs_agents: section {
     verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
   }
 
+  proves(heron.tools.docs.agents.index.child_maps) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
   proves(heron.tools.docs.agents.index.llms_txt) {
     verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
   }
