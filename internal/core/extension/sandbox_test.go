@@ -14,7 +14,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/extension/protocol"
 	"github.com/aiviarium/heron/internal/core/lint"
 	"github.com/aiviarium/heron/internal/core/registry"
-	"github.com/aiviarium/sparrow-rpc/go/transport/pipe"
+	"github.com/aiviarium/sparrow/go/transport/pipe"
 )
 
 // The test binary doubles as an extension written in Go: with
@@ -99,7 +99,7 @@ func (p *probe) Shutdown(context.Context, *protocol.Empty) (*protocol.Empty, err
 }
 
 func serveProbe() {
-	c, err := protocol.Dial(context.Background(), pipe.Stdio(), protocol.Options{Handlers: protocol.ExtensionHandlers(&probe{})})
+	c, err := protocol.Dial(context.Background(), pipe.Stdio(nil), protocol.Options{Handlers: protocol.ExtensionHandlers(&probe{})})
 	if err != nil {
 		os.Exit(3)
 	}
