@@ -1687,7 +1687,7 @@ func (e *agentExport) index(files []AgentFile) []byte {
 	b.WriteString(`
 ## How to read these files
 
-- Each file holds one area of the tree: a section or a folder, named by its id, as ` + "`language.apis.grpc.md`" + `. A file over the size budget of ` + strconv.Itoa(e.budget) + ` tokens is split into parts, ` + "`<id>.2.md`" + ` and on, each linking the next.
+- Each file holds one area of the tree: a section, a folder, a command or an api, named by its id, as ` + "`language.apis.grpc.md`" + `. A file over the size budget of ` + strconv.Itoa(e.budget) + ` tokens is split into parts, ` + "`<id>.2.md`" + ` and on, each linking the next.
 - A file opens with its title, its id and its context. Then come its parts, in this order: Sections (the context of each section it holds, or a link to the section's own file), Intent (goals, actors, qualities: why), Specification (rules, terms, use cases, scenarios: what the product guarantees), Contract (errors, commands, ops, types, grammars and examples: the exact surface), Notes (guidance and open questions), and Terms used here (the words it links that other files define). Within a part, nodes are in the order the tree writes them.
 - Every node has a heading of its kind and its full id, as ` + "`### rule language.apis.grpc.numbering.unique_numbers`" + `. An id is the node's path in the tree, dots between its scopes; it's stable, so search for it to find the node.
 - A requirement opens with its strength: must, mustNot, should, shouldNot or may, as RFC 2119 means them. Its conditions read in the order where, while, when, if; ` + "`then`" + ` says what follows, and ` + "`instead`" + ` what to do in its place. Its last line links who it binds (by), what it's about (targets) and the goals it serves.
