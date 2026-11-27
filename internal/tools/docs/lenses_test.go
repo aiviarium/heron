@@ -77,21 +77,20 @@ func TestLensSiteFiles(t *testing.T) {
 	mustHave(t, "dev page", f["dev/kite.cli.sync.html"], `href="../_assets/docs.css`+v+`"`, `src="data.js"`, `id="kite.cli.sync.dry_run"`)
 	mustHave(t, "user page", f["kite.cli.sync.html"], `href="_assets/docs.css`+v+`"`, `id="kite.cli.sync.dry_run"`)
 	// The frame every page has, for moving between pages without a flash:
-	// the canvas's scheme and the reader's theme before the stylesheet,
-	// assets cached until they change, the first paint held until the frame
-	// is parsed, the next page prefetched, and the navigation put back
-	// before paint.
+	// the canvas's scheme, background and the reader's theme before the
+	// stylesheet, assets cached until they change, the first paint held
+	// until the frame is parsed, and the navigation put back before paint.
 	page := f["kite.cli.sync.html"]
 	mustHave(t, "page chrome", page,
 		`<meta name="color-scheme" content="dark light">`,
 		`localStorage.getItem("heron-theme")`,
 		`<link rel="expect" href="#h-layout" blocking="render">`,
 		`<div class="layout" id="h-layout">`,
-		`<script type="speculationrules">`,
+		`<style>@layer heron{html{color-scheme:dark;background:#111111}html[data-theme=light]{color-scheme:light;background:#ffffff}`,
 		`src="_assets/docs.js?v=`+assetVersion("docs.js")+`"`,
 		`sessionStorage.getItem("heron-nav:"`)
-	if strings.Index(page, `heron-theme`) > strings.Index(page, `rel="stylesheet"`) {
-		t.Error("the theme script runs after the stylesheet link")
+	if strings.Index(page, `heron-theme`) > strings.Index(page, `rel="stylesheet"`) || strings.Index(page, `<style>@layer heron{html{`) > strings.Index(page, `rel="stylesheet"`) {
+		t.Error("the canvas style or the theme script comes after the stylesheet link")
 	}
 	if strings.Index(page, `heron-nav:`) < strings.Index(page, `<nav class="sidebar"`) || strings.Index(page, `heron-nav:`) > strings.Index(page, `<main`) {
 		t.Error("the navigation's scroll isn't put back right after the navigation, before the page")

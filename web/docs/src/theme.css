@@ -10,6 +10,21 @@ html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--h-size-top
 /* A page as long as the window and a longer one keep one width: the
    scrollbar's room is kept either way, so the frame never moves sideways. */
 @media (min-width: 821px) { html { scrollbar-gutter: stable; } }
+/* The canvas is the page's colour in every engine: the inline style in the
+   head sets it before this sheet loads, and this keeps it the theme's. */
+html { background: var(--h-bg-page); }
+/* Scroll areas inside the page stay quiet: a thin scrollbar that shows as
+   the pointer or focus is on its area, never a bar at rest. */
+.sidebar, .aside, pre, .table-wrap, .prod-def, .palette-list, .sheet-body, .rpc-sig {
+  scrollbar-width: thin; scrollbar-color: transparent transparent;
+}
+:is(.sidebar, .aside, pre, .table-wrap, .prod-def, .palette-list, .sheet-body, .rpc-sig):is(:hover, :focus-within) { scrollbar-color: var(--h-border-strong) transparent; }
+/* WebKit, which has no scrollbar-color: the same, drawn by hand. */
+@supports not (scrollbar-color: auto) {
+  :is(.sidebar, .aside, pre, .table-wrap, .prod-def, .palette-list, .sheet-body, .rpc-sig)::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+  :is(.sidebar, .aside, pre, .table-wrap, .prod-def, .palette-list, .sheet-body, .rpc-sig)::-webkit-scrollbar-thumb { border-radius: 4px; background: transparent; }
+  :is(.sidebar, .aside, pre, .table-wrap, .prod-def, .palette-list, .sheet-body, .rpc-sig):is(:hover, :focus-within)::-webkit-scrollbar-thumb { background: var(--h-border-strong); }
+}
 body {
   margin: 0;
   background: var(--h-bg-page);
@@ -100,14 +115,14 @@ kbd { font-size: var(--h-font-size-label); color: var(--h-text-faint); border: 1
 .layout.has-examples > .aside { max-width: 480px; }
 body[data-layout="home"] .layout { --main: calc(1.5 * var(--h-size-measure)); }
 body[data-layout="conformance"] .layout { grid-template-columns: var(--h-size-sidebar) minmax(0, 1fr) minmax(0, 240px); }
-.sidebar { position: sticky; top: var(--h-size-topbar); height: calc(100vh - var(--h-size-topbar)); overflow: auto; padding: var(--h-space-5) 0 var(--h-space-8); scrollbar-width: thin; }
+.sidebar { position: sticky; top: var(--h-size-topbar); height: calc(100vh - var(--h-size-topbar)); overflow: auto; overscroll-behavior: contain; padding: var(--h-space-5) 0 var(--h-space-8); }
 /* One content width: prose, code, tables, callouts and lists share the
    measure, so every block of a page has the same two edges; what's wider
    scrolls inside its own frame. A data page, the conformance matrix, is
    wider as a whole. */
 .page { min-width: 0; width: 100%; padding: var(--h-space-8) 0 var(--h-space-16); max-width: var(--h-size-measure); justify-self: start; }
 body[data-layout="conformance"] .page { max-width: none; justify-self: stretch; }
-.aside { position: sticky; top: var(--h-size-topbar); align-self: start; max-height: calc(100vh - var(--h-size-topbar)); overflow: auto; padding: var(--h-space-8) 0 var(--h-space-8); scrollbar-width: thin; }
+.aside { position: sticky; top: var(--h-size-topbar); align-self: start; max-height: calc(100vh - var(--h-size-topbar)); overflow: auto; overscroll-behavior: contain; padding: var(--h-space-8) 0 var(--h-space-8); }
 
 /* --- navigation --- */
 .nav-areas { display: none; }
@@ -396,7 +411,7 @@ figure.code { margin: 0 0 var(--h-space-5); border: 1px solid var(--h-border); b
 .code-title { display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 var(--h-space-1) 0 var(--h-space-3); background: var(--h-bg-soft); border-bottom: 1px solid var(--h-border-faint); font: 12px var(--h-font-mono); color: var(--h-text-secondary); }
 .code-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .icon-btn.copy { flex: none; width: var(--h-size-control-sm); height: var(--h-size-control-sm); }
-pre { margin: 0; padding: var(--h-space-3) var(--h-space-4); overflow: auto; line-height: var(--h-font-line-code); tab-size: 2; }
+pre { margin: 0; padding: var(--h-space-3) var(--h-space-4); overflow-x: auto; overflow-y: hidden; line-height: var(--h-font-line-code); tab-size: 2; }
 pre code { font-size: var(--h-font-size-code); }
 .sig { border: 1px solid var(--h-border); border-radius: var(--h-radius-card); background: var(--h-bg-raised); margin: 0 0 var(--h-space-4); }
 .tk-kw { color: var(--h-syntax-keyword); }
@@ -447,7 +462,12 @@ code.t { color: var(--h-type); }
 .panel-head .label { padding-left: var(--h-space-1); }
 .panel-foot { display: flex; justify-content: flex-end; align-items: center; gap: var(--h-space-2); padding: var(--h-space-2); border-top: 1px solid var(--h-border-faint); }
 .picker-one { color: var(--h-text-faint); font-size: 12px; padding-right: var(--h-space-2); }
-.panel pre { max-height: 360px; font-size: 12px; }
+.panel pre { font-size: 12px; }
+/* A long example shows its start, with a button for the rest, rather than
+   a scroll area inside the scrolling column. */
+.panel pre.clipped { max-height: 264px; }
+.expand { display: block; width: 100%; height: var(--h-size-control); border: 0; border-top: 1px solid var(--h-border-faint); background: transparent; color: var(--h-text-secondary); font-size: 12px; cursor: pointer; }
+.expand:hover { color: var(--h-text); background: var(--h-bg-soft); }
 .seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--h-radius-control); }
 .seg button { height: var(--h-size-control-sm); padding: 0 var(--h-space-2); border: 0; border-radius: 5px; background: transparent; color: var(--h-text-faint); cursor: pointer; font-size: 12px; transition: color var(--h-motion-fast) var(--h-motion-ease), background var(--h-motion-fast) var(--h-motion-ease); }
 .seg button:hover { color: var(--h-text); }
@@ -543,7 +563,7 @@ code.t { color: var(--h-type); }
 .field textarea { height: 140px; padding: var(--h-space-2); resize: vertical; }
 .field input:focus-visible, .field textarea:focus-visible { outline: var(--h-size-focus) solid var(--h-accent); outline-offset: 0; }
 .result { border: 1px solid var(--h-border); border-radius: var(--h-radius-card); overflow: hidden; animation: fade var(--h-motion-base) var(--h-motion-ease); }
-.result pre { max-height: 300px; }
+.result pre { max-height: 300px; overflow-y: auto; }
 
 /* Moving between pages: the browser keeps the top bar and the navigation
    in place and cross-fades the rest, so the chrome never repaints. */
@@ -641,6 +661,8 @@ code.t { color: var(--h-type); }
 .steps { list-style: none; counter-reset: step; margin: var(--h-space-6) 0 0; padding: 0; }
 .step { counter-increment: step; position: relative; padding-left: var(--h-space-10); margin: 0 0 var(--h-space-8); }
 .step:last-child { margin-bottom: 0; }
+/* The line joining a step's number to the next one's. */
+.step:not(:last-child)::after { content: ""; position: absolute; left: calc(var(--h-size-control) / 2 - 0.5px); top: calc(var(--h-size-control) + var(--h-space-2)); bottom: calc(var(--h-space-2) - var(--h-space-8)); width: 1px; background: var(--h-border); }
 .step::before { content: counter(step); position: absolute; left: 0; top: 1px; width: var(--h-size-control); height: var(--h-size-control); display: grid; place-items: center; border: 1px solid var(--h-border-strong); border-radius: 50%; font: var(--h-font-weight-medium) 12px/1 var(--h-font-mono); color: var(--h-text-secondary); }
 .step > .h { margin: 0 0 var(--h-space-2); padding-top: 3px; font-size: var(--h-font-size-h3); }
 .step figure.code { margin-top: var(--h-space-3); }

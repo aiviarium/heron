@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/web/tokens"
 )
 
 // RenderPage renders a page as a whole HTML document: the top bar, the
@@ -187,6 +189,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	// The canvas takes the theme's scheme before the stylesheet arrives.
 	b.WriteString(`<meta name="color-scheme" content="dark light">`)
 	b.WriteString(`<title>` + esc(title) + `</title>`)
+	b.WriteString(canvasStyle())
 	b.WriteString(themeScript)
 	b.WriteString(`<link rel="stylesheet" href="` + a + `docs.css?v=` + assetVersion("docs.css") + `">`)
 	if s.Theme != nil {
@@ -195,7 +198,6 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	// The page paints whole: never before its frame, the navigation and
 	// the right column, are parsed, so nothing pops in after first paint.
 	b.WriteString(`<link rel="expect" href="#` + layoutID + `" blocking="render">`)
-	b.WriteString(speculationRules)
 	lensName := ""
 	if s.Opts.Lens != nil {
 		lensName = s.Opts.Lens.Name
@@ -438,10 +440,25 @@ const navScrollScript = `<script>(function(){var n=document.currentScript.previo
 const themeScript = `<script>try{var t=localStorage.getItem("heron-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}` +
 	`["pageswap","pagereveal"].forEach(function(k){addEventListener(k,function(e){var v=e.viewTransition;if(v){[v.ready,v.finished,v.updateCallbackDone].forEach(function(q){q&&q.catch(function(){})})}})})</script>`
 
-// speculationRules prefetches a page of the site when the reader is about
-// to follow a link to it (on hover or pointer down), so the next page is
-// there when the click lands. Browsers without speculation rules ignore it.
-const speculationRules = `<script type="speculationrules">{"prefetch":[{"source":"document","where":{"and":[{"selector_matches":"a[href]"},{"not":{"selector_matches":"[href^='#'],[href^='http:'],[href^='https:'],[href^='mailto:'],[download],[target]"}}]},"eagerness":"moderate"}]}</script>`
+// canvasStyle colours the canvas in the page's theme from the first
+// frame any engine paints, before the stylesheet has loaded: the page
+// background of each theme, keyed off the theme the reader chose
+// (data-theme, set by themeScript) or else the system's preference. It's
+// in the heron layer, so docs.css and a theme package's layer win over it
+// once they load.
+var canvasStyle = sync.OnceValue(func() string {
+	dark, light := "#111111", "#ffffff"
+	if set, err := tokens.Load(); err == nil {
+		for _, c := range set.Colors {
+			if c.Name == "bg-page" {
+				dark, light = c.Dark, c.Light
+			}
+		}
+	}
+	d := "color-scheme:dark;background:" + dark
+	l := "color-scheme:light;background:" + light
+	return `<style>@layer heron{html{` + d + `}html[data-theme=light]{` + l + `}@media (prefers-color-scheme: light){html:not([data-theme=dark]){` + l + `}}}</style>`
+})
 
 // layoutID is the id of a page's frame, which the page's render-blocking
 // link waits for.

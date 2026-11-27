@@ -10,13 +10,18 @@ import { Diagram } from "./islands/diagram"
 import { Search } from "./islands/search"
 import { TryIt } from "./islands/tryit"
 import { bindings } from "./islands/bindings"
+import { inPlace } from "./navigate"
 
 const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => [...root.querySelectorAll<T>(sel)]
 
-function mount(component: () => unknown) {
+/** What a page's islands leave behind, undone before the next page. */
+let teardown: (() => void)[] = []
+
+function mount(component: () => unknown, perPage = true) {
   const host = document.createElement("div")
   document.body.append(host)
-  render(component as () => never, host)
+  const dispose = render(component as () => never, host)
+  if (perPage) teardown.push(() => { dispose(); host.remove() })
 }
 
 /** The theme switch: dark and light, remembered. */
@@ -54,13 +59,18 @@ function nav() {
       if (open) document.querySelector('.sidebar [aria-current="page"]')?.scrollIntoView({ block: "center" })
     }
     b.addEventListener("click", () => set(!document.body.classList.contains("nav-open")))
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && document.body.classList.contains("nav-open")) {
-        set(false)
-        b.focus()
-      }
-    })
   }
+}
+
+/** Escape closes the navigation sheet, on every page. */
+function navEscape() {
+  document.addEventListener("keydown", (e) => {
+    const b = document.querySelector<HTMLElement>("[data-island=nav]")
+    if (e.key !== "Escape" || !b || !document.body.classList.contains("nav-open")) return
+    document.body.classList.remove("nav-open")
+    b.setAttribute("aria-expanded", "false")
+    b.focus()
+  })
 }
 
 /** Copy buttons: their data-copy, or the code of their block or panel. */
@@ -130,10 +140,12 @@ function views() {
     const panel = ex.closest(".aside") ?? ex
     tablist(ex.querySelector(".seg")!, (tab) => {
       for (const l of $$(".lang", ex)) l.hidden = l.dataset.lang !== tab.dataset.lang
+      expand()
     })
     ex.querySelector<HTMLSelectElement>(".picker")?.addEventListener("change", (e) => {
       const i = (e.target as HTMLSelectElement).value
       for (const x of $$(".ex", panel)) x.hidden = x.dataset.example !== i
+      expand()
     })
   }
 }
@@ -175,7 +187,13 @@ function navScroll() {
   })
   addEventListener("pagehide", save)
   // Back from the bfcache: what's saved is this page's again.
-  addEventListener("pageshow", (e) => { if (e.persisted) followed = null })
+  const shown = (e: PageTransitionEvent) => { if (e.persisted) followed = null }
+  addEventListener("pageshow", shown)
+  teardown.push(() => {
+    save()
+    removeEventListener("pagehide", save)
+    removeEventListener("pageshow", shown)
+  })
 }
 
 /** The outline follows the heading in view. */
@@ -197,9 +215,11 @@ function outline() {
     const h = document.getElementById(id)
     if (h) io.observe(h)
   }
+  teardown.push(() => io.disconnect())
 }
 
-function start() {
+/** A page's islands: run on load and on every page shown in place. */
+function page() {
   theme()
   lenses()
   nav()
@@ -209,11 +229,47 @@ function start() {
   navScroll()
   outline()
   bindings()
-  const trigger = document.querySelector<HTMLElement>("[data-island=search]")
-  if (trigger) mount(() => <Search trigger={trigger} />)
+  expand()
   if (document.querySelector("[data-card]")) mount(() => <Cards />)
   for (const root of $$("[data-island=examples]")) mount(() => <TryIt root={root} />)
-  for (const root of $$(".diagram[data-island=diagram]")) render(() => <Diagram root={root} />, root)
+  for (const root of $$(".diagram[data-island=diagram]")) {
+    const dispose = render(() => <Diagram root={root} />, root)
+    teardown.push(dispose)
+  }
+}
+
+/** A long example or response in a panel shows its start and a button
+ * for the rest. */
+function expand() {
+  for (const pre of $$("[data-island=examples] .panel pre, .response-panel .panel pre, .aside .panel pre")) {
+    if (pre.dataset.expand || pre.scrollHeight <= 300) continue
+    pre.dataset.expand = "1"
+    pre.classList.add("clipped")
+    const b = document.createElement("button")
+    b.type = "button"
+    b.className = "expand"
+    b.textContent = t("show_all")
+    b.setAttribute("aria-expanded", "false")
+    b.addEventListener("click", () => {
+      const open = pre.classList.toggle("clipped") === false
+      b.textContent = t(open ? "show_less" : "show_all")
+      b.setAttribute("aria-expanded", String(open))
+    })
+    pre.after(b)
+  }
+}
+
+function leave() {
+  for (const f of teardown) f()
+  teardown = []
+}
+
+/** What stays for the whole visit: search, the keyboard, moving in place. */
+function start() {
+  navEscape()
+  if (document.querySelector("[data-island=search]")) mount(() => <Search />, false)
+  page()
+  inPlace(page, leave)
   document.documentElement.dataset.islands = "ready"
 }
 

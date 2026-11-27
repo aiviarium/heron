@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # The docs end to end: `heron generate docs` builds a working site for the
 # sample repository and for the imported spec package, and every link and island works in
-# Chromium. With --screenshots, also writes web/screenshots/docs-*.png.
+# Chromium; moving between pages in place, without a flash, is checked in
+# Firefox and WebKit too where Playwright has them installed. With
+# --screenshots, also writes web/screenshots/docs-*.png.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD

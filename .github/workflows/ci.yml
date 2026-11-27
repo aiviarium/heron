@@ -1,6 +1,6 @@
 # scripts/ci.sh on GitHub: the whole check, as it runs locally. This file
 # only installs what the script expects to find (Go, Node, pnpm, Vale,
-# go-check-sumtype, Playwright's Chromium) and puts the spec package where
+# go-check-sumtype, Playwright's browsers) and puts the spec package where
 # scripts/spec-setup.sh reads it.
 #
 # The spec: aiviarium/heron-specs checked out at the commit heron.lock pins,
@@ -79,13 +79,14 @@ jobs:
           go install github.com/alecthomas/go-check-sumtype/cmd/go-check-sumtype@v0.3.1
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-      # The e2e scripts load Playwright from the web workspace; its Chromium
-      # and the system libraries it needs.
-      - name: Install the web workspace and Playwright's Chromium
+      # The e2e scripts load Playwright from the web workspace; its Chromium,
+      # and Firefox and WebKit, where the docs check that pages move in place
+      # without a flash, with the system libraries they need.
+      - name: Install the web workspace and Playwright's browsers
         working-directory: heron/web
         run: |
           pnpm install --frozen-lockfile
-          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright install --with-deps chromium firefox webkit
 
       # Some tests and e2e scripts commit in scratch repositories.
       - name: Git identity

@@ -268,7 +268,9 @@
       "zoom_reset": "Reset view",
       "key_esc": "esc",
       "try_message": "Request message",
-      "try_envelope": "Request"
+      "try_envelope": "Request",
+      "show_all": "Show all",
+      "show_less": "Show less"
     },
     "story": {
       "as_a": "As a {actor},",

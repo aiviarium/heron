@@ -70,13 +70,24 @@ tools_docs: section {
     verify("scripts/e2e-docs.sh")
   }
 
+  proves(heron.tools.docs.page_layout.pages_in_place) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.quiet_scrollers) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.page_layout.steps_joined) {
+    verify("scripts/e2e-docs.sh")
+  }
+
   proves(heron.tools.docs.page_layout.asset_versions) {
     verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
     verify("internal/tools/server/server_test.go", test = "TestSpecBrowserCaching")
   }
 
   proves(heron.tools.docs.page_layout.prefetch_links) {
-    verify("internal/tools/docs/lenses_test.go", test = "TestLensSiteFiles")
     verify("scripts/e2e-docs.sh")
   }
 

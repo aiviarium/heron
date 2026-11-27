@@ -100,55 +100,142 @@ const url = (f) => "file://" + path.join(dir, f)
   const kept = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
   if (kept !== after) fail.push("theme: the chosen theme doesn't hold on the next load")
 
-  // No flash between pages: in each theme, chosen against the system's or
-  // following it, the first frame a page paints already has the page's
-  // theme, the frame doesn't move, and the browser keeps the chrome in
-  // place with a view transition.
+  // No flash between pages, in every engine there is: in each theme,
+  // chosen against the system's or following it, a link to another page of
+  // the site swaps the page in place (no new document, so no blank canvas
+  // between two pages), every frame across the swap has the page's theme,
+  // the frame doesn't move, and the swap runs in a view transition where
+  // the engine has one.
   const linkTo = pages.includes("index.html") && sidebarOf("index.html") ? "index.html" : pages.find((f) => (sidebarOf(f).match(/<a href="[^"#:]+"/g) || []).length > 3) ?? pages[0]
-  for (const [scheme, chosen] of [["dark", null], ["light", null], ["light", "dark"], ["dark", "light"]]) {
-    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, reducedMotion: "no-preference" })
-    await ctx.addInitScript(() => {
-      // The frames from the first one painted: pagereveal fires just
-      // before it. (A frame callback asked for earlier can keep the browser
-      // from starting the transition at all.)
-      const m = (window.__frames = [])
-      const f = () => {
-        if (document.body) m.push({ bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector("main")?.getBoundingClientRect().left })
-        if (m.length < 5) requestAnimationFrame(f)
+  const engines = [["chromium", browser]]
+  if (process.env.HERON_E2E_FIREFOX !== "0") {
+    // Firefox when it's installed (CI installs it); WebKit likewise.
+    for (const name of ["firefox", "webkit"]) {
+      try {
+        engines.push([name, await require("playwright")[name].launch()])
+      } catch {
+        console.log(`(no ${name} here: the in-place check runs in the engines there are)`)
       }
-      addEventListener("pagereveal", (e) => {
-        window.__vt = !!e.viewTransition
-        requestAnimationFrame(f)
-      })
-    })
-    const p = await ctx.newPage()
-    await p.goto(served(linkTo))
-    if (chosen) await p.evaluate((c) => localStorage.setItem("heron-theme", c), chosen)
-    await p.reload()
-    for (let i = 0; i < 3; i++) {
-      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-      // A landing page has no navigation and a frame of its own.
-      const from = await p.evaluate(() => (document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null))
-      const next = await p.evaluate((i) => {
-        const as = [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))
-        const a = as[(i * 5 + 2) % as.length]
-        if (a) a.dataset.e2e = "next"
-        return !!a
-      }, i)
-      if (!next) break
-      await Promise.all([p.waitForNavigation(), p.click("a[data-e2e=next]")])
-      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
-      // Past the transition, so the next navigation doesn't start in it.
-      await p.waitForTimeout(300)
-      const r = await p.evaluate(() => ({ first: window.__frames[0], bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null, vt: window.__vt, page: document.body.dataset.page }))
-      const want = chosen ?? scheme
-      const dark = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, b) => a + +b, 0) < 384
-      if (!r.first || r.first.bg !== r.bg) fail.push(`theme flash: ${r.page} paints ${r.first?.bg} first, then ${r.bg} (${scheme} system, ${chosen ?? "no"} choice)`)
-      if (dark(r.bg) !== (want === "dark")) fail.push(`theme: ${r.page} is ${r.bg} in the ${want} theme`)
-      if (from !== null && r.x !== null && Math.abs(r.x - from) > 1) fail.push(`frame shift: the page moves ${r.x - from} px going to ${r.page}`)
-      if (!r.vt) fail.push(`view transition: none going to ${r.page}`)
     }
-    await ctx.close()
+  }
+  for (const [engine, b] of engines) {
+    for (const [scheme, chosen] of [["dark", null], ["light", null], ["light", "dark"], ["dark", "light"]]) {
+      const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, reducedMotion: "no-preference" })
+      const p = await ctx.newPage()
+      p.on("pageerror", (e) => fail.push(`${engine}: script error on ${p.url()}: ${e.message}`))
+      await p.goto(served(linkTo))
+      if (chosen) await p.evaluate((c) => localStorage.setItem("heron-theme", c), chosen)
+      await p.reload()
+      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      // Marks this document, and counts the view transitions it starts.
+      await p.evaluate(() => {
+        window.__doc = true
+        window.__vts = 0
+        const vt = document.startViewTransition?.bind(document)
+        if (vt) document.startViewTransition = (cb) => { window.__vts++; return vt(cb) }
+      })
+      for (let i = 0; i < 3; i++) {
+        await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+        // A landing page has no navigation and a frame of its own.
+        const from = await p.evaluate(() => (document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null))
+        const next = await p.evaluate((i) => {
+          const as = [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))
+          const a = as[(i * 5 + 2) % as.length]
+          if (!a) return null
+          a.dataset.e2e = "next"
+          // Every frame from the click until the next page is ready.
+          const m = (window.__frames = [])
+          const f = () => {
+            m.push({ html: getComputedStyle(document.documentElement).backgroundColor, body: getComputedStyle(document.body).backgroundColor })
+            if (document.documentElement.dataset.islands !== "ready" || m.length < 3) requestAnimationFrame(f)
+          }
+          requestAnimationFrame(f)
+          return a.getAttribute("href")
+        }, i)
+        if (!next) break
+        const vtsBefore = await p.evaluate(() => window.__vts)
+        await Promise.all([p.waitForURL((u) => u.pathname.endsWith("/" + next.replace(/#.*/, ""))), p.click("a[data-e2e=next]")])
+        await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+        await p.waitForTimeout(300)
+        const r = await p.evaluate(() => ({ inPlace: window.__doc === true, frames: window.__frames ?? [], vts: window.__vts, canVt: "startViewTransition" in document, bg: getComputedStyle(document.body).backgroundColor, x: document.querySelector(".sidebar") ? document.querySelector("main").getBoundingClientRect().left : null, page: document.body.dataset.page }))
+        const want = chosen ?? scheme
+        const dark = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, b) => a + +b, 0) < 384
+        if (!r.inPlace) fail.push(`${engine}: ${r.page} loaded a new document rather than being shown in place`)
+        for (const f of r.frames) {
+          if (dark(f.html) !== (want === "dark") || dark(f.body) !== (want === "dark")) {
+            fail.push(`${engine}: theme flash going to ${r.page}: a frame paints ${f.html} / ${f.body} in the ${want} theme`)
+            break
+          }
+        }
+        if (dark(r.bg) !== (want === "dark")) fail.push(`${engine}: theme: ${r.page} is ${r.bg} in the ${want} theme`)
+        if (from !== null && r.x !== null && Math.abs(r.x - from) > 1) fail.push(`${engine}: frame shift: the page moves ${r.x - from} px going to ${r.page}`)
+        if (r.canVt && r.inPlace && r.vts <= vtsBefore) fail.push(`${engine}: view transition: none going to ${r.page}`)
+      }
+      await ctx.close()
+    }
+    if (b !== browser) await b.close()
+  }
+
+  // Back and forward between pages shown in place: the page the URL names.
+  {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    await p.goto(served(linkTo))
+    await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+    const hrefs = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href"))).slice(0, 2).map((a) => a.getAttribute("href")))
+    const titles = [await p.title()]
+    for (const h of hrefs) {
+      await Promise.all([p.waitForURL((u) => u.pathname.endsWith("/" + h)), p.click(`.sidebar a[href="${h}"]:visible >> nth=0`)])
+      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      titles.push(await p.title())
+    }
+    if (hrefs.length === 2) {
+      await p.goBack()
+      await p.waitForFunction((t) => document.title === t, titles[1], { timeout: 5000 }).catch(() => fail.push(`back: shows "${titles.at(-1)}", not "${titles[1]}"`))
+      await p.goForward()
+      await p.waitForFunction((t) => document.title === t, titles[2], { timeout: 5000 }).catch(() => fail.push(`forward: doesn't show "${titles[2]}"`))
+    }
+    // A link not followed yet is fetched ahead as the pointer comes to rest
+    // on it.
+    await p.goto(served(linkTo))
+    await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+    const ahead = await p.evaluate(() => [...document.querySelectorAll(".sidebar a[href]")].filter((a) => a.offsetParent && !a.getAttribute("aria-current") && !/^([a-z]+:|#)/.test(a.getAttribute("href")))[3]?.getAttribute("href"))
+    if (ahead) {
+      const fetched = p.waitForRequest((r) => r.url().endsWith("/" + ahead), { timeout: 3000 }).then(() => true, () => false)
+      await p.hover(`.sidebar a[href="${ahead}"]:visible >> nth=0`)
+      if (!(await fetched)) fail.push(`prefetch: hovering the link to ${ahead} doesn't fetch it`)
+    }
+    await p.close()
+  }
+
+  // Quiet scroll areas: no scrollbar at rest on the page's own scroll areas,
+  // nothing that always scrolls; and a how-to's step numbers joined by a line.
+  {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    await p.goto(served(linkTo))
+    const q = await p.evaluate(() => {
+      const bad = []
+      for (const e of document.querySelectorAll(".sidebar, .aside, pre, .table-wrap")) {
+        const s = getComputedStyle(e)
+        if (s.overflowX === "scroll" || s.overflowY === "scroll") bad.push(`${e.className || e.tagName} always scrolls`)
+        if (!/transparent|rgba\(0, 0, 0, 0\)/.test(s.scrollbarColor)) bad.push(`${e.className || e.tagName} shows its scrollbar at rest (${s.scrollbarColor})`)
+      }
+      return [...new Set(bad)]
+    })
+    for (const m of q) fail.push(`scrollbars: ${m}`)
+    await p.close()
+    const stepped = pages.find((f) => fs.readFileSync(path.join(dir, f), "utf8").includes('<ol class="steps"'))
+    if (stepped) {
+      const p2 = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+      await p2.goto(served(stepped))
+      const line = await p2.evaluate(() => {
+        const steps = document.querySelectorAll(".steps > .step")
+        if (steps.length < 2) return true
+        const s = getComputedStyle(steps[0], "::after")
+        return s.content !== "none" && s.width === "1px" && parseFloat(s.height) > 8
+      })
+      if (!line) fail.push(`steps: on ${stepped} the step numbers aren't joined by a line`)
+      await p2.close()
+    }
   }
 
   // The navigation lists pages alone: no page's navigation links to an

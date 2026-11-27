@@ -2,6 +2,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { createDialogController, Dialog, DialogBackdrop, DialogContent, DialogTitle } from "@ui-sdk/solid/dialog"
 import { createMemo, createSignal, For } from "solid-js"
 import { data, type Entry, t } from "../data"
+import { navigate } from "../navigate"
 
 /** Scores an entry for a query: name matches first, then text. */
 export function score(e: Entry, q: string): number {
@@ -29,13 +30,16 @@ export function search(q: string, limit = 40): Entry[] {
     .map(([e]) => e)
 }
 
-/** The search palette: ⌘K or the top bar's button opens it. */
-export function Search(props: { trigger: HTMLElement }) {
+/** The search palette: ⌘K or the top bar's button opens it, on every page
+ * shown in place. */
+export function Search() {
   const dialog = createDialogController()
   const [query, setQuery] = createSignal("")
   const results = createMemo(() => search(query()))
   const open = () => dialog.open()
-  props.trigger.addEventListener("click", open)
+  document.addEventListener("click", (e) => {
+    if ((e.target as Element | null)?.closest?.("[data-island=search]")) open()
+  })
   document.addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
       e.preventDefault()
@@ -47,7 +51,7 @@ export function Search(props: { trigger: HTMLElement }) {
   })
   const go = (url: string) => {
     dialog.close()
-    location.href = url
+    void navigate(url)
   }
   return (
     <Dialog controller={dialog}>
