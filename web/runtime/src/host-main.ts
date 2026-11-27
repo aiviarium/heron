@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // The JS host's entry point, which heron starts as
-// `node <runtime>/dist/host-main.js [--wire json]`. TS modules load through
+// `node <runtime>/dist/host-main.js`, speaking Sparrow on its standard
+// input and output. TS modules load through
 // Node's type stripping; an import without an extension, as in
 // `import { bind } from "../.heron/bindings"`, finds its .ts or .js file.
 import { existsSync } from "node:fs";
 import * as nodeModule from "node:module";
 import { fileURLToPath } from "node:url";
 import { serveHost } from "./host.js";
-import { wireByName } from "./values.js";
 
 type ResolveFn = (spec: string, ctx: unknown) => { url: string };
 const register = (nodeModule as unknown as { registerHooks?: (h: { resolve: (s: string, c: unknown, next: ResolveFn) => unknown }) => void }).registerHooks;
@@ -30,6 +30,5 @@ register?.({
   },
 });
 
-const i = process.argv.indexOf("--wire");
-const conn = serveHost(process.stdin, process.stdout, { wire: wireByName(i >= 0 ? process.argv[i + 1] : undefined) });
+const conn = serveHost(process.stdin, process.stdout);
 conn.closed.then(() => process.exit(0));

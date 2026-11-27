@@ -40,6 +40,17 @@ jobs:
           repository: aiviarium/heron-specs
           ref: ${{ steps.lock.outputs.commit }}
           path: heron-specs
+      # Sparrow RPC, which the extension protocol runs on and std/sparrow
+      # binds to, until it's published: checked out beside heron, where
+      # go.mod's replace and web/runtime's link: dependency find it, and
+      # its TS package built. The repository is private, so the checkout
+      # needs a token that can read it, in the SPARROW_TOKEN secret.
+      - uses: actions/checkout@v7
+        with:
+          repository: aiviarium/sparrow
+          ref: ${{ vars.SPARROW_REF || 'claude/heron-integration' }}
+          token: ${{ secrets.SPARROW_TOKEN }}
+          path: sparrow
       - uses: actions/setup-go@v7
         with:
           go-version-file: heron/go.mod
