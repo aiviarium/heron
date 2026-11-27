@@ -23,7 +23,7 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 
 # The lanes, in the order --serial runs them. .github/workflows/ci.yml runs
 # each as a job; the lint lane checks that its matrix names them all.
-lanes=(lint web gotest golsp gorace treesitter tree e2e unit1 editor docs docsspec)
+lanes=(lint web gotest golsp gorace treesitter tree e2e unit1 editor docs docslens docsspec)
 
 # What each lane reads that another step builds; built once, in this order,
 # before any lane starts.
@@ -45,6 +45,7 @@ needs_e2e="vale web heron types"
 needs_unit1="web"
 needs_editor="web shell"
 needs_docs="web"
+needs_docslens="web"
 needs_docsspec="web"
 
 usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; }
@@ -71,6 +72,8 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/logs"
 times=$tmp/times # lane <tab> seconds <tab> step
+cpu=$tmp/cpu     # lane <tab> CPU seconds
+: >"$cpu"
 
 now() { if [ -n "${EPOCHREALTIME:-}" ]; then echo "${EPOCHREALTIME/,/.}"; else date +%s; fi; }
 lane=prep
@@ -322,11 +325,16 @@ lane_editor() {
   scripts/e2e-app.sh
 }
 
-# The docs end to end, in two lanes: the spec package's site, the biggest,
-# and every other site.
+# The docs end to end, in three lanes: the spec package's site, the
+# biggest; the lenses and the sample site; and every other site.
 lane_docs() {
-  step "docs end to end: every site but the spec package's (docsspec), every link and island"
-  scripts/e2e-docs.sh --except spec
+  step "docs end to end: every site but the spec package's (docsspec) and the lenses and sample (docslens), every link and island"
+  scripts/e2e-docs.sh --except spec lenses sample
+}
+
+lane_docslens() {
+  step "docs end to end: the lenses and the sample site, every link and island"
+  scripts/e2e-docs.sh lenses sample
 }
 
 lane_docsspec() {
@@ -339,15 +347,25 @@ lane_docsspec() {
 # run_lane <lane>: the lane's steps, in a subshell, its time recorded.
 run_lane() (
   lane=$1
-  trap step_end EXIT # the time of the step that failed, too
+  trap 'step_end; lane_cpu' EXIT # the time of the step that failed, too
   set -euo pipefail
   "lane_$1"
 )
 
+# lane_cpu: the CPU seconds the lane's commands used, from `times`.
+lane_cpu() {
+  times >"$tmp/times.$lane" # a builtin: in a pipe it would time the pipe's shell
+  sed -n 2p "$tmp/times.$lane" | awk -v l="$lane" '{
+    s = 0
+    for (i = 1; i <= 2; i++) { split($i, p, "m"); s += p[1] * 60 + p[2] }
+    printf "%s\t%.1f\n", l, s }' >>"$cpu"
+}
+
 summary() {
   [ -s "$times" ] || return 0
-  printf '\n== where the time went (seconds; the lanes ran %s)\n' "$1"
-  awk -F'\t' '{ t[$1] += $2 } END { for (l in t) printf "%7.1f  %s\n", t[l], l }' "$times" | sort -rn
+
+  printf '\n== where the time went (seconds of wall clock, and of CPU; the lanes ran %s)\n' "$1"
+  awk -F'\t' 'FNR == NR { c[$1] += $2; next } { t[$1] += $2 } END { for (l in t) printf "%7.1f %7.1f  %s\n", t[l], c[l], l }' "$cpu" "$times" | sort -rn
   echo "-- the slowest steps"
   sort -t"$(printf '\t')" -k2,2 -rn "$times" | head -12 | awk -F'\t' '{ printf "%7.1f  %-10s %s\n", $2, $1, $3 }'
 }
@@ -372,6 +390,7 @@ if [ -n "${HERON_CI_BEFORE_LANES:-}" ]; then
   bash -c "$HERON_CI_BEFORE_LANES"
 fi
 step_end
+lane_cpu
 
 # A lane runs in the background even one at a time: errexit holds in a
 # subshell of its own, never in one an `if` or `!` tests.
@@ -388,7 +407,7 @@ else
   # many as there are CPUs by default), as the e2e lanes time their pages.
   max=${HERON_CI_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}
   queue=()
-  for l in docsspec gotest golsp e2e unit1 editor docs web; do
+  for l in docsspec gotest golsp e2e unit1 editor docs docslens web; do
     case " ${selected[*]} " in *" $l "*) queue+=("$l") ;; esac
   done
   for l in "${selected[@]}"; do
