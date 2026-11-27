@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/aiviarium/heron/internal/core/extension/protocol"
-	"github.com/aiviarium/sparrow-rpc/go/transport/pipe"
 	"github.com/aiviarium/heron/internal/core/lint"
 	"github.com/aiviarium/heron/internal/core/registry"
+	"github.com/aiviarium/sparrow-rpc/go/transport/pipe"
 )
 
 // The test binary doubles as an extension written in Go: with
