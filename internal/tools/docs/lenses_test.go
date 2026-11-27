@@ -39,10 +39,15 @@ func lensFiles(t *testing.T, entry string) (*Lenses, map[string]string) {
 
 const kite = "testdata/lenses/index.heron"
 
+// iconSVG is an inline icon, which mustHave looks past: the markup a test
+// asserts reads the same with or without the icons beside it.
+var iconSVG = regexp.MustCompile(`<svg class="icon[^"]*"[^>]*>.*?</svg>`)
+
 func mustHave(t *testing.T, what, h string, parts ...string) {
 	t.Helper()
+	bare := iconSVG.ReplaceAllString(h, "")
 	for _, p := range parts {
-		if !strings.Contains(h, p) {
+		if !strings.Contains(h, p) && !strings.Contains(bare, p) {
 			t.Errorf("%s lacks %q", what, p)
 		}
 	}

@@ -7,6 +7,7 @@ package docs
 
 import (
 	"context"
+	"github.com/aiviarium/heron/internal/core/icon"
 	"github.com/aiviarium/heron/internal/core/rpc"
 	"sort"
 	"strings"
@@ -128,7 +129,11 @@ type Site struct {
 	grammarSources map[string][]*resolve.Node
 	apis           []*resolve.Node
 	lifecycles     []*resolve.Node
-	implementors   map[*resolve.Node][]*resolve.Node
+	// icons are the icons the tree's packages declare, once read; anchors
+	// the nodes by their anchors, once indexed.
+	icons        *icon.Set
+	anchors      map[string]*resolve.Node
+	implementors map[*resolve.Node][]*resolve.Node
 	// project is the tree's implements, when it implements a spec.
 	project *project.Project
 	// specSite is the spec's own site, which links to spec nodes go to

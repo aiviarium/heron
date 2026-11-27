@@ -8,6 +8,7 @@ export interface Entry {
   u: string // url
   g?: string // the page it's on
   x?: string // text
+  i?: string // the icon the node shows, by name
 }
 
 export interface Card {
@@ -21,6 +22,8 @@ export interface Data {
   search: Entry[]
   cards: Record<string, Card>
   strings: Record<string, string>
+  /** The icons search shows, by name, as inline SVG. */
+  icons?: Record<string, string>
 }
 
 declare global {

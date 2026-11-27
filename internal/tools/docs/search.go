@@ -18,6 +18,9 @@ type entry struct {
 	URL   string `json:"u"`
 	Page  string `json:"g,omitempty"`
 	Text  string `json:"x,omitempty"`
+	// Icon is the name of the icon the node shows, drawn from data.js's
+	// icons.
+	Icon string `json:"i,omitempty"`
 }
 
 // card is a hover card: a term's definition or a type's signature.
@@ -77,6 +80,7 @@ func (s *Site) Search() []entry {
 			text = text[:240]
 		}
 		e.Text = strings.TrimSpace(text)
+		e.Icon = s.iconName(n)
 		out = append(out, e)
 	}
 	s.Tree.Walk(func(n *resolve.Node) {
@@ -107,8 +111,17 @@ func (s *Site) dataJS() []byte {
 			cards[n.Path()] = s.card(n)
 		}
 	})
-	idx, _ := json.Marshal(s.Search())
+	search := s.Search()
+	// The icons the results show, and no other.
+	icons := map[string]string{}
+	for _, e := range search {
+		if e.Icon != "" && icons[e.Icon] == "" {
+			icons[e.Icon] = s.namedIcon(e.Icon, "icon")
+		}
+	}
+	idx, _ := json.Marshal(search)
 	cj, _ := json.Marshal(cards)
 	strs, _ := json.Marshal(islandStrings())
-	return []byte("window.__HERON__={search:" + string(idx) + ",cards:" + string(cj) + ",strings:" + string(strs) + "};\n")
+	ij, _ := json.Marshal(icons)
+	return []byte("window.__HERON__={search:" + string(idx) + ",cards:" + string(cj) + ",strings:" + string(strs) + ",icons:" + string(ij) + "};\n")
 }

@@ -5,6 +5,7 @@ import = ["std/schema@1"]
 types: package(version = "1.0") {
   /// A record. Each member is `name<flags>?: Type = default`; its
   /// positional arguments are the interfaces it implements.
+  @icon("braces")
   type(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
     accept(kind = member, infer = true)
     accept(kind = func)
@@ -39,12 +40,14 @@ types: package(version = "1.0") {
   }
 
   /// A group of operations.
+  @icon("server")
   api: kind(layer = Layer.CONTRACT) {
     accept(prose)
     accept(kind = op)
   }
 
   /// An operation: its inputs as parameters, its result type first.
+  @icon("zap")
   op(returns?: Any): kind(layer = Layer.CONTRACT) {
     accept(prose)
     accept(kind = example)

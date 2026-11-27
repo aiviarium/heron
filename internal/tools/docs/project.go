@@ -172,7 +172,7 @@ func renderImplStatus(c *Ctx) error {
 	}
 	extra := ""
 	if st != "" {
-		extra = ` <span class="badge status-` + attr(st) + `">` + esc(label("docs.conformance."+st)) + `</span>`
+		extra = ` <span class="badge status-` + attr(st) + `">` + c.Site.themeIcon(st) + esc(label("docs.conformance."+st)) + `</span>`
 	}
 	c.W(`<section class="node impl-status" id="`, attr(Anchor(n)), `">`)
 	if n.Name != "" {
@@ -353,7 +353,7 @@ func (s *Site) conformanceTable(c *Ctx, rep *project.Report, keep func(project.R
 		// A long path breaks at its dots, not inside a name.
 		c.W(`<tr><td>`, s.linkHTML(row.Node, `<code>`+strings.ReplaceAll(esc(row.Path), ".", ".<wbr>")+`</code>`, "spec-ref"),
 			`</td><td>`, esc(row.Kind), `</td><td><span class="badge status-`, attr(row.Status), `">`,
-			esc(label("docs.conformance."+row.Status)), `</span></td><td>`)
+			s.themeIcon(row.Status), esc(label("docs.conformance."+row.Status)), `</span></td><td>`)
 		for i, p := range row.Proofs {
 			if i > 0 {
 				c.W(`<br>`)

@@ -74,6 +74,58 @@ tools_docs: section {
     verify("scripts/e2e-docs.sh")
   }
 
+  proves(heron.tools.docs.icons.declaring.bundled_icons) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsCheck")
+  }
+
+  proves(heron.tools.docs.icons.declaring.package_icons) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.declaring.icon_svg_read) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsCheck")
+  }
+
+  proves(heron.tools.docs.icons.declaring.names_resolve) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsCheck")
+  }
+
+  proves(heron.tools.docs.icons.declaring.kind_default) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.declaring.no_emoji) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.showing.where_shown) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.showing.kind_icons_muted) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.showing.theme_icons) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.showing.inline_svg) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.showing.used_icons_only) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.showing.no_icons_for_agents) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+  }
+
+  proves(heron.tools.docs.icons.editing.icon_completion) {
+    verify("internal/tools/lsp/features_test.go", test = "TestIconCompletionAndHover")
+  }
+
   proves(heron.tools.docs.page_layout.frame_uses_window) {
     verify("scripts/e2e-docs.sh")
   }

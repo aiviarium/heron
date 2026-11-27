@@ -227,7 +227,7 @@ func (s *Site) homeTiles(c *Ctx) {
 		}
 	}
 	if primary != nil {
-		c.W(`<a class="home-primary" href="`, attr(s.href(primary.File)), `"><span class="home-primary-title">`, esc(primary.Title), `</span>`)
+		c.W(`<a class="home-primary" href="`, attr(s.href(primary.File)), `"><span class="home-primary-title">`, s.nodeIcon(primary.Node, "icon"), esc(primary.Title), `</span>`)
 		if t := s.pageSentence(primary); t != "" {
 			c.W(`<span class="home-primary-text">`, t, `</span>`)
 		}
@@ -248,13 +248,13 @@ func (s *Site) homeTiles(c *Ctx) {
 		if g.Title != "" {
 			title := esc(g.Title)
 			if g.Head != nil {
-				title = `<a href="` + attr(s.href(g.Head.File)) + `">` + title + `</a>`
+				title = `<a href="` + attr(s.href(g.Head.File)) + `">` + s.ownIcon(g.Head.Node) + title + `</a>`
 			}
 			c.W(`<h2 class="home-group-title">`, title, `</h2>`)
 		}
 		c.W(`<ul class="home-links">`)
 		for _, p := range pages {
-			c.W(`<li><a href="`, attr(s.href(p.File)), `"><span class="home-link-title">`, esc(p.Title), `</span>`)
+			c.W(`<li><a href="`, attr(s.href(p.File)), `"><span class="home-link-title">`, s.nodeIcon(p.Node, "icon"), esc(p.Title), `</span>`)
 			if t := s.pageSentence(p); t != "" {
 				c.W(`<span class="home-link-text">`, t, `</span>`)
 			}

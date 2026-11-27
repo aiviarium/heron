@@ -20,6 +20,11 @@ core: package(version = "1.0") {
   /// A display name of the node's own, for wording a name can't hold.
   display(name: String): annotation
 
+  /// The icon the node shows in the docs, by the name of an icon a
+  /// package declares, such as std/docs's `book-open`. Std/schema's
+  /// `@icon` is the same for the packages that declare kinds.
+  icon(name: String): annotation
+
   /// Lints that don't report on this node or anything inside it.
   lint(allow: List(String)): annotation
 

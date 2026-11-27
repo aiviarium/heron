@@ -56,7 +56,7 @@ func (s *Site) tagRenderer(kind string) tagFunc {
 			if v := a["kind"]; v != "" {
 				kk = strings.ToLower(v)
 			}
-			return `<aside class="callout callout-` + attr(kk) + `"><div class="prose"><p>` + body + `</p></div></aside>`, true
+			return `<aside class="callout callout-` + attr(kk) + `">` + s.themeIcon(kk) + `<div class="prose"><p>` + body + `</p></div></aside>`, true
 		}
 	case "kbd":
 		return func(body string, _ map[string]string) (string, bool) { return `<kbd>` + body + `</kbd>`, false }

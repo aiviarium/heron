@@ -167,7 +167,7 @@ func (c *Ctx) childrenOrLinks() error {
 		c.W(`<ul class="page-links">`)
 		for _, l := range links {
 			p := c.Site.pageOf[l]
-			c.W(`<li><a href="`, attr(c.Site.href(p.File)), `"><span class="home-link-title">`, esc(p.Title), `</span>`)
+			c.W(`<li><a href="`, attr(c.Site.href(p.File)), `"><span class="home-link-title">`, c.Site.nodeIcon(p.Node, "icon"), esc(p.Title), `</span>`)
 			if t := c.Site.pageSentence(p); t != "" {
 				c.W(`<span class="home-link-text">`, t, `</span>`)
 			}

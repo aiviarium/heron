@@ -47,7 +47,7 @@ func (s *Site) landing(c *Ctx) error {
 	if p != nil && len(p.Children) > 0 {
 		c.W(`<div class="tiles">`)
 		for _, q := range p.Children {
-			c.W(`<a class="tile" href="`, attr(s.href(q.File)), `"><span class="tile-title">`, esc(q.Title), `</span>`)
+			c.W(`<a class="tile" href="`, attr(s.href(q.File)), `"><span class="tile-title">`, s.nodeIcon(q.Node, "icon"), esc(q.Title), `</span>`)
 			if q.Node != nil {
 				if t := inlineParagraph(s.proseHTML(q.Node)); t != "" {
 					c.W(`<span class="tile-text">`, t, `</span>`)

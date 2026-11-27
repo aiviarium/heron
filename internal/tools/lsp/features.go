@@ -3,6 +3,7 @@ package lsp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aiviarium/heron/internal/core/icon"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -42,6 +43,15 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	t, r := s.targetAt(id, off)
 	src, _ := s.text(id)
 	l := newLines(src)
+	// An icon mark's name: the icon's picture.
+	if f := s.file(id); f != nil && r != nil {
+		if res := r.completed(); res != nil {
+			if md, a, b, ok := iconHover(src, off, f, res.Tree, res.Checker); ok {
+				rng := l.rng(a, b)
+				return Hover{Contents: MarkupContent{Kind: "markdown", Value: md}, Range: &rng}, nil
+			}
+		}
+	}
 	ts, te := 0, 0
 	if t.tok != nil {
 		ts, te = t.tok.Span()
@@ -66,6 +76,14 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	n := t.node
 	var b strings.Builder
 	b.WriteString("```heron\n" + signature(n) + "\n```")
+	// An icon's declaration: its picture.
+	if res := r.completed(); res != nil {
+		if ic := icon.Of(res.Tree, res.Checker).Get(icon.NameOf(n)); ic != nil && ic.Node == n {
+			if md := iconPreview(ic); md != "" {
+				b.WriteString("\n\n" + md)
+			}
+		}
+	}
 	if d := docText(n); d != "" {
 		b.WriteString("\n\n" + d)
 	}

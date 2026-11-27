@@ -451,3 +451,27 @@ refunds: section {
 		t.Errorf("hover on a ref target: %s", h.Contents.Value)
 	}
 }
+
+// Inside an icon mark's string the names of the tree's icons complete, and
+// a hover shows the icon's picture.
+func TestIconCompletionAndHover(t *testing.T) {
+	f := newFixture(t)
+	src := strings.Replace(indexSrc, `import = ["std/doc@1", "std/types@1"]`, `import = ["std/doc@1", "std/types@1", "std/docs@1"]`, 1)
+	src = strings.Replace(src, "guide: section {", "@icon(\"book-o\")\nguide: section {", 1)
+	f.c.Replace(f.indexURI, src)
+	l := complete(t, f.c, f.indexURI, lsptest.At(src, `"book-o"`, 0, 7), "")
+	if !l.has("book-open") || !l.has("compass") {
+		t.Errorf("in an icon mark: %v", l.labels())
+	}
+	src = strings.Replace(src, `@icon("book-o")`, `@icon("book-open")`, 1)
+	f.c.Replace(f.indexURI, src)
+	var h struct {
+		Contents struct{ Value string }
+	}
+	if err := f.c.Call("textDocument/hover", pos(f.indexURI, lsptest.At(src, `"book-open"`, 0, 3)), &h); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.Contents.Value, "![book-open](data:image/svg+xml;base64,") || !strings.Contains(h.Contents.Value, "icon `book-open`") {
+		t.Errorf("hover on an icon mark: %s", h.Contents.Value)
+	}
+}

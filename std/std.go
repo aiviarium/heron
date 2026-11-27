@@ -8,5 +8,5 @@ import "embed"
 // FS holds every standard package as <name>/package.heron and the files it
 // includes, such as doc/package.heron for std/doc.
 //
-//go:embed */*.heron
+//go:embed */*.heron docs/icons
 var FS embed.FS

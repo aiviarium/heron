@@ -226,7 +226,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	} else if p.Area != nil && p != s.Home && len(s.Areas) > 1 && p.Layout != "glossary" && p.Area.Key != "docs" {
 		b.WriteString(`<nav class="crumbs" aria-label="` + attr(label("docs.label.breadcrumb")) + `"><ol><li>` + esc(p.Area.Title) + `</li></ol></nav>`)
 	}
-	b.WriteString(`<h1 class="page-title">` + esc(p.Title) + s.kindTag(p.Node) + `</h1>`)
+	b.WriteString(`<h1 class="page-title">` + s.nodeIcon(p.Node, "icon title-icon") + esc(p.Title) + s.kindTag(p.Node) + `</h1>`)
 	b.WriteString(s.slotHTML(nil, "before", ""))
 	b.WriteString(f.HTML)
 	b.WriteString(s.slotHTML(nil, "after", ""))
@@ -247,7 +247,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 					bind += " hidden"
 				}
 			}
-			b.WriteString(fmt.Sprintf(`<li class="l%d"%s><a href="#%s">%s</a></li>`, h.Level, bind, attr(h.ID), esc(h.Title)))
+			b.WriteString(fmt.Sprintf(`<li class="l%d"%s><a href="#%s">%s%s</a></li>`, h.Level, bind, attr(h.ID), s.nodeIcon(s.nodeByAnchor(h.ID), "icon kind-icon"), esc(h.Title)))
 		}
 		b.WriteString(`</ul></nav>`)
 	}
@@ -370,6 +370,9 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			}
 			b.WriteString(`>` + esc(q.Method) + `</span>`)
 		}
+		if q.Layout != "op" {
+			b.WriteString(s.ownIcon(q.Node))
+		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
 		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {
 			b.WriteString(`<span class="nav-deprecated" title="` + attr(label("docs.label.deprecated")) + `">` + esc(label("docs.label.deprecated")) + `</span>`)
@@ -402,9 +405,13 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			if g.Head == p {
 				cur = ` aria-current="page"`
 			}
-			b.WriteString(`<a class="label" href="` + attr(s.href(g.Head.File)) + `"` + cur + `>` + esc(g.Title) + `</a>`)
+			b.WriteString(`<a class="label" href="` + attr(s.href(g.Head.File)) + `"` + cur + `>` + s.ownIcon(g.Head.Node) + esc(g.Title) + `</a>`)
 		case g.Title != "":
-			b.WriteString(`<div class="label">` + esc(g.Title) + `</div>`)
+			var gn *resolve.Node
+			if len(g.Pages) > 0 && g.Pages[0].Layout == "api" {
+				gn = g.Pages[0].Node
+			}
+			b.WriteString(`<div class="label">` + s.ownIcon(gn) + esc(g.Title) + `</div>`)
 		}
 		b.WriteString(`<ul class="nav">`)
 		for _, q := range g.Pages {

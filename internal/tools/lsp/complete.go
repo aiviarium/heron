@@ -110,6 +110,9 @@ func (c *completer) items() []CompletionItem {
 		if dir := directiveOf(anc[i:]); dir != "" {
 			return c.directiveItems(dir, a)
 		}
+		if inIconMark(c.src, a) {
+			return c.iconItems(a)
+		}
 		return nil
 	}
 

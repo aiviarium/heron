@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/aiviarium/heron/internal/core/diag"
+	"github.com/aiviarium/heron/internal/core/icon"
 	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
@@ -132,6 +133,8 @@ func (s *Session) checkTree(t *resolve.Tree) *Result {
 		res.Diags = keep
 	}
 	res.Diags = append(res.Diags, lds...)
+	// Icon marks name icons a package declares (std/docs).
+	res.Diags = append(res.Diags, icon.Check(t, c)...)
 	res.Diags = res.Diags.Sort()
 	return res
 }

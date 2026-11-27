@@ -123,6 +123,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
 
   /// A page that explains how to get something done with the system,
   /// start to finish, in prose.
+  @icon("compass")
   guide: kind(in = [authored, doc.block], heading = true) {
     accept(prose)
     accept(category = doc.block)
@@ -130,6 +131,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   }
 
   /// A page that walks through one task in numbered steps.
+  @icon("signpost")
   howto: kind(in = [authored, doc.block], heading = true) {
     accept(prose)
     accept(kind = step)
@@ -146,6 +148,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
 
   /// A page that explains an idea the reader needs before the reference
   /// makes sense.
+  @icon("lightbulb")
   concept: kind(in = [authored, doc.block], heading = true) {
     accept(prose)
     accept(category = doc.block)
@@ -153,10 +156,96 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   }
 
   /// A page that teaches by building something, in numbered steps.
+  @icon("graduation-cap")
   tutorial: kind(in = [authored, doc.block], heading = true) {
     accept(prose)
     accept(kind = step)
     accept(category = doc.block)
     accept(kind = spec.example)
+  }
+
+  /// An icon a node can show in the docs, by `@icon("name")`: a
+  /// monochrome SVG drawn in `currentColor`, read from `file`, relative to
+  /// the file that declares it. Its name is the node's name with each `_`
+  /// read as `-`. A package declares icons of its own beside these; a
+  /// tree's icon of the same name shadows an imported one.
+  svg_icon: kind {
+    file: String
+  }
+
+  /// A set of icons, so a package's icons stand apart from its other names.
+  icon_set: kind {
+    accept(kind = svg_icon)
+  }
+
+  /// The icons std/docs offers, from Lucide (ISC license, icons/LICENSE).
+  lucide: icon_set {
+    arrow_right_left: svg_icon { file = "./icons/arrow-right-left.svg" }
+    bell: svg_icon { file = "./icons/bell.svg" }
+    blocks: svg_icon { file = "./icons/blocks.svg" }
+    book_a: svg_icon { file = "./icons/book-a.svg" }
+    book_open: svg_icon { file = "./icons/book-open.svg" }
+    box: svg_icon { file = "./icons/box.svg" }
+    braces: svg_icon { file = "./icons/braces.svg" }
+    check: svg_icon { file = "./icons/check.svg" }
+    circle_alert: svg_icon { file = "./icons/circle-alert.svg" }
+    circle_check: svg_icon { file = "./icons/circle-check.svg" }
+    circle_dashed: svg_icon { file = "./icons/circle-dashed.svg" }
+    circle_help: svg_icon { file = "./icons/circle-help.svg" }
+    circle_x: svg_icon { file = "./icons/circle-x.svg" }
+    code: svg_icon { file = "./icons/code.svg" }
+    compass: svg_icon { file = "./icons/compass.svg" }
+    database: svg_icon { file = "./icons/database.svg" }
+    eye: svg_icon { file = "./icons/eye.svg" }
+    file_code: svg_icon { file = "./icons/file-code.svg" }
+    file_text: svg_icon { file = "./icons/file-text.svg" }
+    files: svg_icon { file = "./icons/files.svg" }
+    flag: svg_icon { file = "./icons/flag.svg" }
+    folder_tree: svg_icon { file = "./icons/folder-tree.svg" }
+    git_branch: svg_icon { file = "./icons/git-branch.svg" }
+    globe: svg_icon { file = "./icons/globe.svg" }
+    graduation_cap: svg_icon { file = "./icons/graduation-cap.svg" }
+    hash: svg_icon { file = "./icons/hash.svg" }
+    history: svg_icon { file = "./icons/history.svg" }
+    info: svg_icon { file = "./icons/info.svg" }
+    key_round: svg_icon { file = "./icons/key-round.svg" }
+    languages: svg_icon { file = "./icons/languages.svg" }
+    layers: svg_icon { file = "./icons/layers.svg" }
+    layout_grid: svg_icon { file = "./icons/layout-grid.svg" }
+    library: svg_icon { file = "./icons/library.svg" }
+    lightbulb: svg_icon { file = "./icons/lightbulb.svg" }
+    list: svg_icon { file = "./icons/list.svg" }
+    list_checks: svg_icon { file = "./icons/list-checks.svg" }
+    lock: svg_icon { file = "./icons/lock.svg" }
+    map: svg_icon { file = "./icons/map.svg" }
+    message_square: svg_icon { file = "./icons/message-square.svg" }
+    milestone: svg_icon { file = "./icons/milestone.svg" }
+    network: svg_icon { file = "./icons/network.svg" }
+    notebook_pen: svg_icon { file = "./icons/notebook-pen.svg" }
+    octagon_alert: svg_icon { file = "./icons/octagon-alert.svg" }
+    package: svg_icon { file = "./icons/package.svg" }
+    palette: svg_icon { file = "./icons/palette.svg" }
+    plug: svg_icon { file = "./icons/plug.svg" }
+    puzzle: svg_icon { file = "./icons/puzzle.svg" }
+    radio: svg_icon { file = "./icons/radio.svg" }
+    route: svg_icon { file = "./icons/route.svg" }
+    scale: svg_icon { file = "./icons/scale.svg" }
+    search: svg_icon { file = "./icons/search.svg" }
+    server: svg_icon { file = "./icons/server.svg" }
+    settings: svg_icon { file = "./icons/settings.svg" }
+    shield: svg_icon { file = "./icons/shield.svg" }
+    signpost: svg_icon { file = "./icons/signpost.svg" }
+    square_function: svg_icon { file = "./icons/square-function.svg" }
+    tag: svg_icon { file = "./icons/tag.svg" }
+    target: svg_icon { file = "./icons/target.svg" }
+    terminal: svg_icon { file = "./icons/terminal.svg" }
+    triangle_alert: svg_icon { file = "./icons/triangle-alert.svg" }
+    type: svg_icon { file = "./icons/type.svg" }
+    user: svg_icon { file = "./icons/user.svg" }
+    users: svg_icon { file = "./icons/users.svg" }
+    variable: svg_icon { file = "./icons/variable.svg" }
+    workflow: svg_icon { file = "./icons/workflow.svg" }
+    wrench: svg_icon { file = "./icons/wrench.svg" }
+    zap: svg_icon { file = "./icons/zap.svg" }
   }
 }

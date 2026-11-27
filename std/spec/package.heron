@@ -85,11 +85,13 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// What a product is for, in the words of the people it's for, with an
   /// optional measure of success and who asked for it. Validated, never
   /// proven by a test.
+  @icon("target")
   goal(measure?: String, source?: String): kind(in = [block], layer = Layer.INTENT) {
     accept(prose)
   }
 
   /// A role that crosses the system's boundary.
+  @icon("user")
   actor(kind: ActorKind = ActorKind.PERSON): kind(in = [block], layer = Layer.INTENT) {
     accept(prose)
   }
@@ -125,6 +127,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// whose behaviour it states, an actor or a part; without it the subject
   /// is the system. `serves` names the goals it's for, `derives` the rules
   /// it's derived from, `relies` the assumptions it depends on.
+  @icon("scale")
   rule(
     targets<variadic>?: Ref(Any),
     by?: Ref(Any),
@@ -224,6 +227,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// An outcome scenario, one case of one rule or one path of a use case,
   /// in given, when and then; or a quality scenario, with stimulus,
   /// environment, response and measure, serving a quality.
+  @icon("list-checks")
   scenario(illustrates?: Ref(Any), serves?: List(Ref(Any)), rev?: Int): kind(in = [block], layer = Layer.SPECIFICATION) {
     stimulus?: Prose
     environment?: Prose
@@ -249,6 +253,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// How an actor reaches one goal with the product: its body is the main
   /// path as a numbered list and its extensions as items numbered `2a.`.
+  @icon("route")
   usecase(
     actor: Ref(actor),
     serves?: List(Ref(Any)),
@@ -304,6 +309,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// its `title` with a `{name}` for each field, and its projections:
   /// `status` on an API, `exit` on a command line, `severity` as a
   /// diagnostic. `by` is the part that reports it.
+  @icon("circle-alert")
   error(id: String, severity: Severity = Severity.error, status?: Int, exit?: Int, by?: Ref(Any), rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
     /// The message, with `{name}` for each field filled in where it happens.
     title: String
@@ -329,6 +335,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// A command of a command-line tool, an entry of its surface: usage
   /// lines, arguments and options as its inputs, the errors it exits with,
   /// examples and subcommands.
+  @icon("terminal")
   command(name: String, rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
     /// One line per form, as `heron check [--json] [path…]`.
     usage?: List(String)

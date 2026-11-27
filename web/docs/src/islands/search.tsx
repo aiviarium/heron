@@ -75,7 +75,10 @@ export function Search() {
             <For each={results()}>
               {(e) => (
                 <CommandItem class="palette-item" value={e.u} label={e.t}>
-                  <span class="pk">{e.k}</span>
+                  <span class="pk">
+                    {e.i && data().icons?.[e.i] ? <span class="pi" innerHTML={data().icons![e.i]} /> : null}
+                    {e.k}
+                  </span>
                   <span class="pt">
                     <b>{e.t}</b>
                     <span class="px">{subtitle(e)}</span>
