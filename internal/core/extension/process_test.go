@@ -16,12 +16,12 @@ import (
 // MaxRestarts times within RestartWindow.
 func TestHandshakeVersionAndRestartLimit(t *testing.T) {
 	ctx := context.Background()
-	p := &Process{Spec: &Spec{Name: "probe"}, Argv: []string{os.Args[0]}, Env: []string{"HERON_TEST_EXTENSION=1", "HERON_TEST_PROTOCOL=2.0"}}
-	if _, err := p.Start(ctx); err == nil || !strings.Contains(err.Error(), "speaks protocol 2.0, and heron speaks 1.0") {
+	p := &Process{Spec: &Spec{Name: "probe"}, Argv: []string{os.Args[0]}, Env: []string{"HERON_TEST_EXTENSION=1", "HERON_TEST_PROTOCOL=3.0"}}
+	if _, err := p.Start(ctx); err == nil || !strings.Contains(err.Error(), "speaks protocol 3.0, and heron speaks 2.0") {
 		t.Errorf("version: %v", err)
 	}
 	p.Shutdown()
-	same := &Process{Spec: &Spec{Name: "probe"}, Argv: []string{os.Args[0]}, Env: []string{"HERON_TEST_EXTENSION=1", "HERON_TEST_PROTOCOL=1.4"}}
+	same := &Process{Spec: &Spec{Name: "probe"}, Argv: []string{os.Args[0]}, Env: []string{"HERON_TEST_EXTENSION=1", "HERON_TEST_PROTOCOL=2.4"}}
 	if _, err := same.Start(ctx); err != nil {
 		t.Errorf("a minor version apart: %v", err)
 	}

@@ -57,6 +57,8 @@ if [ "$web" = 1 ]; then
   fi
   echo "pnpm $("${pnpm[@]}" --version)"
 
+  step "sparrow: the checkout beside heron, and its TS package"
+  scripts/sparrow-setup.sh
   step "web: install the dependencies"
   (cd web && "${pnpm[@]}" install --frozen-lockfile --silent)
   step "web: build the runtime and the editor into internal/tools/server/frontend/dist"

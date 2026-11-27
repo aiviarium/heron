@@ -115,17 +115,17 @@ language_interop: section {
   }
 
   proves(heron.language.interop.data_mapping.wire.cbor_libraries) {
-    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestCBORTags")
     verify("web/runtime/src/runtime.test.ts", test = "values round-trip with their Heron types")
   }
 
   proves(heron.language.interop.data_mapping.wire.standard_tags) {
-    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestCBORTags")
     verify("internal/core/extension/protocol/conn_test.go", test = "TestValuesKeepTheirTypes")
   }
 
   proves(heron.language.interop.data_mapping.wire.own_tags) {
-    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestCBORTags")
     verify("internal/core/extension/protocol/conn_test.go", test = "TestValuesKeepTheirTypes")
   }
 
@@ -134,16 +134,12 @@ language_interop: section {
   }
 
   proves(heron.language.interop.data_mapping.wire.decimals_exact) {
-    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestCBORTags")
     verify("web/runtime/src/runtime.test.ts", test = "decimals format exactly")
   }
 
-  proves(heron.language.interop.data_mapping.wire.json_tags) {
-    verify("internal/core/extension/protocol/tags_test.go", test = "TestCBORTags")
-  }
-
   proves(heron.language.interop.data_mapping.wire.canonical_maps) {
-    verify("internal/core/extension/protocol/tags_test.go", test = "TestCanonicalMapOrder")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestCanonicalMapOrder")
   }
 
   proves(heron.language.interop.data_mapping.interpreter.plain_values) {
@@ -194,11 +190,12 @@ language_interop: section {
   }
 
   proves(heron.language.interop.protocol.framing.unreadable_message) {
-    verify("internal/core/extension/protocol/conn_test.go", test = "TestProtocolEdges")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestUnreadableMessage")
   }
 
-  proves(heron.language.interop.protocol.framing.json_wire) {
-    verify("web/runtime/src/runtime.test.ts", test = "conn sends thrown Heron errors with their type")
+  proves(heron.language.interop.protocol.framing.facets) {
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestFacets")
+    verify("internal/core/extension/protocol/conn_test.go", test = "TestCallsBothWays")
   }
 
   proves(heron.language.interop.protocol.framing.ids_per_side) {

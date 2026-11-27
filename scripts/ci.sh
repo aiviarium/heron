@@ -59,6 +59,9 @@ for pkg in ./internal/core/syntax ./internal/core/eval; do
   done
 done
 
+step "sparrow: the checkout beside heron, and its TS package"
+scripts/sparrow-setup.sh
+
 step "web: install, build and test @heron/runtime; generate the sample's types"
 (cd web && pnpm install --frozen-lockfile --silent && pnpm --filter @heron/runtime build && pnpm --filter @heron/runtime test)
 

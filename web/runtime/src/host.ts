@@ -8,7 +8,6 @@ import { Conn, type ConnOptions } from "./conn.js";
 import { serveExtension, toRpcError } from "./extension.js";
 import type { Declaration, InitializeParams } from "./protocol.gen.js";
 import { collectRenderers, defineFunc, isImpl, type Impl } from "./sdk.js";
-import { wireByName } from "./values.js";
 
 /** Imports a module named by js(…): a file relative to the project root, or a package from its node_modules. */
 export async function importModule(spec: string, root: string): Promise<Record<string, unknown>> {
@@ -68,8 +67,7 @@ export function serveHost(input: NodeJS.ReadableStream, output: NodeJS.WritableS
  * with its implementations by declaration path.
  */
 export function runExtension(name: string, version: string, impls: Record<string, Impl>): Conn {
-  const wire = wireByName(process.argv.includes("--wire") ? process.argv[process.argv.indexOf("--wire") + 1] : undefined);
-  const conn = new Conn(process.stdin, process.stdout, { wire, toError: toRpcError });
+  const conn = new Conn(process.stdin, process.stdout, { toError: toRpcError });
   serveExtension(conn, { name, version, resolve: (d) => impls[d.path] ?? null });
   conn.closed.then(() => process.exit(0));
   return conn;

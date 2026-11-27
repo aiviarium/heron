@@ -30,7 +30,6 @@ type Manager struct {
 	// Log receives extensions' stderr and logs; Warn receives warnings.
 	Log  io.Writer
 	Warn func(string)
-	Wire protocol.Wire
 	// Approve is asked before an extension process first runs on this
 	// machine; trusted extensions are remembered under .heron/.
 	Approve func(s *Spec) (bool, error)
@@ -401,12 +400,11 @@ func (m *Manager) process(name string) (*Process, error) {
 		return nil, ForeignError("%s: no such extension", name)
 	}
 	p := &Process{
-		Spec: s, Wire: m.Wire, Log: m.Log, Warn: m.Warn, Host: hostServices{m},
+		Spec: s, Log: m.Log, Warn: m.Warn, Host: hostServices{m},
 		Limits: protocol.DefaultLimits(),
 		Init: protocol.InitializeParams{
 			Protocol: protocol.Version, Host: protocol.PeerInfo{Name: "heron", Version: "0.1.0"},
 			Root: m.root, Temp: m.TempRoot,
-			Capabilities: protocol.Capabilities{Methods: []string{protocol.MethodNode, protocol.MethodCall, protocol.MethodResource, protocol.MethodSecret, protocol.MethodTemp}, Streaming: ptr(true), Cancellation: ptr(true)},
 		},
 	}
 	for _, d := range s.Decls {
