@@ -402,8 +402,9 @@ const url = (f) => "file://" + path.join(dir, f)
     const ruled = pages.find((f) => /<div class="rule[ "]/.test(fs.readFileSync(path.join(dir, f), "utf8")))
     if (ruled) {
       const src = fs.readFileSync(path.join(dir, ruled), "utf8")
-      const rules = [...src.matchAll(/<div class="rule[^"]*" id="([^"]+)"><p class="sentence">(<a class="rule-link[^"]*" href="#([^"]+)")?/g)]
-      const bare = rules.filter((m) => !m[2] || m[3] !== m[1])
+      const rules = [...src.matchAll(/<div class="rule(?: quality)?" id="([^"]+)"><p class="sentence">(<a class="rule-link[^"]*" href="[^"#]*#([^"]+)")?/g)]
+      // A rule shown away from its place links to its home instead.
+      const bare = rules.filter((m) => !m[2] || (m[3] !== m[1] && !m[1].startsWith(m[3])))
       if (bare.length) fail.push(`gutter: on ${ruled} ${bare.length} of ${rules.length} rules lack the mark that links to them, such as ${bare[0][1]}`)
     }
   }
