@@ -346,11 +346,19 @@ const url = (f) => "file://" + path.join(dir, f)
         return { tree: !!tree, stops: stops.length }
       })
       if (!k.tree || k.stops !== 1) fail.push(`nav tree: ${k.tree ? `${k.stops} tab stops` : "no tree role"}`)
-      await p.focus('.sidebar [role=treeitem][tabindex="0"]')
-      const first = await p.evaluate(() => document.activeElement.getAttribute("href"))
-      await p.keyboard.press("ArrowDown")
-      const second = await p.evaluate(() => document.activeElement.getAttribute("href"))
-      if (!second || second === first) fail.push("nav tree: the down arrow doesn't move to the next entry")
+      // The down arrow from the first entry in view: the tab stop may be the
+      // current page, which can be the last entry in view, with nowhere to go.
+      const pair = await p.evaluate(() => {
+        const vis = [...document.querySelectorAll(".sidebar [role=treeitem]")].filter((a) => (a.checkVisibility ? a.checkVisibility() : a.offsetParent !== null))
+        if (vis.length < 2) return null
+        vis[0].focus()
+        return [vis[0].getAttribute("href"), vis[1].getAttribute("href")]
+      })
+      if (pair) {
+        await p.keyboard.press("ArrowDown")
+        const now = await p.evaluate(() => document.activeElement.getAttribute("href"))
+        if (now !== pair[1]) fail.push(`nav tree: the down arrow from ${pair[0]} goes to ${now}, not ${pair[1]}`)
+      }
       const closed = await p.evaluate(() => {
         const d = [...document.querySelectorAll(".sidebar .nav-branch:not([open])")].find((x) => (x.checkVisibility ? x.checkVisibility() : x.offsetParent !== null))
         const a = d && d.querySelector(":scope > summary > a")
