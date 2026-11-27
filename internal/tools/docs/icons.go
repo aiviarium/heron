@@ -64,15 +64,11 @@ func (s *Site) nodeIcon(n *resolve.Node, class string) string {
 		return ""
 	}
 	ic := s.iconSet().Get(icon.Name(s.Checker, n))
-	if k := s.kindName(n); k != "" && s.kindIcons() {
+	if k := s.kindName(n); k != "" {
 		return ic.Labelled(class, k)
 	}
 	return ic.SVG(class)
 }
-
-// kindIcons reports whether the lens names a node's kind by its icon
-// rather than in words.
-func (s *Site) kindIcons() bool { return s.Opts.Lens == nil || !s.Opts.Lens.KindText }
 
 // kindName is the name of a node's kind, or "".
 func (s *Site) kindName(n *resolve.Node) string {
@@ -82,20 +78,18 @@ func (s *Site) kindName(n *resolve.Node) string {
 	return ""
 }
 
-// kindMark names a node's kind beside its name: its icon, labelled, in a
-// lens that names kinds by icon and where the node shows one, or else the
-// kind in words. pre is what goes before the name, post what goes after.
+// kindMark names a node's kind before its name: its icon, labelled with
+// the kind's name, where it shows one. No page names a kind in words.
+// pre is what goes before the name, post what goes after.
 func (s *Site) kindMark(n *resolve.Node) (pre, post string) {
 	k := s.kindName(n)
 	if k == "" {
 		return "", ""
 	}
-	if s.kindIcons() {
-		if ic := s.iconSet().Get(icon.Name(s.Checker, n)); ic != nil && ic.Body != "" {
-			return ic.Labelled("icon kind-mark", k), ""
-		}
+	if ic := s.iconSet().Get(icon.Name(s.Checker, n)); ic != nil && ic.Body != "" {
+		return ic.Labelled("icon kind-mark", k), ""
 	}
-	return "", ` <span class="kind">` + esc(k) + `</span>`
+	return "", ""
 }
 
 // iconName is the name of the icon a node shows, or "".

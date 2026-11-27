@@ -119,12 +119,18 @@ func TestLensesUnset(t *testing.T) {
 	}
 }
 
-// The switcher lists each lens's title in the docs block's order, the
-// current one marked, each a plain link to the same page there, else to
-// the nearest page it keeps, else its home.
+// The switcher is a dropdown beside the version switch, captioned as the
+// view, listing each lens's title in the docs block's order, the current
+// one marked, each a plain link to the same page there, else to the
+// nearest page it keeps, else its home.
 func TestLensSwitcher(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	sw := regexp.MustCompile(`<nav class="lens-switch".*?</nav>`)
+	sw := regexp.MustCompile(`<div class="lens-switch" data-island="lens">.*?</details></div>`)
+	page := f["kite.cli.sync.html"]
+	if i, j := strings.Index(page, `class="lens-switch"`), strings.Index(page, `class="version"`); i < 0 || j < i || strings.Index(page, `class="search-btn"`) > i {
+		t.Error("the lens switch isn't right before the version switch")
+	}
+	mustHave(t, "user switcher caption", sw.FindString(page), `<span class="caption">View</span><span class="v">User</span>`)
 	got := sw.FindString(f["kite.cli.sync.html"])
 	mustHave(t, "user switcher", got, `href="kite.cli.sync.html" data-lens="user" aria-current="true">User</a>`,
 		`href="dev/kite.cli.sync.html" data-lens="developer">Developer</a>`, `href="explore/kite.cli.sync.html" data-lens="explore">Explore</a>`)
@@ -313,8 +319,10 @@ func TestExploreLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	sync := f["explore/kite.sync.html"]
 	mustHave(t, "explore sync", sync, `<span class="rule-meta"><code class="meta-name">sync.copies_changed</code>`,
-		`<code class="meta-kind">rule</code>`, `<code class="meta-strength">must</code>`, `<span class="kind">section</span>`,
-		`<span class="kind">term</span>`, `id="kite.sync.unreadable"`)
+		`<code class="meta-kind">rule</code>`, `<code class="meta-strength">must</code>`,
+		`aria-label="term"><title>term</title>`, `id="kite.sync.unreadable"`)
+	// No kind in words beside a name, in explore as anywhere.
+	mustNotHave(t, "explore sync", sync, `<span class="kind">`)
 	mustNotHave(t, "explore sync", sync, `<details class="rule`)
 	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`).FindString(sync)
 	mustHave(t, "explore sync outline", outline, `<li class="l2"><a href="#kite.sync.keeps_both">`)
@@ -340,10 +348,11 @@ func TestNavPagesOutlineNested(t *testing.T) {
 }
 
 // A link to a node its lens leaves out opens it in the first lens that
-// renders it, with that lens's title after the link text.
+// renders it, that lens named in its tooltip alone.
 func TestLinksAcrossLenses(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	mustHave(t, "user concept", f["kite.conflicts.html"], `href="dev/kite.sync.html#kite.sync.keeps_both">the conflict rule`, `<span class="lens-tag">Developer</span>`)
+	mustHave(t, "user concept", f["kite.conflicts.html"], `href="dev/kite.sync.html#kite.sync.keeps_both" title="Opens in the Developer docs">the conflict rule`)
+	mustNotHave(t, "user concept", f["kite.conflicts.html"], "lens-tag")
 	mustNotHave(t, "dev concept", f["dev/kite.conflicts.html"], "lens-tag")
 	// A link the generator builds, as a rule's subject, carries no title.
 	mustHave(t, "dev sync", f["dev/kite.sync.html"], `<a class="ref subject" href="kite.system.html#kite.system.syncer">syncer</a>`)
@@ -507,7 +516,7 @@ func TestElementsRender(t *testing.T) {
 	_, f := lensFiles(t, "testdata/elements/index.heron")
 	// A prose file's text is its section's prose, its Markdown read as
 	// Markdown, a list item continued on an indented line included.
-	mustHave(t, "asking", f["explore/asking.html"], `<h1 class="page-title">Asking <span class="kind">section</span></h1>`, `<li>open the payment and read its state;</li>`)
+	mustHave(t, "asking", f["explore/asking.html"], `<h1 class="page-title">Asking</h1>`, `<li>open the payment and read its state;</li>`)
 	h := f["asking.do_it.html"]
 	mustHave(t, "how-to", h, `<h1 class="page-title">Ask for a refund</h1>`, `<li class="step" id="asking.do_it.look"><h2 class="h">`,
 		`id="asking.do_it.call"`, `<aside class="callout callout-warning"><div class="prose"><p>A refund can&#39;t be undone.</p></div></aside></li>`)
@@ -550,34 +559,26 @@ func TestUseCaseFlowDiagram(t *testing.T) {
 	}
 }
 
-// A lens names a node's kind by its icon, labelled with the kind's name,
-// unless its kinds is TEXT, as explore's is.
+// Every lens names a node's kind by its icon, labelled with the kind's
+// name and shown as a tooltip, and no page names it in words.
 func TestKindLabels(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	used := regexp.MustCompile(`<svg class="icon kind-mark"[^>]*role="img" aria-label="([a-z]+)"><title>([a-z]+)</title>`)
-	found := false
-	for p, h := range f {
-		if strings.HasPrefix(p, "dev/") && used.MatchString(h) {
-			found = true
-			break
+	for _, lens := range []string{"dev/", "explore/"} {
+		found := false
+		for p, h := range f {
+			if strings.HasPrefix(p, lens) && used.MatchString(h) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("%s names no kind by its labelled icon", lens)
 		}
 	}
-	if !found {
-		t.Error("the developer lens names no kind by its labelled icon")
-	}
 	for p, h := range f {
-		if strings.HasPrefix(p, "explore/") && strings.HasSuffix(p, ".html") && used.MatchString(h) {
-			t.Errorf("%s names a kind by its icon in explore", p)
+		if strings.HasSuffix(p, ".html") && strings.Contains(h, `<span class="kind">`) {
+			t.Errorf("%s names a kind in words", p)
 		}
-	}
-	text := false
-	for p, h := range f {
-		if strings.HasPrefix(p, "explore/") && strings.Contains(h, `<span class="kind">`) {
-			text = true
-			break
-		}
-	}
-	if !text {
-		t.Error("explore doesn't name kinds in words")
 	}
 }

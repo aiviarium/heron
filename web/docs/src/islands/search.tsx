@@ -96,11 +96,11 @@ export function Search() {
   )
 }
 
-/** A result's kind: its icon, labelled with the kind's name, in a lens
- * that names kinds by icon, or else the kind in words beside a plain icon. */
+/** A result's kind: its icon, labelled with the kind's name, or the kind
+ * in words where it has no icon. */
 function KindMark(props: { e: Entry }) {
   const svg = () => (props.e.i ? data().icons?.[props.e.i] : undefined)
-  const asIcon = () => data().kinds !== "text" && !!svg() && !!props.e.k
+  const asIcon = () => !!svg() && !!props.e.k
   return (
     <span class={asIcon() ? "pk pk-icon" : "pk"} title={props.e.k || undefined}>
       {svg() ? <span class="pi" role={asIcon() ? "img" : undefined} aria-label={asIcon() ? props.e.k : undefined} aria-hidden={asIcon() ? undefined : "true"} innerHTML={svg()} /> : null}

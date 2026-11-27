@@ -288,8 +288,8 @@ func (s *Site) topbar(b *strings.Builder, p *Page) {
 	}
 	b.WriteString(s.slotHTML(nil, "header", ""))
 	b.WriteString(`<div class="topbar-end">`)
-	s.lensSwitch(b, p)
 	b.WriteString(`<button type="button" class="search-btn" data-island="search" aria-label="` + attr(label("docs.action.search")) + `">` + iconSearch + `<span>` + esc(label("docs.action.search")) + `</span><kbd>⌘K</kbd></button>`)
+	s.lensSwitch(b, p)
 	b.WriteString(`<div class="version" data-island="version"><select aria-label="` + attr(label("docs.label.version")) + `">`)
 	cur := s.Opts.Version
 	if cur == "" {
@@ -313,15 +313,17 @@ func (s *Site) lensSwitch(b *strings.Builder, p *Page) {
 	if s.lenses == nil || len(s.lenses.sites) < 2 {
 		return
 	}
-	b.WriteString(`<nav class="lens-switch" aria-label="` + attr(label("docs.label.lens")) + `">`)
+	// A dropdown of plain links, which works without a script; the lens
+	// island draws it as the version switch's select.
+	b.WriteString(`<div class="lens-switch" data-island="lens"><details class="lens-menu"><summary aria-label="` + attr(label("docs.label.lens")) + `"><span class="caption">` + esc(label("docs.label.view")) + `</span><span class="v">` + esc(s.Opts.Lens.Title) + `</span></summary><nav aria-label="` + attr(label("docs.label.lens")) + `"><ul>`)
 	for _, o := range s.lenses.sites {
 		cur := ""
 		if o == s {
 			cur = ` aria-current="true"`
 		}
-		b.WriteString(`<a href="` + attr(s.lensHref(p, o)) + `" data-lens="` + attr(o.Opts.Lens.Name) + `"` + cur + `>` + esc(o.Opts.Lens.Title) + `</a>`)
+		b.WriteString(`<li><a href="` + attr(s.lensHref(p, o)) + `" data-lens="` + attr(o.Opts.Lens.Name) + `"` + cur + `>` + esc(o.Opts.Lens.Title) + `</a></li>`)
 	}
-	b.WriteString(`</nav>`)
+	b.WriteString(`</ul></nav></details></div>`)
 }
 
 func (s *Site) firstPage(a *Area) *Page {

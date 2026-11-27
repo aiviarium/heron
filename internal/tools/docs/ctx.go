@@ -310,16 +310,16 @@ func (c *Ctx) Link(n *resolve.Node, text string) {
 }
 
 func (s *Site) linkHTML(n *resolve.Node, inner, class string) string {
-	return s.link(n, inner, class, false)
+	return s.link(n, inner, class)
 }
 
-// proseLinkHTML is a link written in prose: one that leads to another
-// lens names that lens after its text.
+// proseLinkHTML is a link written in prose. One that leads to another lens
+// names that lens in its tooltip, as every link does.
 func (s *Site) proseLinkHTML(n *resolve.Node, inner string) string {
-	return s.link(n, inner, "", true)
+	return s.link(n, inner, "")
 }
 
-func (s *Site) link(n *resolve.Node, inner, class string, tagged bool) string {
+func (s *Site) link(n *resolve.Node, inner, class string) string {
 	u := s.URL(n)
 	cls := "ref"
 	if class != "" {
@@ -338,12 +338,13 @@ func (s *Site) link(n *resolve.Node, inner, class string, tagged bool) string {
 	if u == "" {
 		return `<span class="` + cls + `"` + card + `>` + inner + `</span>`
 	}
-	if tagged {
-		if t := s.lensTag(n); t != "" && s.specURL(n) == "" {
-			inner += ` <span class="lens-tag">` + esc(t) + `</span>`
-		}
+	tip := ""
+	if t := s.lensTag(n); t != "" && s.specURL(n) == "" {
+		// The other lens is named in the tooltip alone: the link reads as
+		// its words.
+		tip = ` title="` + attr(label("docs.label.opens_in", "lens", t)) + `"`
 	}
-	return `<a class="` + cls + `" href="` + attr(u) + `"` + card + `>` + inner + `</a>`
+	return `<a class="` + cls + `" href="` + attr(u) + `"` + card + tip + `>` + inner + `</a>`
 }
 
 // Prose writes a node's own documentation and prose as HTML.

@@ -279,15 +279,11 @@ func (s *Site) markTags(r []*resolve.Node) string {
 // the kinds and marks explore names beside a node to tell lenses apart.
 func (s *Site) single() bool { return s.lenses == nil || len(s.lenses.sites) < 2 }
 
-// kindTag is a node's kind and its lens marks beside its name, in
-// explore.
+// kindTag is a node's lens marks beside its name, in explore. Its kind is
+// its icon, before the name.
 func (s *Site) kindTag(n *resolve.Node) string {
 	if !s.explore() || n == nil || s.Opts.Lens == nil || s.single() {
 		return ""
 	}
-	out := ""
-	if k := s.Checker.KindOf(n); k != nil {
-		out = ` <span class="kind">` + esc(k.Name) + `</span>`
-	}
-	return out + s.markTags(lens.Restriction(s.Checker, n))
+	return s.markTags(lens.Restriction(s.Checker, n))
 }

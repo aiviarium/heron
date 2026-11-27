@@ -89,9 +89,6 @@ type Lens struct {
 	NoMarks bool
 	// Budget is a Markdown lens's size budget in approximate tokens.
 	Budget int
-	// KindText is set when the lens names a node's kind in words rather
-	// than by its icon.
-	KindText bool
 }
 
 // Explore reports whether the lens shows everything.
@@ -136,8 +133,6 @@ func Read(c *types.Checker, n *resolve.Node) *Lens {
 			l.Format = Format(t)
 		case "marks":
 			l.NoMarks = strings.TrimSpace(ch.Value.Syntax().Text()) == "false"
-		case "kinds":
-			l.KindText = strings.HasSuffix(strings.TrimSpace(ch.Value.Syntax().Text()), "TEXT")
 		case "budget":
 			if b, err := strconv.Atoi(strings.TrimSpace(ch.Value.Syntax().Text())); err == nil && b >= MinBudget {
 				l.Budget = b

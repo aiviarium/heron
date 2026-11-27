@@ -24,8 +24,6 @@ export interface Data {
   strings: Record<string, string>
   /** The icons search shows, by name, as inline SVG. */
   icons?: Record<string, string>
-  /** How the lens names a result's kind: by its icon, or in words. */
-  kinds?: "icon" | "text"
 }
 
 declare global {

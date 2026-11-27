@@ -260,7 +260,10 @@ const url = (f) => "file://" + path.join(dir, f)
             const m = document.querySelector("main").getBoundingClientRect()
             const side = document.querySelector(".sidebar").getBoundingClientRect()
             const aside = document.querySelector(".aside").getBoundingClientRect()
-            return { x: Math.round(m.left), w: Math.round(m.width), l: Math.round(m.left - side.right), r: Math.round(aside.left - m.right) }
+            // The navigation's column ends where its box does, less the
+            // margin its scroll area reaches into the gap with.
+            const sideEnd = side.right + parseFloat(getComputedStyle(document.querySelector(".sidebar")).marginRight)
+            return { x: Math.round(m.left), w: Math.round(m.width), l: Math.round(m.left - sideEnd), r: Math.round(aside.left - m.right) }
           })) })
         }
         for (const s of seen) {
@@ -278,17 +281,31 @@ const url = (f) => "file://" + path.join(dir, f)
       const bad = []
       const tab = document.querySelector(".tabs a[aria-current]")
       if (tab && /rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(tab, "::after").backgroundColor)) bad.push("the current tab has no mark")
-      for (const [sel, what] of [[".lens-switch", "the lens switcher"], [".search-btn", "search"], ["[data-island=theme]", "the theme switch"], [".select-trigger", "the version switch"]]) {
+      for (const [sel, what] of [[".lens-trigger", "the lens switcher"], [".search-btn", "search"], ["[data-island=theme]", "the theme switch"], [".version .select-trigger", "the version switch"]]) {
         const e = document.querySelector(sel)
-        if (sel === ".lens-switch" && !e) continue
+        if (sel === ".lens-trigger" && !document.querySelector(".lens-switch")) continue
         if (!e) { bad.push(`${what} isn't there`); continue }
         if (getComputedStyle(e).borderTopWidth === "0px") bad.push(`${what} has no visible edge at rest`)
       }
       return bad
     })
     for (const m of c) fail.push(`top bar: ${m}`)
-    if (await p.$(".select-trigger")) {
-      await p.focus(".select-trigger")
+    // The lens switch: a dropdown right before the version switch, whose
+    // options the keyboard opens.
+    if (await p.$(".lens-switch")) {
+      const order = await p.evaluate(() => {
+        const l = document.querySelector(".lens-switch"), v = document.querySelector(".version")
+        return l.nextElementSibling === v
+      })
+      if (!order) fail.push("lens: the lens switch isn't right before the version switch")
+      await p.focus(".lens-trigger")
+      await p.keyboard.press("ArrowDown")
+      const opts = await p.waitForSelector(".select-content .select-item", { state: "visible", timeout: 2000 }).then(() => p.$$eval(".select-content .select-item", (els) => els.length), () => 0)
+      if (opts < 2) fail.push("lens: the keyboard doesn't open the lens switch's options")
+      await p.keyboard.press("Escape")
+    }
+    if (await p.$(".version .select-trigger")) {
+      await p.focus(".version .select-trigger")
       await p.keyboard.press("ArrowDown")
       const open = await p.waitForSelector(".select-content .select-item", { state: "visible", timeout: 2000 }).then(() => true, () => false)
       if (!open) fail.push("version: the keyboard doesn't open the version switch")

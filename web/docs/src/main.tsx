@@ -9,6 +9,7 @@ import { Cards } from "./islands/cards"
 import { Diagram } from "./islands/diagram"
 import { Search } from "./islands/search"
 import { TryIt } from "./islands/tryit"
+import { Lens } from "./islands/lens"
 import { Version } from "./islands/version"
 import { bindings } from "./islands/bindings"
 import { inPlace } from "./navigate"
@@ -44,7 +45,7 @@ function theme() {
 /** The lens switch: a plain link to the same page in another lens, which
  * keeps the anchor the reader is at when it leads to the same page. */
 function lenses() {
-  for (const a of $$<HTMLAnchorElement>(".lens-switch a")) {
+  for (const a of $$<HTMLAnchorElement>(".lens-menu a")) {
     a.addEventListener("click", () => {
       const hash = location.hash
       if (!hash || a.hash) return
@@ -340,6 +341,10 @@ function page() {
   expand()
   if (document.querySelector("[data-card]")) mount(() => <Cards />)
   for (const root of $$("[data-island=examples]")) mount(() => <TryIt root={root} />)
+  for (const root of $$("[data-island=lens]")) {
+    const dispose = render(() => <Lens root={root} />, root)
+    teardown.push(dispose)
+  }
   for (const root of $$("[data-island=version]")) {
     const dispose = render(() => <Version root={root} />, root)
     teardown.push(dispose)
