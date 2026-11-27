@@ -57,8 +57,13 @@ if [ "$web" = 1 ]; then
   fi
   echo "pnpm $("${pnpm[@]}" --version)"
 
-  step "sparrow: the checkout beside heron, and its TS package"
-  scripts/sparrow-setup.sh
+  # Sparrow's TS package comes from the web/sparrow submodule, at the
+  # commit go.mod's Sparrow module names; web/runtime's install builds it.
+  step "sparrow: the web/sparrow submodule"
+  if [ ! -f web/sparrow/ts/package.json ]; then
+    git rev-parse --git-dir >/dev/null 2>&1 || fail "web/sparrow is empty and this isn't a git checkout: clone heron with git"
+    git submodule update --init web/sparrow
+  fi
   step "web: install the dependencies"
   (cd web && "${pnpm[@]}" install --frozen-lockfile --silent)
   step "web: build the runtime and the editor into internal/tools/server/frontend/dist"

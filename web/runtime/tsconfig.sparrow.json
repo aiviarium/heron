@@ -1,0 +1,10 @@
+{
+  // Builds the Sparrow TS package's dist/, which this package imports, from
+  // the web/sparrow submodule with this package's TypeScript: the package
+  // ships no dist/ of its own and isn't on npm. The prepare script runs it
+  // on every install.
+  "extends": "../sparrow/ts/tsconfig.json",
+  "compilerOptions": {
+    "typeRoots": ["./node_modules/@types"]
+  }
+}

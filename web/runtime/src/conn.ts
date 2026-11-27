@@ -4,8 +4,8 @@
 // cancellation, deadlines, progress and streamed results are Sparrow's own.
 // The Go side is internal/core/extension/protocol.
 import type { Readable, Writable } from "node:stream";
-import { Router, Session, SparrowError, cbor as spcbor, makeSchema, schema as spschema, type CallContext, type Facet, type Method, type TypeRef } from "@aiviarium/sparrow-rpc";
-import { pipeConn } from "@aiviarium/sparrow-rpc/pipe";
+import { Router, Session, SparrowError, cbor as spcbor, makeSchema, schema as spschema, type CallContext, type Facet, type Method, type TypeRef } from "@aiviarium/sparrow";
+import { pipeConn } from "@aiviarium/sparrow/pipe";
 import {
   codeCancelled,
   codeForeignError,

@@ -22,14 +22,13 @@ You need Git, Go 1.24.7 or newer, and Node.js 20 or newer, whose corepack
 runs the pnpm version `web/package.json` pins (10.28.0); nothing else is
 installed globally.
 
-Heron's extension protocol runs on [Sparrow RPC](https://github.com/aiviarium/sparrow), and
-`std/sparrow` binds apis to it. Until Sparrow is published, the build reads a checkout of it
-beside heron, at `../sparrow`: `go.mod` replaces its Go module with `../sparrow/go`, and
-`web/runtime` links its TS package from `../sparrow/ts`. `scripts/sparrow-setup.sh` checks the
-checkout and builds the TS package (`SPARROW_DIR=…` links another checkout in its place).
+Heron's extension protocol runs on [Sparrow](https://github.com/aiviarium/sparrow), and
+`std/sparrow` binds apis to it. Go takes Sparrow's module from the Go proxy, at the commit
+`go.mod` pins; its TS package, which isn't on npm, comes from the `web/sparrow` submodule at
+the same commit, and `web/runtime`'s install builds it. `scripts/build.sh` checks the
+submodule out when the clone didn't (`git clone --recurse-submodules` does).
 
 ```sh
-git clone https://github.com/aiviarium/sparrow.git
 git clone https://github.com/aiviarium/heron.git
 cd heron
 scripts/build.sh            # checks the prerequisites, installs the web

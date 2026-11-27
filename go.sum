@@ -1,3 +1,5 @@
+github.com/aiviarium/sparrow/go v0.0.0-20261127215539-5d9ab590f83a h1:pHWIiFoM5rPNa3lgqOMASIwIw29OpncrqEr7qQnv3Q8=
+github.com/aiviarium/sparrow/go v0.0.0-20261127215539-5d9ab590f83a/go.mod h1:/Iv94COKpXjWG68zwO8TKr4CGGb+exy5HrcmamQYX4M=
 github.com/coder/websocket v1.8.14 h1:9L0p0iKiNOibykf283eHkKUHHrpG7f65OE3BhhO7v9g=
 github.com/coder/websocket v1.8.14/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
 github.com/dunglas/httpsfv v1.1.0 h1:Jw76nAyKWKZKFrpMMcL76y35tOpYHqQPzHQiwDvpe54=

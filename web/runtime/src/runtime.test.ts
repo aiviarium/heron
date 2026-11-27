@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { Conn, RpcError } from "./conn.js";
 import { HeronError, serveExtension, toRpcError } from "./extension.js";
 import { serveHost } from "./host.js";
-import { Codec } from "@aiviarium/sparrow-rpc";
+import { Codec } from "@aiviarium/sparrow";
 import { codeCancelled, codeThrown, facets, methods, version, type InitializeParams, type InitializeResult } from "./protocol.gen.js";
 import { defineFunc, defineLint, defineResource, defineTransport } from "./sdk.js";
 import { Binder, Decimal, Duration, Ref, Variant, fromValue, toValue } from "./values.js";

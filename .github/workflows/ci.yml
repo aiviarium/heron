@@ -62,9 +62,12 @@ jobs:
       SUMTYPE: ${{ matrix.lane == 'lint' }}
       BROWSERS: ${{ startsWith(matrix.lane, 'docs') && 'chromium firefox webkit' || matrix.lane == 'editor' && 'chromium' || '' }}
     steps:
+      # With web/sparrow, the Sparrow submodule web/runtime builds its TS
+      # package from (Go takes Sparrow's module from the Go proxy).
       - uses: actions/checkout@v7
         with:
           path: heron
+          submodules: true
 
       - name: The spec commit heron.lock pins
         id: lock
@@ -81,19 +84,6 @@ jobs:
           repository: aiviarium/heron-specs
           ref: ${{ steps.lock.outputs.commit }}
           path: heron-specs
-
-      # Sparrow RPC, which the extension protocol runs on and std/sparrow
-      # binds to, until it's published: checked out beside heron, where
-      # go.mod's replace and web/runtime's link: dependency find it
-      # (scripts/sparrow-setup.sh builds its TS package). The repository
-      # is private, so the checkout needs a token that can read it, in the
-      # SPARROW_TOKEN secret.
-      - uses: actions/checkout@v7
-        with:
-          repository: aiviarium/sparrow
-          ref: ${{ vars.SPARROW_REF || 'main' }}
-          token: ${{ secrets.SPARROW_TOKEN }}
-          path: sparrow
 
       # The Go build cache is the lane's own (see above), not setup-go's,
       # whose key never changes with the code.

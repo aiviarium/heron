@@ -122,9 +122,9 @@ importers:
 
   runtime:
     dependencies:
-      '@aiviarium/sparrow-rpc':
-        specifier: link:../../../sparrow/ts
-        version: link:../../../sparrow/ts
+      '@aiviarium/sparrow':
+        specifier: link:../sparrow/ts
+        version: link:../sparrow/ts
     devDependencies:
       '@types/node':
         specifier: ^22.20.5

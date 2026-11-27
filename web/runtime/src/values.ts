@@ -2,7 +2,7 @@
 // integers stay exact, bytes stay binary, and every value of Any is the
 // Sparrow union Value, whose variant says its Heron type. The variants
 // match internal/core/extension/protocol/bind.go.
-import type { Facet, TypeRef } from "@aiviarium/sparrow-rpc";
+import type { Facet, TypeRef } from "@aiviarium/sparrow";
 
 /** A value of a union: the variant's name in `type`, as the Interop tab's tagged unions have it. */
 export class Variant<T = unknown> {

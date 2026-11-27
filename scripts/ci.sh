@@ -109,8 +109,8 @@ need() {
   case "$built" in *" $n "*) return ;; esac
   case "$n" in
   web)
-    step "sparrow: the checkout beside heron, and its TS package, which web/runtime links"
-    scripts/sparrow-setup.sh
+    step "sparrow: the web/sparrow submodule, whose TS package web/runtime's install builds"
+    [ -f web/sparrow/ts/package.json ] || git submodule update --init web/sparrow
     step "web: install the workspace and build @heron/runtime"
     (cd web && pnpm install --frozen-lockfile --silent && pnpm --filter @heron/runtime build)
     ;;
@@ -175,6 +175,15 @@ lane_lint() {
   diff -q "$g/sample_gen.go" internal/tools/server/internal/sample/sample_gen.go
   diff -q "$g/sample.gen.ts" internal/tools/server/internal/sample/sample.gen.ts
   go test -count=1 -run "TestGeneratedFilesAreCurrent|TestContrast" ./web/tokens/
+
+  step "Sparrow: go.mod's module and the web/sparrow submodule are one commit"
+  local gosparrow subsparrow
+  gosparrow=$(go list -m -f '{{.Version}}' github.com/aiviarium/sparrow/go | sed -n 's/.*-\([0-9a-f]\{12\}\)$/\1/p')
+  subsparrow=$(git ls-files -s web/sparrow | awk '{ print $2 }')
+  case "$subsparrow" in
+  "${gosparrow:-none}"*) echo "sparrow ${subsparrow:0:12}" ;;
+  *) echo "go.mod has Sparrow at ${gosparrow:-no pseudo-version}, web/sparrow at ${subsparrow:-nothing}"; return 1 ;;
+  esac
 
   step "go vet"
   go vet ./...

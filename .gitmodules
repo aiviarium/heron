@@ -1,0 +1,3 @@
+[submodule "web/sparrow"]
+	path = web/sparrow
+	url = https://github.com/aiviarium/sparrow.git
