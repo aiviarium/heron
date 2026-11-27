@@ -72,6 +72,9 @@ func TestAgentExportOfSpec(t *testing.T) {
 	}
 	budget := 6000
 	for _, f := range files {
+		if strings.Contains(string(f.Content), "\n### howto ") || strings.Contains(string(f.Content), "\n### tutorial ") {
+			t.Errorf("%s holds an authored page, which the agent lens hides", f.Path)
+		}
 		c := string(f.Content)
 		if Tokens(f.Content) > budget && len(ids[f.Path]) > 1 && f.Path != AgentIndex {
 			t.Errorf("%s: %d tokens, over the budget of %d, with %d nodes", f.Path, Tokens(f.Content), budget, len(ids[f.Path]))
@@ -112,7 +115,7 @@ func TestAgentExportOfSpec(t *testing.T) {
 	// The agent's question: what must the checker do when field numbers
 	// collide? The index names the file, and the file holds the rule.
 	idx := string(files[0].Content)
-	for _, want := range []string{"## How to read these files", "## Files", "[language.apis.grpc.numbering.md](language.apis.grpc.numbering.md)", "tokens)"} {
+	for _, want := range []string{"## How to read these files", "## Files", "[Numbering](language.apis.grpc.numbering.md)", "tokens)"} {
 		if !strings.Contains(idx, want) {
 			t.Errorf("INDEX.md lacks %q", want)
 		}
@@ -351,7 +354,7 @@ func TestAgentExportSplitsAndOrders(t *testing.T) {
 		}
 	}
 	idx := string(files[0].Content)
-	for _, want := range []string{"# Shop: agent export", "A shop that sells things.", "- goal [sell](_root.md#sell): Customers buy what they want.", "- [orders.md](orders.md) Orders: How orders are placed. (~", "- [orders.2.md](orders.2.md) Orders (part 2)"} {
+	for _, want := range []string{"# Shop: agent export", "A shop that sells things.", "- goal [sell](_root.md#sell): Customers buy what they want.", "- [Orders](orders.md): How orders are placed. (~", "- [Orders (part 2)](orders.2.md) (~"} {
 		if !strings.Contains(idx, want) {
 			t.Errorf("INDEX.md lacks %q:\n%s", want, idx)
 		}
@@ -451,7 +454,8 @@ func TestAgentContractForms(t *testing.T) {
 // TestAgentLensNotSwitched: no page of the site lists the agent lens in
 // its lens switcher or links into the export.
 func TestAgentLensNotSwitched(t *testing.T) {
-	ls := NewLenses(site(t, entries["spec"]).Tree, site(t, entries["spec"]).Checker, Options{})
+	s := site(t, entries["spec"])
+	ls := NewLenses(s.Tree, s.Checker, Options{})
 	files, err := ls.Files()
 	if err != nil {
 		t.Fatal(err)

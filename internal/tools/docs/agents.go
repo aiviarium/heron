@@ -626,6 +626,10 @@ func (e *agentExport) summary(n *resolve.Node) string {
 // mdFirstSentence cuts Markdown after its first sentence, outside code
 // spans and link targets.
 func mdFirstSentence(t string) string {
+	if strings.HasPrefix(t, "|") || strings.HasPrefix(t, "```") {
+		// A table or a code block, not a sentence.
+		return ""
+	}
 	code, paren := false, 0
 	for i := 0; i < len(t); i++ {
 		switch c := t[i]; {
@@ -666,7 +670,7 @@ func (e *agentExport) fileText(u *agentUnit, part int) []byte {
 	}
 	b.WriteString(nav + "\n")
 	if part == 0 {
-		if p := e.s.proseMD(u.node); p != "" && u.node != e.top && !e.ownKind(u.node) {
+		if p := e.s.proseMD(u.node); p != "" && !e.ownKind(u.node) {
 			b.WriteString("\n" + p + "\n")
 		}
 	}
@@ -1694,9 +1698,9 @@ func (e *agentExport) index(files []AgentFile) []byte {
 	b.WriteString("\n## Files\n\n")
 	var fl []string
 	for _, f := range files {
-		l := "[" + f.Path + "](" + f.Path + ") " + f.Title
+		l := "[" + mdLinkText(f.Title) + "](" + f.Path + ")"
 		if f.Summary != "" {
-			l += ": " + f.Summary
+			l += ": " + clipLine(unlink(f.Summary), summaryWidth)
 		}
 		l += " (~" + strconv.Itoa(Tokens(f.Content)) + " tokens)"
 		fl = append(fl, e.indent(f)+"- "+l)
@@ -1875,3 +1879,23 @@ var mdLinkTextRe = regexp.MustCompile(`\[([^\]]*)\]\([^)\s]*\)`)
 // unlink writes Markdown links as their text, for a line that's read
 // from another folder.
 func unlink(t string) string { return mdLinkTextRe.ReplaceAllString(t, "$1") }
+
+// summaryWidth is how long a file's summary in the index's map may be.
+const summaryWidth = 100
+
+// clipLine cuts a line at a word to at most n bytes, with an ellipsis.
+func clipLine(t string, n int) string {
+	if len(t) <= n {
+		return t
+	}
+	cut := strings.LastIndexByte(t[:n], ' ')
+	if cut <= 0 {
+		cut = n
+	}
+	t = strings.TrimRight(t[:cut], " ,;:")
+	if strings.Count(t, "`")%2 == 1 {
+		t = t[:strings.LastIndexByte(t, '`')]
+		t = strings.TrimRight(t, " ,;:")
+	}
+	return t + "…"
+}

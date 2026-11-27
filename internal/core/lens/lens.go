@@ -495,6 +495,9 @@ func (l *Lens) Mode(c *types.Checker, n *resolve.Node) Mode {
 	if l.Explore() {
 		return Show
 	}
+	if l.NoMarks {
+		return l.kindMode(c, n)
+	}
 	if m := Marks(c, n); m != nil {
 		if l.Allows(m) {
 			return Show
