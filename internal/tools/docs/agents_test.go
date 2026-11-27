@@ -59,6 +59,7 @@ var (
 // agent finds what the checker does when field numbers collide from the
 // index and one file.
 func TestAgentExportOfSpec(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	files := agentFiles(t, entries["spec"], AgentOptions{})
 	if len(files) < 10 || files[0].Path != AgentIndex || files[1].Path != LLMsTxt {
 		t.Fatalf("the export starts %v", paths(files))
@@ -165,6 +166,7 @@ func stripFences(s string) string { return fenceRe.ReplaceAllString(s, "") }
 // through ../, with what it links outside the subtree after it; an id
 // that names no node is an error.
 func TestAgentContextPack(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	files := agentFiles(t, entries["spec"], AgentOptions{Pack: "language.apis.grpc"})
 	p := files[len(files)-1]
 	if p.Path != "packs/language.apis.grpc.md" {
@@ -190,6 +192,7 @@ func TestAgentContextPack(t *testing.T) {
 // and extension, with its party, the rules it uses and, for an extension,
 // its condition and outcome, and no flow diagram.
 func TestAgentUsecaseLines(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	files := agentFiles(t, entries["spec"], AgentOptions{})
 	var uc string
 	for _, f := range files {
@@ -458,6 +461,7 @@ func TestAgentContractForms(t *testing.T) {
 // TestAgentLensNotSwitched: no page of the site lists the agent lens in
 // its lens switcher or links into the export.
 func TestAgentLensNotSwitched(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	s := site(t, entries["spec"])
 	ls := NewLenses(s.Tree, s.Checker, Options{})
 	files, err := ls.Files()

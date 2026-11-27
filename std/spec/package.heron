@@ -269,6 +269,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Lifecycles ---
 
   /// The lifecycle of an enum field.
+  @icon("workflow")
   states(field: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION) {
     initial?: Any
     terminal?: List(Any)
@@ -277,6 +278,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// One allowed change of a lifecycle.
+  @icon("arrow-right-left")
   transition(from: Any, to: Any): kind(layer = Layer.SPECIFICATION) {
     accept(prose)
     accept(kind = where, max = 1)
