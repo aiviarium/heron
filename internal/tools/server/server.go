@@ -151,7 +151,7 @@ func (s *Shell) command(env *registry.Env, args []string, r *registry.Registry) 
 // index.html so the app's own routes load.
 func (s *Shell) Handler(w *Workspace) (http.Handler, error) {
 	mux := http.NewServeMux()
-	svc := &service{shell: s, ws: w}
+	svc := &service{shell: s, ws: w, agents: &agentExport{ws: w}}
 	s.mu.Lock()
 	exts := append([]Extension{{Name: "base", Routes: api.Routes(svc)}}, s.exts...)
 	s.mu.Unlock()
@@ -181,6 +181,7 @@ func (s *Shell) Handler(w *Workspace) (http.Handler, error) {
 		}
 	}
 	mux.Handle("GET "+DocsPrefix, gzipped(&specBrowser{ws: w, served: served}))
+	mux.Handle("GET "+AgentsPrefix, gzipped(svc.agents))
 	mux.Handle("/", gzipped(spa(front)))
 	return guardOrigins(mux, s.AllowOrigins), nil
 }

@@ -282,6 +282,8 @@ type Service interface {
 	RunTask(ctx context.Context, request *RunRequest, send func(*RunEvent) error) error
 	// The nodes a file declares, which of them run, and the lines they span.
 	Outline(ctx context.Context, request *OutlineRequest) (*Outline, error)
+	// The tree's [agent export](#tools.docs.agents.agent_export) as `heron generate agents` writes it: every file, or the one at `path`, as `INDEX.md`.
+	AgentExport(ctx context.Context, path string) (*GeneratedFiles, error)
 	// The files generation would write, without writing them.
 	Generated(ctx context.Context, request *TreeRequest) (*GeneratedFiles, error)
 }
@@ -450,6 +452,15 @@ func Routes(s Service) []route.Route {
 				return
 			}
 			out, err := s.Outline(r.Context(), p_request)
+			if err != nil {
+				route.WriteError(w, err)
+				return
+			}
+			route.WriteJSON(w, out)
+		}},
+		{Op: "spec_server.agent_export", Method: "GET", Path: "/api/v1/agents", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
+			p_path := r.URL.Query().Get("path")
+			out, err := s.AgentExport(r.Context(), p_path)
 			if err != nil {
 				route.WriteError(w, err)
 				return

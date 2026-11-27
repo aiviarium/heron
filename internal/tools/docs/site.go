@@ -146,6 +146,12 @@ type Site struct {
 	lenses *Lenses
 	// fenceTitle titles the next code block prose renders, once.
 	fenceTitle string
+	// mdHref is where a link of the agent export to a node leads, or ""
+	// when the export doesn't hold the node.
+	mdHref func(n *resolve.Node) string
+	// kindPaths memoizes kindPath, for a site whose tree no longer
+	// changes, as the agent export's.
+	kindPaths map[*resolve.Node]string
 }
 
 // New prepares a site for a checked tree.
@@ -194,10 +200,17 @@ func (s *Site) rpc() *rpc.Model {
 
 // kindPath is the declaration path of a node's kind, such as "spec.rule".
 func (s *Site) kindPath(n *resolve.Node) string {
-	if k := s.Checker.KindOf(n); k != nil {
-		return k.Path()
+	if p, ok := s.kindPaths[n]; ok {
+		return p
 	}
-	return ""
+	p := ""
+	if k := s.Checker.KindOf(n); k != nil {
+		p = k.Path()
+	}
+	if s.kindPaths != nil {
+		s.kindPaths[n] = p
+	}
+	return p
 }
 
 // own reports whether a node belongs to the documented tree rather than a

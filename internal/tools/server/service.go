@@ -23,9 +23,10 @@ import (
 
 // service implements the base API's ops.
 type service struct {
-	shell *Shell
-	ws    *Workspace
-	exts  []Extension
+	shell  *Shell
+	ws     *Workspace
+	exts   []Extension
+	agents *agentExport
 }
 
 var _ api.Service = (*service)(nil)
@@ -239,8 +240,9 @@ func (s *service) Generated(ctx context.Context, req *api.TreeRequest) (*api.Gen
 		}
 		in := &gen.Input{Tree: a.Res.Tree, Checker: a.Res.Checker, Dir: s.ws.Root}
 		for _, g := range s.ws.Reg.Generators("") {
-			// The docs are previewed live, as the spec browser.
-			if g.Target == "docs" || g.OnRequest {
+			// The docs and the agent export are served live, under
+			// /docs/ and /agents/.
+			if g.Target == "docs" || g.Target == "agents" || g.OnRequest {
 				continue
 			}
 			files, err := g.Generate(ctx, in)

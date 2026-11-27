@@ -27,6 +27,9 @@ type Input struct {
 	Tree    *resolve.Tree
 	Checker *types.Checker
 	Dir     string
+	// Options are the command's options for its targets, by name, as
+	// "pack" for the agents target's context pack.
+	Options map[string]string
 }
 
 // ResolvedTree gives an adapter in another package the tree without
@@ -114,7 +117,7 @@ func Register(r *registry.Registry) {
 	r.MustAddCommand(registry.Command{
 		Name:    "generate",
 		Summary: "Runs the generation targets, plus setup files and the managed ignore block",
-		Usage:   "[--entry file] [targets…]",
+		Usage:   "[--entry file] [--pack id] [targets…]",
 		Run:     func(env *registry.Env, args []string) int { return command(env, args, r) },
 	})
 	if err := r.SetGenerator(registry.Generator{Path: "js.ts", Target: "ts", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
@@ -128,8 +131,19 @@ func command(env *registry.Env, args []string, r *registry.Registry) int {
 	fs := flag.NewFlagSet("generate", flag.ContinueOnError)
 	fs.SetOutput(env.Stderr)
 	entry := fs.String("entry", ".", "the entry point: a file, or a directory's index.heron")
+	pack := fs.String("pack", "", "the stable id of a node whose context pack the agents target writes; runs the agents target alone")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	targets := fs.Args()
+	if *pack != "" {
+		for _, t := range targets {
+			if t != "agents" {
+				fmt.Fprintf(env.Stderr, "heron generate: --pack runs the agents target alone, not %q\n", t)
+				return 2
+			}
+		}
+		targets = []string{"agents"}
 	}
 	e := *entry
 	if !filepath.IsAbs(e) {
@@ -160,7 +174,7 @@ func command(env *registry.Env, args []string, r *registry.Registry) int {
 		fmt.Fprintln(env.Stderr, "heron generate:", err)
 		return 1
 	}
-	out, err := Run(ctx, r, &Input{Tree: res.Tree, Checker: res.Checker, Dir: env.Dir}, fs.Args())
+	out, err := Run(ctx, r, &Input{Tree: res.Tree, Checker: res.Checker, Dir: env.Dir, Options: map[string]string{"pack": *pack}}, targets)
 	if out != nil {
 		for _, w := range out.Written {
 			fmt.Fprintln(env.Stdout, "wrote", w)
