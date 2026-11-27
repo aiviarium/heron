@@ -529,6 +529,8 @@ func tsValue(v any, indent string) string {
 			parts = append(parts, tsValue(x, indent))
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
+	case tsRaw:
+		return string(v)
 	}
 	return compact(v)
 }

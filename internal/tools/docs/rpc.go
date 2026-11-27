@@ -1189,8 +1189,7 @@ func framed(j *rpc.JSONAPI, body string, server string) string {
 // where a browser can make the call.
 func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
 	if b == bindSparrow {
-		// Sparrow's examples and Try it are left to its own tools.
-		return ""
+		return c.sparrowAside(o, bs)
 	}
 	s := c.Site
 	m := s.rpc()
@@ -1475,6 +1474,281 @@ func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
 	}
 	w.WriteString(`</div>`)
 	return w.String()
+}
+
+// tsRaw is TS source a snippet writes as it is, such as a Date.
+type tsRaw string
+
+// sparrowValue is a Heron value as Sparrow's TS codec takes it: a struct
+// as an object by field name, a timestamp as a Date, the rest as written.
+func sparrowValue(r rpc.SparrowRef, v any) any {
+	switch r.Kind {
+	case schema.RefList, schema.RefOptional, schema.RefStream:
+		if r.Elem == nil {
+			return v
+		}
+		if l, ok := v.([]any); ok && r.Kind != schema.RefOptional {
+			out := make([]any, len(l))
+			for i, x := range l {
+				out[i] = sparrowValue(*r.Elem, x)
+			}
+			return out
+		}
+		return sparrowValue(*r.Elem, v)
+	case schema.RefNamed:
+		if r.Type == nil {
+			if t, ok := v.(string); ok && r.Builtin == schema.TypeTimestamp {
+				return tsRaw("new Date(" + strconv.Quote(t) + ")")
+			}
+			return v
+		}
+		t := r.Type
+		m, ok := v.(*omap)
+		if !ok || t.Builtin {
+			return v
+		}
+		if t.Kind == schema.KindUnion && len(m.keys) == 1 {
+			for _, f := range t.Fields {
+				if f.Name == m.keys[0] {
+					out := &omap{}
+					out.set("variant", f.Name)
+					out.set("value", sparrowValue(f.Type, m.vals[f.Name]))
+					return out
+				}
+			}
+		}
+		if t.Kind != schema.KindStruct {
+			return v
+		}
+		out := &omap{}
+		for _, k := range m.keys {
+			nv := m.vals[k]
+			for _, f := range t.Fields {
+				if f.Name == k || f.Node != nil && f.Node.Name == k {
+					k, nv = f.Name, sparrowValue(f.Type, nv)
+					break
+				}
+			}
+			out.set(k, nv)
+		}
+		return out
+	}
+	return v
+}
+
+// sparrowInput is an example's input as a Sparrow method takes it: the
+// input struct by its fields, one value per item of a streamed input, or
+// nothing for unit.
+func sparrowInput(sm *rpc.SparrowMethod, o *opInfo, ex *opExample) (in any, items []any, has bool) {
+	if sm.Input.Kind == schema.RefStream {
+		for _, p := range o.params {
+			if p.typ.name != "Stream" {
+				continue
+			}
+			if l, ok := ex.values[p.name].([]any); ok {
+				for _, x := range l {
+					items = append(items, sparrowValue(sm.Input, x))
+				}
+			} else if v, ok := ex.values[p.name]; ok {
+				items = append(items, sparrowValue(sm.Input, v))
+			}
+		}
+		return nil, items, true
+	}
+	if sm.InputType == nil {
+		return nil, nil, false
+	}
+	m := &omap{}
+	for _, f := range sm.InputType.Fields {
+		if v, ok := ex.values[f.Name]; ok {
+			m.set(f.Name, sparrowValue(f.Type, v))
+		}
+	}
+	return m, nil, true
+}
+
+// sparrowTS is an example's call with Sparrow's TS session, over its
+// WebSocket binding: the method named as Service.method in the facet
+// named, so the session resolves both through the server's schema.
+func sparrowTS(sm *rpc.SparrowMethod, o *opInfo, ex *opExample, server string) string {
+	var b strings.Builder
+	b.WriteString(`import { Session } from "@aiviarium/sparrow";` + "\n")
+	b.WriteString(`import { connectWebSocket } from "@aiviarium/sparrow/websocket";` + "\n\n")
+	fmt.Fprintf(&b, "const session = await Session.connect(await connectWebSocket(%q));\n", wsURL(orBase(server)))
+	in, items, has := sparrowInput(sm, o, ex)
+	args := fmt.Sprintf("%q, %q", sm.Service.Facet.Name, sm.Service.Name+"."+sm.Name)
+	if sm.Input.Kind == schema.RefStream {
+		b.WriteString("async function* items() {\n")
+		for _, it := range items {
+			fmt.Fprintf(&b, "  yield %s;\n", tsValue(it, "  "))
+		}
+		b.WriteString("}\n")
+		args += ", items()"
+	} else if has {
+		args += ", " + tsValue(in, "")
+	}
+	switch {
+	case sm.Notification:
+		fmt.Fprintf(&b, "session.notify(%s);", args)
+	case sm.Output.Kind == schema.RefStream:
+		fmt.Fprintf(&b, "for await (const item of session.stream(%s)) {\n  console.log(item);\n}", args)
+	default:
+		fmt.Fprintf(&b, "const res = await session.call(%s);", args)
+	}
+	return b.String()
+}
+
+// wsURL is a server URL as Sparrow's WebSocket binding dials it: https as
+// wss, http as ws.
+func wsURL(u string) string {
+	switch {
+	case strings.HasPrefix(u, "https://"):
+		return "wss://" + strings.TrimPrefix(u, "https://")
+	case strings.HasPrefix(u, "http://"):
+		return "ws://" + strings.TrimPrefix(u, "http://")
+	}
+	return u
+}
+
+// sparrowError is the SparrowError an example's thrown error reads as: its
+// status, its message and its fields as a dynamic value of its struct.
+func sparrowError(sm *rpc.SparrowMethod, e *rpc.Error, thrown any) (string, *omap) {
+	status := "unknown"
+	if e != nil && e.Sparrow != "" {
+		status = e.Sparrow
+	} else if e != nil && e.SparrowSigil != nil {
+		status = e.SparrowSigil.Name
+	}
+	out := &omap{}
+	out.set("status", status)
+	out.set("message", errorMessage(e, thrown))
+	if e != nil {
+		for _, t := range sm.Service.Facet.Types {
+			if t.Node == e.Node && t.Node != nil {
+				d := &omap{}
+				d.set("type", json.Number(strconv.FormatUint(t.ID, 10)))
+				d.set("value", errorFields(thrown))
+				out.set("details", d)
+				break
+			}
+		}
+	}
+	return status, out
+}
+
+// sparrowAside writes the right column of an op's Sparrow part: each
+// example as a call of Sparrow's TS session, and what it answers. It
+// offers no Try it, which sends JSON over HTTP.
+func (c *Ctx) sparrowAside(o *opInfo, bs []string) string {
+	s := c.Site
+	sm := s.rpc().SparrowMethod(o.node)
+	if sm == nil {
+		return ""
+	}
+	server := s.serverOf(o.node)
+	hidden := ""
+	if len(bs) > 1 && bs[0] != bindSparrow {
+		hidden = " hidden"
+	}
+	list := []*opExample{}
+	for i := range o.examples {
+		list = append(list, &o.examples[i])
+	}
+	if len(list) == 0 {
+		list = []*opExample{o.skeletonExample(s)}
+	}
+	var w strings.Builder
+	w.WriteString(`<div class="examples rpc-examples" data-island="examples" data-binding="` + bindSparrow + `"` + hidden + `>`)
+	w.WriteString(`<div class="panel"><div class="panel-head"><div class="seg" role="tablist" aria-label="` + attr(label("docs.label.language")) + `">`)
+	w.WriteString(`<button type="button" role="tab" aria-selected="true" data-lang="ts">` + esc(label("docs.lang.ts")) + `</button></div>`)
+	name := func(ex *opExample) string {
+		if ex.node == nil {
+			return ""
+		}
+		return displayName(s, ex.node)
+	}
+	if len(list) > 1 {
+		w.WriteString(`<select class="picker" aria-label="` + attr(label("docs.label.example")) + `">`)
+		for i, ex := range list {
+			w.WriteString(`<option value="` + strconv.Itoa(i) + `">` + esc(name(ex)) + `</option>`)
+		}
+		w.WriteString(`</select>`)
+	} else if nm := name(list[0]); nm != "" {
+		w.WriteString(`<span class="picker-one">` + esc(nm) + `</span>`)
+	}
+	w.WriteString(`</div>`)
+	for i, ex := range list {
+		hid := ""
+		if i > 0 {
+			hid = " hidden"
+		}
+		id := ""
+		if ex.node != nil && bs[0] == bindSparrow {
+			id = ` id="` + attr(Anchor(ex.node)) + `"`
+		}
+		w.WriteString(`<div class="ex"` + id + ` data-example="` + strconv.Itoa(i) + `"` + hid + `>`)
+		w.WriteString(`<div class="lang" data-lang="ts"><pre><code>` + highlightSnippet("ts", sparrowTS(sm, o, ex, server)) + `</code></pre></div>`)
+		w.WriteString(`</div>`)
+	}
+	w.WriteString(`<div class="panel-foot"><button type="button" class="icon-btn copy" data-island="copy" aria-label="` + attr(label("docs.action.copy")) + `">` + iconCopy + `</button></div></div>`)
+	// What each answers.
+	w.WriteString(`<div class="panel response-panel">`)
+	for i, ex := range list {
+		hid := ""
+		if i > 0 {
+			hid = " hidden"
+		}
+		w.WriteString(`<div class="ex" data-example="` + strconv.Itoa(i) + `"` + hid + `>`)
+		switch {
+		case sm.Notification:
+			w.WriteString(`<div class="panel-head"><span class="label">` + esc(label("docs.label.response")) + `</span><span class="mark">` + esc(label("docs.kind.notification")) + `</span></div>`)
+			w.WriteString(`<p class="note">` + esc(label("docs.note.notification")) + `</p>`)
+		case ex.throws != nil:
+			st, body := sparrowError(sm, errorFor(sm.Errors, s.thrownBy(o, ex.node)), ex.thrown)
+			w.WriteString(`<div class="panel-head"><span class="label">` + esc(label("docs.label.status")) + `</span><code class="status err">` + esc(st) + `</code></div>`)
+			w.WriteString(`<pre><code>` + highlightJSON(pretty(body)) + `</code></pre>`)
+		case ex.hasRet:
+			out := sparrowValue(sm.Output, ex.returns)
+			w.WriteString(`<div class="panel-head"><span class="label">` + esc(label("docs.label.response")) + `</span><code class="status ok">ok</code>`)
+			if l, ok := out.([]any); ok && sm.Output.Kind == schema.RefStream {
+				w.WriteString(`<span class="mark">` + esc(label("docs.direction.server")) + `</span></div><ol class="rpc-seq">`)
+				for _, r := range l {
+					w.WriteString(`<li><pre><code>` + highlightJSON(pretty(jsonOf(r))) + `</code></pre></li>`)
+				}
+				w.WriteString(`</ol>`)
+			} else {
+				w.WriteString(`</div><pre><code>` + highlightJSON(pretty(jsonOf(out))) + `</code></pre>`)
+			}
+		}
+		w.WriteString(`</div>`)
+	}
+	w.WriteString(`</div></div>`)
+	return w.String()
+}
+
+// jsonOf is a value as JSON shows it, a Date as its time.
+func jsonOf(v any) any {
+	switch x := v.(type) {
+	case tsRaw:
+		t := strings.TrimSuffix(strings.TrimPrefix(string(x), "new Date("), ")")
+		if u, err := strconv.Unquote(t); err == nil {
+			return u
+		}
+		return string(x)
+	case *omap:
+		out := &omap{}
+		for _, k := range x.keys {
+			out.set(k, jsonOf(x.vals[k]))
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = jsonOf(e)
+		}
+		return out
+	}
+	return v
 }
 
 // thrownBy is the error an op example throws.

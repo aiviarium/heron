@@ -1,6 +1,6 @@
 package rpc
 
-// The Sparrow RPC binding of std/sparrow: an api with @sparrow is a
+// The Sparrow binding of std/sparrow: an api with @sparrow is a
 // service of a facet, its ops are the facet's methods, and the types they
 // reach are the facet's type definitions, numbered so a payload is read by
 // numbers alone. The facets are built with the reference library's schema
@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aiviarium/sparrow/go/cbor"
 	"github.com/aiviarium/sparrow/go/names"
 	"github.com/aiviarium/sparrow/go/schema"
 	"github.com/aiviarium/sparrow/go/status"
@@ -364,6 +365,17 @@ func (m *Model) SparrowTypeOf(n *resolve.Node) *SparrowType {
 
 var sparrowVersion = regexp.MustCompile(`^[0-9]+(\.[0-9]+)*([-+][0-9A-Za-z.+-]*)?$`)
 
+// idTooLarge reports an id, tag, TypeId or sigil above 2^53 - 1, the
+// largest integer a Sparrow message defines itself (core 3.1): a facet's
+// numbers all travel in its schema.
+func (m *Model) idTooLarge(n int64, s resolve.Site, what, name string) bool {
+	if n <= cbor.MaxSafeInt {
+		return false
+	}
+	m.errorf(s, "sparrow-id", "%d can't be the %s of %s: a Sparrow message holds no integer above 2^53 - 1", n, what, name)
+	return true
+}
+
 // intArg reads an integer argument of an annotation.
 func intArg(a ast.Annotation, index int, name string) (int64, bool) {
 	e := arg(a, index, name)
@@ -450,6 +462,7 @@ func (m *Model) buildSparrow(api *resolve.Node) {
 		switch {
 		case n < int64(schema.FirstFreeFacetID):
 			m.errorf(s, "sparrow-id", "%d can't be the id of facet %s: 0 to 15 are Sparrow's own", n, name)
+		case m.idTooLarge(n, s, "id", "facet "+name):
 		case f.explicitID && f.ID != uint64(n):
 			m.errorf(s, "sparrow-id", "%s gives facet %s the id %d, which it already has as %d", api.Name, name, n, f.ID)
 		default:
@@ -460,6 +473,9 @@ func (m *Model) buildSparrow(api *resolve.Node) {
 		for i, space := range []string{"types", "services", "methods", "sigils"} {
 			for _, n := range intList(arg(a.a, -1, space)) {
 				rt := schema.Retired{Space: schema.Space(i), ID: uint64(n)}
+				if m.idTooLarge(n, a.site, "retired id", "facet "+name) {
+					continue
+				}
 				if n >= 0 && !f.retired[rt] {
 					f.retired[rt] = true
 					f.Retired = append(f.Retired, rt)
@@ -475,7 +491,7 @@ func (m *Model) buildSparrow(api *resolve.Node) {
 		s := siteOf(sa.site, arg(sa.a, -1, "id").Syntax())
 		if n < 0 {
 			m.errorf(s, "sparrow-id", "%d can't be the id of service %s: ids can't be negative", n, svc.Name)
-		} else {
+		} else if !m.idTooLarge(n, s, "id", "service "+svc.Name) {
 			svc.ID, svc.explicit, svc.idSite = uint64(n), true, s
 		}
 	}
@@ -508,7 +524,7 @@ func (m *Model) buildSparrow(api *resolve.Node) {
 				s := siteOf(a.site, arg(a.a, -1, "id").Syntax())
 				if n < 0 {
 					m.errorf(s, "sparrow-id", "%d can't be the id of method %s: ids can't be negative", n, meth.Name)
-				} else {
+				} else if !m.idTooLarge(n, s, "id", "method "+meth.Name) {
 					meth.ID, meth.explicit, meth.idSite = uint64(n), true, s
 				}
 			}
@@ -677,6 +693,8 @@ func (m *Model) sparrowTags(owner string, fs []tagField, reserved map[int64]bool
 		case f.n < 0:
 			m.errorf(at, "sparrow-id", "%d can't tag %s: tags start at 0", f.n, f.name)
 			fs[i].n = 0
+		case m.idTooLarge(f.n, at, "tag", f.name):
+			fs[i].n = 0
 		case reserved[f.n]:
 			m.errorf(at, "sparrow-id", "%s has tag %d, which %s reserves", f.name, f.n, owner)
 		case seen[f.n] != "":
@@ -807,6 +825,8 @@ func (m *Model) typeID(t *SparrowType, d *resolve.Node, generic bool) {
 			if n < int64(schema.FirstFreeTypeID) {
 				m.errorf(a.site, "sparrow-id", "%d can't be the TypeId of %s: a facet's own types start at 64", n, d.Name)
 				t.explicit = false
+			} else if m.idTooLarge(n, a.site, "TypeId", d.Name) {
+				t.ID, t.explicit = 0, false
 			}
 		}
 	}
@@ -978,6 +998,9 @@ func (m *Model) sigilID(s *SparrowSigil, n *resolve.Node) {
 	}
 	if v < int64(schema.FirstFreeSigil) {
 		m.errorf(a.site, "sparrow-id", "%d can't be the sigil of %s: a facet's own sigils start at 64", v, n.Name)
+		return
+	}
+	if m.idTooLarge(v, a.site, "sigil", n.Name) {
 		return
 	}
 	s.ID, s.explicit, s.idSite = uint64(v), true, a.site

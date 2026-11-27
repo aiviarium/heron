@@ -342,6 +342,11 @@ rpc_bindings: section {
   proves(heron.tools.frontend.screens.op_page.examples.rpc_example_forms) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
+    verify("internal/tools/docs/rpc_test.go", test = "TestSparrowExamples")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.examples.sparrow_no_try_it) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestSparrowExamples")
   }
 
   proves(heron.tools.frontend.screens.op_page.examples.rpc_try_it) {
@@ -490,6 +495,10 @@ rpc_bindings: section {
     verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
   }
 
+  proves(heron.language.apis.sparrow.numbering.id_bound) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
   proves(heron.language.apis.sparrow.numbering.reserved_tags) {
     verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
   }
@@ -522,6 +531,10 @@ rpc_bindings: section {
   }
 
   proves(heron.language.apis.sparrow.status_codes.code_or_sigil) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.sparrow_id_overflow) {
     verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
   }
 

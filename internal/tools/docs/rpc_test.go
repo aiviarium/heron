@@ -3,6 +3,7 @@ package docs
 import (
 	"context"
 	"encoding/json"
+	"html"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -162,7 +163,6 @@ func TestSparrowBinding(t *testing.T) {
 	mustHave(t, "create_label", f["parcels.create_label.html"], `<code class="status err" title="Sigil">InvalidAddress</code> <code class="status-code">80</code>`)
 	nav := f["parcels.navigate.html"]
 	mustHave(t, "navigate", nav, `<span class="tk-kw">stream</span> <a href="#parcels.navigate.sparrow.input"`, `<code>input_end</code> <code>output_end</code>`)
-	mustNotHave(t, "navigate", nav, `data-binding="sparrow" hidden data-island="examples"`)
 	api := f["parcels.html"]
 	mustHave(t, "parcels", api,
 		`data-binding-tab="sparrow">Sparrow</button>`,
@@ -170,6 +170,36 @@ func TestSparrowBinding(t *testing.T) {
 		`<dt>Service</dt><dd><code>Parcels</code> <span class="mark">Service id <code>0</code></span></dd>`, `<dt>Facet hash</dt><dd><code class="rpc-hash" title="01`,
 		`<code class="rpc-sig-line">4 navigate(stream&lt;Position&gt;) <span class="tk-kw">returns</span> (stream&lt;Instruction&gt;)</code>`,
 	)
+}
+
+// A Sparrow method's examples are calls of Sparrow's TS session over its
+// WebSocket binding, by facet and Service.method name, with what each
+// answers: the result, a stream's items in order, or the SparrowError's
+// status, message and details; and no Try it.
+func TestSparrowExamples(t *testing.T) {
+	f := parcelPages(t)
+	aside := func(page string) string {
+		h := f[page]
+		i := strings.Index(h, `data-island="examples" data-binding="sparrow"`)
+		if i < 0 {
+			t.Fatalf("%s: no Sparrow examples", page)
+		}
+		h = h[i:]
+		if j := strings.Index(h, "</aside>"); j > 0 {
+			h = h[:j]
+		}
+		return html.UnescapeString(regexp.MustCompile(`<[^>]*>`).ReplaceAllString(h, ""))
+	}
+	get := aside("parcels.get_parcel.html")
+	mustHave(t, "get_parcel", get,
+		`import { connectWebSocket } from "@aiviarium/sparrow/websocket";`,
+		`await Session.connect(await connectWebSocket("wss://parcels.example.com"))`,
+		`await session.call("acme.parcels", "Parcels.getParcel", {`, `"variant": "locker"`,
+		`"status": "not_found"`, `"type": 69`,
+	)
+	mustNotHave(t, "get_parcel", get, "Try it")
+	mustHave(t, "watch_parcel", aside("parcels.watch_parcel.html"), `for await (const item of session.stream("acme.parcels", "Parcels.watchParcel", {`, "Server to client")
+	mustHave(t, "upload_scans", aside("parcels.upload_scans.html"), "async function* items() {", `await session.call("acme.parcels", "Parcels.uploadScans", items());`)
 }
 
 // A message's type page shows its .proto definition and its JSON form

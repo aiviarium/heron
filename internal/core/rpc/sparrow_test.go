@@ -343,6 +343,12 @@ func TestSparrowDiagnostics(t *testing.T) {
 		"@sparrow\nx: api {\n  a(t: P(String)): op\n}\n@id(70)\nP(X: Any): type {\n  a: X\n}\n":                                                  "P is generic",
 		"@sparrow\nx: api {\n  a(e: E): op\n}\nE: enum {\n  @sigil(64)\n  A: Self\n  B: Self\n}\n":                                               "E gives some values a @sigil and not B",
 		"@sparrow\nx: api {\n  a(e: E): op\n}\nE: enum {\n  @sigil(5)\n  A: Self\n}\n":                                                           "5 can't be the sigil of A",
+		"@sparrow(facet_id = 9007199254740992)\nx: api {\n  a(): op\n}\n":                                                                        "9007199254740992 can't be the id of facet x: a Sparrow message holds no integer above 2^53 - 1",
+		"@sparrow\nx: api {\n  @sparrow(id = 9007199254740992)\n  a(): op\n}\n":                                                                  "9007199254740992 can't be the id of method a: a Sparrow message holds no integer above 2^53 - 1",
+		"@sparrow\nx: api {\n  a(t: T): op\n}\nT: type {\n  @tag(9007199254740992)\n  a: String\n}\n":                                            "9007199254740992 can't be the tag of a: a Sparrow message holds no integer above 2^53 - 1",
+		"@sparrow\nx: api {\n  a(t: T): op\n}\n@id(9007199254740992)\nT: type {\n  a: String\n}\n":                                               "9007199254740992 can't be the TypeId of T: a Sparrow message holds no integer above 2^53 - 1",
+		"@sparrow\nx: api {\n  a(e: E): op\n}\nE: enum {\n  @sigil(9007199254740992)\n  A: Self\n}\n":                                            "9007199254740992 can't be the sigil of A: a Sparrow message holds no integer above 2^53 - 1",
+		"@sparrow\n@retired(types = [9007199254740992])\nx: api {\n  a(): op\n}\n":                                                               "9007199254740992 can't be the retired id of facet x: a Sparrow message holds no integer above 2^53 - 1",
 		"@sparrow\nx: api {\n  a(t: String | Int): op\n}\n":                                                                                      "has no Sparrow form: a union expression other than T | Null",
 		"@sparrow\nx: api {\n  @throws(E)\n  a(): op(String)\n}\n@sparrow.code(not_found)\n@sigil(70)\nE: type(Error) {\n  message: String\n}\n": "E has a core code, @sparrow.code(not_found), and a sigil of its own",
 	} {
