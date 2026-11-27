@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aiviarium/sparrow-rpc/go/cbor"
-	"github.com/aiviarium/sparrow-rpc/go/schema"
-	"github.com/aiviarium/sparrow-rpc/go/transport/pipe"
-	"github.com/aiviarium/sparrow-rpc/go/value"
-	"github.com/aiviarium/sparrow-rpc/go/wire"
+	"github.com/aiviarium/sparrow/go/cbor"
+	"github.com/aiviarium/sparrow/go/schema"
+	"github.com/aiviarium/sparrow/go/transport/pipe"
+	"github.com/aiviarium/sparrow/go/value"
+	"github.com/aiviarium/sparrow/go/wire"
 )
 
 // pair connects heron's side, serving host, to an extension's side,
@@ -36,10 +36,10 @@ func pairWith(t *testing.T, hopts, eopts Options) (*Conn, *Conn) {
 	}
 	hc := make(chan res, 1)
 	go func() {
-		c, err := Accept(ctx, pipe.New(a), hopts)
+		c, err := Accept(ctx, pipe.New(a, nil), hopts)
 		hc <- res{c, err}
 	}()
-	e, err := Dial(ctx, pipe.New(b), eopts)
+	e, err := Dial(ctx, pipe.New(b, nil), eopts)
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
@@ -394,10 +394,10 @@ func TestClosedConnectionFailsCallsInFlight(t *testing.T) {
 	ctx := context.Background()
 	hc := make(chan *Conn, 1)
 	go func() {
-		c, _ := Accept(ctx, pipe.New(a), Options{Handlers: host})
+		c, _ := Accept(ctx, pipe.New(a, nil), Options{Handlers: host})
 		hc <- c
 	}()
-	e, err := Dial(ctx, pipe.New(b), Options{})
+	e, err := Dial(ctx, pipe.New(b, nil), Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -489,7 +489,7 @@ func TestUnreadableMessage(t *testing.T) {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if _, err := Accept(ctx, pipe.New(a), Options{HandshakeTimeout: 2 * time.Second}); err == nil {
+	if _, err := Accept(ctx, pipe.New(a, nil), Options{HandshakeTimeout: 2 * time.Second}); err == nil {
 		t.Fatal("accepted a peer that sent no Hello")
 	}
 }

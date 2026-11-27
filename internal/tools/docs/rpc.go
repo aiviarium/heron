@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aiviarium/sparrow-rpc/go/schema"
+	"github.com/aiviarium/sparrow/go/schema"
 
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/rpc"

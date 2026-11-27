@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aiviarium/sparrow-rpc/go/schema"
+	"github.com/aiviarium/sparrow/go/schema"
 
 	"github.com/aiviarium/heron/internal/core/rpc"
 )

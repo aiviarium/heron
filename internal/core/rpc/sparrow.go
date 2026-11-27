@@ -17,9 +17,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aiviarium/sparrow-rpc/go/names"
-	"github.com/aiviarium/sparrow-rpc/go/schema"
-	"github.com/aiviarium/sparrow-rpc/go/status"
+	"github.com/aiviarium/sparrow/go/names"
+	"github.com/aiviarium/sparrow/go/schema"
+	"github.com/aiviarium/sparrow/go/status"
 
 	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/project"

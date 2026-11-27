@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aiviarium/sparrow-rpc/go/cbor"
-	"github.com/aiviarium/sparrow-rpc/go/schema"
-	"github.com/aiviarium/sparrow-rpc/go/session"
-	"github.com/aiviarium/sparrow-rpc/go/status"
-	"github.com/aiviarium/sparrow-rpc/go/transport"
-	"github.com/aiviarium/sparrow-rpc/go/value"
-	"github.com/aiviarium/sparrow-rpc/go/wire"
+	"github.com/aiviarium/sparrow/go/cbor"
+	"github.com/aiviarium/sparrow/go/schema"
+	"github.com/aiviarium/sparrow/go/session"
+	"github.com/aiviarium/sparrow/go/status"
+	"github.com/aiviarium/sparrow/go/transport"
+	"github.com/aiviarium/sparrow/go/value"
+	"github.com/aiviarium/sparrow/go/wire"
 )
 
 // Error is a failed call: what a handler returns to answer with Sparrow's
@@ -187,7 +187,7 @@ func Accept(ctx context.Context, conn transport.Conn, opts Options) (*Conn, erro
 }
 
 // Dial runs an extension's side of a session on conn, such as
-// pipe.Stdio(): it publishes heron.extension in Hello and calls heron.host.
+// pipe.Stdio(nil): it publishes heron.extension in Hello and calls heron.host.
 func Dial(ctx context.Context, conn transport.Conn, opts Options) (*Conn, error) {
 	return open(ctx, conn, opts, wire.Client)
 }

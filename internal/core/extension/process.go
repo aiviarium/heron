@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/aiviarium/heron/internal/core/extension/protocol"
-	"github.com/aiviarium/sparrow-rpc/go/transport/pipe"
+	"github.com/aiviarium/sparrow/go/transport/pipe"
 )
 
 // Process is one supervised extension process: started on first use,
@@ -179,7 +179,7 @@ func (p *Process) start(ctx context.Context) (*protocol.Conn, *protocol.Initiali
 	// (the pipe binding); heron answers its Hello.
 	hctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	conn, err := protocol.Accept(hctx, pipe.NewSplit(stdout, stdin), opts)
+	conn, err := protocol.Accept(hctx, pipe.NewSplit(stdout, stdin, nil), opts)
 	if err != nil {
 		cmd.Process.Kill()
 		return nil, nil, ForeignError("%s: the handshake failed: %v", p.Spec.Name, err)

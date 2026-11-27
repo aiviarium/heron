@@ -27,7 +27,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
-	"github.com/aiviarium/sparrow-rpc/go/schema"
+	"github.com/aiviarium/sparrow/go/schema"
 )
 
 // typeRef is a type as written: List(Node), String?.
@@ -500,7 +500,7 @@ func (p *proto) facets() ([]facetDef, error) {
 		td := schema.TypeDef{Kind: schema.KindEnum, ID: typeID[e.name], Name: e.name, Values: sigils[e.name], Annotations: schema.Annotations{}}
 		defs[e.name] = td
 		for i, v := range e.variants {
-			sigilDefs[e.name] = append(sigilDefs[e.name], schema.Sigil{ID: sigils[e.name][i], Name: v, Kind: schema.SigilEnumValue, Annotations: schema.Annotations{}})
+			sigilDefs[e.name] = append(sigilDefs[e.name], schema.Sigil{ID: sigils[e.name][i], Name: e.name + "." + v, Kind: schema.SigilEnumValue, Annotations: schema.Annotations{}})
 		}
 	}
 	byID := map[uint64]string{}
