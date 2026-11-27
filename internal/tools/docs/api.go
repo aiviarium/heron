@@ -148,9 +148,7 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 		if s.kindPath(t) == "spec.error" {
 			// An error node: its HTTP status and id are its projection.
 			e.code, _ = argString(kindArgs(t), 0, "id")
-			if st := namedArg(kindArgs(t), "status"); st != nil {
-				e.status = strings.TrimSpace(st.Syntax().Text())
-			}
+			e.status = annText(t, "status")
 		} else if a := annotation(s, t, "status"); a != nil {
 			if es := argExprs(a.Args()); len(es) > 0 {
 				e.status = strings.TrimSpace(es[0].Syntax().Text())

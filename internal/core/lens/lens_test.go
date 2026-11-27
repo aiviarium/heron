@@ -41,7 +41,8 @@ intro: section {
   @lens(user)
   | Only users read this.
 
-  r: rule(intro) {
+  @targets(intro)
+  r: rule {
     must {{ do things }}
   }
 
@@ -230,7 +231,7 @@ func TestModes(t *testing.T) {
 func TestAuthoredExamplesCheck(t *testing.T) {
 	for _, c := range []struct{ code, want string }{
 		{"a: section {", "the example intro.start.ok doesn't check: expected `}` (line 3)"},
-		{"a: rule(b) {}", "the example intro.start.ok doesn't check: unknown kind or type rule"},
+		{"a: rule {}", "the example intro.start.ok doesn't check: unknown kind or type rule"},
 	} {
 		res := checkSrc(t, strings.Replace(withLenses("lenses = [user, explore]"), "a: section {}", c.code, 1))
 		if !strings.Contains(messages(res), c.want) {

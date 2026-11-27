@@ -307,6 +307,9 @@ func (c *Checker) declared(n *resolve.Node) {
 	}
 	c.nameFlags(n)
 	c.params(params, n.Body, d.File)
+	if c.IsKind(n) || c.IsAnnotation(n) {
+		c.paramOrder(n)
+	}
 	m := c.metaOf(n)
 	nt, isNamed := tt.(ast.NamedType)
 	if !isNamed {
@@ -964,4 +967,21 @@ func distance(a, b string) int {
 		prev = cur
 	}
 	return prev[len(b)]
+}
+
+// paramOrder reports a kind's or an annotation's required parameter that
+// follows an optional or a variadic one: required parameters come first,
+// so a node can always give them positionally.
+func (c *Checker) paramOrder(n *resolve.Node) {
+	loose := ""
+	for _, p := range c.Params(n) {
+		switch {
+		case p.Optional || p.Variadic:
+			if loose == "" {
+				loose = p.Name
+			}
+		case loose != "":
+			c.errorf(n.Decl.File, p.N, "param-order", "required parameter %s follows %s; declare required parameters first", p.Name, loose)
+		}
+	}
 }

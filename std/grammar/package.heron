@@ -4,9 +4,9 @@
 import = ["std/schema@1", "std/types@1", "std/doc@1", "std/spec@1"]
 
 grammar: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
-  /// A language's grammar: its productions and tokens. `source` is a file
-  /// the grammar is kept equal to.
-  grammar(notation?: String, source?: String): kind(in = [block], layer = Layer.CONTRACT) {
+  /// A language's grammar: its productions and tokens. std/spec's
+  /// `@source` names a file the grammar is kept equal to.
+  grammar(notation?: String): kind(in = [block], layer = Layer.CONTRACT) {
     /// The production a whole input is read as.
     start?: Ref(production)
     accept(prose)

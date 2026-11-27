@@ -65,19 +65,7 @@ func (c *Checker) element(n *resolve.Node) {
 	if c.acceptsMode(k, "code") && !c.acceptsMode(k, "prose") {
 		c.errorf(file, p, "element-code", "<%s>'s body is code; write it in a .heron file", strings.Join(segs, "."))
 	}
-	// `@name="…"` reads as written where the annotation takes no string.
-	n.Annotations = resolve.ElementAnnotations(file, n.Decl.N, sc, func(name string) bool {
-		d := c.lookupPath(sc, file, -1, []string{name}, c.IsAnnotation)
-		if d == nil {
-			return false
-		}
-		ps := c.Params(d)
-		if len(ps) == 0 {
-			return true
-		}
-		t := ps[0].Type.decl
-		return !(resolve.IsBuiltin(t) && (t.Name == "String" || t.Name == "Prose"))
-	})
+	n.Annotations = c.elementAnnotations(n)
 	params := c.KindParams(k, n)
 	n.ElementArgs = c.elementArgs(tag, params, sc, file)
 	c.args(n.ElementArgs, params, "<"+k.Name+">", sc, file, true)
@@ -98,6 +86,52 @@ func (c *Checker) element(n *resolve.Node) {
 	}
 }
 
+// elementAnnotations reads an element's `@name="…"` attributes as its
+// annotations: as written where the annotation takes no string, as
+// `@by="desk"` names desk, and as one string where it takes one.
+func (c *Checker) elementAnnotations(n *resolve.Node) []resolve.Site {
+	file, sc := n.Decl.File, n.Decl.Scope
+	params := func(name string) []Param {
+		if d := c.lookupPath(sc, file, -1, []string{name}, c.IsAnnotation); d != nil {
+			return c.Params(d)
+		}
+		return nil
+	}
+	raw := func(name string) bool {
+		d := c.lookupPath(sc, file, -1, []string{name}, c.IsAnnotation)
+		if d == nil {
+			return false
+		}
+		ps := c.Params(d)
+		if len(ps) == 0 {
+			return true
+		}
+		t := ps[0].Type.decl
+		return !(resolve.IsBuiltin(t) && (t.Name == "String" || t.Name == "Prose"))
+	}
+	// A reference reaches what a link of the same text would, as a
+	// quoted attribute of a kind does.
+	rewrite := func(name, args string) string {
+		ps := params(name)
+		if len(ps) == 0 {
+			return args
+		}
+		parts := strings.Split(args, ",")
+		for i, part := range parts {
+			p := ps[min(i, len(ps)-1)]
+			v := strings.TrimSpace(part)
+			if !c.refParam(p.Type) || !pathText.MatchString(v) {
+				continue
+			}
+			if r := c.reachable(v, sc, file); r != v {
+				parts[i] = strings.Replace(part, v, r, 1)
+			}
+		}
+		return strings.Join(parts, ",")
+	}
+	return resolve.ElementAnnotationsWith(file, n.Decl.N, sc, raw, rewrite)
+}
+
 // ElementArgs reads the attributes of a tree's kind elements as their
 // kinds' arguments, where no check has read them yet, as for nodes whose
 // diagnostics came from a memo. It changes the tree's own nodes only,
@@ -114,14 +148,15 @@ func (c *Checker) ElementArgs(t *resolve.Tree) {
 		}
 		if k := c.metaOf(n).decl; k != nil {
 			n.ElementArgs = c.elementArgs(ast.Tag{N: n.Decl.N}, c.KindParams(k, n), n.Decl.Scope, n.Decl.File)
+			n.Annotations = c.elementAnnotations(n)
 		}
 	})
 }
 
 // PackageBuilt completes a package as it's built, before any tree imports
 // it: its kind elements' attributes are read as their kinds' arguments,
-// so a requirement written as an element has its targets and `by`
-// wherever it's read, and the package's nodes stay unchanged after.
+// and its `@name` attributes as its annotations, so a requirement written
+// as an element has its `@targets` and `@by` wherever it's read, and the package's nodes stay unchanged after.
 func PackageBuilt(p *resolve.Package) {
 	if p.Tree == nil {
 		return

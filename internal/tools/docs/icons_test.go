@@ -20,7 +20,8 @@ area: section {
   part: section {
     | A part.
 
-    holds: rule(area) {
+    @targets(area)
+    holds: rule {
       must {{ hold }}
     }
 

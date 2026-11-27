@@ -51,7 +51,7 @@ func (s *Site) childrenOfKind(n *resolve.Node, kind string) []*resolve.Node {
 	return out
 }
 
-// subject is who a requirement binds: the node its `by` names, as "the
+// subject is who a requirement binds: the node its `@by` names, as "the
 // parser", the type a rule on a type is about, or the system.
 func (s *Site) subject(n *resolve.Node) string {
 	if by := s.ruleBy(n); by != nil {
@@ -87,13 +87,8 @@ func (s *Site) subject(n *resolve.Node) string {
 	return esc(label("docs.rule.subject"))
 }
 
-// ruleBy is the node a rule's `by` names, or nil.
-func (s *Site) ruleBy(n *resolve.Node) *resolve.Node {
-	if e := namedArg(kindArgs(n), "by"); e != nil {
-		return s.refTarget(e.Syntax(), n.Decl)
-	}
-	return nil
-}
+// ruleBy is the node a rule's or an error's `@by` names, or nil.
+func (s *Site) ruleBy(n *resolve.Node) *resolve.Node { return s.annRef(n, "by") }
 
 // personSubject reports whether a requirement's subject is an actor or a
 // persona: a person, whose behaviour no test proves.
@@ -312,7 +307,7 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 		parts = append(parts, `<code class="meta-strength">`+esc(st)+`</code>`)
 	}
 	for _, l := range []struct{ arg, key string }{{"serves", "docs.label.serves"}, {"derives", "docs.label.derives"}, {"relies", "docs.label.relies"}} {
-		if ts := s.argRefs(n, l.arg); len(ts) > 0 {
+		if ts := s.annRefs(n, l.arg); len(ts) > 0 {
 			parts = append(parts, esc(label(l.key))+` `+c.refLinks(ts))
 		}
 	}
@@ -325,10 +320,11 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 // ruleRest writes what follows a requirement's paragraph: its prose and
 // what verifies it.
 func (c *Ctx) ruleRest(n *resolve.Node) {
-	for _, arg := range []struct{ name, key string }{{"rationale", "docs.label.rationale"}, {"reason", "docs.label.reason"}} {
-		if v, ok := argString(kindArgs(n), -1, arg.name); ok && v != "" {
-			c.W(`<p class="rationale"><span class="field-label">`, esc(label(arg.key)), `</span> `, esc(v), `</p>`)
-		}
+	if v, ok := annString(n, "rationale"); ok && v != "" {
+		c.W(`<p class="rationale"><span class="field-label">`, esc(label("docs.label.rationale")), `</span> `, esc(v), `</p>`)
+	}
+	if v, ok := argString(kindArgs(n), -1, "reason"); ok && v != "" {
+		c.W(`<p class="rationale"><span class="field-label">`, esc(label("docs.label.reason")), `</span> `, esc(v), `</p>`)
 	}
 	c.Prose(n)
 	if v := c.verifyList(n); v != "" {

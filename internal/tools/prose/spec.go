@@ -120,16 +120,11 @@ func collect(t *resolve.Tree, c *types.Checker) *specFacts {
 		isQuality[q] = true
 	}
 	for _, r := range rules {
-		e := project.NamedArg(project.KindArgs(r), "serves")
-		if e == nil {
-			continue
-		}
-		e.Syntax().Walk(func(m *syntax.Node) bool {
-			if m.Kind == syntax.Path && isQuality[c.Refs[m]] {
+		for _, g := range project.AnnotationRefs(c, r, "serves") {
+			if isQuality[g] {
 				f.measured[r] = true
 			}
-			return true
-		})
+		}
 	}
 	sort.Slice(f.terms, func(i, j int) bool { return f.terms[i].path < f.terms[j].path })
 	return f

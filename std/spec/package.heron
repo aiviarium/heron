@@ -3,7 +3,7 @@
 // must hold of it from outside) and the contract (the exact surface a
 // consumer relies on), with the links between them, projects, lifecycles
 // and planning. It holds what std/product and std/tech held.
-import = ["std/schema@1", "std/types@1", "std/doc@1"]
+import = ["std/schema@1", "std/types@1", "std/doc@1", "std/project@1", "std/grammar@1"]
 
 spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Projects ---
@@ -83,10 +83,10 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// What a product is for, in the words of the people it's for, with an
-  /// optional measure of success and who asked for it. Validated, never
-  /// proven by a test.
+  /// optional measure of success; `@source` names who asked for it.
+  /// Validated, never proven by a test.
   @icon("target")
-  goal(measure?: String, source?: String): kind(in = [block], layer = Layer.INTENT) {
+  goal(measure?: String): kind(in = [block], layer = Layer.INTENT) {
     accept(prose)
   }
 
@@ -123,20 +123,13 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   // --- Specification ---
 
-  /// One behaviour in one strength node, and when it applies. `by` names
-  /// whose behaviour it states, an actor or a part; without it the subject
-  /// is the system. `serves` names the goals it's for, `derives` the rules
-  /// it's derived from, `relies` the assumptions it depends on.
+  /// One behaviour in one strength node, and when it applies. Its links
+  /// are annotations: `@by` names whose behaviour it states, an actor or a
+  /// part, and without it the subject is the system; `@targets` the terms
+  /// and nodes it constrains; `@serves` the goals it's for; `@derives` the
+  /// rules it's derived from; `@relies` the assumptions it depends on.
   @icon("scale")
-  rule(
-    targets<variadic>?: Ref(Any),
-    by?: Ref(Any),
-    serves?: List(Ref(Any)),
-    derives?: List(Ref(rule)),
-    relies?: List(Ref(assumption)),
-    rationale?: String,
-    rev?: Int,
-  ): kind(in = [block], layer = Layer.SPECIFICATION) {
+  rule: kind(in = [block], layer = Layer.SPECIFICATION) {
     accept(prose)
     accept(category = strength, max = 1)
     accept(kind = where, max = 1)
@@ -150,7 +143,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// A limit on the solution with a reason from outside it.
-  constraint(targets<variadic>?: Ref(Any), reason?: String, serves?: List(Ref(Any)), rev?: Int): kind(in = [block], layer = Layer.SPECIFICATION) {
+  constraint(reason?: String): kind(in = [block], layer = Layer.SPECIFICATION) {
     accept(prose)
     accept(category = strength, max = 1)
     accept(kind = where, max = 1)
@@ -228,7 +221,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// in given, when and then; or a quality scenario, with stimulus,
   /// environment, response and measure, serving a quality.
   @icon("list-checks")
-  scenario(illustrates?: Ref(Any), serves?: List(Ref(Any)), rev?: Int): kind(in = [block], layer = Layer.SPECIFICATION) {
+  scenario: kind(in = [block], layer = Layer.SPECIFICATION) {
     stimulus?: Prose
     environment?: Prose
     response?: Prose
@@ -251,18 +244,11 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     SUBFUNCTION: Self
   }
 
-  /// How an actor reaches one goal with the product: its body is the main
-  /// path as a numbered list and its extensions as items numbered `2a.`.
+  /// How its primary actor reaches one goal with the product: its body is
+  /// the main path as a numbered list and its extensions as items numbered
+  /// `2a.`.
   @icon("route")
-  usecase(
-    actor: Ref(actor),
-    serves?: List(Ref(Any)),
-    level?: UseCaseLevel,
-    success?: String,
-    minimal?: String,
-    relies?: List(Ref(assumption)),
-    rev?: Int,
-  ): kind(in = [block], layer = Layer.SPECIFICATION) {
+  usecase(actor: Ref(actor), level?: UseCaseLevel, success?: String, minimal?: String): kind(in = [block], layer = Layer.SPECIFICATION) {
     accept(prose)
   }
 
@@ -293,11 +279,51 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// The transitions an op may cause.
   performs(transitions<variadic>: Ref(transition)): annotation(on = [op])
 
-  // --- Contract ---
+  // --- Links ---
 
-  /// The rules, use cases, steps or extensions a contract entry, an error
-  /// or a project's component exists for.
-  realizes(targets<variadic>: Ref(Any)): annotation
+  /// The actor or part whose behaviour a rule states, or the part that
+  /// reports an error. Without it, the subject is the system.
+  by(subject: Ref(Any)): annotation(on = [rule, error])
+
+  /// The terms and nodes a requirement, a guidance or an open question is
+  /// about.
+  targets(targets<variadic>: Ref(Any)): annotation(on = [rule, constraint, guidance, open])
+
+  /// The goals or qualities a requirement, a scenario, a use case or a
+  /// story is for.
+  serves(goals<variadic>: Ref(Any)): annotation(on = [rule, constraint, scenario, usecase, project.story])
+
+  /// The rules a rule is derived from.
+  derives(rules<variadic>: Ref(rule)): annotation(on = [rule])
+
+  /// The assumptions a rule or a use case depends on.
+  relies(assumptions<variadic>: Ref(assumption)): annotation(on = [rule, usecase])
+
+  /// The one rule, or path of a use case, an outcome scenario is a case of.
+  illustrates(target: Ref(Any)): annotation(on = [scenario])
+
+  /// The outcome scenario an example pins down.
+  refines(scenario: Ref(scenario)): annotation(on = [example])
+
+  /// The rules, use cases, steps, extensions or parts a contract entry, an
+  /// error or a project's component exists for.
+  realizes(targets<variadic>: Ref(Any)): annotation(on = [types.api, types.op, types.type, types.enum, types.union, types.interface, error, command, argument, option, screen, region, grammar.grammar, grammar.production, grammar.token, project.component])
+
+  /// The revision of a requirement or contract entry, a whole number from
+  /// 1, raised when its meaning changes; on a proof, the revision it proves.
+  rev(n: Int): annotation(on = [rule, constraint, scenario, usecase, error, command, screen, project.proves])
+
+  /// Who asked for a goal or a constraint, or the file a grammar is kept
+  /// equal to.
+  source(text: String): annotation(on = [goal, constraint, grammar.grammar])
+
+  /// Why a rule or a constraint holds.
+  rationale(text: String): annotation(on = [rule, constraint])
+
+  /// Who answers an open question.
+  owner(name: String): annotation(on = [open])
+
+  // --- Contract ---
 
   /// How serious a diagnostic is, as an editor shows it.
   Severity: enum {
@@ -308,11 +334,12 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// One problem the product reports, with one identity on every surface:
-  /// its `title` with a `{name}` for each field, and its projections:
-  /// `status` on an API, `exit` on a command line, `severity` as a
-  /// diagnostic. `by` is the part that reports it.
+  /// its id and its `title` with a `{name}` for each field. Its projections
+  /// are annotations, one per surface: std/http's `@status` on an API,
+  /// `@exit` on a command line, `@severity` as a diagnostic (an error when
+  /// left out). `@by` is the part that reports it.
   @icon("circle-alert")
-  error(id: String, severity: Severity = Severity.error, status?: Int, exit?: Int, by?: Ref(Any), rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
+  error(id: String): kind(in = [block], layer = Layer.CONTRACT) {
     /// The message, with `{name}` for each field filled in where it happens.
     title: String
     /// The message reported at the related site.
@@ -322,12 +349,18 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = example)
   }
 
+  /// The exit code an error ends a command-line run with.
+  exit(code: Int): annotation(on = [error])
+
+  /// How serious an error is as a diagnostic; an error when left out.
+  severity(level: Severity): annotation(on = [error])
+
   /// A value an error carries, as data and in its message.
   field(type: Any): kind(layer = Layer.CONTRACT) {
     accept(prose)
   }
 
-  /// A concrete case with exact inputs and outputs; `refines` names the
+  /// A concrete case with exact inputs and outputs; `@refines` names the
   /// outcome scenario it pins down. As a rule's child, a key or boundary
   /// case of the rule.
   example(refines?: Ref(scenario)): kind(in = [block], layer = Layer.CONTRACT) {
@@ -338,10 +371,10 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// lines, arguments and options as its inputs, the errors it exits with,
   /// examples and subcommands.
   @icon("terminal")
-  command(name: String, rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
+  command(name: String): kind(in = [block], layer = Layer.CONTRACT) {
     /// One line per form, as `heron check [--json] [path…]`.
     usage?: List(String)
-    /// The errors it reports, each with its `exit`.
+    /// The errors it reports, each with its `@exit`.
     errors?: List(Ref(error))
     accept(prose)
     accept(kind = argument)
@@ -364,7 +397,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// A view of an app or a site and its regions. `route` is where it's
   /// served.
-  screen(route?: String, rev?: Int): kind(in = [block], layer = Layer.CONTRACT) {
+  screen(route?: String): kind(in = [block], layer = Layer.CONTRACT) {
     accept(prose)
     accept(kind = region)
     accept(category = block)
@@ -383,14 +416,15 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Context for implementors ---
 
   /// Hints for implementors, such as internal APIs; never a requirement.
-  guidance(targets<variadic>?: Ref(Any)): kind(in = [block]) {
+  guidance: kind(in = [block]) {
     accept(prose)
   }
 
   // --- Planning ---
 
-  /// A question still to answer about its targets.
-  open(targets<variadic>?: Ref(Any), owner?: String): kind(in = [block]) {
+  /// A question still to answer about its `@targets`; `@owner` names who
+  /// answers it.
+  open: kind(in = [block]) {
     accept(prose)
   }
 }

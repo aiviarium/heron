@@ -72,7 +72,8 @@ shop: package(version = "2.1.3", sealed = true) {
   buyer: actor {{ Someone who buys. }}
 
   checkout: section {
-    pay_once: rule(by = buyer) {
+    @by(buyer)
+    pay_once: rule {
       must {{ pay for an order once }}
     }
 
@@ -285,16 +286,20 @@ shop: package(version = "1.0.0", sealed = true) {
 
   payments: part {{ Takes the buyer's money. }}
 
-  pay_once: rule(by = payments, rev = 2) {
+  @by(payments)
+  @rev(2)
+  pay_once: rule {
     must {{ charge an order at most once }}
   }
 
-  receipt: rule(by = payments) {
+  @by(payments)
+  receipt: rule {
     must {{ send a receipt }}
   }
 
   @realizes(receipt)
-  no_receipt: error("shop.NO_RECEIPT", by = payments) {
+  @by(payments)
+  no_receipt: error("shop.NO_RECEIPT") {
     title = "no receipt for {order}"
     order: field(String)
   }

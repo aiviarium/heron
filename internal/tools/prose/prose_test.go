@@ -231,7 +231,7 @@ include = ["./refunds.heron.md"]
 The day the payment is captured, which is the capture date.
 </term>
 
-<rule id="late" targets="refunds">
+<rule id="late" @targets="refunds">
 <must>the system should reject a refund after the capture date</must>
 </rule>
 `)
@@ -273,7 +273,8 @@ refunds: section {
     must {{ reject the words "fast" and "should" when they're used }}
   }
 
-  timed: rule(serves = [speed]) {
+  @serves(speed)
+  timed: rule {
     must {{ answer quickly }}
   }
 

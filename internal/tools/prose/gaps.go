@@ -139,23 +139,7 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 func reportGaps(li *lint.Input) {
 	t, c := li.Tree, li.Checker
 	is := func(n *resolve.Node, kinds ...string) bool { return specmodel.Is(c, n, kinds...) }
-	refs := func(n *resolve.Node, arg string) []*resolve.Node {
-		e := project.NamedArg(project.KindArgs(n), arg)
-		if e == nil {
-			return nil
-		}
-		exprs := []ast.Expr{e}
-		if arr, ok := e.(ast.ArrayExpr); ok {
-			exprs = arr.Exprs()
-		}
-		var out []*resolve.Node
-		for _, x := range exprs {
-			if r := project.RefTarget(c, x.Syntax(), n.Decl); r != nil {
-				out = append(out, r)
-			}
-		}
-		return out
-	}
+	refs := func(n *resolve.Node, name string) []*resolve.Node { return project.AnnotationRefs(c, n, name) }
 	// The goals a section declares, for the requirements below it.
 	areaGoals := func(n *resolve.Node) []*resolve.Node {
 		for a := n.Parent; a != nil; a = a.Parent {
@@ -245,7 +229,7 @@ func reportGaps(li *lint.Input) {
 	}
 	for _, r := range reqs {
 		if !motivated[r] && !is(r, "spec.constraint") {
-			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; give it serves or derives, or make it a constraint with its reason", r.Name))
+			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; give it @serves or @derives, or make it a constraint with its reason", r.Name))
 		}
 	}
 	for _, e := range entries {

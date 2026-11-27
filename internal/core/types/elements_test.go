@@ -19,7 +19,7 @@ people: section {
 }
 
 ok: section {
-  | <rule id="late" by="desk"><must>refuse it</must></rule>
+  | <rule id="late" @by="desk"><must>refuse it</must></rule>
   | <toc depth="2" /> <toc depth={1 + 1} /> <ref to="desk"/> <note kind="TIP">A tip.</note>
 }
 
@@ -82,25 +82,31 @@ s: section {
 }
 
 // A variadic parameter's attribute gives its arguments in order, before
-// the named ones: `targets="ok"` is `rule(ok, …)` and `targets={[ok, ok.a]}`
-// is `rule(ok, ok.a, …)`.
+// the named ones: `delivers="ok"` is `increment(ok)` and
+// `delivers={[ok, ok.a]}` is `increment(ok, ok.a)`. An `@name` attribute
+// is the annotation, its references read as written: `@targets="ok, ok.a"`
+// is `@targets(ok, ok.a)`, and `@by="desk"` reaches desk as a link would.
 func TestElementVariadicAttribute(t *testing.T) {
-	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1"]
+	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1", "std/project@1"]
 
-desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
+people: section {
+  desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
+}
 
 ok: section {
   a: term {{ A word. }}
 
-  | <rule id="one" by="desk" targets="ok"><must>refuse it</must></rule>
+  | <increment id="one" delivers="ok">The first slice.</increment>
   |
-  | <rule id="two" targets={[ok, ok.a]} by="desk"><must>refuse it</must></rule>
+  | <increment id="two" delivers={[ok, ok.a]}>The second slice.</increment>
+  |
+  | <rule id="three" @by="desk" @targets="ok, ok.a"><must>refuse it</must></rule>
 }
 `})
 	if len(ds) != 0 {
 		t.Fatalf("diagnostics: %v", ds)
 	}
-	for name, want := range map[string]string{"one": "x(ok, by = desk)", "two": "x(ok, ok.a, by = desk)"} {
+	for name, want := range map[string]string{"one": "x(ok)", "two": "x(ok, ok.a)"} {
 		var got string
 		for _, n := range c.Tree.Root.Child("ok").Children {
 			if n.Name == name {
@@ -110,5 +116,16 @@ ok: section {
 		if got != want {
 			t.Errorf("%s: args %q, want %q", name, got, want)
 		}
+	}
+	var anns []string
+	for _, n := range c.Tree.Root.Child("ok").Children {
+		if n.Name == "three" {
+			for _, a := range n.Annotations {
+				anns = append(anns, a.N.Text())
+			}
+		}
+	}
+	if got := strings.Join(anns, " "); got != "@by(people.desk) @targets(ok, ok.a)" {
+		t.Errorf("three: annotations %q", got)
 	}
 }

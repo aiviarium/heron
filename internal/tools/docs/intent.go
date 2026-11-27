@@ -199,9 +199,7 @@ func renderStory(c *Ctx) error {
 	c.W(`<article class="card-block story" id="`, attr(Anchor(n)), `">`)
 	c.W(`<div class="card-head"><a class="anchor card-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`, statusBadge(n), `</div>`)
 	var serves []*resolve.Node
-	if g := s.argRef(n, -1, "serves"); g != nil {
-		serves = append(serves, g)
-	}
+	serves = append(serves, s.annRefs(n, "serves")...)
 	c.factList([][2]string{
 		{label("docs.label.serves"), c.refLinks(serves)},
 		{label("docs.label.adds"), c.refLinks(s.argRefs(n, "adds"))},
@@ -249,10 +247,10 @@ func renderScenario(c *Ctx) error {
 			rows = append(rows, [2]string{label("docs.label." + f), h})
 		}
 	}
-	if t := s.argRef(n, 0, "illustrates"); t != nil {
+	if t := s.annRef(n, "illustrates"); t != nil {
 		rows = append(rows, [2]string{label("docs.label.illustrates"), s.linkHTML(t, esc(displayName(s, t)), "")})
 	}
-	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.argRefs(n, "serves"))})
+	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.annRefs(n, "serves"))})
 	c.factList(rows)
 	c.W(c.verifyList(n))
 	c.W(c.derivedLists(n))
@@ -276,7 +274,7 @@ func renderGoal(c *Ctx) error {
 	if m, ok := argString(kindArgs(n), 0, "measure"); ok {
 		rows = append(rows, [2]string{label("docs.label.measure"), esc(m)})
 	}
-	if src, ok := argString(kindArgs(n), 1, "source"); ok {
+	if src, ok := annString(n, "source"); ok {
 		rows = append(rows, [2]string{label("docs.label.source"), esc(src)})
 	}
 	c.factList(rows)
