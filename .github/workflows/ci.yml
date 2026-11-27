@@ -110,7 +110,9 @@ jobs:
         if: env.NODE == 'true'
         with:
           node-version: 22
-          cache: pnpm
+          # The grammar lane runs npm, not pnpm: with no pnpm store to save,
+          # the cache's post step would fail.
+          cache: ${{ matrix.lane != 'treesitter' && 'pnpm' || '' }}
           cache-dependency-path: heron/web/pnpm-lock.yaml
 
       # Playwright's browsers, and the system libraries they need, install

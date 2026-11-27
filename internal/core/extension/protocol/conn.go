@@ -487,7 +487,14 @@ func (c *Conn) details(se *session.Error) *Error {
 // ErrorDetails.
 func (c *Conn) sparrowError(err error) *session.Error {
 	var e *Error
-	if !errors.As(err, &e) {
+	switch {
+	case errors.As(err, &e):
+	case errors.Is(err, context.DeadlineExceeded):
+		// The call's deadline passed while the handler ran: it timed out.
+		e = &Error{Code: CodeTimeout, Message: err.Error()}
+	case errors.Is(err, context.Canceled):
+		e = &Error{Code: CodeCancelled, Message: err.Error()}
+	default:
 		e = &Error{Code: CodeInternalError, Message: err.Error()}
 	}
 	out := &session.Error{Code: statusOf(e.Code), Message: e.Message}
