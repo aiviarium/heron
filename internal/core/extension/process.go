@@ -30,7 +30,7 @@ type Process struct {
 	Init    protocol.InitializeParams
 	// Host serves the extension's calls back into Heron.
 	Host protocol.Host
-	// Log receives the extension's stderr and $/log notifications.
+	// Log receives the extension's stderr and its log notifications.
 	Log io.Writer
 	// Warn receives warnings, such as limits that can't be enforced.
 	Warn func(string)

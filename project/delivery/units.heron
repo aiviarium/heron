@@ -41,7 +41,7 @@ units: section {
   build_order: section {
     | 1. **Language and runtime:** the lossless parser and `heron fmt`; resolution, types
     |    and the core lints; the interpreter, tasks and `heron run`, then the repository's
-    |    `setup`; the prose view, the generation framework, extensions, the CBOR-RPC host
+    |    `setup`; the prose view, the generation framework, extensions, the extension protocol host
     |    and the TS SDK, each proven with a sample extension.
     | 2. **Development tools:** the tree-sitter grammar and `heron lsp`; prose linting
     |    with Vale; the docs renderer and `heron generate docs`; the server and frontend

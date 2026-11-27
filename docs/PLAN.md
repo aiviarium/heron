@@ -50,7 +50,7 @@ internal/core/             unit 1
   records/                 audit records, release output, caches as data files
   setup/                   std/repo's Go side: toolchain, heron.lock, sources
   gen/                     generation framework and `heron generate`
-  extension/               CBOR-RPC host, handshake, limits, JS host supervision
+  extension/               extension protocol host (Sparrow), handshake, limits, JS host supervision
   cli/                     unit 1's commands: check, fmt, lint, run, generate
   fixtures/                the fixtures: the code blocks of the spec
                            package's example nodes, by node path
@@ -106,7 +106,7 @@ starts when the one before it is done.
    files; `@needs`, `@undo`, prompting for missing params, run records.
    Done: criteria 2 (setup on a fresh sample repository, idempotent, writes
    `heron.lock` and the managed ignore block) and 3 (tasks).
-4. **Prose view, generation framework, extensions, CBOR-RPC host, TS SDK.**
+4. **Prose view, generation framework, extensions, extension protocol host, TS SDK.**
    Done: criteria 4 (a sample TS package provides a foreign func, a
    transport, a lint and a resource driver, each type-checked against its
    Heron declaration) and 5 (a sample prose provider flags only prose words,
@@ -127,11 +127,11 @@ any later part relies on it.
 | Generation targets | target name → adapters | a sample adapter writing one file under a temp dir via `heron generate sample` |
 | Lints | name → check over the resolved tree | a sample lint package (Heron) and a Go-registered lint, both through `heron lint` |
 | Prose lint providers | name → provider over projected regions | sample provider flagging a word; fixes mapped back to exact ranges |
-| Drivers, resources, transports | kind → implementation | sample TS package through the CBOR-RPC host |
+| Drivers, resources, transports | kind → implementation | sample TS package through the extension protocol host |
 | Funcs and macros | packages (Heron) and `@extern` | sample package func, sample extension func |
 | Record kinds | kind → schema, one store | a sample record kind written and read back |
 | Renderers per kind (for unit 2) | kind → renderer | registered in unit 2's docs, proven there |
-| CBOR-RPC host | extension processes and the JS host | sample extension in TS via `@heron/runtime` |
+| Extension protocol host | extension processes and the JS host | sample extension in TS via `@heron/runtime` |
 
 Unit 2's needs from unit 1, so the seams fit: positions and an incremental
 reparse in `syntax` (lsp), node paths and go-to-definition data from
@@ -330,11 +330,13 @@ protocol's messages.
 - **Protocol** (`internal/core/extension/protocol`): described once, in
   the spec package's `language/interop/protocol_messages.heron`; `protogen`
   reads it from the imported package and writes `protocol_gen.go` and
-  `web/runtime/src/protocol.gen.ts`, checked current against it in CI. `Conn` frames
-  messages (4-byte length, CBOR or `--wire json`), calls both ways,
-  cancels (`$/cancel`), streams (`$/stream`), applies frame, in-flight and
-  timeout limits, carries the run id, and keeps Heron values' types
-  through CBOR tags (fxamacker/cbor in Go, cbor2 in TS).
+  `web/runtime/src/protocol.gen.ts`, checked current against it in CI. `Conn` runs a
+  Sparrow session on the pipe binding (Sparrow's Go module and its TS
+  package), publishing the facets `heron.extension` and `heron.host`;
+  calls go both ways, with Sparrow's cancellation, streams, progress and
+  deadlines; it applies the message size, in-flight and timeout limits,
+  carries the run id as the metadata key `heron.run`, and keeps Heron
+  values' types through the `Value` union.
 - **Registry** (`registry/parts.go`): macros, transports, resource drivers
   and generation adapters by declaration path, beside the interpreter's
   `Func` and `Foreign`; `Loader`s register a checked tree's extension

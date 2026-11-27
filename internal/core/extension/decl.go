@@ -1,8 +1,9 @@
 // Package extension runs what packages declare and code implements: it
-// starts extension processes and the JS host, speaks the CBOR-RPC protocol
-// to them, runs the capability handshake, applies the limits each declares,
-// and registers what each implements in the registry the built-in parts
-// use, as the Schemas and Interop tabs describe.
+// starts extension processes and the JS host, speaks the extension
+// protocol, a Sparrow session, to them, runs the initialize handshake,
+// applies the limits each declares, and registers what each implements in
+// the registry the built-in parts use, as the Schemas and Interop tabs
+// describe.
 package extension
 
 import (

@@ -1,9 +1,9 @@
-// std/sparrow: binds apis to the services of a Sparrow RPC facet, ops to
+// std/sparrow: binds apis to the services of a Sparrow facet, ops to
 // its methods, and the types they reach to the facet's type definitions,
 // from the APIs and Data tabs. Sparrow is a CBOR protocol whose payloads
 // are read by numbers alone, so this package is mostly about numbers that
 // stay put: a field's tag, a type's and a method's id, a sigil's id.
-import = ["std/schema@1", "std/types@1", "std/spec@1"]
+import = ["std/schema@1", "std/types@1"]
 
 sparrow: package(version = "1.0", requires = ["std/types@1"]) {
   /// Sparrow's core status codes an error can be answered with, as its
