@@ -359,7 +359,7 @@ func (c *Ctx) renderRef() error {
 	if sent == "" {
 		sent = esc(displayName(s, n))
 	}
-	c.W(`<p class="sentence">`, sent, ` `, s.linkHTML(n, "#", "rule-link"), `</p>`)
+	c.W(`<p class="sentence">`, s.gutterLink(n, s.URL(n)), sent, `</p>`)
 	c.Prose(n)
 	c.W(`</div>`)
 	return nil

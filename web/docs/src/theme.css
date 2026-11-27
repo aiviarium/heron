@@ -314,7 +314,20 @@ body[data-layout="home"] .page-links { grid-template-columns: repeat(2, minmax(0
 .sentence { position: relative; font-size: var(--h-font-size-prose); line-height: var(--h-font-line-prose); margin: 0; max-width: var(--h-size-measure); }
 .strength { font-weight: var(--h-font-weight-semibold); }
 /* The anchor sits in the gutter, so it never wraps to a line of its own. */
-.rule-link { position: absolute; left: calc(-1 * var(--h-space-5)); top: 0; width: var(--h-space-4); text-align: center; color: var(--h-text-decor); font-family: var(--h-font-mono); font-size: 12px; opacity: 0; transition: opacity var(--h-motion-fast) var(--h-motion-ease); }
+.rule-link { position: absolute; left: calc(-1 * var(--h-space-6)); top: 0; width: var(--h-space-4); text-align: center; color: var(--h-text-decor); font-family: var(--h-font-mono); font-size: 12px; opacity: 0; transition: opacity var(--h-motion-fast) var(--h-motion-ease), color var(--h-motion-fast) var(--h-motion-ease); }
+/* A node a page defines carries its kind's icon in the gutter, level with
+   its first line, always there and quiet: the link to it. */
+.rule-link.gutter-mark { opacity: 1; color: var(--h-text-faint); line-height: inherit; display: inline-flex; align-items: center; justify-content: center; height: calc(1em * var(--h-font-line-prose)); font-size: var(--h-font-size-prose); }
+.rule-link.gutter-mark .icon { width: 15px; height: 15px; }
+.rule-link.gutter-mark:hover, .rule-link.gutter-mark:focus-visible { color: var(--h-accent); }
+.term.defined, .scenario-head { position: relative; }
+.term.defined .prose > p:first-child { position: relative; }
+.term-name { font-style: normal; font-weight: var(--h-font-weight-semibold); color: var(--h-text); }
+.term.defined .aliases { margin-left: 0; font-size: inherit; color: var(--h-text-secondary); }
+.scenario-head { margin: 0 0 2px; }
+.rule-about { display: block; margin-top: 2px; font-size: var(--h-font-size-label); color: var(--h-text-secondary); }
+.rule-about .about-ref { color: var(--h-text-secondary); text-decoration: underline; text-decoration-color: var(--h-border-strong); text-underline-offset: 2px; }
+.rule-about .about-ref:hover { color: var(--h-accent); }
 .rule:hover .rule-link, .rule-link:focus-visible, .rule:target .rule-link { opacity: 1; }
 .rule-link:hover { color: var(--h-accent); }
 .chip { display: inline-block; font: var(--h-font-weight-regular) 12px/18px var(--h-font-mono); color: var(--h-text-secondary); text-decoration: none; white-space: nowrap; padding: 0 5px; margin-left: 2px; border: 1px solid var(--h-border); border-radius: var(--h-radius-mark); vertical-align: 1px; }
@@ -565,8 +578,10 @@ code.t { color: var(--h-type); }
 .zoom .icon-btn { width: var(--h-size-control-sm); height: var(--h-size-control-sm); }
 
 /* --- outline and prev/next --- */
-.outline ul { list-style: none; margin: var(--h-space-2) 0 0; padding: 0; border-left: 1px solid var(--h-border-faint); }
-.outline li a { display: block; padding: 3px 0 3px var(--h-space-3); margin-left: -1px; border-left: 1px solid transparent; color: var(--h-text-faint); font-size: 12.5px; line-height: 18px; transition: color var(--h-motion-fast) var(--h-motion-ease); }
+/* The rail is each entry's own left edge, so the marker of the entry in
+   view is that same segment in the project colour: one line, never two. */
+.outline ul { list-style: none; margin: var(--h-space-2) 0 0; padding: 0; }
+.outline li a { display: block; padding: 3px 0 3px var(--h-space-3); border-left: 1px solid var(--h-border-faint); color: var(--h-text-faint); font-size: 12.5px; line-height: 18px; transition: color var(--h-motion-fast) var(--h-motion-ease), border-color var(--h-motion-fast) var(--h-motion-ease); }
 .outline li.l3 a { padding-left: var(--h-space-6); }
 .outline li a:hover { color: var(--h-text); }
 .outline li a.active { color: var(--h-text); border-left-color: var(--h-accent); }
@@ -677,6 +692,9 @@ code.t { color: var(--h-type); }
   .layout:not(.has-examples) .aside { display: none; }
 }
 @media (max-width: 820px) {
+  /* The gutter mark hangs into the page's padding. */
+  .rule-link { left: -15px; width: 13px; }
+  .rule-link.gutter-mark .icon { width: 12px; height: 12px; }
   .layout, .layout.has-examples { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .aside { grid-column: 1; }
   .nav-toggle { display: inline-grid; margin-left: calc(-1 * var(--h-space-1)); }

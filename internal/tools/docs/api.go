@@ -933,7 +933,7 @@ func (c *Ctx) httpBody(o *opInfo) {
 				c.W(`<div class="cause">`, lead, `<a class="ref" href="#`, attr(Anchor(cause)+"--"+Anchor(n)), `">`, esc(displayName(s, cause)), `</a></div>`)
 			case s.kindPath(cause) == "spec.rule":
 				// A lens that leaves the op's rules out: its sentence here.
-				c.W(`<p class="cause sentence">`, s.sentence(cause), ` `, s.linkHTML(cause, "#", "rule-link"), `</p>`)
+				c.W(`<p class="cause sentence">`, s.gutterLink(cause, s.URL(cause)), s.sentence(cause), `</p>`)
 			default:
 				c.W(`<div class="cause"><span class="label">`, esc(label("docs.label.example")), `</span> `, s.linkHTML(cause, esc(displayName(s, cause)), ""), `</div>`)
 			}
@@ -966,7 +966,7 @@ func (c *Ctx) opRules(n *resolve.Node) error {
 			d := c.at(r, c.Level+2)
 			d.anchorSuffix = "--" + Anchor(n)
 			if s.kindPath(r) == "spec.quality" {
-				d.W(`<div class="rule"><p class="sentence">`, s.fullSentence(r), ` `, s.linkHTML(r, "#", "rule-link"), `</p></div>`)
+				d.W(`<div class="rule"><p class="sentence">`, s.gutterLink(r, s.URL(r)), s.fullSentence(r), `</p></div>`)
 				continue
 			}
 			if err := d.renderRef(); err != nil {

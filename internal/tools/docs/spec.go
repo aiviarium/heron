@@ -275,7 +275,10 @@ func (c *Ctx) targetChips(n *resolve.Node) string {
 			// A target on the same page reads from where the rule is.
 			continue
 		}
-		b.WriteString(` ` + c.Site.linkHTML(t, esc(c.refText(t)), "chip"))
+		if b.Len() > 0 {
+			b.WriteString(",")
+		}
+		b.WriteString(` ` + c.Site.linkHTML(t, esc(c.refText(t)), "about-ref"))
 	}
 	return b.String()
 }
@@ -351,12 +354,13 @@ func renderRule(c *Ctx) error {
 	}
 	link := ""
 	if n.Name != "" {
-		link = ` <a class="rule-link" href="#` + attr(Anchor(n)) + `" aria-label="` + attr(displayName(s, n)) + `">#</a>`
+		link = s.gutterLink(n, "#"+Anchor(n))
 	}
-	head := sent + statusBadge(n) + c.qualityFacts(n) + link
+	head := link + sent + statusBadge(n) + c.qualityFacts(n)
 	if chips := c.targetChips(n); chips != "" {
-		// The targets lead the sentence, as a small tag above it.
-		head = `<span class="rule-targets">` + strings.TrimSpace(chips) + `</span>` + head
+		// What the rule is about, where its place doesn't say: a quiet
+		// line after its sentence, never a tag standing above it.
+		head += `<span class="rule-about">` + esc(label("docs.label.about")) + ` ` + strings.TrimSpace(chips) + `</span>`
 	}
 	if s.summarized(n) {
 		rest := c.at(n, c.Level)

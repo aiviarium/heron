@@ -134,6 +134,15 @@ tools_docs: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestKindLabels")
   }
 
+  proves(heron.tools.docs.rendering.term_definition) {
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.tools.docs.rendering.gutter_marks) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
+    verify("scripts/e2e-docs.sh")
+  }
+
   proves(heron.tools.docs.page_layout.nav_tree) {
     verify("internal/tools/docs/icons_test.go", test = "TestNavTree")
     verify("scripts/e2e-docs.sh")

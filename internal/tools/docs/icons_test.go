@@ -93,6 +93,11 @@ func TestIconsRender(t *testing.T) {
 	if !strings.Contains(outline, `<svg class="icon kind-icon"`) {
 		t.Errorf("the outline lacks the rule's kind icon:\n%s", outline)
 	}
+	// A rule carries its mark in the gutter: the link to it, its kind and
+	// name as its tooltip.
+	if !strings.Contains(page, `<a class="rule-link gutter-mark" href="#area.part.holds" title="rule · Holds" aria-label="rule · Holds"><svg class="icon"`) {
+		t.Error("the rule lacks its gutter mark")
+	}
 	if !regexp.MustCompile(`<aside class="callout callout-warning"><svg class="icon"`).MatchString(page) {
 		t.Error("the warning callout lacks the theme's icon")
 	}

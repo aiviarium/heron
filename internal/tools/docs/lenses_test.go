@@ -181,7 +181,7 @@ func TestUserLens(t *testing.T) {
 	mustNotHave(t, "user command", f["kite.cli.sync.html"], "exit with status 1 when any note")
 	// A term's heading is its display name, in sentence case; inside a
 	// sentence it keeps its case.
-	mustHave(t, "user sync", sync, `href="#kite.sync.conflict">Conflict</a>`)
+	mustHave(t, "user sync", sync, `<dfn class="term-name">Conflict</dfn>`)
 	mustHave(t, "user glossary", f["_glossary.html"], `>Conflict</a>`, `>Wait</a>`)
 	// The user lens's depth, 2, folds a third level onto its parent's page,
 	// which the docs block's depth, 3, gives a page in the other lenses.
@@ -262,7 +262,8 @@ func TestDeveloperLens(t *testing.T) {
 	sync := f["dev/kite.sync.html"]
 	mustHave(t, "dev sync", sync, `<div class="rule rule-summary" id="kite.sync.no_deletes"><p class="sentence">`)
 	main := sync[strings.Index(sync, `id="main"`):]
-	order := []string{`id="kite.sync.copies_changed"`, `id="kite.sync.no_deletes"`, `id="kite.sync.conflict"`, `href="kite.sync.retries.html"`, `id="kite.sync.unreadable"`}
+	// The words first, then the rules that use them.
+	order := []string{`id="kite.sync.conflict"`, `id="kite.sync.copies_changed"`, `id="kite.sync.no_deletes"`, `href="kite.sync.retries.html"`, `id="kite.sync.unreadable"`}
 	for i := 1; i < len(order); i++ {
 		if a, b := strings.Index(main, order[i-1]), strings.Index(main, order[i]); a < 0 || b < 0 || a > b {
 			t.Errorf("%s after %s", order[i-1], order[i])
@@ -527,7 +528,7 @@ func TestElementsRender(t *testing.T) {
 	mustHave(t, "refunds", ex, `with <em>stress</em> and <em>stress</em>, <code>code</code> and <code>code</code>.`,
 		`See <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window">window</a>, <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window">window</a>,`,
 		`<a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window"><code>window</code></a> and <a class="ref ref-term" href="refunds.html#refunds.window" data-card="refunds.window"><code>window</code></a>.`,
-		`Fish &amp; chips.`, `<div class="rule" id="refunds.late"><p class="sentence">The <a class="ref subject" href="people.html#people.desk">desk</a> <strong class="strength">must</strong> refuse a refund after the`)
+		`Fish &amp; chips.`, `<div class="rule" id="refunds.late"><p class="sentence"><a class="rule-link`, `</a>The <a class="ref subject" href="people.html#people.desk">desk</a> <strong class="strength">must</strong> refuse a refund after the`)
 	mustNotHave(t, "refunds", ex, "&amp;amp;", `tag-ref`)
 }
 

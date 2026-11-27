@@ -228,7 +228,7 @@ func renderScenario(c *Ctx) error {
 	s := c.Site
 	c.W(`<div class="scenario" id="`, attr(Anchor(n)), `">`)
 	if n.Name != "" {
-		c.W(`<a class="anchor scenario-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
+		c.W(`<p class="scenario-head">`, s.gutterLink(n, "#"+Anchor(n)), `<a class="anchor scenario-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></p>`)
 	}
 	c.Prose(n)
 	lines := func(kind, first string) {

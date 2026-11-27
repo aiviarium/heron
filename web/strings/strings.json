@@ -155,6 +155,7 @@
       "route": "Route",
       "rule": "Rule",
       "view": "View",
+      "about": "About",
       "opens_in": "Opens in the {lens} docs",
       "rule_count": "{count} rules",
       "rule_one": "1 rule",

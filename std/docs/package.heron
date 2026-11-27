@@ -66,6 +66,15 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     MARKDOWN: Self
   }
 
+  /// Whether a lens marks a node's kind.
+  KindMarks: enum {
+    /// With the kind's icon, labelled with the kind's name: before a
+    /// node's name and in the gutter beside the nodes a page defines.
+    ICON: Self
+    /// Not at all.
+    NONE: Self
+  }
+
   /// A view of the site for one audience, built from the same tree as
   /// every other: which kinds and categories it shows, which it sums up in
   /// one line and which it leaves out, how its navigation is ordered and
@@ -98,6 +107,8 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     /// The size budget, in approximate tokens, of a file a Markdown lens
     /// writes; 6000 unless set.
     budget?: Int
+    /// Whether the lens marks a node's kind with its icon; ICON unless set.
+    kinds?: KindMarks
   }
 
   /// For the people who use what a tree describes: the authored pages

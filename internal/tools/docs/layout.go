@@ -580,6 +580,9 @@ func (s *Site) outline(p *Page, f *Fragment) []Heading {
 				out = append(out, ch)
 			}
 		}
+		// In the order the page shows them, which is not the tree's.
+		at := func(n *resolve.Node) int { return strings.Index(f.HTML, `id="`+attr(Anchor(n))+`"`) }
+		sort.SliceStable(out, func(i, j int) bool { return at(out[i]) < at(out[j]) })
 		return out
 	}
 	var out []Heading

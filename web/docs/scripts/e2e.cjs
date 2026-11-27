@@ -376,6 +376,38 @@ const url = (f) => "file://" + path.join(dir, f)
     } else console.log("(no navigation branches on this site)")
   }
 
+  // The outline follows the page: its entries in the order the page shows
+  // their anchors.
+  {
+    let checked = 0
+    for (const f of pages) {
+      const src = fs.readFileSync(path.join(dir, f), "utf8")
+      const ol = (src.match(/<nav class="outline"[\s\S]*?<\/nav>/) || [""])[0]
+      const ids = [...ol.matchAll(/href="#([^"]+)"/g)].map((m) => m[1])
+      if (ids.length < 3) continue
+      const main = src.slice(src.indexOf('id="main"'))
+      const at = ids.map((id) => main.indexOf(`id="${id}"`))
+      for (let i = 1; i < at.length; i++) {
+        if (at[i] >= 0 && at[i - 1] >= 0 && at[i] < at[i - 1]) {
+          fail.push(`outline: on ${f} ${ids[i]} comes before ${ids[i - 1]} on the page, after it in the outline`)
+          break
+        }
+      }
+      if (++checked >= 40) break
+    }
+  }
+
+  // Each rule a page shows carries its mark in the gutter, the link to it.
+  {
+    const ruled = pages.find((f) => /<div class="rule[ "]/.test(fs.readFileSync(path.join(dir, f), "utf8")))
+    if (ruled) {
+      const src = fs.readFileSync(path.join(dir, ruled), "utf8")
+      const rules = [...src.matchAll(/<div class="rule[^"]*" id="([^"]+)"><p class="sentence">(<a class="rule-link[^"]*" href="#([^"]+)")?/g)]
+      const bare = rules.filter((m) => !m[2] || m[3] !== m[1])
+      if (bare.length) fail.push(`gutter: on ${ruled} ${bare.length} of ${rules.length} rules lack the mark that links to them, such as ${bare[0][1]}`)
+    }
+  }
+
   // Lens marks: a quiet row of tags at the start of what's marked, on one
   // line, never floated apart.
   {

@@ -63,11 +63,40 @@ func (s *Site) nodeIcon(n *resolve.Node, class string) string {
 	if n == nil {
 		return ""
 	}
-	ic := s.iconSet().Get(icon.Name(s.Checker, n))
+	name, _, own := icon.Mark(s.Checker, n)
+	if !own {
+		if !s.kindIcons() {
+			return ""
+		}
+		name = icon.Name(s.Checker, n)
+	}
+	ic := s.iconSet().Get(name)
 	if k := s.kindName(n); k != "" {
 		return ic.Labelled(class, k)
 	}
 	return ic.SVG(class)
+}
+
+// kindIcons reports whether the lens marks a node's kind with its icon.
+func (s *Site) kindIcons() bool { return s.Opts.Lens == nil || !s.Opts.Lens.NoKindIcons }
+
+// gutterLink is the link to a node's anchor that stands in the gutter
+// beside a node a page defines inline: the icon it shows, muted, with its
+// kind and name as tooltip and label, or a quiet "#" where the lens marks
+// no kind or the node shows no icon.
+func (s *Site) gutterLink(n *resolve.Node, href string) string {
+	name := displayName(s, n)
+	k := s.kindName(n)
+	tip := name
+	if k != "" {
+		tip = k + " · " + name
+	}
+	if s.kindIcons() {
+		if ic := s.iconSet().Get(icon.Name(s.Checker, n)); ic != nil && ic.Body != "" {
+			return `<a class="rule-link gutter-mark" href="` + attr(href) + `" title="` + attr(tip) + `" aria-label="` + attr(tip) + `">` + ic.SVG("icon") + `</a>`
+		}
+	}
+	return `<a class="rule-link" href="` + attr(href) + `" aria-label="` + attr(name) + `">#</a>`
 }
 
 // kindName is the name of a node's kind, or "".
@@ -84,6 +113,9 @@ func (s *Site) kindName(n *resolve.Node) string {
 func (s *Site) kindMark(n *resolve.Node) (pre, post string) {
 	k := s.kindName(n)
 	if k == "" {
+		return "", ""
+	}
+	if !s.kindIcons() {
 		return "", ""
 	}
 	if ic := s.iconSet().Get(icon.Name(s.Checker, n)); ic != nil && ic.Body != "" {

@@ -305,7 +305,7 @@ func renderProperty(c *Ctx) error {
 			out += "."
 		}
 		if n.Name != "" {
-			out += ` <a class="rule-link" href="#` + attr(Anchor(n)) + `" aria-label="` + attr(displayName(s, n)) + `">#</a>`
+			out = s.gutterLink(n, "#"+Anchor(n)) + out
 		}
 		c.W(`<p class="sentence">`, out, `</p>`)
 	}

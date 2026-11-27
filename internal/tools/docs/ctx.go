@@ -149,25 +149,25 @@ func renderContainer(c *Ctx) error {
 }
 
 // inOrder is a node's children as a lens other than explore renders
-// them: the nodes that are none of the others, such as examples, APIs and
-// diagrams; then its rules; then its terms; then its sections; then its
-// diagnostics last; each group in the tree's order. Explore keeps the
-// tree's order.
+// them: its intent first; then its terms, the words its rules use; then
+// its rules; then the nodes that are none of the others, such as examples,
+// APIs and diagrams; then its sections; then its diagnostics last; each
+// group in the tree's order. Explore keeps the tree's order.
 func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
 	if s.explore() {
 		return children
 	}
 	var groups [6][]*resolve.Node
 	for _, ch := range children {
-		g := 1
+		g := 3
 		switch k := s.kindPath(ch); {
 		case s.isIntent(ch):
 			// Goals and the other intent nodes open the page.
 			g = 0
+		case k == "doc.term":
+			g = 1
 		case k == "spec.rule" || k == "spec.quality" || k == "spec.guidance" || s.summarized(ch):
 			g = 2
-		case k == "doc.term":
-			g = 3
 		case k == "spec.error" || s.isContainer(ch) && s.onlyDiagnostics(ch):
 			g = 5
 		case s.isContainer(ch):

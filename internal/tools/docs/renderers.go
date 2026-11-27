@@ -219,16 +219,25 @@ func renderSection(c *Ctx) error {
 	return nil
 }
 
+// renderTerm shows a term as a definition: the defined word in strong
+// type, as a <dfn>, opening its first sentence, the term's mark in the
+// gutter, at its anchor.
 func renderTerm(c *Ctx) error {
 	n := c.Node
-	c.W(`<div class="term" id="`, attr(Anchor(n)), `">`)
-	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(termHeading(c.Site, n)), `</a>`, c.Site.kindTag(n))
+	s := c.Site
+	word := `<dfn class="term-name">` + esc(termHeading(s, n)) + `</dfn>`
 	if al := termAliases(n); len(al) > 0 {
-		c.W(`<span class="aliases">`, esc(strings.Join(al, ", ")), `</span>`)
+		word += ` <span class="aliases">(` + esc(strings.Join(al, ", ")) + `)</span>`
 	}
-	c.W(`</dt><dd>`)
-	c.Prose(n)
-	c.W(`</dd></div>`)
+	c.W(`<div class="term defined" id="`, attr(Anchor(n)), `">`)
+	body := s.proseHTML(n)
+	lead := s.gutterLink(n, "#"+Anchor(n)) + word + s.kindTag(n) + ` — `
+	if strings.HasPrefix(body, "<p>") {
+		c.W(`<div class="prose"><p>`, lead, body[len("<p>"):], `</div>`)
+	} else {
+		c.W(`<div class="prose"><p>`, lead, `</p>`, body, `</div>`)
+	}
+	c.W(`</div>`)
 	return nil
 }
 

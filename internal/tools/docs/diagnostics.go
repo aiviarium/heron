@@ -104,7 +104,7 @@ func renderDiagnostic(c *Ctx) error {
 		c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 	}
 	if n.Name != "" {
-		c.W(` <a class="rule-link" href="#`, attr(Anchor(n)), `" aria-label="`, attr(displayName(s, n)), `">#</a>`)
+		c.W(s.gutterLink(n, "#"+Anchor(n)))
 	}
 	c.W(`</p>`)
 	var meta []string

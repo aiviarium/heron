@@ -98,7 +98,7 @@ func TestSpecKindsRender(t *testing.T) {
 		"refunds.window":       {"While the payment is under no review, if the capture date is past", "desk</a> <strong class=\"strength\">must</strong> reject the request, so the ticket stays open. <span class=\"rule-example\">For example, day 31 is rejected.</span>"},
 		"refunds.never_twice":  {"A ticket <strong class=\"strength\">must not</strong> refund a ticket twice, and must instead answer with the first refund."},
 		"refunds.held":         {"A ticket <strong class=\"strength\">must</strong> hold."},
-		"refunds.capture_date": {`<dt class="term-name">`, "The day a payment was captured."},
+		"refunds.capture_date": {`<dfn class="term-name">Capture date</dfn> — The day a payment was captured.`},
 		"refunds.later":        {"Not a goal", "Partial refunds."},
 		"refunds.hints":        {"Guidance", "Use the ledger client."},
 		"refunds.fast_answers": {`<dt>Measure</dt><dd>within two seconds at the 99th percentile</dd>`, `<dt>Serves</dt><dd><a class="ref" href="refunds.html#refunds.quick">Quick</a></dd>`},
