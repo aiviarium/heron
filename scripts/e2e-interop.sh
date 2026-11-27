@@ -6,18 +6,15 @@
 # transport carries an api's ops in heron run, bound by an annotation of
 # its package, and TS calls back into Heron through ctx.call.
 # Expects web/ to be installed and built (scripts/ci.sh does that first).
+# It works on a copy of the sample beside it, whose node_modules links
+# still resolve, so the checkout stays as it is while other checks read it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
 tmp=$(mktemp -d)
-sample=$root/web/samples/inventory
-restore() {
-  [ -f "$tmp/package.heron" ] && cp "$tmp/package.heron" "$sample/package.heron"
-  [ -f "$tmp/index.heron" ] && cp "$tmp/index.heron" "$sample/example/index.heron"
-  rm -f "$sample/catalog.md"
-  rm -rf "$tmp"
-}
-trap restore EXIT
+sample=$(mktemp -d "$root/web/samples/.e2e-interop.XXXXXX")
+trap 'rm -rf "$tmp" "$sample"' EXIT
+cp -a "$root/web/samples/inventory/." "$sample/"
 go build -tags "${HERON_TAGS:-}" -o "$tmp/heron" ./cmd/heron
 heron() { "$tmp/heron" "$@"; }
 
