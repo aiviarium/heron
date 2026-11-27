@@ -51,18 +51,39 @@ func New(l *Loader) *Resolver {
 // core types, flags and annotations the Core format tab says need no import.
 const PreludeName = "std/core"
 
-// Resolve reads the tree of an entry point.
-func (r *Resolver) Resolve(entry FileID) *Tree {
-	return r.resolveTree(entry, true, nil, r.Context)
+// SpecName is the specification part of the core: the spec kinds and the
+// annotations they share, which every tree sees without importing them too.
+const SpecName = "std/spec"
+
+// prelude names the core packages a tree sees without an import, by the
+// package it's built as ("" for a tree of its own). std/core sees none;
+// the packages the spec part is written with see std/core alone.
+func prelude(name string) []string {
+	switch name {
+	case PreludeName:
+		return nil
+	case SpecName, "std/schema", "std/types", "std/doc":
+		return []string{PreludeName}
+	}
+	return []string{PreludeName, SpecName}
 }
 
-func (r *Resolver) resolve(entry FileID, prelude bool, self *Package) *Tree {
-	return r.resolveTree(entry, prelude, self, nil)
+// bootstrap are std/core and the two packages it's written with, which the
+// format describes itself with and which reach each other.
+var bootstrap = map[string]bool{PreludeName + "@1": true, "std/schema@1": true, "std/types@1": true}
+
+// Resolve reads the tree of an entry point.
+func (r *Resolver) Resolve(entry FileID) *Tree {
+	return r.resolveTree(entry, prelude(""), nil, r.Context)
+}
+
+func (r *Resolver) resolve(entry FileID, name string, self *Package) *Tree {
+	return r.resolveTree(entry, prelude(name), self, nil)
 }
 
 // resolve reads a tree. A package's tree sees its own names, including the
 // members of its package node, throughout its files, as its importers do.
-func (r *Resolver) resolveTree(entry FileID, prelude bool, self *Package, ctx *Scope) *Tree {
+func (r *Resolver) resolveTree(entry FileID, core []string, self *Package, ctx *Scope) *Tree {
 	t := &Tree{includes: map[FileID][]FileID{}, scopes: map[FileID]*Scope{}, Targets: map[*syntax.Node]FileID{}, Elements: map[*syntax.Node]*Node{}}
 	t.Root = &Node{Shape: ShapeRoot, Package: self}
 	base := ctx
@@ -72,8 +93,8 @@ func (r *Resolver) resolveTree(entry FileID, prelude bool, self *Package, ctx *S
 	outer := &Scope{Parent: base}
 	t.Context = ctx
 	b := &builder{r: r, t: t, included: map[FileID]*Scope{}}
-	if prelude {
-		if p := b.pkg(PreludeName+"@1", nil, Site{}); p != nil {
+	for _, name := range core {
+		if p := b.pkg(name+"@1", nil, Site{}); p != nil {
 			outer.Imports = append(outer.Imports, p)
 		}
 	}
@@ -692,11 +713,11 @@ func (b *builder) pkg(spec string, from *File, site Site) *Package {
 	}
 	for i, k := range b.r.stack {
 		if k == key {
-			// The standard packages that define the language refer to each
-			// other: std/schema types its kinds with std/types, which is
-			// declared with std/schema. Names resolve lazily, so this one
-			// kind of cycle is finite; any other import cycle is an error.
-			if p := b.r.inflight[key]; p != nil && entry.IsStd() {
+			// std/core is written with std/schema and std/types, which
+			// declare each other and see std/core: the format describing
+			// itself. Names resolve lazily, so that one cycle is finite;
+			// any other, among standard packages too, is an error.
+			if p := b.r.inflight[key]; p != nil && bootstrap[key] && bootstrap[b.r.stack[len(b.r.stack)-1]] {
 				return p
 			}
 			cycle := append(append([]string(nil), b.r.stack[i:]...), key)
@@ -710,7 +731,11 @@ func (b *builder) pkg(spec string, from *File, site Site) *Package {
 	p := &Package{Name: name, Major: major, Alias: alias, Git: git}
 	b.r.inflight[key] = p
 	b.r.stack = append(b.r.stack, key)
-	t := b.r.resolve(entry, name != PreludeName, p)
+	std := ""
+	if entry.IsStd() {
+		std = name
+	}
+	t := b.r.resolve(entry, std, p)
 	b.r.stack = b.r.stack[:len(b.r.stack)-1]
 	delete(b.r.inflight, key)
 	p.Tree = t

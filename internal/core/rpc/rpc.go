@@ -1314,7 +1314,7 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 				}
 			}
 		} else {
-			if a := find(as, "http", "status"); a != nil {
+			if a := find(as, "spec", "status"); a != nil {
 				e.Status = strings.TrimSpace(exprString(arg(a.a, 0, "code")))
 			}
 			for _, mem := range m.r.members(t, nil) {

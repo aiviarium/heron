@@ -1,6 +1,6 @@
 // std/proto: binds apis to gRPC services, served over gRPC, gRPC-Web and
 // Connect, and types to protobuf messages, from the Data and APIs tabs.
-import = ["std/schema@1", "std/types@1", "std/spec@1"]
+import = ["std/schema@1", "std/types@1"]
 
 proto: package(version = "1.0", requires = ["std/types@1"]) {
   /// A wire protocol a service is served with.

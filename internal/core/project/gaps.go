@@ -39,6 +39,12 @@ func (p *Project) gaps() Gaps {
 				}
 			}
 		}
+		// An error's prose links the rules that say when it's reported.
+		if KindPath(c, n) == "spec.error" {
+			for _, t := range ErrorRules(c, n) {
+				realized[t] = true
+			}
+		}
 	})
 	isPart := func(n *resolve.Node) bool { return n != nil && KindPath(c, n) == "spec.part" }
 	p.Package.Tree.Walk(func(n *resolve.Node) {

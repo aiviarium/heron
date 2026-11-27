@@ -87,8 +87,34 @@ func (s *Site) subject(n *resolve.Node) string {
 	return esc(label("docs.rule.subject"))
 }
 
-// ruleBy is the node a rule's or an error's `@by` names, or nil.
+// ruleBy is the node a rule's `@by` names, or nil.
 func (s *Site) ruleBy(n *resolve.Node) *resolve.Node { return s.annRef(n, "by") }
+
+// reportedBy is who reports an error, where it's worth saying: derived
+// from the `@by` of a rule its prose links, or else an op or api whose
+// `@throws` names it. An error inside a command needs no such line, and
+// an error never names its raiser itself.
+func (s *Site) reportedBy(n *resolve.Node) *resolve.Node {
+	for a := n.Parent; a != nil; a = a.Parent {
+		if s.kindPath(a) == "spec.command" {
+			return nil
+		}
+	}
+	if by := project.ErrorRaiser(s.Checker, n); by != nil {
+		return by
+	}
+	if s.throwers == nil {
+		s.throwers = map[*resolve.Node]*resolve.Node{}
+		s.Tree.Walk(func(x *resolve.Node) {
+			for _, t := range s.annRefs(x, "throws") {
+				if s.throwers[t] == nil {
+					s.throwers[t] = x
+				}
+			}
+		})
+	}
+	return s.throwers[n]
+}
 
 // personSubject reports whether a requirement's subject is an actor or a
 // persona: a person, whose behaviour no test proves.

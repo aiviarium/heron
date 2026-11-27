@@ -29,7 +29,7 @@ func check(t *testing.T, src string) []string {
 }
 
 func TestCleanFile(t *testing.T) {
-	got := check(t, `import = ["std/doc@1", "std/types@1", "std/spec@1"]
+	got := check(t, `import = ["std/doc@1", "std/types@1"]
 
 Refund: type {
   id: String
@@ -78,8 +78,8 @@ func TestErrors(t *testing.T) {
 		{"import = [\"std/doc@1\"]\n@displey(\"X\")\nx: section\n", "unknown annotation @displey"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | A [link](#nowhere).\n}\n", "the link to #nowhere doesn't resolve"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | <warnin>x</warnin>\n}\n", "unknown tag <warnin>"},
-		{"import = [\"std/spec@1\"]\np: project(path = \".\") {\n  implemnts = []\n}\n", "has no field implemnts; did you mean implements?"},
-		{"import = [\"std/spec@1\"]\np: project(path = \".\")\np {\n  versioning {\n    shceme = \"x\"\n  }\n}\n", "has no field shceme"},
+		{"p: project(path = \".\") {\n  implemnts = []\n}\n", "has no field implemnts; did you mean implements?"},
+		{"p: project(path = \".\")\np {\n  versioning {\n    shceme = \"x\"\n  }\n}\n", "has no field shceme"},
 		{"import = [\"std/doc@1\"]\nx: section\nx {\n  nope {\n    a = 1\n  }\n}\n", "x.nope doesn't exist"},
 		{"t: task do {\n  log(missing)\n}\n", "unknown name missing"},
 		{"t: task do {\n  let a = 1\n  log(\"$a $b\")\n}\n", "unknown name b"},
@@ -132,14 +132,14 @@ func TestBodyAccepts(t *testing.T) {
 		{"import = [\"std/doc@1\"]\nx: section do {\n  log(\"x\")\n}\n", "section takes no do block"},
 		{"import = [\"std/doc@1\"]\nx: list {\n  note {{ x }}\n}\n", "list doesn't accept note; it accepts item"},
 		{"import = [\"std/doc@1\"]\nx: figure {\n  caption {{ a }}\n  caption {{ b }}\n}\n", "figure accepts at most 1 caption"},
-		{"import = [\"std/spec@1\"]\nr: rule {\n  must {{ a }}\n  mustNot {{ b }}\n}\n", "rule accepts at most 1 strength node"},
-		{"import = [\"std/spec@1\"]\nr: rule {\n  must {{ a }}\n  when {{ b }}\n  when {{ c }}\n}\n", "rule accepts at most 1 when"},
-		{"import = [\"std/spec@1\"]\nr: rule {\n  mustNot {{ a }}\n  if {{ b }}\n  if {{ c }}\n}\n", "rule accepts at most 1 if"},
-		{"import = [\"std/spec@1\"]\nr: rule {\n  must {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, and must is positive"},
-		{"import = [\"std/spec@1\"]\nr: rule {\n  when {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, mustNot or shouldNot"},
+		{"r: rule {\n  must {{ a }}\n  mustNot {{ b }}\n}\n", "rule accepts at most 1 strength node"},
+		{"r: rule {\n  must {{ a }}\n  when {{ b }}\n  when {{ c }}\n}\n", "rule accepts at most 1 when"},
+		{"r: rule {\n  mustNot {{ a }}\n  if {{ b }}\n  if {{ c }}\n}\n", "rule accepts at most 1 if"},
+		{"r: rule {\n  must {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, and must is positive"},
+		{"r: rule {\n  when {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, mustNot or shouldNot"},
 	}
 	// Examples repeat, and instead under a negative strength is fine.
-	if got := check(t, "import = [\"std/spec@1\"]\nr: rule {\n  shouldNot {{ a }}\n  instead {{ b }}\n  example {{ c }}\n  example {{ d }}\n}\n"); len(got) > 0 {
+	if got := check(t, "r: rule {\n  shouldNot {{ a }}\n  instead {{ b }}\n  example {{ c }}\n  example {{ d }}\n}\n"); len(got) > 0 {
 		t.Errorf("a valid rule: %v", got)
 	}
 	for _, c := range cases {
@@ -265,7 +265,7 @@ ping(): op
 // The kinds of std/spec check their bodies,
 // their fields and the variants a lifecycle names.
 func TestSpecKinds(t *testing.T) {
-	base := "import = [\"std/doc@1\", \"std/types@1\", \"std/spec@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"
+	base := "import = [\"std/doc@1\", \"std/types@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"
 	for src, want := range map[string]string{
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.GONE)\n}\n":                          "Status has no member GONE",
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.SHUT) {\n    must {{ x }}\n  }\n}\n": "transition doesn't accept must",

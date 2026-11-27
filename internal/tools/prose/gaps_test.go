@@ -9,7 +9,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/lint"
 )
 
-const gapsIndex = `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
+const gapsIndex = `import = ["std/doc@1", "std/lint@1"]
 
 customer: actor {{ Someone who paid. }}
 
@@ -107,7 +107,7 @@ func TestGapAndLayerLints(t *testing.T) {
 // A requirement no goal reaches is unmotivated, unless it's a constraint.
 func TestUnmotivated(t *testing.T) {
 	dir := t.TempDir()
-	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
+	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/lint@1"]
 
 desk: part {{ The console. }}
 

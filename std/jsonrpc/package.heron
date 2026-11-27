@@ -1,6 +1,6 @@
 // std/jsonrpc: binds apis and ops to JSON-RPC 2.0 methods and
 // notifications, from the APIs tab.
-import = ["std/schema@1", "std/types@1", "std/spec@1"]
+import = ["std/schema@1", "std/types@1"]
 
 jsonrpc: package(version = "1.0", requires = ["std/types@1"]) {
   /// How a method's params hold the op's parameters.

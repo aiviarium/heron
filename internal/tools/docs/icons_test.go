@@ -11,7 +11,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-const iconTree = `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+const iconTree = `import = ["std/doc@1", "std/docs@1"]
 
 @icon("compass")
 area: section {

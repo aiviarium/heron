@@ -1,6 +1,6 @@
 // The kinds of std/spec's layers, std/grammar and std/project, each once,
 // for the renderer tests.
-import = ["std/doc@1", "std/spec@1", "std/grammar@1", "std/project@1"]
+import = ["std/doc@1", "std/grammar@1", "std/project@1"]
 
 @source("authors")
 trust: goal(measure = "Nine trees in ten check clean on the first CI run.") {{ Authors ship a spec their team trusts. }}
@@ -35,12 +35,11 @@ editing: section {
       [people.writer] fixes them. Back to 1.
   }}
 
-  @realizes(editing.check_tree.2a)
-  @by(checker)
   @exit(2)
   unreadable: error("unreadable") {
     title = "can't read {path}"
     path: field(String)
+    | Reported as [editing.check_tree.2a] says.
   }
 
   @illustrates(guarantees.parse_all)

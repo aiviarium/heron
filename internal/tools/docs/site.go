@@ -160,6 +160,8 @@ type Site struct {
 	// kindPaths memoizes kindPath, for a site whose tree no longer
 	// changes, as the agent export's.
 	kindPaths map[*resolve.Node]string
+	// throwers maps an error to the first op or api whose @throws names it.
+	throwers map[*resolve.Node]*resolve.Node
 }
 
 // New prepares a site for a checked tree.

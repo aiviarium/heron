@@ -1219,8 +1219,8 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 			f = append(f, "JSON-RPC "+j)
 		}
 	}
-	if by := s.ruleBy(n); by != nil {
-		f = append(f, "by "+s.mdLink(by, stableID(by)))
+	if by := s.reportedBy(n); by != nil {
+		f = append(f, "reported by "+s.mdLink(by, stableID(by)))
 	}
 	ls := []string{strings.Join(f, " · ")}
 	if t := n.Child("title"); t != nil && t.Value != nil {
@@ -1231,17 +1231,6 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 		if s.kindPath(ch) == "spec.field" {
 			ls = append(ls, "field `"+ch.Name+"` "+e.argText(ch, "type", 0))
 		}
-	}
-	var realizes []*resolve.Node
-	for _, a := range annotationsNamed(n, "realizes") {
-		for _, x := range argExprs(a.Args()) {
-			if t := s.refTarget(x.Syntax(), n.Decl); t != nil {
-				realizes = append(realizes, t)
-			}
-		}
-	}
-	if len(realizes) > 0 {
-		ls = append(ls, "realizes "+e.links(realizes))
 	}
 	out := lines(ls...)
 	if p := s.proseMD(n); p != "" {
@@ -1533,7 +1522,7 @@ func (e *agentExport) valueMD(x ast.Expr, site resolve.Site) string {
 }
 
 var derivedKeys = []struct{ key, words string }{
-	{"realized_by", "realized by"}, {"illustrated_by", "illustrated by"}, {"served_by", "served by"},
+	{"realized_by", "realized by"}, {"reported_as", "reported as"}, {"illustrated_by", "illustrated by"}, {"served_by", "served by"},
 	{"refined_by", "refined by"}, {"relied_on_by", "relied on by"}, {"derived_by", "derived by"},
 }
 

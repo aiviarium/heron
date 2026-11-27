@@ -73,7 +73,7 @@ guide: section {
 // and renders as a reference with no page, since the site has none for it.
 func TestLinkToImportedDeclaration(t *testing.T) {
 	dir := t.TempDir()
-	src := "import = [\"std/doc@1\", \"std/spec@1\"]\n\nguide: section {\n  | Write a [rule](#spec.rule).\n}\n"
+	src := "import = [\"std/doc@1\"]\n\nguide: section {\n  | Write a [rule](#spec.rule).\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "index.heron"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}

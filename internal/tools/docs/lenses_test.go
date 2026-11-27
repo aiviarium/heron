@@ -440,7 +440,7 @@ func TestDiagnosticsCompact(t *testing.T) {
 // title, and a tree's own user lens replaces std/docs's.
 func TestOwnLenses(t *testing.T) {
 	dir := t.TempDir()
-	src := `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+	src := `import = ["std/doc@1", "std/docs@1"]
 
 cli: section {
   sync: command("kite sync") {{ Syncs a folder. }}

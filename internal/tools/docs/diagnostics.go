@@ -118,7 +118,7 @@ func renderDiagnostic(c *Ctx) error {
 	if r := fieldString(n, "related"); r != "" {
 		meta = append(meta, esc(label("docs.label.related_site"))+` <span class="diag-related">`+messageHTML(r)+`</span>`)
 	}
-	if by := s.ruleBy(n); by != nil {
+	if by := s.reportedBy(n); by != nil {
 		meta = append(meta, esc(label("docs.label.reported_by"))+` `+s.linkHTML(by, `<code>`+esc(c.refText(by))+`</code>`, ""))
 	}
 	if len(meta) > 0 {

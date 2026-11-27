@@ -8,7 +8,7 @@ import (
 )
 
 // specSrc holds one of each kind std/spec gives a specification.
-const specSrc = `import = ["std/doc@1", "std/types@1", "std/spec@1", "std/http@1", "std/docs@1"]
+const specSrc = `import = ["std/doc@1", "std/types@1", "std/http@1", "std/docs@1"]
 
 Status: enum {
   OPEN: Self

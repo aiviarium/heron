@@ -76,7 +76,7 @@ x: section {
 }
 
 func TestFlagPlacement(t *testing.T) {
-	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1"]
+	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/doc@1"]
 x: section<security>
 y: term<security>
 `}), "flag-placement: <security> doesn't attach to term; it attaches to section")
@@ -109,7 +109,7 @@ a: api {
   other(@status(2) id: String): op(NotFound)
 }
 `}),
-		"annotation-placement: @status doesn't attach to section; it attaches to type",
+		"annotation-placement: @status doesn't attach to section; it attaches to error, type",
 		"annotation-placement: @status doesn't attach to op",
 		"annotation-placement: @http stands twice on one node",
 		"annotation-placement: @status doesn't attach to a parameter",

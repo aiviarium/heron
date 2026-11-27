@@ -219,7 +219,7 @@ func TestVocabularyActionsAndCaching(t *testing.T) {
 // definition doesn't ask to link the term, and a rule's `<must>` is a must.
 func TestSpecLintsInProseFile(t *testing.T) {
 	dir := t.TempDir()
-	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
+	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/lint@1"]
 
 include = ["./refunds.heron.md"]
 `)
@@ -247,7 +247,7 @@ The day the payment is captured, which is the capture date.
 	}
 }
 
-const specIndex = `import = ["std/doc@1", "std/spec@1", "std/lint@1"]
+const specIndex = `import = ["std/doc@1", "std/lint@1"]
 
 refunds_work: goal {{ Customers get their money back. }}
 

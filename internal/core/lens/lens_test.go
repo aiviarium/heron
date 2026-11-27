@@ -33,7 +33,7 @@ func messages(res *check.Result) string {
 	return strings.Join(out, "\n")
 }
 
-const tree = `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+const tree = `import = ["std/doc@1", "std/docs@1"]
 
 intro: section {
   | Everyone reads this.
@@ -231,7 +231,7 @@ func TestModes(t *testing.T) {
 func TestAuthoredExamplesCheck(t *testing.T) {
 	for _, c := range []struct{ code, want string }{
 		{"a: section {", "the example intro.start.ok doesn't check: expected `}` (line 3)"},
-		{"a: rule {}", "the example intro.start.ok doesn't check: unknown kind or type rule"},
+		{"a: production {}", "the example intro.start.ok doesn't check: unknown kind or type production"},
 	} {
 		res := checkSrc(t, strings.Replace(withLenses("lenses = [user, explore]"), "a: section {}", c.code, 1))
 		if !strings.Contains(messages(res), c.want) {
@@ -244,8 +244,8 @@ func TestAuthoredExamplesCheck(t *testing.T) {
 // imported in either order.
 func TestStepResolvesByParent(t *testing.T) {
 	for _, imports := range []string{
-		`["std/doc@1", "std/spec@1", "std/docs@1"]`,
-		`["std/docs@1", "std/doc@1", "std/spec@1"]`,
+		`["std/doc@1", "std/docs@1"]`,
+		`["std/docs@1", "std/doc@1"]`,
 	} {
 		src := "import = " + imports + `
 shopper: actor {{ Someone who buys. }}
@@ -362,7 +362,7 @@ s: section {
 // insertion of a fact that's gone and a link that resolves nowhere are
 // errors.
 func TestAuthoredPageChecks(t *testing.T) {
-	base := `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+	base := `import = ["std/doc@1", "std/docs@1"]
 
 cli: section {
   sync: command("kite sync") {
@@ -400,7 +400,7 @@ page: guide {
 	}
 }
 
-const mdTree = `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+const mdTree = `import = ["std/doc@1", "std/docs@1"]
 
 @lens(user)
 for_users: section {

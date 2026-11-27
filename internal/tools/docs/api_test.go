@@ -22,13 +22,13 @@ Event: type { id: String }
 
 StoreError: interface(Error)
 
-@http.status(404)
+@status(404)
 NotFound: type(StoreError) { message: String }
 
-@http.status(409)
+@status(409)
 Conflict: type(StoreError) { message: String }
 
-@http.status(422)
+@status(422)
 Invalid: type(Error) { message: String }
 
 @http(base_path = "/v1")

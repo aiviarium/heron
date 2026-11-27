@@ -206,7 +206,7 @@ func outcomeLabel(x usecase.Ext) string {
 
 // backlinks are the links written on lower nodes, walked in reverse: for
 // each target, the nodes that realize, illustrate, serve, refine, rely on
-// or derive from it.
+// or derive from it, and the errors whose prose links it.
 func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 	if s.back != nil {
 		return s.back
@@ -227,6 +227,15 @@ func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 		s.back[t][key] = append(s.back[t][key], from)
 	}
 	s.Tree.Walk(func(n *resolve.Node) {
+		// An error's prose links the rules that say when it's reported.
+		if s.kindPath(n) == "spec.error" {
+			for _, t := range project.ErrorRules(s.Checker, n) {
+				add(t, "reported_as", n)
+				if t.Shape == resolve.ShapeStep && t.Parent != nil {
+					add(t.Parent, "reported_as", n)
+				}
+			}
+		}
 		for _, pair := range [][2]string{{"serves", "served_by"}, {"illustrates", "illustrated_by"}, {"refines", "refined_by"}, {"relies", "relied_on_by"}, {"derives", "derived_by"}} {
 			for _, t := range s.annRefs(n, pair[0]) {
 				add(t, pair[1], n)
@@ -261,7 +270,7 @@ func (c *Ctx) derivedLists(n *resolve.Node) string {
 		return ""
 	}
 	var b strings.Builder
-	for _, key := range []string{"realized_by", "illustrated_by", "served_by", "refined_by", "relied_on_by", "derived_by"} {
+	for _, key := range []string{"realized_by", "reported_as", "illustrated_by", "served_by", "refined_by", "relied_on_by", "derived_by"} {
 		var links []string
 		ns := m[key]
 		sort.SliceStable(ns, func(i, j int) bool { return ns[i].Path() < ns[j].Path() })

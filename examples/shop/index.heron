@@ -4,7 +4,6 @@
 // requirements, where the rest stands, and its releases.
 import = [
   "std/doc@1",
-  "std/spec@1",
   "std/project@1",
   "../shop-spec/",
 ]

@@ -2,8 +2,11 @@
 // the intent (why a product exists and for whom), the specification (what
 // must hold of it from outside) and the contract (the exact surface a
 // consumer relies on), with the links between them, projects, lifecycles
-// and planning. It holds what std/product and std/tech held.
-import = ["std/schema@1", "std/types@1", "std/doc@1", "std/project@1", "std/grammar@1"]
+// and planning. It's part of the core: every tree sees it without an
+// import, as it sees std/core, apart from the packages it's written with.
+// The kinds of other packages join its annotations' open sets through the
+// categories below, so it never names a package that isn't core.
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
 
 spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Projects ---
@@ -281,9 +284,24 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   // --- Links ---
 
-  /// The actor or part whose behaviour a rule states, or the part that
-  /// reports an error. Without it, the subject is the system.
-  by(subject: Ref(Any)): annotation(on = [rule, error])
+  /// Kinds of other packages that `@serves` stands on, as std/project's
+  /// story.
+  serving: category
+
+  /// Kinds of other packages that `@realizes` stands on, as std/grammar's
+  /// grammar and std/project's component.
+  realizing: category
+
+  /// Kinds of other packages that `@rev` stands on, as std/project's proof.
+  revised: category
+
+  /// Kinds of other packages that `@source` stands on, as std/grammar's
+  /// grammar.
+  sourced: category
+
+  /// The actor or part whose behaviour a rule states. Without it, the
+  /// subject is the system.
+  by(subject: Ref(Any)): annotation(on = [rule])
 
   /// The terms and nodes a requirement, a guidance or an open question is
   /// about.
@@ -291,7 +309,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// The goals or qualities a requirement, a scenario, a use case or a
   /// story is for.
-  serves(goals<variadic>: Ref(Any)): annotation(on = [rule, constraint, scenario, usecase, project.story])
+  serves(goals<variadic>: Ref(Any)): annotation(on = [rule, constraint, scenario, usecase, serving])
 
   /// The rules a rule is derived from.
   derives(rules<variadic>: Ref(rule)): annotation(on = [rule])
@@ -305,17 +323,18 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// The outcome scenario an example pins down.
   refines(scenario: Ref(scenario)): annotation(on = [example])
 
-  /// The rules, use cases, steps, extensions or parts a contract entry, an
-  /// error or a project's component exists for.
-  realizes(targets<variadic>: Ref(Any)): annotation(on = [types.api, types.op, types.type, types.enum, types.union, types.interface, error, command, argument, option, screen, region, grammar.grammar, grammar.production, grammar.token, project.component])
+  /// The rules, use cases, steps, extensions or parts a surface solves: a
+  /// contract entry or a project's component. Never an error, which is a
+  /// result: its prose links the rule that says when it's reported.
+  realizes(targets<variadic>: Ref(Any)): annotation(on = [types.api, types.op, types.type, types.enum, types.union, types.interface, command, argument, option, screen, region, realizing])
 
   /// The revision of a requirement or contract entry, a whole number from
   /// 1, raised when its meaning changes; on a proof, the revision it proves.
-  rev(n: Int): annotation(on = [rule, constraint, scenario, usecase, error, command, screen, project.proves])
+  rev(n: Int): annotation(on = [rule, constraint, scenario, usecase, error, command, screen, revised])
 
   /// Who asked for a goal or a constraint, or the file a grammar is kept
   /// equal to.
-  source(text: String): annotation(on = [goal, constraint, grammar.grammar])
+  source(text: String): annotation(on = [goal, constraint, sourced])
 
   /// Why a rule or a constraint holds.
   rationale(text: String): annotation(on = [rule, constraint])
@@ -335,9 +354,12 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// One problem the product reports, with one identity on every surface:
   /// its id and its `title` with a `{name}` for each field. Its projections
-  /// are annotations, one per surface: std/http's `@status` on an API,
-  /// `@exit` on a command line, `@severity` as a diagnostic (an error when
-  /// left out). `@by` is the part that reports it.
+  /// are annotations, one per surface: `@status` on an API, `@exit` on a
+  /// command line, `@severity` as a diagnostic (an error when left out).
+  /// Its prose links the rule, or `Fails.` extension, that says when it's
+  /// reported. An error never names who reports it: the raiser names it, as
+  /// an op's `@throws` or a command holding it, or the linked rule's `@by`
+  /// does.
   @icon("circle-alert")
   error(id: String): kind(in = [block], layer = Layer.CONTRACT) {
     /// The message, with `{name}` for each field filled in where it happens.
@@ -348,6 +370,10 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = field)
     accept(kind = example)
   }
+
+  /// The HTTP status code an error is returned with, its projection on an
+  /// API: on a spec error, or on a type that implements Error.
+  status(code: Int): annotation(on = [error, types.type])
 
   /// The exit code an error ends a command-line run with.
   exit(code: Int): annotation(on = [error])

@@ -1,12 +1,12 @@
 // std/grammar: a language's grammar as a surface of the contract layer: its
 // productions and tokens, in a notation whose operators are `|`, `?`, `*`,
 // `+` and grouping. A spec that describes a language imports it.
-import = ["std/schema@1", "std/types@1", "std/doc@1", "std/spec@1"]
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
 
-grammar: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
-  /// A language's grammar: its productions and tokens. std/spec's
+grammar: package(version = "1.0", requires = ["std/doc@1"]) {
+  /// A language's grammar: its productions and tokens. the core's
   /// `@source` names a file the grammar is kept equal to.
-  grammar(notation?: String): kind(in = [block], layer = Layer.CONTRACT) {
+  grammar(notation?: String): kind(in = [block, realizing, sourced], layer = Layer.CONTRACT) {
     /// The production a whole input is read as.
     start?: Ref(production)
     accept(prose)
@@ -18,12 +18,12 @@ grammar: package(version = "1.0", requires = ["std/doc@1", "std/spec@1"]) {
   /// A nonterminal and its expression: names of other productions and
   /// tokens, quoted literals and the operators. Its `///` docs say what it
   /// reads.
-  production: kind(in = [block], layer = Layer.CONTRACT) {
+  production: kind(in = [block, realizing], layer = Layer.CONTRACT) {
     accept(text = Verbatim)
   }
 
   /// A terminal, by its pattern or literal.
-  token: kind(in = [block], layer = Layer.CONTRACT) {
+  token: kind(in = [block, realizing], layer = Layer.CONTRACT) {
     accept(text = Verbatim)
   }
 }

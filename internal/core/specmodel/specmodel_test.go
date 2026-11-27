@@ -53,7 +53,7 @@ func wantNone(t *testing.T, res *check.Result, nots ...string) {
 	}
 }
 
-const head = `import = ["std/doc@1", "std/types@1", "std/spec@1", "std/grammar@1", "std/apis@1", "std/http@1"]
+const head = `import = ["std/doc@1", "std/types@1", "std/grammar@1", "std/apis@1", "std/http@1"]
 
 self_service: goal {{ Customers fix a wrong charge themselves. }}
 
@@ -79,7 +79,6 @@ g: grammar {
   p: production {{ x }}
 }
 
-@by(desk)
 e: error("x") {
   title = "bad"
 }
@@ -109,7 +108,6 @@ r: rule {
   must {{ refund inside the [window], as [customer] asks; see [e] }}
 }
 
-@by(desk)
 e: error("x") {
   title = "bad"
 }
@@ -144,9 +142,7 @@ b: rule {
 }
 
 @realizes(window)
-e: error("x") {
-  title = "bad"
-}
+c: command("x")
 `)
 	wantAll(t, res,
 		"link: @serves takes a goal or a quality, and desk is a part",
@@ -282,7 +278,7 @@ e: error("x") {
 
 // A story lists spec items; it states no behaviour of its own.
 func TestStoryStatesNoBehaviour(t *testing.T) {
-	res := checkSrc(t, `import = ["std/doc@1", "std/spec@1", "std/project@1"]
+	res := checkSrc(t, `import = ["std/doc@1", "std/project@1"]
 
 s: story {
   given {{ a cart }}

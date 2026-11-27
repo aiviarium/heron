@@ -4,7 +4,6 @@
 // rest stands, the delivery plan and the releases.
 import = [
   "std/doc@1",
-  "std/spec@1",
   "std/project@1",
   "std/docs@1",
 ]

@@ -1,6 +1,6 @@
 // A small product spec with authored pages and every lens, for the lens
 // and authored-kind tests and the docs screenshots.
-import = ["std/schema@1", "std/doc@1", "std/types@1", "std/http@1", "std/spec@1", "std/docs@1"]
+import = ["std/schema@1", "std/doc@1", "std/types@1", "std/http@1", "std/docs@1"]
 
 kite: package(version = "1.4.0") {
   @lens(user)
@@ -135,21 +135,18 @@ kite: package(version = "1.4.0") {
     @lens(developer)
     | Spec writers: every rule here names the syncer, so the conformance report groups them.
 
-    @by(kite.system.syncer)
     unreadable: error("unreadable") {
       title = "can't read {file}"
       file: field(String)
       | A note Kite can't read, such as one without read permission.
     }
 
-    @by(kite.system.syncer)
     unlistable: error("unreadable") {
       title = "can't list <{folder}>"
       folder: field(String)
       | A folder Kite can't list, so none of its notes sync.
     }
 
-    @by(kite.system.syncer)
     @severity(warning)
     store_down: error("store-unreachable") {
       title = "the store at {address} doesn't answer"
@@ -202,12 +199,11 @@ kite: package(version = "1.4.0") {
     }
   }
 
-  @realizes(gone_notes)
-  @by(kite.system.syncer)
   @status(423)
   note_locked: error("store.NOTE_LOCKED") {
     title = "{id} is being written by another sync"
     id: field(String)
+    | Reported as [gone_notes] says.
   }
 
   @by(kite.system.syncer)
@@ -231,11 +227,10 @@ kite: package(version = "1.4.0") {
 
       | Exits 0 when the sync finished.
 
-      @realizes(cli.sync.exits_nonzero)
-      @by(kite.system.syncer)
       @exit(1)
       exit_1: error("kite sync exit 1") {
         title = "a note couldn't be copied"
+        | Reported as [cli.sync.exits_nonzero] says.
       }
 
       @by(kite.system.syncer)

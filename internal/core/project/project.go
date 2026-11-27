@@ -695,3 +695,65 @@ func AnnotationRef(c *types.Checker, n *resolve.Node, name string) *resolve.Node
 	}
 	return RefTarget(c, a.Expr.Syntax(), a.Site)
 }
+
+// ProseLinks are the nodes a node's own prose links to, in the order
+// written.
+func ProseLinks(c *types.Checker, n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	for _, ps := range n.Prose {
+		if ps.N == nil {
+			continue
+		}
+		ps.N.Walk(func(y *syntax.Node) bool {
+			if y.Kind == syntax.Path {
+				if t := RefTarget(c, y, ps); t != nil {
+					out = append(out, t)
+				}
+				return false
+			}
+			return true
+		})
+	}
+	return out
+}
+
+// ErrorRules are the requirements an error's prose links to: the rules,
+// constraints, use cases and use case steps that say when it's reported.
+// An error names no raiser and realizes nothing; this is how it points up.
+func ErrorRules(c *types.Checker, n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	seen := map[*resolve.Node]bool{}
+	for _, t := range ProseLinks(c, n) {
+		if seen[t] {
+			continue
+		}
+		switch KindPath(c, t) {
+		case "spec.rule", "spec.constraint", "spec.usecase":
+		default:
+			if t.Shape != resolve.ShapeStep {
+				continue
+			}
+		}
+		seen[t] = true
+		out = append(out, t)
+	}
+	return out
+}
+
+// ErrorRaiser is who reports an error, derived from the other direction:
+// the command that holds it, or else the `@by` of the first rule its prose
+// links to. An op's `@throws` is the third way, which readers that index
+// ops add. Nil when neither says.
+func ErrorRaiser(c *types.Checker, n *resolve.Node) *resolve.Node {
+	for a := n.Parent; a != nil; a = a.Parent {
+		if KindPath(c, a) == "spec.command" {
+			return a
+		}
+	}
+	for _, r := range ErrorRules(c, n) {
+		if by := AnnotationRef(c, r, "by"); by != nil {
+			return by
+		}
+	}
+	return nil
+}

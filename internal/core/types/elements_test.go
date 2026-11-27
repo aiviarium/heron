@@ -12,7 +12,7 @@ import (
 // and a quoted reference that names nothing are reported; and an
 // unquoted value is a syntax error that keeps the element.
 func TestElementsCheck(t *testing.T) {
-	_, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+	_, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/docs@1"]
 
 people: section {
   desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
@@ -87,7 +87,7 @@ s: section {
 // is the annotation, its references read as written: `@targets="ok, ok.a"`
 // is `@targets(ok, ok.a)`, and `@by="desk"` reaches desk as a link would.
 func TestElementVariadicAttribute(t *testing.T) {
-	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/spec@1", "std/project@1"]
+	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/project@1"]
 
 people: section {
   desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}

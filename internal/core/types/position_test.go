@@ -187,8 +187,8 @@ intro: section {
 }
 `
 	for _, imports := range []string{
-		`import = ["std/schema@1", "std/types@1", "std/spec@1", "std/doc@1"]`,
-		`import = ["std/schema@1", "std/spec@1", "std/types@1", "std/doc@1"]`,
+		`import = ["std/schema@1", "std/types@1", "std/doc@1"]`,
+		`import = ["std/schema@1", "std/types@1", "std/doc@1"]`,
 	} {
 		if got := check(t, imports+"\n"+uses); len(got) > 0 {
 			t.Errorf("%s: %v", imports, got)

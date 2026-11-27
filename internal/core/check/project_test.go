@@ -52,8 +52,8 @@ first: release("1.0.0+build1", date = "2026-11-01") {{ The first release. }}
 // project kind.
 func TestProjectKindsCheck(t *testing.T) {
 	for _, imports := range []string{
-		`["std/doc@1", "std/spec@1", "std/project@1"]`,
-		`["std/project@1", "std/doc@1", "std/spec@1"]`,
+		`["std/doc@1", "std/project@1"]`,
+		`["std/project@1", "std/doc@1"]`,
 	} {
 		res := checkFiles(t, map[string]string{"index.heron": "import = " + imports + "\n" + projectKinds}, "index.heron")
 		var msgs []string
@@ -66,7 +66,7 @@ func TestProjectKindsCheck(t *testing.T) {
 	}
 }
 
-const shopSpec = `import = ["std/doc@1", "std/spec@1"]
+const shopSpec = `import = ["std/doc@1"]
 
 shop: package(version = "2.1.3", sealed = true) {
   buyer: actor {{ Someone who buys. }}
@@ -102,7 +102,7 @@ func wantDiagContaining(t *testing.T, res *check.Result, sub string) {
 	t.Errorf("no diagnostic containing %q in %v", sub, diagStrings(res))
 }
 
-const projectHead = `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
+const projectHead = `import = ["std/doc@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "2.1.3") {
   version = "2.1.3+build1"
@@ -147,7 +147,7 @@ status<planned>(shop.checkout.receipt)
 		t.Errorf("project-side kinds: %v", ds)
 	}
 	// The same spec kinds are fine in a tree that implements nothing.
-	res = checkFiles(t, map[string]string{"index.heron": "import = [\"std/doc@1\", \"std/spec@1\"]\nr: rule {\n  must {{ x }}\n}\n"}, "index.heron")
+	res = checkFiles(t, map[string]string{"index.heron": "import = [\"std/doc@1\"]\nr: rule {\n  must {{ x }}\n}\n"}, "index.heron")
 	if ds := diagStrings(res); len(ds) > 0 {
 		t.Errorf("no project: %v", ds)
 	}
@@ -234,7 +234,7 @@ status<planned>(shop.checkout.refund)
 // versioning config chooses, the 3-part one by default.
 func TestProjectVersions(t *testing.T) {
 	impl := func(at, version, extra string) string {
-		return `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
+		return `import = ["std/doc@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "` + at + `") {
   version = "` + version + `"
@@ -279,7 +279,7 @@ app: implements(shop, at = "` + at + `") {
 // counts as no proof; intent is never a requirement; the gap report lists
 // behaviour no contract entry realizes.
 func TestConformanceRevisionsAndGaps(t *testing.T) {
-	spec := `import = ["std/doc@1", "std/spec@1"]
+	spec := `import = ["std/doc@1"]
 
 shop: package(version = "1.0.0", sealed = true) {
   pay_fast: goal {{ Paying takes one step. }}
@@ -297,15 +297,14 @@ shop: package(version = "1.0.0", sealed = true) {
     must {{ send a receipt }}
   }
 
-  @realizes(receipt)
-  @by(payments)
   no_receipt: error("shop.NO_RECEIPT") {
     title = "no receipt for {order}"
     order: field(String)
+    | Reported as [receipt] says.
   }
 }
 `
-	app := `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
+	app := `import = ["std/doc@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "1.0.0") {
   version = "1.0.0+build1"

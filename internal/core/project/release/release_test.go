@@ -10,7 +10,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/registry"
 )
 
-const spec = `import = ["std/doc@1", "std/spec@1"]
+const spec = `import = ["std/doc@1"]
 
 shop: package(version = "2.1.3", sealed = true) {
   pay_once: rule {
@@ -36,7 +36,7 @@ func run(t *testing.T, app string, args ...string) (int, string, string) {
 }
 
 func app(at, version, extra string) string {
-	return `import = ["std/doc@1", "std/spec@1", "std/project@1", "../shop/"]
+	return `import = ["std/doc@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "` + at + `") {
   version = "` + version + `"

@@ -2,7 +2,7 @@
 // tools tab's "Styling and extending the docs": the theme, the layout each
 // section uses, the components each slot shows and the modules that render
 // kinds. A tree enters it once, as `docs { … }`.
-import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1", "std/spec@1", "std/grammar@1"]
+import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1", "std/grammar@1"]
 
 docs: package(version = "1.0", requires = ["std/doc@1"]) {
   /// The docs generator's configuration.

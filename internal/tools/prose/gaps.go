@@ -134,7 +134,7 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 
 // reportGaps reports the spec's own gaps: goals and qualities nothing
 // serves, requirements that serve no goal, entries and errors that realize
-// nothing, failing extensions no error realizes, qualities with no
+// nothing, failing extensions no error links, qualities with no
 // measure, and long scenarios.
 func reportGaps(li *lint.Input) {
 	t, c := li.Tree, li.Checker
@@ -157,6 +157,7 @@ func reportGaps(li *lint.Input) {
 	}
 	served := map[*resolve.Node]bool{}
 	realized := map[*resolve.Node]bool{}
+	linked := map[*resolve.Node]bool{}
 	var goals, reqs, entries, usecases, qualities, scenarios []*resolve.Node
 	project.Own(t, func(n *resolve.Node) bool {
 		switch {
@@ -192,6 +193,22 @@ func reportGaps(li *lint.Input) {
 					}
 				}
 			}
+		}
+		// An error points up through its prose: the rules and steps it
+		// links say when it's reported.
+		if is(n, "spec.error") {
+			for _, x := range project.ErrorRules(c, n) {
+				linked[x] = true
+				linked[n] = true
+			}
+			for a := n.Parent; a != nil; a = a.Parent {
+				if is(a, "spec.command") {
+					linked[n] = true
+				}
+			}
+		}
+		for _, x := range refs(n, "throws") {
+			linked[x] = true
 		}
 		return true
 	})
@@ -233,6 +250,12 @@ func reportGaps(li *lint.Input) {
 		}
 	}
 	for _, e := range entries {
+		if is(e, "spec.error") {
+			if !linked[e] {
+				li.As(SpecName+".OrphanEntry").Report(e, e.Decl, diag.Warning, orphanMessage(e.Name))
+			}
+			continue
+		}
 		if realized[e] {
 			continue
 		}
@@ -257,7 +280,7 @@ func reportGaps(li *lint.Input) {
 			surfaceRealizes = surfaceRealizes || realized[ch]
 		}
 		if !surfaceRealizes {
-			li.As(SpecName+".OrphanEntry").Report(e, e.Decl, diag.Warning, fmt.Sprintf("%s realizes nothing; name the rules or steps it exists for with @realizes", e.Name))
+			li.As(SpecName+".OrphanEntry").Report(e, e.Decl, diag.Warning, orphanMessage(e.Name))
 		}
 	}
 	for _, u := range usecases {
@@ -269,10 +292,10 @@ func reportGaps(li *lint.Input) {
 			if x.Outcome != usecase.Fails {
 				continue
 			}
-			if st := u.Child(x.Num); (st != nil && realized[st]) || realized[u] {
+			if st := u.Child(x.Num); (st != nil && (realized[st] || linked[st])) || realized[u] || linked[u] {
 				continue
 			}
-			li.As(SpecName+".UnhandledFailure").ReportAt(u, p.Site.File, x.Start, x.End, diag.Warning, fmt.Sprintf("extension %s fails, and no error realizes it", x.Num))
+			li.As(SpecName+".UnhandledFailure").ReportAt(u, p.Site.File, x.Start, x.End, diag.Warning, fmt.Sprintf("extension %s fails, and no error links it", x.Num))
 		}
 	}
 	for _, q := range qualities {
@@ -297,4 +320,9 @@ func reportGaps(li *lint.Input) {
 			li.As(SpecName+".LongScenario").Report(sc, sc.Decl, diag.Warning, fmt.Sprintf("scenario %s has %d clauses; keep it to about five, or split the rule", sc.Name, n))
 		}
 	}
+}
+
+// orphanMessage is Spec.OrphanEntry's message, for an entry and an error.
+func orphanMessage(name string) string {
+	return fmt.Sprintf("%s names no rule or step it exists for; give an entry @realizes, and link an error's rule in its prose", name)
 }

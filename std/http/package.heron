@@ -1,6 +1,6 @@
 // std/http: binds apis and ops to HTTP, with server-sent events for
 // streamed results, from the Schemas and APIs tabs.
-import = ["std/schema@1", "std/types@1", "std/spec@1"]
+import = ["std/schema@1", "std/types@1"]
 
 http: package(version = "1.0", requires = ["std/types@1"]) {
   get: flag(group = "method", on = [http])
@@ -17,8 +17,4 @@ http: package(version = "1.0", requires = ["std/types@1"]) {
   query: annotation(on = [types.param])
   header(name?: String): annotation(on = [types.param])
   body: annotation(on = [types.param])
-
-  /// The status code an error is returned with: on a type that implements
-  /// Error, or on a spec error, its projection on an API.
-  status(code: Int): annotation(on = [types.type, spec.error])
 }

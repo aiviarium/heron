@@ -236,7 +236,7 @@ func (r *Report) Markdown() []byte {
 		title, about string
 		items        []string
 	}{
-		{"Behaviour no contract entry realizes", "Rules on a part or the system, and use case steps a part takes, that no entry or error names with @realizes.", r.Gaps.Unrealized},
+		{"Behaviour no contract entry realizes", "Rules on a part or the system, and use case steps a part takes, that no entry names with @realizes and no error's prose links.", r.Gaps.Unrealized},
 		{"Tests that cite no requirement", "Tests of the project that no verify names; listed, never failed.", r.Gaps.UncitedTests},
 	} {
 		if len(g.items) == 0 {

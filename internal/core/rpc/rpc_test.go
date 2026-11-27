@@ -276,7 +276,7 @@ func TestProtoDiagnostics(t *testing.T) {
 	}
 }
 
-const jhead = "import = [\"std/types@1\", \"std/jsonrpc@1\", \"std/spec@1\"]\n"
+const jhead = "import = [\"std/types@1\", \"std/jsonrpc@1\"]\n"
 
 // JSON-RPC methods: names, params by name, by position and whole,
 // notifications, null results, framing and encoding.

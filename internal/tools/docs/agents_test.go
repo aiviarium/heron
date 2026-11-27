@@ -235,7 +235,7 @@ func TestAgentUsecaseLines(t *testing.T) {
 	}
 }
 
-const agentTree = `import = ["std/schema@1", "std/doc@1", "std/spec@1", "std/http@1", "std/docs@1"]
+const agentTree = `import = ["std/schema@1", "std/doc@1", "std/http@1", "std/docs@1"]
 
 shop: package(version = "1.0") {
   | A shop that sells things.
@@ -262,12 +262,12 @@ shop: package(version = "1.0") {
       then {{ an order is recorded }}
     }
 
-    @realizes(orders.place)
     @display("Out of stock")
     @status(409)
     out_of_stock: error("shop.OUT_OF_STOCK") {
       title = "{item} is out of stock"
       item: field(String)
+      | Reported as [orders.place] says.
     }
 
     BULK
@@ -354,7 +354,7 @@ func TestAgentExportSplitsAndOrders(t *testing.T) {
 		"- then: it can be paid",
 		"serves [sell](_root.md#sell)",
 		"- illustrated by (derived): [orders.happy](orders.md#orders.happy)",
-		"- realized by (derived): [orders.out_of_stock](",
+		"- reported as (derived): [orders.out_of_stock](",
 	} {
 		if !strings.Contains(first, want) {
 			t.Errorf("orders.md lacks %q:\n%s", want, first)
