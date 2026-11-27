@@ -138,6 +138,7 @@ and `version` the project version; releases are tagged `v<version>`.
 ```sh
 scripts/ci.sh                                   # the whole check, run before every push
 HERON_SPECS_DIR=../heron-specs/heron scripts/ci.sh
+scripts/ci.sh --list                            # its lanes; scripts/ci.sh docs e2e runs those alone
 scripts/play.sh                                 # heron serve on a copy of examples/petstore
 scripts/spec-docs.sh                            # the spec package as its docs site
 scripts/pages.sh /tmp/site                      # the published site: spec at /, agents/, project at project/
@@ -152,7 +153,10 @@ script sets up the spec package first, then runs gofmt, vet, the
 generated-code checks, the Go, web and tree-sitter tests, the fixtures, the
 checks and lints of the repository's tree and the examples, conformance
 (every spec requirement proven, planned or untested; none missing) and the
-end-to-end scripts. `docs/PLAN.md` describes how the build was carried out
+end-to-end scripts. It runs them as lanes, all at once, each one's output in
+a log shown if it fails, and ends with a table of where the time went;
+`--serial` runs them one after another. On GitHub each lane is a job of its
+own, and the `ci` job passes when every lane did. `docs/PLAN.md` describes how the build was carried out
 and `docs/STATUS.md` where it stands.
 
 ## The published site

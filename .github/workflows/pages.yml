@@ -40,11 +40,21 @@ jobs:
           repository: aiviarium/heron-specs
           ref: ${{ steps.lock.outputs.commit }}
           path: heron-specs
+      # The Go build cache, kept as the ci workflow keeps its lanes': saved
+      # when the Go code changes, else reused.
       - uses: actions/setup-go@v7
         with:
           go-version-file: heron/go.mod
-          cache: true
-          cache-dependency-path: heron/go.sum
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-pages-${{ hashFiles('heron/go.sum') }}-${{ hashFiles('heron/**/*.go') }}
+          restore-keys: |
+            go-pages-${{ hashFiles('heron/go.sum') }}-
+            go-pages-
       - uses: actions/configure-pages@v6
       - name: Build the site
         working-directory: heron

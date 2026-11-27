@@ -317,7 +317,8 @@ const url = (f) => "file://" + path.join(dir, f)
     if (await p.$(".version .select-trigger")) {
       await p.focus(".version .select-trigger")
       await p.keyboard.press("ArrowDown")
-      const open = await p.waitForSelector(".select-content .select-item", { state: "visible", timeout: 2000 }).then(() => true, () => false)
+      // Its own list: the lens switch's, closed, can still be in the page.
+      const open = await p.waitForSelector(".version .select-content .select-item", { state: "visible", timeout: 2000 }).then(() => true, () => false)
       if (!open) fail.push("version: the keyboard doesn't open the version switch")
       await p.keyboard.press("Escape")
     }

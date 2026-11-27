@@ -9,7 +9,8 @@
 #   scripts/e2e-docs.sh --except SITE...            every site but those
 #
 # The sites: petstore parcels spec lenses shop sample. Their checks run at
-# once, HERON_E2E_JOBS at a time (3 by default), each one's output shown whole.
+# once, HERON_E2E_JOBS at a time (half as many as there are CPUs by default),
+# each one's output shown whole.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
@@ -116,7 +117,8 @@ if want sample; then
 fi
 
 export NODE_PATH="${NODE_PATH:-/opt/node-tools/node_modules}"
-max=${HERON_E2E_JOBS:-3}
+cpus=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
+max=${HERON_E2E_JOBS:-$(( cpus > 3 ? cpus / 2 : 1 ))}
 pids=()
 for i in "${!checks[@]}"; do
   while [ "$(jobs -rp | wc -l)" -ge "$max" ]; do sleep 0.1; done

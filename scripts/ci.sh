@@ -339,9 +339,9 @@ lane_docsspec() {
 # run_lane <lane>: the lane's steps, in a subshell, its time recorded.
 run_lane() (
   lane=$1
+  trap step_end EXIT # the time of the step that failed, too
   set -euo pipefail
   "lane_$1"
-  step_end
 )
 
 summary() {
@@ -384,31 +384,40 @@ if [ "$mode" = serial ]; then
   summary "one after another"
 else
   echo
-  echo "== ${#selected[@]} lanes at once; each one's output is in its log, shown if it fails"
-  pids=()
-  for l in "${selected[@]}"; do
-    run_lane "$l" >"$tmp/logs/$l.log" 2>&1 &
-    pids+=($!)
+  # The longest lanes start first; at most HERON_CI_JOBS run at once (as
+  # many as there are CPUs by default), as the e2e lanes time their pages.
+  max=${HERON_CI_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}
+  queue=()
+  for l in docsspec gotest golsp e2e unit1 editor docs web; do
+    case " ${selected[*]} " in *" $l "*) queue+=("$l") ;; esac
   done
-  left=$(seq 0 $((${#selected[@]} - 1)))
-  while [ -n "$left" ]; do
+  for l in "${selected[@]}"; do
+    case " ${queue[*]} " in *" $l "*) ;; *) queue+=("$l") ;; esac
+  done
+  echo "== ${#selected[@]} lanes, $max at once; each one's output is in its log, shown if it fails"
+  running="" # lane:pid ...
+  while [ ${#queue[@]} -gt 0 ] || [ -n "$running" ]; do
+    while [ ${#queue[@]} -gt 0 ] && [ "$(echo $running | wc -w)" -lt "$max" ]; do
+      l=${queue[0]}
+      queue=("${queue[@]:1}")
+      run_lane "$l" >"$tmp/logs/$l.log" 2>&1 &
+      running="$running $l:$!"
+    done
     still=""
-    for i in $left; do
-      l=${selected[$i]}
-      if kill -0 "${pids[$i]}" 2>/dev/null; then still="$still $i"; continue; fi
+    for lp in $running; do
+      l=${lp%%:*} p=${lp##*:}
+      if kill -0 "$p" 2>/dev/null; then still="$still $lp"; continue; fi
+      if wait "$p"; then ok=ok; else ok=FAIL; fail+=("$l"); fi
       t=$(awk -F'\t' -v l="$l" '$1 == l { s += $2 } END { printf "%.0f", s }' "$times")
-      if wait "${pids[$i]}"; then
-        printf 'ok    %-11s %4ss\n' "$l" "$t"
-      else
-        printf 'FAIL  %-11s %4ss\n' "$l" "$t"
-        fail+=("$l")
+      printf '%-5s %-11s %4ss\n' "$ok" "$l" "$t"
+      if [ $ok = FAIL ]; then
         echo "---- $l's log"
         cat "$tmp/logs/$l.log"
         echo "---- end of $l's log"
       fi
     done
-    left=$still
-    [ -z "$left" ] || sleep 0.2
+    running=$still
+    [ -z "$running" ] || sleep 0.2
   done
   summary "at once"
 fi
