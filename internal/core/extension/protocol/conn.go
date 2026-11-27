@@ -423,7 +423,13 @@ func (c *Conn) Notify(method string, params any) error {
 // failure turns a failed call into what callers check: an *Error with the
 // protocol's code, or ErrClosed once the session has ended.
 func (c *Conn) failure(ctx context.Context, method string, err error) error {
-	if ce := ctx.Err(); ce != nil {
+	ce := ctx.Err()
+	if ce == nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)) {
+		// The session can give up on the context before the context
+		// reports it.
+		ce = err
+	}
+	if ce != nil {
 		if errors.Is(ce, context.DeadlineExceeded) {
 			return &Error{Code: CodeTimeout, Message: fmt.Sprintf("%s timed out", method)}
 		}

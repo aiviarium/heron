@@ -194,7 +194,7 @@ protocol: component("internal/core/extension/protocol", lang = "go") {
   }
   property() {
     | The CBOR tag and the JSON form of each Heron value.
-    verify("internal/core/extension/protocol/tags_test.go")
+    verify("internal/core/extension/protocol/conn_test.go")
   }
 }
 
