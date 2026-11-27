@@ -21,7 +21,11 @@ type Client struct {
 	w  io.Writer
 	r  *bufio.Reader
 	mu sync.Mutex
-	id int
+	// wmu serialises writes. It isn't mu: a write can block until the
+	// server reads, and the server reads only once the reader has taken
+	// what it wrote, which needs mu.
+	wmu sync.Mutex
+	id  int
 	// waiting maps request ids to their reply channels.
 	waiting map[int]chan Message
 	diags   map[string][]Diagnostic
@@ -133,8 +137,8 @@ func (c *Client) read() {
 func (c *Client) send(m Message) error {
 	m.JSONRPC = "2.0"
 	b, _ := json.Marshal(m)
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
 	_, err := fmt.Fprintf(c.w, "Content-Length: %d\r\n\r\n%s", len(b), b)
 	return err
 }
