@@ -168,9 +168,21 @@ kbd { display: inline-block; font-size: var(--h-font-size-label); color: var(--h
   transition: color var(--h-motion-fast) var(--h-motion-ease), background var(--h-motion-fast) var(--h-motion-ease);
 }
 .nav a:hover { color: var(--h-text); background: var(--h-bg-soft); }
-.nav a[aria-current="page"] { color: var(--h-text); background: var(--h-bg-highlight); font-weight: var(--h-font-weight-medium); }
+/* The current page: a pill tinted with the project colour, its text and
+   icon in it. */
+.nav a[aria-current="page"] { color: var(--h-accent); background: color-mix(in srgb, var(--h-accent) 9%, transparent); font-weight: var(--h-font-weight-medium); }
+.nav a[aria-current="page"]:hover { background: color-mix(in srgb, var(--h-accent) 13%, transparent); }
+/* The tree: a branch's label navigates, the chevron beside it opens and
+   closes it in place; children hang off a faint guide. */
+.nav-branch > summary { display: flex; align-items: center; list-style: none; border-radius: var(--h-radius-control); cursor: pointer; }
+.nav-branch > summary::-webkit-details-marker { display: none; }
+.nav-branch > summary > a { flex: 1; min-width: 0; }
+.nav-branch > summary::after { content: ""; flex: none; width: 24px; height: 24px; margin-left: 2px; border-radius: var(--h-radius-control); background: no-repeat center / 10px 10px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2l3 3-3 3' fill='none' stroke='%23888' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); transition: transform var(--h-motion-fast) var(--h-motion-ease), background-color var(--h-motion-fast) var(--h-motion-ease); }
+.nav-branch[open] > summary::after { transform: rotate(90deg); }
+.nav-branch > summary:hover::after { background-color: var(--h-bg-soft); }
+.nav-branch > ul { margin-top: 1px; }
 /* The branch the current page is in reads a step stronger than the rest. */
-.nav li:has([aria-current="page"]) > a:not([aria-current]) { color: var(--h-text); }
+.nav li:has([aria-current="page"]) > a:not([aria-current]), .nav-branch:has([aria-current="page"]) > summary > a:not([aria-current]) { color: var(--h-text); }
 .nav ul a { min-height: 26px; padding-block: 3px; }
 .sidebar a:focus-visible { outline-offset: -2px; }
 .nav .t { overflow: hidden; text-overflow: ellipsis; }
@@ -841,7 +853,13 @@ table.ops code.path { overflow-wrap: anywhere; }
 .icon { display: inline-block; flex: none; width: 1em; height: 1em; vertical-align: -0.14em; }
 .title-icon { margin-right: 0.3em; color: var(--h-text-secondary); stroke-width: 1.75; }
 .nav a > .icon, .nav-group > .label > .icon { width: 14px; height: 14px; color: var(--h-text-faint); }
-.nav a[aria-current="page"] > .icon { color: var(--h-text-secondary); }
+.nav a[aria-current="page"] > .icon { color: var(--h-accent); }
+.palette-item .pk.pk-icon { width: 20px; justify-content: center; }
+.palette-item .pk.pk-icon .icon { width: 14px; height: 14px; }
+.kind-mark { margin-right: 0.35em; color: var(--h-text-faint); }
+.h > .kind-mark { width: 0.85em; height: 0.85em; vertical-align: -0.05em; }
+.refs .kind-mark, .cause .kind-mark { width: 14px; height: 14px; vertical-align: -2px; }
+.goal-head .kind-mark { color: var(--h-accent); width: 14px; height: 14px; align-self: center; }
 .nav-group > .label > .icon { width: 12px; height: 12px; margin-right: var(--h-space-1); vertical-align: -2px; }
 .home-group-title .icon { width: 12px; height: 12px; margin-right: var(--h-space-1); vertical-align: -2px; }
 .home-link-title > .icon, .home-primary-title > .icon, .tile-title > .icon { margin-right: var(--h-space-2); color: var(--h-text-secondary); }

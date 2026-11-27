@@ -75,10 +75,7 @@ export function Search() {
             <For each={results()}>
               {(e) => (
                 <CommandItem class="palette-item" value={e.u} label={e.t}>
-                  <span class="pk">
-                    {e.i && data().icons?.[e.i] ? <span class="pi" innerHTML={data().icons![e.i]} /> : null}
-                    {e.k}
-                  </span>
+                  <KindMark e={e} />
                   <span class="pt">
                     <b>{e.t}</b>
                     <span class="px">{subtitle(e)}</span>
@@ -96,6 +93,19 @@ export function Search() {
         </Command>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** A result's kind: its icon, labelled with the kind's name, in a lens
+ * that names kinds by icon, or else the kind in words beside a plain icon. */
+function KindMark(props: { e: Entry }) {
+  const svg = () => (props.e.i ? data().icons?.[props.e.i] : undefined)
+  const asIcon = () => data().kinds !== "text" && !!svg() && !!props.e.k
+  return (
+    <span class={asIcon() ? "pk pk-icon" : "pk"} title={props.e.k || undefined}>
+      {svg() ? <span class="pi" role={asIcon() ? "img" : undefined} aria-label={asIcon() ? props.e.k : undefined} aria-hidden={asIcon() ? undefined : "true"} innerHTML={svg()} /> : null}
+      {asIcon() ? null : props.e.k}
+    </span>
   )
 }
 

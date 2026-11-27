@@ -115,3 +115,24 @@ func TestIconsRender(t *testing.T) {
 		t.Error("data.js ships icons no result shows")
 	}
 }
+
+// The navigation is a tree on every page: every branch is written, as a
+// disclosure whose label is a link, open where the page is below it and
+// closed elsewhere, so every page is a link away without a script.
+func TestNavTree(t *testing.T) {
+	_, f := lensFiles(t, writeIconTree(t, iconTree))
+	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`)
+	on := nav.FindString(f["starred.html"])
+	if !strings.Contains(on, `<details class="nav-branch" data-key="area.html"><summary><a href="area.html">`) || !strings.Contains(on, `href="area.part.html"`) {
+		t.Errorf("a branch the page isn't in isn't written closed with its children:\n%s", on)
+	}
+	in := nav.FindString(f["area.part.html"])
+	if !strings.Contains(in, `<details class="nav-branch" data-key="area.html" open>`) {
+		t.Errorf("the page's ancestor isn't open:\n%s", in)
+	}
+	// The inline script opens the branches the reader left open, before
+	// the page paints.
+	if !strings.Contains(f["starred.html"], `localStorage.getItem("heron-tree:"`) {
+		t.Error("the open branches aren't put back before paint")
+	}
+}

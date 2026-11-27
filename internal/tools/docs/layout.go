@@ -362,7 +362,10 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 		if q == p {
 			cur = ` aria-current="page"`
 		}
-		b.WriteString(`<li><a href="` + attr(s.href(q.File)) + `"` + cur + `>`)
+		link := &strings.Builder{}
+		bb := b
+		b = link
+		b.WriteString(`<a href="` + attr(s.href(q.File)) + `"` + cur + `>`)
 		if q.Layout == "op" {
 			b.WriteString(`<span class="m m-` + strings.ToLower(attr(q.Method)) + `"`)
 			for _, bm := range q.BindMethods {
@@ -371,21 +374,30 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			b.WriteString(`>` + esc(q.Method) + `</span>`)
 		}
 		if q.Layout != "op" {
-			b.WriteString(s.ownIcon(q.Node))
+			b.WriteString(s.nodeIcon(q.Node, "icon"))
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
 		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {
 			b.WriteString(`<span class="nav-deprecated" title="` + attr(label("docs.label.deprecated")) + `">` + esc(label("docs.label.deprecated")) + `</span>`)
 		}
 		b.WriteString(`</a>`)
-		if len(q.Children) > 0 && q.Layout != "api" && (depth > 0 || s.within(p, q)) {
-			b.WriteString(`<ul>`)
-			for _, c := range q.Children {
-				item(c, depth+1)
-			}
-			b.WriteString(`</ul>`)
+		b = bb
+		if len(q.Children) == 0 || q.Layout == "api" {
+			b.WriteString(`<li>` + link.String() + `</li>`)
+			return
 		}
-		b.WriteString(`</li>`)
+		// A branch: the whole tree is on the page, each branch a disclosure
+		// that opens in place, the current page's ancestors open. Its label
+		// navigates; the chevron beside it opens and closes it.
+		open := ""
+		if s.within(p, q) {
+			open = " open"
+		}
+		b.WriteString(`<li><details class="nav-branch" data-key="` + attr(q.File) + `"` + open + `><summary>` + link.String() + `</summary><ul>`)
+		for _, c := range q.Children {
+			item(c, depth+1)
+		}
+		b.WriteString(`</ul></details></li>`)
 	}
 	if len(a.Pages) > 0 {
 		b.WriteString(`<ul class="nav">`)
@@ -429,7 +441,7 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 					open = " open"
 				}
 			}
-			b.WriteString(`<details class="nav-types"` + open + `><summary>` + esc(label("docs.nav.types")) + `<span class="count">` + fmt.Sprint(len(g.Types)) + `</span></summary><ul class="nav">`)
+			b.WriteString(`<details class="nav-types" data-key="types:` + attr(g.Types[0].File) + `"` + open + `><summary>` + esc(label("docs.nav.types")) + `<span class="count">` + fmt.Sprint(len(g.Types)) + `</span></summary><ul class="nav">`)
 			for _, q := range g.Types {
 				item(q, 0)
 			}
@@ -442,14 +454,19 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 	b.WriteString(navScrollScript)
 }
 
-// navScrollScript puts the navigation back where the last page of the
-// same lens's site and site area left it, before the page paints: the entry that was
-// followed stays where it was on screen, even when the tree around it
-// opens or closes, and otherwise the scroll position is kept. The current
-// page's entry is then scrolled into view if it isn't. docs.js saves the
-// position, and the entry followed, as a page is left.
-const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo"),t=document.querySelector('.tabs [aria-current]'),a=n.querySelector('[aria-current="page"]'),v=null;` +
-	`try{v=l&&JSON.parse(sessionStorage.getItem("heron-nav:"+l.href+(t?" "+t.href:"")))}catch(e){}` +
+// navScrollScript puts the navigation back as the reader left it, before
+// the page paints. First the tree: the branches open on the last page of
+// the same lens's site and site area open again (kept in localStorage, so
+// a reload keeps them too), beside the current page's ancestors, which the
+// page opens itself. Then the scroll: the entry that was followed stays
+// where it was on screen, and otherwise the scroll position is kept. The
+// current page's entry is then scrolled into view if it isn't. docs.js
+// saves the open branches as they change, and the position and the entry
+// followed as a page is left.
+const navScrollScript = `<script>(function(){var n=document.currentScript.previousElementSibling,l=document.querySelector(".logo"),t=document.querySelector('.tabs [aria-current]'),a=n.querySelector('[aria-current="page"]'),k=l?l.href+(t?" "+t.href:""):"",v=null,o=null;` +
+	`try{o=JSON.parse(localStorage.getItem("heron-tree:"+k))}catch(e){}` +
+	`if(o&&o.forEach)o.forEach(function(x){var d=n.querySelector('details[data-key="'+String(x).replace(/["\\]/g,"")+'"]');if(d)d.open=true});` +
+	`try{v=l&&JSON.parse(sessionStorage.getItem("heron-nav:"+k))}catch(e){}` +
 	`if(typeof v==="number")v={t:v};` +
 	`if(v&&typeof v==="object"){if(a&&v.h&&v.h===a.getAttribute("href")&&typeof v.y==="number")n.scrollTop+=a.getBoundingClientRect().top-n.getBoundingClientRect().top-v.y;else if(typeof v.t==="number")n.scrollTop=v.t}` +
 	`if(a){var r=a.getBoundingClientRect(),b=n.getBoundingClientRect();if(r.top<b.top||r.bottom>b.bottom)a.scrollIntoView({block:"nearest"})}})()</script>`

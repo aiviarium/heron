@@ -123,5 +123,9 @@ func (s *Site) dataJS() []byte {
 	cj, _ := json.Marshal(cards)
 	strs, _ := json.Marshal(islandStrings())
 	ij, _ := json.Marshal(icons)
-	return []byte("window.__HERON__={search:" + string(idx) + ",cards:" + string(cj) + ",strings:" + string(strs) + ",icons:" + string(ij) + "};\n")
+	kinds := "icon"
+	if !s.kindIcons() {
+		kinds = "text"
+	}
+	return []byte("window.__HERON__={search:" + string(idx) + ",cards:" + string(cj) + ",strings:" + string(strs) + ",icons:" + string(ij) + `,kinds:"` + kinds + `"};` + "\n")
 }

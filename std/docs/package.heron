@@ -66,6 +66,14 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     MARKDOWN: Self
   }
 
+  /// How a lens names a node's kind beside its name.
+  KindLabels: enum {
+    /// By the kind's icon, labelled with the kind's name, where it has one.
+    ICON: Self
+    /// In words, as a small label.
+    TEXT: Self
+  }
+
   /// A view of the site for one audience, built from the same tree as
   /// every other: which kinds and categories it shows, which it sums up in
   /// one line and which it leaves out, how its navigation is ordered and
@@ -98,6 +106,9 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     /// The size budget, in approximate tokens, of a file a Markdown lens
     /// writes; 6000 unless set.
     budget?: Int
+    /// How the lens names a node's kind beside its name; by its icon
+    /// unless set.
+    kinds?: KindLabels
   }
 
   /// For the people who use what a tree describes: the authored pages
@@ -129,6 +140,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     title = "Explore"
     nav = LensNav.TREE
     prefix = "explore"
+    kinds = KindLabels.TEXT
   }
 
   /// For agents that build, change or review what the tree specifies:

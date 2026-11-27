@@ -926,7 +926,11 @@ func (c *Ctx) httpBody(o *opInfo) {
 			switch {
 			case s.kindPath(cause) == "spec.rule" && s.kept(cause):
 				// The rule is in full under Rules, once: here, a link to it.
-				c.W(`<div class="cause"><span class="label">`, esc(label("docs.label.rule")), `</span> <a class="ref" href="#`, attr(Anchor(cause)+"--"+Anchor(n)), `">`, esc(displayName(s, cause)), `</a></div>`)
+				lead := `<span class="label">` + esc(label("docs.label.rule")) + `</span> `
+				if pre, _ := s.kindMark(cause); pre != "" {
+					lead = pre
+				}
+				c.W(`<div class="cause">`, lead, `<a class="ref" href="#`, attr(Anchor(cause)+"--"+Anchor(n)), `">`, esc(displayName(s, cause)), `</a></div>`)
 			case s.kindPath(cause) == "spec.rule":
 				// A lens that leaves the op's rules out: its sentence here.
 				c.W(`<p class="cause sentence">`, s.sentence(cause), ` `, s.linkHTML(cause, "#", "rule-link"), `</p>`)

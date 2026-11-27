@@ -49,6 +49,16 @@ func (i *Icon) SVG(class string) string {
 	return `<svg class="` + class + `" viewBox="` + i.ViewBox + `" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">` + i.Body + `</svg>`
 }
 
+// Labelled is the icon as SVG that stands for a word, such as a kind's
+// name: named for assistive technology and shown as a tooltip.
+func (i *Icon) Labelled(class, label string) string {
+	if i == nil || i.Body == "" {
+		return ""
+	}
+	l := strings.NewReplacer("&", "&amp;", "<", "&lt;", `"`, "&quot;").Replace(label)
+	return `<svg class="` + class + `" viewBox="` + i.ViewBox + `" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="` + l + `"><title>` + l + `</title>` + i.Body + `</svg>`
+}
+
 // NameOf is an icon node's name: its node's name with each `_` as `-`.
 func NameOf(n *resolve.Node) string { return strings.ReplaceAll(n.Name, "_", "-") }
 

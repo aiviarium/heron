@@ -197,6 +197,108 @@ function navScroll() {
   })
 }
 
+/**
+ * The navigation as a tree, as the WAI-ARIA tree view pattern has it: the
+ * page writes every branch as a disclosure, its label a link and its
+ * chevron the toggle, so every link works without a script; here the tree
+ * gets its roles, one tab stop, the arrow keys, Home and End, and
+ * type-ahead, and the open branches are kept per lens and site area.
+ */
+function tree() {
+  const root = document.querySelector<HTMLElement>(".sidebar-in")
+  const logo = document.querySelector<HTMLAnchorElement>(".logo")
+  if (!root || !logo) return
+  const area = document.querySelector<HTMLAnchorElement>(".tabs [aria-current]")
+  const key = "heron-tree:" + logo.href + (area ? " " + area.href : "")
+  root.setAttribute("role", "tree")
+  root.setAttribute("aria-label", root.closest("nav")?.getAttribute("aria-label") ?? "")
+  const items = $$<HTMLAnchorElement>("a[href]", root).filter((a) => !a.closest(".nav-areas, .slot"))
+  const branchOf = (a: HTMLElement) => (a.parentElement?.tagName === "SUMMARY" ? (a.parentElement.parentElement as HTMLDetailsElement) : null)
+  const level = (a: HTMLElement) => {
+    let n = 1
+    for (let x = a.parentElement; x && x !== root; x = x.parentElement) if (x.tagName === "DETAILS" && !branchOf(a)?.isSameNode(x)) n++
+    return n
+  }
+  for (const x of $$("ul, li, .nav-group, .label:not(a)", root)) x.setAttribute("role", x.tagName === "UL" && x.closest("details") ? "group" : "none")
+  for (const s of $$(".nav-branch > summary", root)) {
+    s.setAttribute("role", "none")
+    s.tabIndex = -1
+  }
+  const sync = () => {
+    for (const a of items) {
+      const d = branchOf(a)
+      if (d) a.setAttribute("aria-expanded", String(d.open))
+    }
+  }
+  for (const a of items) {
+    a.setAttribute("role", "treeitem")
+    a.setAttribute("aria-level", String(level(a)))
+    a.tabIndex = -1
+  }
+  sync()
+  const current = items.find((a) => a.getAttribute("aria-current") === "page") ?? items.find((a) => a.offsetParent !== null)
+  if (current) current.tabIndex = 0
+  const save = () => {
+    const open = $$<HTMLDetailsElement>("details[data-key]", root).filter((d) => d.open).map((d) => d.dataset.key)
+    try { localStorage.setItem(key, JSON.stringify(open)) } catch { /* storage blocked */ }
+  }
+  const onToggle = () => { sync(); save() }
+  root.addEventListener("toggle", onToggle, true)
+  const visible = () => items.filter((a) => a.offsetParent !== null)
+  const focus = (a: HTMLElement | undefined) => {
+    if (!a) return
+    for (const x of items) x.tabIndex = -1
+    a.tabIndex = 0
+    a.focus()
+  }
+  let typed = ""
+  let typedAt = 0
+  root.addEventListener("keydown", (e) => {
+    const a = (e.target as Element).closest<HTMLAnchorElement>("a[role=treeitem]")
+    if (!a || e.altKey || e.ctrlKey || e.metaKey) return
+    const vis = visible()
+    const i = vis.indexOf(a)
+    const d = branchOf(a)
+    switch (e.key) {
+      case "ArrowDown": focus(vis[i + 1]); break
+      case "ArrowUp": focus(vis[i - 1]); break
+      case "Home": focus(vis[0]); break
+      case "End": focus(vis[vis.length - 1]); break
+      case "ArrowRight":
+        if (d && !d.open) {
+          d.open = true
+          sync()
+        } else if (d) focus(vis[i + 1])
+        break
+      case "ArrowLeft": {
+        if (d && d.open) {
+          d.open = false
+          sync()
+          break
+        }
+        // The branch this entry is in.
+        const up = a.closest("details")
+        const parent = up && branchOf(a) === up ? up.parentElement?.closest("details") : up
+        const label = parent?.querySelector<HTMLAnchorElement>(":scope > summary > a")
+        focus(label ?? undefined)
+        break
+      }
+      default:
+        if (e.key.length !== 1 || !/\S/.test(e.key)) return
+        // Type-ahead: the next visible entry whose name starts so.
+        typed = Date.now() - typedAt < 600 ? typed + e.key.toLowerCase() : e.key.toLowerCase()
+        typedAt = Date.now()
+        const order = [...vis.slice(i + 1), ...vis.slice(0, i + 1)]
+        focus(order.find((x) => (x.textContent ?? "").trim().toLowerCase().startsWith(typed)))
+    }
+    e.preventDefault()
+  })
+  teardown.push(() => {
+    save()
+    root.removeEventListener("toggle", onToggle, true)
+  })
+}
+
 /** The outline follows the heading in view. */
 function outline() {
   const links = $$<HTMLAnchorElement>(".outline a")
@@ -228,6 +330,7 @@ function page() {
   views()
   versions()
   navScroll()
+  tree()
   outline()
   bindings()
   expand()

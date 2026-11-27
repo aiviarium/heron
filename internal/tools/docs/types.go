@@ -508,11 +508,8 @@ func (c *Ctx) usedBy(n *resolve.Node) {
 	c.Heading(c.Level+1, Anchor(n)+".used_by", label("docs.heading.used_by"), "")
 	c.W(`<ul class="refs">`)
 	for _, r := range named {
-		c.W(`<li>`, s.linkHTML(r, esc(displayName(s, r)), ""))
-		if k := s.Checker.KindOf(r); k != nil {
-			c.W(` <span class="kind">`, esc(k.Name), `</span>`)
-		}
-		c.W(`</li>`)
+		pre, post := s.kindMark(r)
+		c.W(`<li>`, pre, s.linkHTML(r, esc(displayName(s, r)), ""), post, `</li>`)
 	}
 	c.W(`</ul>`)
 }

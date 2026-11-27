@@ -293,9 +293,9 @@ func TestOpPage(t *testing.T) {
 	}
 	for _, want := range []string{
 		`class="method m-post"`, `<span class="base">/v2</span>/store/orders`, // method and path, base dimmed
-		`pet_lifecycle.held`,                  // the transition it performs
-		`<code class="status err">409</code>`, // errors by status
-		`<div class="cause"><span class="label">Rule</span> <a class="ref" href="#`,                                  // with a link to the rule behind it
+		`pet_lifecycle.held`,                                                                                         // the transition it performs
+		`<code class="status err">409</code>`,                                                                        // errors by status
+		`aria-label="rule"><title>rule</title>`,                                                                      // with a link to the rule behind it, its kind its icon
 		`-X POST &#34;$BASE_URL/v2/store/orders&#34;`, `store.place_order(`, `POST</span> /v2/store/orders HTTP/1.1`, // three forms
 		`data-tryit`, `class="tryit-data"`, // Try it
 		`class="prevnext"`, `class="crumbs"`,
@@ -306,12 +306,10 @@ func TestOpPage(t *testing.T) {
 	}
 	// The rule behind an error is on the page once, under Rules, where the
 	// error's link leads.
-	if i := strings.Index(h, `<div class="cause"><span class="label">Rule</span> <a class="ref" href="#`); i >= 0 {
-		rest := h[i+len(`<div class="cause"><span class="label">Rule</span> <a class="ref" href="#`):]
-		id := rest[:strings.IndexByte(rest, '"')]
-		if !strings.Contains(h, `id="`+id+`"`) {
-			t.Errorf("the error's rule link leads to #%s, which isn't on the page", id)
-		}
+	if m := regexp.MustCompile(`<div class="cause"><svg class="icon kind-mark"[^>]*>.*?</svg><a class="ref" href="#([^"]*)"`).FindStringSubmatch(h); m == nil {
+		t.Error("the error's cause doesn't lead with the rule's icon and a link")
+	} else if !strings.Contains(h, `id="`+m[1]+`"`) {
+		t.Errorf("the error's rule link leads to #%s, which isn't on the page", m[1])
 	}
 	if strings.Contains(h, `<p class="cause sentence">`) {
 		t.Error("the rule behind an error is printed under the error as well as under Rules")

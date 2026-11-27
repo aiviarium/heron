@@ -289,7 +289,9 @@ func TestIntentFirst(t *testing.T) {
 			t.Errorf("%s after %s", order[i-1], order[i])
 		}
 	}
-	mustHave(t, "goal block", main, `<span class="label">Goal</span>`)
+	// The goal's kind is its icon, labelled, in a lens that names kinds by
+	// icon.
+	mustHave(t, "goal block", main, `<div class="goal-head"><svg class="icon kind-mark"`, `aria-label="goal"><title>goal</title>`)
 	// A goal has no page and no place in the navigation.
 	if _, ok := f["dev/kite.sync.same_everywhere.html"]; ok {
 		t.Error("a goal has a page")
@@ -545,5 +547,37 @@ func TestUseCaseFlowDiagram(t *testing.T) {
 	}
 	if strings.Contains(user, `uc-flow`) {
 		t.Error("a flow diagram in the user lens")
+	}
+}
+
+// A lens names a node's kind by its icon, labelled with the kind's name,
+// unless its kinds is TEXT, as explore's is.
+func TestKindLabels(t *testing.T) {
+	_, f := lensFiles(t, kite)
+	used := regexp.MustCompile(`<svg class="icon kind-mark"[^>]*role="img" aria-label="([a-z]+)"><title>([a-z]+)</title>`)
+	found := false
+	for p, h := range f {
+		if strings.HasPrefix(p, "dev/") && used.MatchString(h) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("the developer lens names no kind by its labelled icon")
+	}
+	for p, h := range f {
+		if strings.HasPrefix(p, "explore/") && strings.HasSuffix(p, ".html") && used.MatchString(h) {
+			t.Errorf("%s names a kind by its icon in explore", p)
+		}
+	}
+	text := false
+	for p, h := range f {
+		if strings.HasPrefix(p, "explore/") && strings.Contains(h, `<span class="kind">`) {
+			text = true
+			break
+		}
+	}
+	if !text {
+		t.Error("explore doesn't name kinds in words")
 	}
 }

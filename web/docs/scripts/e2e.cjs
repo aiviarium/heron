@@ -288,6 +288,60 @@ const url = (f) => "file://" + path.join(dir, f)
     await p.close()
   }
 
+  // The navigation is a tree: a branch's chevron opens it in place without
+  // leaving the page, it stays open on reload, and the keyboard moves
+  // through it as a tree view does.
+  {
+    const branchy = pages.find((f) => /<details class="nav-branch" data-key="[^"]*"><summary>/.test(sidebarOf(f)))
+    if (branchy) {
+      const p = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+      await p.goto(served(branchy))
+      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      const key = await p.evaluate(() => {
+        const d = document.querySelector(".sidebar .nav-branch:not([open])")
+        d.scrollIntoView({ block: "center" })
+        return d.dataset.key
+      })
+      const box = await p.locator(`.sidebar .nav-branch[data-key="${key}"] > summary`).boundingBox()
+      const before = p.url()
+      // The chevron, at the summary's right end.
+      await p.mouse.click(box.x + box.width - 8, box.y + box.height / 2)
+      await p.waitForTimeout(150)
+      const opened = await p.evaluate((k) => document.querySelector(`.sidebar .nav-branch[data-key="${k}"]`).open, key)
+      if (!opened || p.url() !== before) fail.push(`nav tree: the chevron of ${key} ${opened ? "left the page" : "doesn't open it"}`)
+      await p.reload()
+      await p.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+      if (!(await p.evaluate((k) => document.querySelector(`.sidebar .nav-branch[data-key="${k}"]`).open, key))) fail.push(`nav tree: ${key} doesn't stay open on reload`)
+      // The keyboard: one tab stop, the arrows, a closed branch opened with
+      // the right arrow.
+      const k = await p.evaluate(() => {
+        const tree = document.querySelector(".sidebar [role=tree]")
+        const stops = [...document.querySelectorAll(".sidebar [role=treeitem]")].filter((a) => a.tabIndex === 0)
+        return { tree: !!tree, stops: stops.length }
+      })
+      if (!k.tree || k.stops !== 1) fail.push(`nav tree: ${k.tree ? `${k.stops} tab stops` : "no tree role"}`)
+      await p.focus('.sidebar [role=treeitem][tabindex="0"]')
+      const first = await p.evaluate(() => document.activeElement.getAttribute("href"))
+      await p.keyboard.press("ArrowDown")
+      const second = await p.evaluate(() => document.activeElement.getAttribute("href"))
+      if (!second || second === first) fail.push("nav tree: the down arrow doesn't move to the next entry")
+      const closed = await p.evaluate(() => {
+        const d = [...document.querySelectorAll(".sidebar .nav-branch:not([open])")].find((x) => x.offsetParent !== null)
+        const a = d && d.querySelector(":scope > summary > a")
+        if (a) a.focus()
+        return a ? d.dataset.key : null
+      })
+      if (closed) {
+        await p.keyboard.press("ArrowRight")
+        const now = await p.evaluate((k) => ({ open: document.querySelector(`.sidebar .nav-branch[data-key="${k}"]`).open, exp: document.activeElement.getAttribute("aria-expanded") }), closed)
+        if (!now.open || now.exp !== "true") fail.push("nav tree: the right arrow doesn't open a closed branch")
+        await p.keyboard.press("ArrowLeft")
+        if (await p.evaluate((k) => document.querySelector(`.sidebar .nav-branch[data-key="${k}"]`).open, closed)) fail.push("nav tree: the left arrow doesn't close an open branch")
+      }
+      await p.close()
+    } else console.log("(no navigation branches on this site)")
+  }
+
   // Lens marks: a quiet row of tags at the start of what's marked, on one
   // line, never floated apart.
   {

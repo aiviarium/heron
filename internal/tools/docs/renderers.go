@@ -88,13 +88,18 @@ func registerRenderers(r *registry.Registry) {
 // title writes the node's heading unless it is the page's own node, whose
 // title the layout writes.
 func (c *Ctx) title(extra string) {
+	c.titlePre("", extra)
+}
+
+// titlePre is title with markup before the name, such as the kind's icon.
+func (c *Ctx) titlePre(pre, extra string) {
 	if c.Page != nil && c.Page.Node == c.Node {
 		return
 	}
-	if !strings.Contains(extra, `class="kind"`) {
+	if !strings.Contains(extra, `class="kind"`) && pre == "" {
 		extra += c.Site.kindTag(c.Node)
 	}
-	c.Heading(c.Level, Anchor(c.Node), displayName(c.Site, c.Node), extra)
+	c.HeadingPre(c.Level, Anchor(c.Node), pre, displayName(c.Site, c.Node), extra)
 }
 
 // isPage reports whether the context renders its page's own node.
@@ -112,12 +117,9 @@ func renderGeneric(c *Ctx) error {
 		return nil
 	}
 	c.W(`<section class="node" id="`, attr(Anchor(n)), `" data-kind="`, attr(kind), `">`)
-	extra := ""
-	if k := c.Site.Checker.KindOf(n); k != nil && n.Name != "" {
-		extra = ` <span class="kind">` + esc(k.Name) + `</span>`
-	}
 	if n.Name != "" {
-		c.title(extra)
+		pre, post := c.Site.kindMark(n)
+		c.titlePre(pre, post)
 	}
 	c.Prose(n)
 	c.fields(n)

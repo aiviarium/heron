@@ -185,8 +185,8 @@ R: type { z: String }
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["web.a.html"])
 	// Each api's types right after its ops, in its own group, as a Types
 	// row that opens, closed unless the page is one of them.
-	webTypes := strings.Index(nav, `<details class="nav-types">`)
-	wireTypes := strings.LastIndex(nav, `<details class="nav-types">`)
+	webTypes := strings.Index(nav, `<details class="nav-types"`)
+	wireTypes := strings.LastIndex(nav, `<details class="nav-types"`)
 	if webTypes < 0 || webTypes == wireTypes || !(strings.Index(nav, `web.a.html`) < webTypes && webTypes < strings.Index(nav, `wire.call.html`) && strings.Index(nav, `wire.call.html`) < wireTypes) {
 		t.Errorf("each api's types follow its ops:\n%s", nav)
 	}
@@ -197,7 +197,7 @@ R: type { z: String }
 		t.Errorf("a repeated Types of heading:\n%s", nav)
 	}
 	onType := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["A.html"])
-	if !strings.Contains(onType, `<details class="nav-types" open>`) {
+	if !strings.Contains(onType, `<details class="nav-types" data-key="types:A.html" open>`) {
 		t.Errorf("a type's page doesn't open its api's Types:\n%s", onType)
 	}
 	mustHave(t, "wire", f["wire.html"], `<dt>Framing</dt><dd>length-prefixed frames</dd>`, `<dt>Encoding</dt><dd>CBOR, without the jsonrpc member</dd>`)

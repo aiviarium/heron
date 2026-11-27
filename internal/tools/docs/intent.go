@@ -265,7 +265,12 @@ func renderScenario(c *Ctx) error {
 func renderGoal(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	c.W(`<div class="goal-block" id="`, attr(Anchor(n)), `"><div class="goal-head"><span class="label">`, esc(label("docs.label.goal")), `</span> <a class="anchor goal-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></div>`)
+	head := `<span class="label">` + esc(label("docs.label.goal")) + `</span> `
+	if pre, _ := s.kindMark(n); pre != "" {
+		// The kind's icon says it's a goal.
+		head = pre
+	}
+	c.W(`<div class="goal-block" id="`, attr(Anchor(n)), `"><div class="goal-head">`, head, `<a class="anchor goal-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></div>`)
 	c.Prose(n)
 	var rows [][2]string
 	if m, ok := argString(kindArgs(n), 0, "measure"); ok {

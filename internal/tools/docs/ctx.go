@@ -280,6 +280,12 @@ func (s *Site) shown(n *resolve.Node) bool {
 
 // Heading writes a heading with an anchor and adds it to the outline.
 func (c *Ctx) Heading(level int, id, title string, extra string) {
+	c.HeadingPre(level, id, "", title, extra)
+}
+
+// HeadingPre writes a heading with markup before its title, such as the
+// icon of the node's kind.
+func (c *Ctx) HeadingPre(level int, id, pre, title string, extra string) {
 	if level < 2 {
 		level = 2
 	}
@@ -294,7 +300,7 @@ func (c *Ctx) Heading(level int, id, title string, extra string) {
 		// The node's wrapper carries the id.
 		idAttr = ""
 	}
-	c.Wf(`<h%d%s class="h"><a class="anchor" href="#%s">%s</a>%s</h%d>`, level, idAttr, attr(id), esc(title), extra, level)
+	c.Wf(`<h%d%s class="h">%s<a class="anchor" href="#%s">%s</a>%s</h%d>`, level, idAttr, pre, attr(id), esc(title), extra, level)
 }
 
 // Link writes a link to a node with the given text (escaped), carrying a
