@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The published site, as .github/workflows/pages.yml deploys it to GitHub
 # Pages: the spec package's site with every lens its docs block builds
-# (the user lens at the root, then dev/ and explore/), where the project's
+# (the user lens at the root, then dev/ and explore/), its agent export
+# under agents/ with llms.txt at the root, where the project's
 # `implements { docs = ... }` links spec nodes to, and the project site
 # (architecture, conformance, releases) under project/.
 #
@@ -39,4 +40,6 @@ test -f "$out/project/_conformance.html"
 for d in dev explore; do
   if grep -q "lenses" "$spec/index.heron"; then test -f "$out/$d/index.html"; fi
 done
-echo "$out: $(find "$out" -maxdepth 1 -name '*.html' | wc -l | tr -d ' ') pages in the default lens, $(find "$out" -mindepth 2 -name '*.html' -not -path "$out/project/*" | wc -l | tr -d ' ') in the others, $(find "$out/project" -maxdepth 1 -name '*.html' | wc -l | tr -d ' ') project pages"
+test -f "$out/agents/INDEX.md"
+grep -q '](agents/INDEX.md)' "$out/llms.txt"
+echo "$out: $(find "$out" -maxdepth 1 -name '*.html' | wc -l | tr -d ' ') pages in the default lens, $(find "$out" -mindepth 2 -name '*.html' -not -path "$out/project/*" | wc -l | tr -d ' ') in the others, $(find "$out/agents" -name '*.md' | wc -l | tr -d ' ') agent files, $(find "$out/project" -maxdepth 1 -name '*.html' | wc -l | tr -d ' ') project pages"
