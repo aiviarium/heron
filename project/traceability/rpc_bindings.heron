@@ -299,6 +299,10 @@ rpc_bindings: section {
     verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
   }
 
+  proves(heron.tools.frontend.screens.op_page.sidebar.apis_by_size) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestAPIsBySize")
+  }
+
   proves(heron.tools.frontend.screens.op_page.bindings.binding_switch) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("scripts/e2e-docs.sh")

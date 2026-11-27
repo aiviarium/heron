@@ -183,13 +183,22 @@ R: type { z: String }
 `), 0o644)
 	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["web.a.html"])
-	webTypes := strings.Index(nav, `Types of Web`)
-	wireTypes := strings.Index(nav, `Types of Wire`)
-	if webTypes < 0 || wireTypes < 0 || !(strings.Index(nav, `web.a.html`) < webTypes && webTypes < strings.Index(nav, `wire.call.html`) && strings.Index(nav, `wire.call.html`) < wireTypes) {
+	// Each api's types right after its ops, in its own group, as a Types
+	// row that opens, closed unless the page is one of them.
+	webTypes := strings.Index(nav, `<details class="nav-types">`)
+	wireTypes := strings.LastIndex(nav, `<details class="nav-types">`)
+	if webTypes < 0 || webTypes == wireTypes || !(strings.Index(nav, `web.a.html`) < webTypes && webTypes < strings.Index(nav, `wire.call.html`) && strings.Index(nav, `wire.call.html`) < wireTypes) {
 		t.Errorf("each api's types follow its ops:\n%s", nav)
 	}
 	if !(strings.Index(nav, `A.html`) < strings.Index(nav, `wire.call.html`) && strings.Index(nav, `P.html`) > wireTypes) {
 		t.Errorf("types under the api that names them:\n%s", nav)
+	}
+	if strings.Contains(nav, `Types of`) {
+		t.Errorf("a repeated Types of heading:\n%s", nav)
+	}
+	onType := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["A.html"])
+	if !strings.Contains(onType, `<details class="nav-types" open>`) {
+		t.Errorf("a type's page doesn't open its api's Types:\n%s", onType)
 	}
 	mustHave(t, "wire", f["wire.html"], `<dt>Framing</dt><dd>length-prefixed frames</dd>`, `<dt>Encoding</dt><dd>CBOR, without the jsonrpc member</dd>`)
 	mustHave(t, "call", f["wire.call.html"], `one record as the whole of params`, `data-lang="raw"`, `length <span class="tk-num">`)
@@ -305,5 +314,39 @@ Hover: type { contents: String }
 		if !strings.Contains(doc, want) {
 			t.Errorf("OpenRPC lacks %s:\n%s", want, doc)
 		}
+	}
+}
+
+// The API reference lists the apis by the count of their ops, the highest
+// first, and apis with equal counts as declared.
+func TestAPIsBySize(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "index.heron"), []byte(`import = ["std/types@1", "std/http@1"]
+
+@http(base_path = "/small")
+small: api {
+  @http<get>("/a")
+  a(): op(String)
+}
+
+@http(base_path = "/big")
+big: api {
+  @http<get>("/b")
+  b(): op(String)
+  @http<get>("/c")
+  c(): op(String)
+}
+
+@http(base_path = "/also")
+also: api {
+  @http<get>("/d")
+  d(): op(String)
+}
+`), 0o644)
+	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
+	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["big.b.html"])
+	b, s, a := strings.Index(nav, `>Big<`), strings.Index(nav, `>Small<`), strings.Index(nav, `>Also<`)
+	if b < 0 || s < 0 || a < 0 || !(b < s && s < a) {
+		t.Errorf("the apis aren't by size, then as declared:\n%s", nav)
 	}
 }

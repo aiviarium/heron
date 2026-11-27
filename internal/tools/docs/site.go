@@ -90,6 +90,9 @@ type NavGroup struct {
 	// group's section.
 	Head  *Page
 	Pages []*Page
+	// Types are an api's types, listed after its ops in a group of their
+	// own that opens.
+	Types []*Page
 }
 
 // Site is a tree prepared for rendering.
@@ -178,6 +181,18 @@ func New(t *resolve.Tree, c *types.Checker, opts Options) *Site {
 	}
 	s.project = project.Find(t, c)
 	s.classify()
+	// The apis by the count of their ops, the highest first, as declared
+	// among equals: a site's main API leads its reference.
+	ops := func(a *resolve.Node) int {
+		n := 0
+		for _, c := range a.Children {
+			if s.kindPath(c) == "types.op" {
+				n++
+			}
+		}
+		return n
+	}
+	sort.SliceStable(s.apis, func(i, j int) bool { return ops(s.apis[i]) > ops(s.apis[j]) })
 	s.buildPages()
 	s.buildBacklinks()
 	return s
@@ -431,6 +446,17 @@ func (s *Site) buildPages() {
 		ref.Groups = append(ref.Groups[:at+1], append([]NavGroup{g}, ref.Groups[at+1:]...)...)
 	}
 	typeGroup := func(title string, nodes []*resolve.Node) { typeGroupAt(title, nodes, -1) }
+	// An api's own types go in its group, after its ops.
+	apiTypes := func(a *resolve.Node, nodes []*resolve.Node) {
+		sorted := append([]*resolve.Node(nil), nodes...)
+		sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Name < sorted[j].Name })
+		g := &ref.Groups[apiGroup[a]]
+		for _, t := range sorted {
+			p := &Page{Node: t, File: s.fileFor(t), Title: t.Name, Layout: "type", Area: ref}
+			s.add(p)
+			g.Types = append(g.Types, p)
+		}
+	}
 	// Each api's types right after its ops, each type under the first api
 	// that names it, so an HTTP api's types and an RPC service's messages
 	// never share a group; the types no api names group by their scope.
@@ -471,13 +497,15 @@ func (s *Site) buildPages() {
 			left = append(left, t)
 		}
 		rest = left
-		// Insert from the last api back, so earlier groups keep their place.
+		// Insert from the last api back, so earlier groups keep their place:
+		// a scope's own types, such as a protocol's envelope, under the
+		// scope's name after its last api.
 		for i := len(s.apis) - 1; i >= 0; i-- {
 			a := s.apis[i]
 			if len(extra[a]) > 0 {
-				typeGroupAt(label("docs.nav.types_in", "scope", displayName(s, a.Parent)), extra[a], apiGroup[a])
+				typeGroupAt(displayName(s, a.Parent), extra[a], apiGroup[a])
 			}
-			typeGroupAt(label("docs.nav.types_in", "scope", displayName(s, a)), byAPI[a], apiGroup[a])
+			apiTypes(a, byAPI[a])
 		}
 	} else {
 		rest = s.types
@@ -496,7 +524,7 @@ func (s *Site) buildPages() {
 		for _, sc := range scopes {
 			title := label("docs.nav.types")
 			if sc != nil && sc != s.Tree.Root && sc.Name != "" {
-				title = label("docs.nav.types_in", "scope", displayName(s, sc))
+				title = displayName(s, sc)
 			}
 			typeGroup(title, byScope[sc])
 		}
@@ -591,6 +619,7 @@ func (s *Site) buildPages() {
 				flat([]*Page{g.Head})
 			}
 			flat(g.Pages)
+			flat(g.Types)
 		}
 		for i, p := range order {
 			if i > 0 {

@@ -16,7 +16,6 @@
     },
     "nav": {
       "types": "Types",
-      "types_in": "Types of {scope}",
       "errors": "Errors",
       "start": "Get started",
       "tutorials": "Tutorials",

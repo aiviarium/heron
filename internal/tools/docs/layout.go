@@ -413,7 +413,22 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			}
 			item(q, 0)
 		}
-		b.WriteString(`</ul></div>`)
+		b.WriteString(`</ul>`)
+		if len(g.Types) > 0 {
+			// An api's types, after its ops: closed unless the page is one.
+			open := ""
+			for _, q := range g.Types {
+				if q == p {
+					open = " open"
+				}
+			}
+			b.WriteString(`<details class="nav-types"` + open + `><summary>` + esc(label("docs.nav.types")) + `<span class="count">` + fmt.Sprint(len(g.Types)) + `</span></summary><ul class="nav">`)
+			for _, q := range g.Types {
+				item(q, 0)
+			}
+			b.WriteString(`</ul></details>`)
+		}
+		b.WriteString(`</div>`)
 	}
 	b.WriteString(s.slotHTML(nil, "sidebar", ""))
 	b.WriteString(`</div></nav>`)

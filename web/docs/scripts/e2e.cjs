@@ -231,6 +231,35 @@ const url = (f) => "file://" + path.join(dir, f)
         if (Math.abs(r.left - r.right) > 48) fail.push(`frame: at ${w} px ${Math.round(r.left)} px of room on the left and ${Math.round(r.right)} px on the right`)
       }
     }
+    // One content width, centred between the navigation and the right
+    // column: the same width and x on a prose page, an op page and the
+    // conformance page, whatever each holds.
+    const byLayout = {}
+    for (const f of pages) {
+      const src = fs.readFileSync(path.join(dir, f), "utf8")
+      const lay = (src.match(/<body data-layout="([a-z]+)"/) || [])[1]
+      if (lay && !byLayout[lay] && /<nav class="sidebar"/.test(src) && ["section", "home", "op", "type", "conformance", "api"].includes(lay)) byLayout[lay] = f
+    }
+    const sample = Object.values(byLayout)
+    if (sample.length > 1) {
+      for (const w of [1440, 1873, 2560]) {
+        await p.setViewportSize({ width: w, height: 1000 })
+        const seen = []
+        for (const f of sample) {
+          await p.goto(served(f))
+          seen.push({ f, ...(await p.evaluate(() => {
+            const m = document.querySelector("main").getBoundingClientRect()
+            const side = document.querySelector(".sidebar").getBoundingClientRect()
+            const aside = document.querySelector(".aside").getBoundingClientRect()
+            return { x: Math.round(m.left), w: Math.round(m.width), l: Math.round(m.left - side.right), r: Math.round(aside.left - m.right) }
+          })) })
+        }
+        for (const s of seen) {
+          if (Math.abs(s.x - seen[0].x) > 1 || Math.abs(s.w - seen[0].w) > 1) fail.push(`frame: at ${w} px ${s.f} has its content at x ${s.x}, ${s.w} px wide, and ${seen[0].f} at x ${seen[0].x}, ${seen[0].w} px wide`)
+          if (Math.abs(s.l - s.r) > 2) fail.push(`frame: at ${w} px ${s.f}'s content isn't centred: ${s.l} px of room on its left and ${s.r} on its right`)
+        }
+      }
+    }
     // The top bar's controls read as controls at rest, and the version
     // switch is a select the keyboard opens and moves through.
     await p.setViewportSize({ width: 1440, height: 900 })
