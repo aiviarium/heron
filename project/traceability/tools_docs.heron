@@ -122,6 +122,14 @@ tools_docs: section {
     verify("internal/tools/docs/icons_test.go", test = "TestIconsRender")
   }
 
+  proves(heron.tools.docs.icons.errors.unknown_icon) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsCheck")
+  }
+
+  proves(heron.tools.docs.icons.errors.bad_icon_svg) {
+    verify("internal/tools/docs/icons_test.go", test = "TestIconsCheck")
+  }
+
   proves(heron.tools.docs.icons.editing.icon_completion) {
     verify("internal/tools/lsp/features_test.go", test = "TestIconCompletionAndHover")
   }
