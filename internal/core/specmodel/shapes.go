@@ -40,6 +40,15 @@ func refsOf(c *types.Checker, n *resolve.Node, name string) []Ref {
 	return out
 }
 
+// annRefs resolves the arguments of a node's annotations named name.
+func annRefs(c *types.Checker, n *resolve.Node, name string) []Ref {
+	var out []Ref
+	for _, a := range project.AnnotationArgs(n, name) {
+		out = append(out, Ref{Site: a.Site, Target: project.RefTarget(c, a.Expr.Syntax(), a.Site)})
+	}
+	return out
+}
+
 // Is reports whether a node is of one of the standard kinds, or of a kind
 // that extends one.
 func Is(c *types.Checker, n *resolve.Node, kinds ...string) bool {
@@ -63,11 +72,11 @@ var placeholderRe = regexp.MustCompile(`\{([A-Za-z_][A-Za-z0-9_]*)\}`)
 
 func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 	link := func(name string, ok func(*resolve.Node) bool, kinds string) {
-		for _, r := range refsOf(c, n, name) {
+		for _, r := range annRefs(c, n, name) {
 			if r.Target == nil || ok(r.Target) {
 				continue
 			}
-			errAt(ds, r.Site, "link", "%s takes %s, and %s is a %s", name, kinds, r.Target.Name, KindName(c, r.Target))
+			errAt(ds, r.Site, "link", "@%s takes %s, and %s is a %s", name, kinds, r.Target.Name, KindName(c, r.Target))
 		}
 	}
 	goalOrQuality := func(x *resolve.Node) bool { return Is(c, x, "spec.goal", "spec.quality") }
@@ -76,9 +85,9 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		link("serves", goalOrQuality, "a goal or a quality")
 		link("derives", func(x *resolve.Node) bool { return Is(c, x, "spec.rule") }, "a rule")
 		link("relies", func(x *resolve.Node) bool { return Is(c, x, "spec.assumption") }, "an assumption")
-		for _, r := range refsOf(c, n, "by") {
+		for _, r := range annRefs(c, n, "by") {
 			if r.Target != nil && !Is(c, r.Target, "spec.actor", "spec.part", "spec.persona") {
-				errAt(ds, r.Site, "type", "%s is a %s; a rule's by names an actor or a part", r.Target.Name, KindName(c, r.Target))
+				errAt(ds, r.Site, "type", "%s is a %s; a rule's @by names an actor or a part", r.Target.Name, KindName(c, r.Target))
 			}
 		}
 		triggers(c, n, ds)
@@ -125,12 +134,12 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 }
 
 func revision(n *resolve.Node, ds *diag.List) {
-	e, site := argSite(n, "rev")
-	if e == nil {
+	a := project.AnnotationArg(n, "rev")
+	if a == nil {
 		return
 	}
-	if v := strings.TrimSpace(e.Syntax().Text()); v == "0" || strings.HasPrefix(v, "-") {
-		errAt(ds, site, "type", "a revision is a whole number from 1, not %s", v)
+	if v := strings.TrimSpace(a.Expr.Syntax().Text()); v == "0" || strings.HasPrefix(v, "-") {
+		errAt(ds, a.Site, "type", "a revision is a whole number from 1, not %s", v)
 	}
 }
 
@@ -156,12 +165,12 @@ func derivesCycle(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	seen := map[*resolve.Node]bool{}
 	var walk func(x *resolve.Node, path []string) bool
 	walk = func(x *resolve.Node, path []string) bool {
-		for _, r := range refsOf(c, x, "derives") {
+		for _, r := range annRefs(c, x, "derives") {
 			if r.Target == nil {
 				continue
 			}
 			if r.Target == n {
-				rs := refsOf(c, n, "derives")
+				rs := annRefs(c, n, "derives")
 				errAt(ds, rs[0].Site, "cycle", "%s derives from itself through %s", n.Name, strings.Join(append(path, n.Name), " → "))
 				return true
 			}
@@ -196,7 +205,7 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	case !outcome && !quality:
 		problem = "has neither outcome clauses nor quality fields"
 	case outcome:
-		ill := refsOf(c, n, "illustrates")
+		ill := annRefs(c, n, "illustrates")
 		switch {
 		case len(ill) == 0:
 			problem = "illustrates nothing"
@@ -215,10 +224,10 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	case quality:
 		if m := n.Child("measure"); m == nil || m.Value == nil {
 			problem = "has no measure"
-		} else if len(refsOf(c, n, "serves")) == 0 {
+		} else if len(annRefs(c, n, "serves")) == 0 {
 			problem = "serves no quality"
 		} else {
-			for _, r := range refsOf(c, n, "serves") {
+			for _, r := range annRefs(c, n, "serves") {
 				if r.Target != nil && !Is(c, r.Target, "spec.quality") {
 					problem = "serves " + r.Target.Name + ", which is no quality"
 				}

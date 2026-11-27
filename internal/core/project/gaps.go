@@ -44,8 +44,7 @@ func (p *Project) gaps() Gaps {
 	p.Package.Tree.Walk(func(n *resolve.Node) {
 		switch KindPath(c, n) {
 		case "spec.rule":
-			by := NamedArg(KindArgs(n), "by")
-			if by != nil && !isPart(RefTarget(c, by.Syntax(), n.Decl)) {
+			if HasAnnotation(n, "by") && !isPart(AnnotationRef(c, n, "by")) {
 				return
 			}
 			if !realized[n] {

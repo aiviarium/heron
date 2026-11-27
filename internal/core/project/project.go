@@ -299,17 +299,13 @@ func (p *Project) Requirements() []*Requirement {
 	return out
 }
 
-// PracticeSubject reports whether a requirement's `by` names a person or
+// PracticeSubject reports whether a requirement's `@by` names a person or
 // an agent: an std/spec actor of kind PERSON, the default, or AGENT, or
 // a persona. What it asks of them is a practice of the people and agents
 // who author and build, which no test of the code proves, unless a proof
 // links one, as a test of contrast or of visible text can.
 func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
-	e := NamedArg(KindArgs(n), "by")
-	if e == nil {
-		return false
-	}
-	by := RefTarget(c, e.Syntax(), n.Decl)
+	by := AnnotationRef(c, n, "by")
 	if by == nil {
 		return false
 	}
@@ -586,14 +582,14 @@ func errAt(ds *diag.List, s resolve.Site, code, format string, args ...any) {
 	ds.Errorf(file, start, end, code, format, args...)
 }
 
-// Revision is a requirement's or a proof's `rev`, 1 when it's left out.
+// Revision is a requirement's or a proof's `@rev`, 1 when it's left out.
 func Revision(n *resolve.Node) int {
-	e := NamedArg(KindArgs(n), "rev")
-	if e == nil {
+	t := AnnotationText(n, "rev")
+	if t == "" {
 		return 1
 	}
 	v := 0
-	for _, ch := range strings.TrimSpace(e.Syntax().Text()) {
+	for _, ch := range t {
 		if ch < '0' || ch > '9' {
 			return 1
 		}
@@ -603,4 +599,99 @@ func Revision(n *resolve.Node) int {
 		return 1
 	}
 	return v
+}
+
+// AnnArg is one positional argument of an annotation, with the site the
+// annotation is written at, which its references resolve from.
+type AnnArg struct {
+	Expr ast.Expr
+	Site resolve.Site
+}
+
+// Annotations are a node's annotations named name, by the last segment of
+// their path, its own and those of the group it stands in, in reading
+// order.
+func Annotations(n *resolve.Node, name string) []resolve.Site {
+	if n == nil {
+		return nil
+	}
+	var out []resolve.Site
+	for _, a := range append(append([]resolve.Site(nil), n.Annotations...), n.GroupAnnotations...) {
+		if a.N == nil || a.N.Kind != syntax.Annotation {
+			continue
+		}
+		an := ast.Annotation{N: a.N}
+		if an.Path().N == nil {
+			continue
+		}
+		if segs := resolve.PathSegs(an.Path().N); len(segs) > 0 && segs[len(segs)-1] == name {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// HasAnnotation reports whether a node carries an annotation named name.
+func HasAnnotation(n *resolve.Node, name string) bool { return len(Annotations(n, name)) > 0 }
+
+// AnnotationArgs are the positional arguments of a node's annotations
+// named name, as `@serves(a, b)` gives a and b.
+func AnnotationArgs(n *resolve.Node, name string) []AnnArg {
+	var out []AnnArg
+	for _, a := range Annotations(n, name) {
+		for _, e := range ArgExprs(ast.Annotation{N: a.N}.Args()) {
+			out = append(out, AnnArg{Expr: e, Site: resolve.Site{File: a.File, N: e.Syntax(), Scope: a.Scope}})
+		}
+	}
+	return out
+}
+
+// AnnotationArg is the first argument of a node's annotation named name,
+// or nil.
+func AnnotationArg(n *resolve.Node, name string) *AnnArg {
+	if as := AnnotationArgs(n, name); len(as) > 0 {
+		return &as[0]
+	}
+	return nil
+}
+
+// AnnotationString is the string an annotation such as `@source("…")`
+// holds.
+func AnnotationString(n *resolve.Node, name string) (string, bool) {
+	a := AnnotationArg(n, name)
+	if a == nil {
+		return "", false
+	}
+	return resolve.StringValue(a.Expr.Syntax())
+}
+
+// AnnotationText is the first argument of an annotation as written, such
+// as `404` for `@status(404)`, or "".
+func AnnotationText(n *resolve.Node, name string) string {
+	a := AnnotationArg(n, name)
+	if a == nil {
+		return ""
+	}
+	return strings.TrimSpace(a.Expr.Syntax().Text())
+}
+
+// AnnotationRefs are the nodes an annotation's arguments name, as
+// `@by(desk)` names desk.
+func AnnotationRefs(c *types.Checker, n *resolve.Node, name string) []*resolve.Node {
+	var out []*resolve.Node
+	for _, a := range AnnotationArgs(n, name) {
+		if t := RefTarget(c, a.Expr.Syntax(), a.Site); t != nil {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// AnnotationRef is the node an annotation's first argument names, or nil.
+func AnnotationRef(c *types.Checker, n *resolve.Node, name string) *resolve.Node {
+	a := AnnotationArg(n, name)
+	if a == nil {
+		return nil
+	}
+	return RefTarget(c, a.Expr.Syntax(), a.Site)
 }

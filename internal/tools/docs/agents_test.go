@@ -27,7 +27,7 @@ func agentFiles(t *testing.T, entry string, opts AgentOptions) []AgentFile {
 	}
 	res := check.NewSession().Check(id)
 	if res.Diags.HasErrors() {
-		t.Fatalf("%s doesn't check", entry)
+		t.Fatalf("%s doesn't check: %v", entry, res.Diags)
 	}
 	files, err := Agents(res.Tree, res.Checker, opts)
 	if err != nil {
@@ -235,7 +235,7 @@ func TestAgentUsecaseLines(t *testing.T) {
 	}
 }
 
-const agentTree = `import = ["std/schema@1", "std/doc@1", "std/spec@1", "std/docs@1"]
+const agentTree = `import = ["std/schema@1", "std/doc@1", "std/spec@1", "std/http@1", "std/docs@1"]
 
 shop: package(version = "1.0") {
   | A shop that sells things.
@@ -248,13 +248,15 @@ shop: package(version = "1.0") {
     order_term: term(aliases = ["order"]) {{ A request to buy things, with a total. }}
 
     @lens(user)
-    place: rule(serves = [sell]) {
+    @serves(sell)
+    place: rule {
       when {{ a customer places an [order_term] }}
       must {{ record it }}
       then {{ it can be paid }}
     }
 
-    happy: scenario(illustrates = place) {
+    @illustrates(place)
+    happy: scenario {
       given {{ a cart }}
       when {{ the customer checks out }}
       then {{ an order is recorded }}
@@ -262,7 +264,8 @@ shop: package(version = "1.0") {
 
     @realizes(orders.place)
     @display("Out of stock")
-    out_of_stock: error("shop.OUT_OF_STOCK", status = 409) {
+    @status(409)
+    out_of_stock: error("shop.OUT_OF_STOCK") {
       title = "{item} is out of stock"
       item: field(String)
     }

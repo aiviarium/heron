@@ -5,6 +5,7 @@ import (
 	"unicode"
 
 	"github.com/aiviarium/heron/internal/core/ast"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	uistrings "github.com/aiviarium/heron/web/strings"
@@ -307,15 +308,47 @@ func (s *Site) lookup(site resolve.Site, segs []string) *resolve.Node {
 	return out
 }
 
-// targets returns the nodes a requirement's kind arguments name.
+// targets returns the nodes a requirement's `@targets` names, or a proof's
+// or a status's kind arguments.
 func (s *Site) targets(n *resolve.Node) []*resolve.Node {
-	var out []*resolve.Node
+	out := s.annRefs(n, "targets")
 	for _, e := range argExprs(kindArgs(n)) {
 		if t := s.refTarget(e.Syntax(), n.Decl); t != nil {
 			out = append(out, t)
 		}
 	}
 	return out
+}
+
+// annRefs are the nodes a node's annotations named name refer to, as
+// `@serves(a, b)` names a and b.
+func (s *Site) annRefs(n *resolve.Node, name string) []*resolve.Node {
+	var out []*resolve.Node
+	for _, a := range project.AnnotationArgs(n, name) {
+		if t := s.refTarget(a.Expr.Syntax(), a.Site); t != nil {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// annText is the first argument of a node's annotation named name as
+// written, as `422` for `@status(422)`, or "".
+func annText(n *resolve.Node, name string) string { return project.AnnotationText(n, name) }
+
+// annString is the string a node's annotation named name holds, as
+// `@source("authors")` holds authors.
+func annString(n *resolve.Node, name string) (string, bool) {
+	return project.AnnotationString(n, name)
+}
+
+// annRef is the node a node's annotation named name refers to first, or
+// nil.
+func (s *Site) annRef(n *resolve.Node, name string) *resolve.Node {
+	if ts := s.annRefs(n, name); len(ts) > 0 {
+		return ts[0]
+	}
+	return nil
 }
 
 // httpRoute returns an op's HTTP method and path, from @http<method>(path).

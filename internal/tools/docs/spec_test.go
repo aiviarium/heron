@@ -27,7 +27,8 @@ refunds: section {
 
   capture_date: term {{ The day a payment was captured. }}
 
-  window: rule(by = desk) {
+  @by(desk)
+  window: rule {
     if {{ the capture date is past }}
     must {{ reject the request }}
     while {{ the payment is under no review }}
@@ -46,11 +47,13 @@ refunds: section {
 
   later: nongoal {{ Partial refunds. }}
 
-  hints: guidance(Ticket) {{ Use the ledger client. }}
+  @targets(Ticket)
+  hints: guidance {{ Use the ledger client. }}
 
   quick: quality(measure = "Answers within two seconds.") {{ Refunds feel quick. }}
 
-  fast_answers: scenario(serves = [refunds.quick]) {
+  @serves(refunds.quick)
+  fast_answers: scenario {
     stimulus =| a refund is requested
     environment =| production
     response =| the request is answered
@@ -72,7 +75,9 @@ desk_api: api {
   close(id: String): op(Ticket)
 }
 
-which_days: spec.open(refunds.window, owner = "finance") {{ Business days or calendar days? }}
+@targets(refunds.window)
+@owner("finance")
+which_days: spec.open {{ Business days or calendar days? }}
 `
 
 func TestSpecKindsRender(t *testing.T) {

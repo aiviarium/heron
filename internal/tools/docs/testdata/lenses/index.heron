@@ -86,18 +86,24 @@ kite: package(version = "1.4.0") {
 
     conflict: term {{ A note changed in two places since the last sync. }}
 
-    copies_changed: rule(sync, by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    @targets(sync)
+    copies_changed: rule {
       must {{ copy every note whose content changed since the last sync }}
       then {{ a note that only moved is renamed in the store, not copied again }}
     }
 
-    keeps_both: rule(conflict, by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    @targets(conflict)
+    keeps_both: rule {
       when {{ a note changed in the folder and in the store }}
       must {{ keep both copies, the store's under a `.conflict` suffix }}
       while {{ the two copies differ }}
     }
 
-    logs_each: rule(sync, by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    @targets(sync)
+    logs_each: rule {
       must {{ append a line to the sync log for every note it copies }}
       then {{ the log grows with each sync, so it's rotated once it reaches 1 MB }}
     }
@@ -108,7 +114,9 @@ kite: package(version = "1.4.0") {
       backoff: section {
         | How long a sync waits between tries.
 
-        backoff_doubles: rule(backoff, by = kite.system.syncer) {
+        @by(kite.system.syncer)
+        @targets(backoff)
+        backoff_doubles: rule {
           must {{ double the wait after each failed try, up to five minutes }}
         }
 
@@ -116,7 +124,9 @@ kite: package(version = "1.4.0") {
       }
     }
 
-    no_deletes: rule(sync, by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    @targets(sync)
+    no_deletes: rule {
       mustNot {{ delete a note from the store }}
       instead {{ move it to the store's `trash/` folder }}
       example {{ removing `ideas.md` locally moves it to `trash/ideas.md` }}
@@ -125,19 +135,23 @@ kite: package(version = "1.4.0") {
     @lens(developer)
     | Spec writers: every rule here names the syncer, so the conformance report groups them.
 
-    unreadable: error("unreadable", by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    unreadable: error("unreadable") {
       title = "can't read {file}"
       file: field(String)
       | A note Kite can't read, such as one without read permission.
     }
 
-    unlistable: error("unreadable", by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    unlistable: error("unreadable") {
       title = "can't list <{folder}>"
       folder: field(String)
       | A folder Kite can't list, so none of its notes sync.
     }
 
-    store_down: error("store-unreachable", severity = Severity.warning, by = kite.system.syncer) {
+    @by(kite.system.syncer)
+    @severity(warning)
+    store_down: error("store-unreachable") {
       title = "the store at {address} doesn't answer"
       address: field(String)
       | The store didn't answer within the timeout; Kite retries at the next interval.
@@ -189,12 +203,15 @@ kite: package(version = "1.4.0") {
   }
 
   @realizes(gone_notes)
-  note_locked: error("store.NOTE_LOCKED", status = 423, by = kite.system.syncer) {
+  @by(kite.system.syncer)
+  @status(423)
+  note_locked: error("store.NOTE_LOCKED") {
     title = "{id} is being written by another sync"
     id: field(String)
   }
 
-  gone_notes: rule(by = kite.system.syncer) {
+  @by(kite.system.syncer)
+  gone_notes: rule {
     when {{ the store answers 404 }}
     must {{ report the note as gone and keep the local copy }}
   }
@@ -215,11 +232,14 @@ kite: package(version = "1.4.0") {
       | Exits 0 when the sync finished.
 
       @realizes(cli.sync.exits_nonzero)
-      exit_1: error("kite sync exit 1", exit = 1, by = kite.system.syncer) {
+      @by(kite.system.syncer)
+      @exit(1)
+      exit_1: error("kite sync exit 1") {
         title = "a note couldn't be copied"
       }
 
-      exits_nonzero: rule(by = kite.system.syncer) {
+      @by(kite.system.syncer)
+      exits_nonzero: rule {
         must {{ exit with status 1 when any note couldn't be copied }}
       }
     }

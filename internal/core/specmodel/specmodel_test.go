@@ -68,7 +68,8 @@ window: term {{ The 30 days after capture. }}
 // extends; a kind with neither has none.
 func TestLayers(t *testing.T) {
 	res := checkSrc(t, head+`
-r: rule(by = desk) {
+@by(desk)
+r: rule {
   must {{ refund }}
 }
 
@@ -78,7 +79,8 @@ g: grammar {
   p: production {{ x }}
 }
 
-e: error("x", by = desk) {
+@by(desk)
+e: error("x") {
   title = "bad"
 }
 `)
@@ -101,11 +103,14 @@ e: error("x", by = desk) {
 // within a layer, up, or from or to a node with no layer is fine.
 func TestReferencesPointUp(t *testing.T) {
 	res := checkSrc(t, head+`
-r: rule(by = desk, serves = [self_service]) {
+@by(desk)
+@serves(self_service)
+r: rule {
   must {{ refund inside the [window], as [customer] asks; see [e] }}
 }
 
-e: error("x", by = desk) {
+@by(desk)
+e: error("x") {
   title = "bad"
 }
 
@@ -126,11 +131,15 @@ notes: section {
 // steps or parts.
 func TestLinks(t *testing.T) {
 	res := checkSrc(t, head+`
-a: rule(serves = [desk], derives = [b]) {
+@serves(desk)
+@derives(b)
+a: rule {
   must {{ x }}
 }
 
-b: rule(derives = [a], rev = 0) {
+@derives(a)
+@rev(0)
+b: rule {
   must {{ y }}
 }
 
@@ -140,7 +149,7 @@ e: error("x") {
 }
 `)
 	wantAll(t, res,
-		"link: serves takes a goal or a quality, and desk is a part",
+		"link: @serves takes a goal or a quality, and desk is a part",
 		"cycle: a derives from itself",
 		"type: a revision is a whole number from 1, not 0",
 		"link: @realizes takes rules, use cases, steps, extensions or parts, and window is a term")
@@ -152,7 +161,8 @@ e: error("x") {
 // serves a quality; at most one trigger.
 func TestShapes(t *testing.T) {
 	res := checkSrc(t, head+`
-r: rule(by = window) {
+@by(window)
+r: rule {
   when {{ a }}
   if {{ b }}
   must {{ x }}
@@ -164,7 +174,8 @@ c: constraint {
 
 p: persona(plays = desk) {{ Someone. }}
 
-both: scenario(illustrates = r) {
+@illustrates(r)
+both: scenario {
   given {{ g }}
   measure =| fast
 }
@@ -177,12 +188,13 @@ lost: scenario {
 
 q: quality {{ Quick. }}
 
-unmeasured: scenario(serves = [q]) {
+@serves(q)
+unmeasured: scenario {
   stimulus =| a
 }
 `)
 	wantAll(t, res,
-		"type: window is a term; a rule's by names an actor or a part",
+		"type: window is a term; a rule's @by names an actor or a part",
 		"accept: rule accepts at most 1 trigger, when or if",
 		"missing-argument: constraint c needs a reason from outside the solution",
 		"type: desk is a part, not an actor",
@@ -220,13 +232,15 @@ buy: usecase(actor = customer) {{
     [desk] does it.
 }}
 
-late: scenario(illustrates = buy.2a) {
+@illustrates(buy.2a)
+late: scenario {
   given {{ an old payment }}
   when {{ the customer asks }}
   then {{ credit is offered }}
 }
 
-wrong: scenario(illustrates = buy.7) {
+@illustrates(buy.7)
+wrong: scenario {
   given {{ a }}
 }
 `)

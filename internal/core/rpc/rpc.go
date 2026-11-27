@@ -1300,9 +1300,7 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 		if project.KindPath(c, t) == "spec.error" {
 			e.IsNode = true
 			e.ID, _ = project.ArgString(project.KindArgs(t), 0, "id")
-			if st := project.NamedArg(project.KindArgs(t), "status"); st != nil {
-				e.Status = strings.TrimSpace(st.Syntax().Text())
-			}
+			e.Status = project.AnnotationText(t, "status")
 			for _, ch := range t.Children {
 				switch {
 				case ch.Name == "title" && ch.Value != nil:

@@ -71,7 +71,7 @@ func renderUsecase(c *Ctx) error {
 		level = variantName(e)
 	}
 	rows = append(rows, [2]string{label("docs.label.level"), esc(kindWords(strings.ToLower(level)))})
-	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.argRefs(n, "serves"))})
+	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.annRefs(n, "serves"))})
 	if v, ok := argString(kindArgs(n), -1, "success"); ok {
 		rows = append(rows, [2]string{label("docs.label.success"), esc(v)})
 	}
@@ -228,7 +228,7 @@ func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 	}
 	s.Tree.Walk(func(n *resolve.Node) {
 		for _, pair := range [][2]string{{"serves", "served_by"}, {"illustrates", "illustrated_by"}, {"refines", "refined_by"}, {"relies", "relied_on_by"}, {"derives", "derived_by"}} {
-			for _, t := range s.argRefs(n, pair[0]) {
+			for _, t := range s.annRefs(n, pair[0]) {
 				add(t, pair[1], n)
 			}
 		}

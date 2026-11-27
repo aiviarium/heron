@@ -908,7 +908,11 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 		ls = append(ls, "applies: "+s.inlineMD(ap))
 	}
 	for _, a := range []string{"reason", "rationale", "measure"} {
-		if v, ok := argString(kindArgs(n), -1, a); ok && v != "" {
+		v, ok := argString(kindArgs(n), -1, a)
+		if a == "rationale" {
+			v, ok = annString(n, a)
+		}
+		if ok && v != "" {
 			ls = append(ls, a+": "+v)
 		}
 	}
@@ -927,7 +931,7 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 		refs = append(refs, "targets "+e.links(ts))
 	}
 	for _, a := range []string{"serves", "derives", "relies"} {
-		if ts := s.argRefs(n, a); len(ts) > 0 {
+		if ts := s.annRefs(n, a); len(ts) > 0 {
 			refs = append(refs, a+" "+e.links(ts))
 		}
 	}
@@ -969,10 +973,10 @@ func (e *agentExport) scenario(n *resolve.Node) string {
 			ls = append(ls, strings.TrimPrefix(k, "spec.")+": "+s.inlineMD(ch))
 		}
 	}
-	if t := s.argRef(n, -1, "illustrates"); t != nil {
+	if t := s.annRef(n, "illustrates"); t != nil {
 		ls = append(ls, "illustrates "+s.mdLink(t, stableID(t)))
 	}
-	if ts := s.argRefs(n, "serves"); len(ts) > 0 {
+	if ts := s.annRefs(n, "serves"); len(ts) > 0 {
 		ls = append(ls, "serves "+e.links(ts))
 	}
 	out := lines(ls...)
@@ -1001,7 +1005,7 @@ func (e *agentExport) usecase(n *resolve.Node) string {
 		level = variantName(x)
 	}
 	facts = append(facts, "level "+level)
-	if ts := s.argRefs(n, "serves"); len(ts) > 0 {
+	if ts := s.annRefs(n, "serves"); len(ts) > 0 {
 		facts = append(facts, "serves "+e.links(ts))
 	}
 	ls := []string{strings.Join(facts, " · ")}
@@ -1141,10 +1145,7 @@ func (e *agentExport) command(n *resolve.Node) string {
 	}
 	errs := append(s.childrenOfKind(n, "spec.error"), s.argRefList(n, "errors")...)
 	for _, x := range errs {
-		code := ""
-		if v := namedArg(kindArgs(x), "exit"); v != nil {
-			code = strings.TrimSpace(v.Syntax().Text())
-		}
+		code := annText(x, "exit")
 		title := ""
 		if t := x.Child("title"); t != nil && t.Value != nil {
 			title, _ = resolve.StringValue(t.Value.Syntax())
@@ -1203,16 +1204,12 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 	args := kindArgs(n)
 	id, _ := argString(args, 0, "id")
 	f := []string{"id `" + id + "`"}
-	sev := "error"
-	if x := namedArg(args, "severity"); x != nil {
-		sev = variantName(x)
+	f = append(f, "severity "+diagnosticSeverity(n))
+	if x := annText(n, "status"); x != "" {
+		f = append(f, "HTTP "+x)
 	}
-	f = append(f, "severity "+sev)
-	if x := namedArg(args, "status"); x != nil {
-		f = append(f, "HTTP "+strings.TrimSpace(x.Syntax().Text()))
-	}
-	if x := namedArg(args, "exit"); x != nil {
-		f = append(f, "exit "+strings.TrimSpace(x.Syntax().Text()))
+	if x := annText(n, "exit"); x != "" {
+		f = append(f, "exit "+x)
 	}
 	if g, j := e.rpcCodes(n); g != "" || j != "" {
 		if g != "" {
@@ -1384,8 +1381,8 @@ func (e *agentExport) op(n *resolve.Node) string {
 				}
 			}
 		}
-		if x := namedArg(kindArgs(er.typ), "exit"); x != nil && s.kindPath(er.typ) == "spec.error" {
-			f = append(f, "exit "+strings.TrimSpace(x.Syntax().Text()))
+		if x := annText(er.typ, "exit"); x != "" && s.kindPath(er.typ) == "spec.error" {
+			f = append(f, "exit "+x)
 		}
 		ls = append(ls, strings.Join(f, " · "))
 	}

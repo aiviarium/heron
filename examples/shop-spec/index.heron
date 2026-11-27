@@ -18,23 +18,28 @@ shop: package(version = "2.1.3", sealed = true) {
   checkout: section {
     | Paying for an order and what the buyer gets back.
 
-    pay_once: rule(parts.payments) {
+    @targets(parts.payments)
+    pay_once: rule {
       must {{ charge an order at most once, however often the buyer submits it }}
     }
 
-    receipt: rule(parts.payments) {
+    @targets(parts.payments)
+    receipt: rule {
       must {{ send the buyer a receipt once an order is paid }}
     }
 
-    refund_window: rule(parts.payments) {
+    @targets(parts.payments)
+    refund_window: rule {
       should {{ refund an order on request within 14 days of payment }}
     }
 
-    empty_cart: rule(parts.cart) {
+    @targets(parts.cart)
+    empty_cart: rule {
       mustNot {{ start a checkout for an empty cart }}
     }
 
-    paid: scenario(illustrates = checkout.pay_once) {
+    @illustrates(checkout.pay_once)
+    paid: scenario {
       given {{ a cart with one item }}
       when {{ the buyer pays }}
       then {{ the order is paid and the cart is empty }}

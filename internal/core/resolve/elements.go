@@ -127,6 +127,13 @@ func ownLines(f *File, tag *syntax.Node) bool {
 // the attributes' text. A quoted value is one string argument, unless raw
 // says the annotation's arguments are read as written, as `@lens="user"`.
 func ElementAnnotations(f *File, tag *syntax.Node, sc *Scope, raw func(name string) bool) []Site {
+	return ElementAnnotationsWith(f, tag, sc, raw, nil)
+}
+
+// ElementAnnotationsWith is ElementAnnotations where rewrite may restate
+// the arguments read as written, as a reference that a link would reach
+// spelled as a path in scope.
+func ElementAnnotationsWith(f *File, tag *syntax.Node, sc *Scope, raw func(name string) bool, rewrite func(name, args string) string) []Site {
 	var out []Site
 	for _, ch := range tag.Children {
 		a, ok := ch.(*syntax.Node)
@@ -157,9 +164,13 @@ func ElementAnnotations(f *File, tag *syntax.Node, sc *Scope, raw func(name stri
 			continue
 		}
 		as, _ := a.Span()
+		written := len(args)
 		if quoted && (raw == nil || !raw(name)) {
 			// One string argument, its quotes kept.
 			args, argStart = `"`+args+`"`, argStart-1
+			written = len(args)
+		} else if rewrite != nil && argStart >= 0 {
+			args = rewrite(name, args)
 		}
 		src := "@" + name
 		if argStart >= 0 {
@@ -182,7 +193,7 @@ func ElementAnnotations(f *File, tag *syntax.Node, sc *Scope, raw func(name stri
 		}
 		syntax.Shift(ann, func(o int) int {
 			if argStart >= 0 && o >= head && o < head+len(args) {
-				return argStart + (o - head)
+				return argStart + min(o-head, max(written-1, 0))
 			}
 			return as
 		})

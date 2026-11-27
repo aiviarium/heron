@@ -17,6 +17,10 @@ language_schemas: section {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
+  proves(heron.language.schemas.kinds.declaring.required_params_first) {
+    verify("internal/core/types/types_test.go", test = "TestRequiredParamsFirst")
+  }
+
   proves(heron.language.schemas.kinds.declaring.kind_fields) {
     verify("internal/core/types/types_test.go", test = "TestCleanFile")
   }

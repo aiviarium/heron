@@ -358,7 +358,7 @@ func (c *Ctx) refText(n *resolve.Node) string {
 func renderOpen(c *Ctx) error {
 	n := c.Node
 	c.W(`<aside class="callout callout-open" id="`, attr(Anchor(n)), `"><div class="label">`, esc(label("docs.label.open")))
-	if o, ok := argString(kindArgs(n), -1, "owner"); ok {
+	if o, ok := annString(n, "owner"); ok {
 		c.W(` <span class="owner">`, esc(o), `</span>`)
 	}
 	c.W(`</div>`)
