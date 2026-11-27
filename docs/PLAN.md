@@ -606,5 +606,5 @@ neither the spec nor the catalogue.
   first run, file switching, typing, indentation and completion, Done
   means #1 (`lsp`), the preview half of #2 (`preview`) and visible text.
   `node web/shell/e2e/screenshots.cjs` (with `HERON` set) writes
-  `web/screenshots/app-*.png`. `scripts/demo.sh` serves a temporary copy
+  `web/screenshots/app-*.png`. `scripts/play.sh` serves a temporary copy
   of the sample and prints its URL.

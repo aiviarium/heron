@@ -1,0 +1,125 @@
+tools_docs_agents: section {
+  | The tests that prove the requirements of the spec's [agent export](#heron.tools.docs.agents),
+  | the standard agent lens and the Markdown lenses it's written through.
+
+  proves(heron.tools.docs.agents.files.export_lens) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.agents.files.export_files) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.files.budget_split) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.agents.files.deterministic_export) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.files.plain_markdown) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.files.relative_links) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.index.index_contents) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.agents.index.llms_txt) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.agents.content.file_order) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.content.node_headings) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.content.requirement_form) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.agents.content.contract_signatures) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentContractForms")
+  }
+
+  proves(heron.tools.docs.agents.content.types_compact) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentContractForms")
+  }
+
+  proves(heron.tools.docs.agents.content.examples_compact) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentContractForms")
+  }
+
+  proves(heron.tools.docs.agents.content.summarized_nodes) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.agents.content.other_kinds) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentContractForms")
+  }
+
+  proves(heron.tools.docs.agents.content.terms_per_file) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportOfSpec")
+  }
+
+  proves(heron.tools.docs.agents.packs.pack_file) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentContextPack")
+  }
+
+  proves(heron.tools.docs.agents.written.agents_target) {
+    verify("internal/tools/docs/agents_test.go", test = "TestDocsSiteCarriesAgentExport")
+  }
+
+  proves(heron.tools.docs.agents.written.site_carries_export) {
+    verify("internal/tools/docs/agents_test.go", test = "TestDocsSiteCarriesAgentExport")
+  }
+
+  proves(heron.tools.docs.standard_lenses.agent_lens.agent_shows) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkdownLens")
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.tools.docs.standard_lenses.agent_lens.agent_not_switched) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentLensNotSwitched")
+  }
+
+  proves(heron.tools.docs.lenses.declaring.budget_form) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkdownLens")
+  }
+
+  proves(heron.tools.docs.lenses.errors.bad_budget) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkdownLens")
+  }
+
+  proves(heron.tools.docs.lenses.choosing.html_lenses_only) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkdownLens")
+  }
+
+  proves(heron.tools.docs.lenses.errors.markdown_lens_listed) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkdownLens")
+  }
+
+  proves(heron.tools.docs.lenses.what_a_lens_shows.marks_unread) {
+    verify("internal/core/lens/lens_test.go", test = "TestMarkdownLens")
+  }
+
+  proves(heron.language.specifications.layers.derived_lists_exported) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentExportSplitsAndOrders")
+  }
+
+  proves(heron.language.specifications.usecases.usecase_export) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentUsecaseLines")
+  }
+
+  proves(heron.language.specifications.usecases.no_diagram_exported) {
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentUsecaseLines")
+  }
+}

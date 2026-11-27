@@ -6,13 +6,75 @@
 **Docs:** [aiviarium.github.io/heron](https://aiviarium.github.io/heron/), the spec it
 implements in its three lenses (for users at the root,
 [/dev/](https://aiviarium.github.io/heron/dev/) for spec writers and
-[/explore/](https://aiviarium.github.io/heron/explore/) for the whole tree), and the
+[/explore/](https://aiviarium.github.io/heron/explore/) for the whole tree), its
+agent export for agents at [/agents/](https://aiviarium.github.io/heron/agents/INDEX.md)
+(with [/llms.txt](https://aiviarium.github.io/heron/llms.txt)), and the
 project site (architecture, conformance, releases) at
 [/project/](https://aiviarium.github.io/heron/project/).
 
 The implementation of Heron: the `heron` binary, its standard packages and
 its frontend. What Heron does is specified apart from this repository, in
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs).
+
+## Build from source and try it
+
+You need Git, Go 1.24.7 or newer, and Node.js 20 or newer, whose corepack
+runs the pnpm version `web/package.json` pins (10.28.0); nothing else is
+installed globally.
+
+```sh
+git clone https://github.com/aiviarium/heron.git
+cd heron
+scripts/build.sh            # checks the prerequisites, installs the web
+                            # dependencies, builds the editor's frontend into
+                            # the binary and writes bin/heron (or: make build)
+bin/heron version           # heron 0.6.0+build1, the spec version, commit, build time
+```
+
+Put it on your `PATH`, or install it:
+
+```sh
+export PATH="$PWD/bin:$PATH"     # for this shell
+make install                     # or: copies bin/heron to ~/.local/bin (PREFIX=… to change)
+```
+
+`go install ./cmd/heron` also works, without `scripts/build.sh`: it builds
+the same commands, but `heron serve` then embeds the frontend only if
+`scripts/build.sh` built it before, and `heron version` reports the commit
+and build time Go recorded, or `unknown`.
+
+Try it on an example:
+
+```sh
+cd examples/petstore
+heron check .                    # the tree checks clean: no output, exit 0
+heron lint .                     # the lints and the spec-aware prose checks
+heron generate docs              # the documentation site, in .heron/docs/
+heron generate agents            # the spec as Markdown for agents, in .heron/agents/INDEX.md
+heron serve                      # the editor at http://127.0.0.1:7340/, the docs at /docs/,
+                                 # the agent export at /agents/; Ctrl-C stops it
+cd ../..
+```
+
+Or let one script do all of that on a scratch copy, so the example stays
+as it is:
+
+```sh
+scripts/play.sh                  # petstore; or: scripts/play.sh parcels, make play EXAMPLE=parcels
+```
+
+Run the tests:
+
+```sh
+go test ./...                    # the Go tests (set up the spec first: scripts/spec-setup.sh)
+scripts/ci.sh                    # the whole check, as CI runs it (or: make test)
+```
+
+The spec of Heron itself makes a bigger playground: `heron generate --entry
+.heron/packages/github.com/aiviarium/heron-specs/heron docs agents`, after
+`scripts/spec-setup.sh`, writes its site and its agent export. As advanced
+use, `HERON_SPECS_DIR` points the build at a checkout of the spec you're
+changing, as [Getting the spec](#getting-the-spec) says.
 
 ## Two repositories
 
@@ -76,9 +138,9 @@ and `version` the project version; releases are tagged `v<version>`.
 ```sh
 scripts/ci.sh                                   # the whole check, run before every push
 HERON_SPECS_DIR=../heron-specs/heron scripts/ci.sh
-scripts/demo.sh                                 # heron serve on a copy of examples/petstore
+scripts/play.sh                                 # heron serve on a copy of examples/petstore
 scripts/spec-docs.sh                            # the spec package as its docs site
-scripts/pages.sh /tmp/site                      # the published site: project at /, spec at spec/
+scripts/pages.sh /tmp/site                      # the published site: spec at /, agents/, project at project/
 ```
 
 `scripts/ci.sh` is the check, and it passes from a fresh clone. GitHub

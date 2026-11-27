@@ -264,24 +264,21 @@ lenses_untested: status<untested>(
 layered_planned: status<planned>(
   heron.language.specifications.layers.extends_inherits,
   heron.language.specifications.layers.extends_rendered,
-  heron.language.specifications.layers.derived_lists_exported,
   heron.language.specifications.intent.actor_view,
   heron.language.specifications.requirements.part_view,
-  heron.language.specifications.usecases.usecase_export,
   heron.language.specifications.contract.errors_on_surfaces,
   heron.language.specifications.delivery.story_accepted,
   heron.language.specifications.delivery.one_status_each,
   heron.language.specifications.delivery.uses_enforced,
   heron.language.specifications.delivery.errors.import_outside_uses,
 ) {
-  | Not built yet: the kinds that extend a core kind take only its layer and coverage so far, there is no agent export, and stories aren't yet accepted from their items' proofs.
+  | Not built yet: the kinds that extend a core kind take only its layer and coverage so far, and stories aren't yet accepted from their items' proofs.
 }
 
 layered_untested: status<untested>(
   heron.language.specifications.layers.links_on_lower_node,
   heron.language.specifications.usecases.step_uses,
   heron.language.specifications.usecases.usecase_actor_checked,
-  heron.language.specifications.usecases.no_diagram_exported,
   heron.language.specifications.contract.error_title_required,
   heron.language.specifications.contract.one_identity,
   heron.language.specifications.contract.refines_scenario,

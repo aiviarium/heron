@@ -29,6 +29,21 @@ const (
 	// ExploreName is the lens that shows everything, whatever `@lens(…)`
 	// says.
 	ExploreName = "explore"
+	// AgentName is the lens the agent export is written through.
+	AgentName = "agent"
+	// DefaultBudget is a Markdown lens's size budget, in approximate
+	// tokens, when it sets none.
+	DefaultBudget = 6000
+	// MinBudget is the smallest budget a lens may set.
+	MinBudget = 500
+)
+
+// Format is what a lens is written as: a LensFormat value.
+type Format string
+
+const (
+	HTML     Format = "HTML"
+	Markdown Format = "MARKDOWN"
 )
 
 // Nav is how a lens orders its navigation: a LensNav value.
@@ -67,6 +82,13 @@ type Lens struct {
 	// Depth is how many levels of sections get pages in the lens, in
 	// place of the docs block's; 0 when the lens doesn't set it.
 	Depth int
+	// Format is what the lens is written as, HTML unless it sets one.
+	Format Format
+	// NoMarks is set when the lens's `marks` is false: it reads no
+	// `@lens(…)` mark and decides every node by its kind lists.
+	NoMarks bool
+	// Budget is a Markdown lens's size budget in approximate tokens.
+	Budget int
 }
 
 // Explore reports whether the lens shows everything.
@@ -74,7 +96,7 @@ func (l *Lens) Explore() bool { return l == nil || l.Name == ExploreName }
 
 // Read reads a lens node.
 func Read(c *types.Checker, n *resolve.Node) *Lens {
-	l := &Lens{Node: n, Name: n.Name, Title: n.Name, Nav: NavTree}
+	l := &Lens{Node: n, Name: n.Name, Title: n.Name, Nav: NavTree, Format: HTML, Budget: DefaultBudget}
 	for _, ch := range n.Children {
 		if ch.Value == nil {
 			continue
@@ -103,6 +125,18 @@ func Read(c *types.Checker, n *resolve.Node) *Lens {
 			l.Entry = refList(c, ch.Value, site, nil)
 		case "depth":
 			l.Depth, _ = strconv.Atoi(strings.TrimSpace(ch.Value.Syntax().Text()))
+		case "format":
+			t := strings.TrimSpace(ch.Value.Syntax().Text())
+			if i := strings.LastIndex(t, "."); i >= 0 {
+				t = t[i+1:]
+			}
+			l.Format = Format(t)
+		case "marks":
+			l.NoMarks = strings.TrimSpace(ch.Value.Syntax().Text()) == "false"
+		case "budget":
+			if b, err := strconv.Atoi(strings.TrimSpace(ch.Value.Syntax().Text())); err == nil && b >= MinBudget {
+				l.Budget = b
+			}
 		}
 	}
 	return l
@@ -212,8 +246,10 @@ func SiteOf(t *resolve.Tree, c *types.Checker) *Site {
 		if ch := s.Docs.Child("lenses"); ch != nil && ch.Value != nil {
 			s.Chosen = true
 			for _, n := range refList(c, ch.Value, ch.ValueSite, func(n *resolve.Node) bool { return IsLens(c, n) }) {
-				if IsLens(c, n) {
-					s.Lenses = append(s.Lenses, Read(c, n))
+				// A Markdown lens is the agent export's, never a page of
+				// the site; the checker reports it here.
+				if l := Read(c, n); IsLens(c, n) && l.Format != Markdown {
+					s.Lenses = append(s.Lenses, l)
 				}
 			}
 		}
@@ -238,6 +274,35 @@ func SiteOf(t *resolve.Tree, c *types.Checker) *Site {
 		s.Default.Prefix = ""
 	}
 	return s
+}
+
+// Agent returns the lens the agent export is written through: the lens
+// named agent in the tree's scope, its own before std/docs's, or a
+// Markdown lens of everything but the authored pages when the tree
+// imports no std/docs.
+func Agent(t *resolve.Tree, c *types.Checker) *Lens {
+	if n := t.Root.Child(AgentName); n != nil && IsLens(c, n) {
+		return Read(c, n)
+	}
+	if d := DocsNode(t, c); d != nil {
+		if n := d.Child(AgentName); n != nil && IsLens(c, n) && n.Decl.File != nil && !n.Decl.File.ID.IsStd() {
+			return Read(c, n)
+		}
+	}
+	var found *resolve.Node
+	project.Own(t, func(n *resolve.Node) bool {
+		if found == nil && n.Name == AgentName && IsLens(c, n) {
+			found = n
+		}
+		return found == nil
+	})
+	if found != nil {
+		return Read(c, found)
+	}
+	if n := stdLens(t, AgentName); n != nil {
+		return Read(c, n)
+	}
+	return &Lens{Name: AgentName, Title: "Agents", Nav: NavTree, Format: Markdown, NoMarks: true, Budget: DefaultBudget, Prefix: "agents"}
 }
 
 // stdLens finds a lens std/docs ships, by name, among the tree's imports.
@@ -369,7 +434,7 @@ func annotationLenses(c *types.Checker, a resolve.Site) ([]*resolve.Node, bool) 
 
 // Allows reports whether a restriction lets a lens show what it's on.
 func (l *Lens) Allows(restriction []*resolve.Node) bool {
-	if restriction == nil || l.Explore() {
+	if restriction == nil || l.Explore() || l.NoMarks {
 		return true
 	}
 	for _, r := range restriction {
@@ -429,6 +494,9 @@ func (l *Lens) Marked(c *types.Checker, n *resolve.Node) bool {
 func (l *Lens) Mode(c *types.Checker, n *resolve.Node) Mode {
 	if l.Explore() {
 		return Show
+	}
+	if l.NoMarks {
+		return l.kindMode(c, n)
 	}
 	if m := Marks(c, n); m != nil {
 		if l.Allows(m) {
@@ -626,6 +694,11 @@ func Check(t *resolve.Tree, c *types.Checker, examples ExampleChecker) (diag.Lis
 				if reason := prefixProblem(p); reason != "" {
 					errAt(&ds, resolve.Site{File: ch.ValueSite.File, N: ch.Value.Syntax()}, "lens", "%s: %s", n.Name, reason)
 				}
+			case "budget":
+				txt := strings.TrimSpace(ch.Value.Syntax().Text())
+				if b, err := strconv.Atoi(txt); err == nil && b < MinBudget {
+					errAt(&ds, resolve.Site{File: ch.ValueSite.File, N: ch.Value.Syntax()}, "lens", "%s: a budget is at least %d tokens, not %s", n.Name, MinBudget, txt)
+				}
 			}
 		}
 	}
@@ -654,6 +727,20 @@ func Check(t *resolve.Tree, c *types.Checker, examples ExampleChecker) (diag.Lis
 	}
 	var defaults, names []string
 	prefixes := map[string]string{}
+	agent := Agent(t, c)
+	for _, e := range arr.Exprs() {
+		if n := resolveRef(c, e.Syntax(), site, isLens); n != nil && Read(c, n).Format == Markdown {
+			errAt(&ds, resolve.Site{File: site.File, N: e.Syntax()}, "lens", "%s is written as Markdown; a site's lenses are written as HTML, and heron generate agents writes the agent lens", n.Name)
+		}
+	}
+	for _, l := range s.Lenses {
+		if l.Format == Markdown {
+			continue
+		}
+		if !l.Default && l.Prefix != "" && agent.Format == Markdown && l.Prefix == agent.Prefix && (agent.Node == nil || agent.Node != l.Node) {
+			errAt(&ds, list, "lens", "%s and %s are both served under %s/", agent.Name, l.Name, l.Prefix)
+		}
+	}
 	for _, l := range s.Lenses {
 		names = append(names, l.Name)
 		if l.Default {

@@ -18,6 +18,7 @@ func Register(r *registry.Registry) {
 	r.MustAddCommand(checkCommand())
 	r.MustAddCommand(lintCommand(r))
 	r.MustAddCommand(runCommand(r))
+	r.MustAddCommand(versionCommand())
 	lint.Register(r)
 	records.Register(r)
 	setup.Register(r, setup.Options{})
@@ -37,6 +38,9 @@ func Main(r *registry.Registry, args []string, env *registry.Env) int {
 			return 2
 		}
 		return 0
+	}
+	if args[0] == "--version" {
+		args[0] = "version"
 	}
 	c := r.Command(args[0])
 	if c == nil {

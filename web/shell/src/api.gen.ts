@@ -326,6 +326,7 @@ export const routes: RouteInfo[] = [
   { op: "spec_server.problems", method: "POST", path: "/api/v1/problems", stream: false, socket: false },
   { op: "spec_server.run_task", method: "POST", path: "/api/v1/run", stream: true, socket: false },
   { op: "spec_server.outline", method: "POST", path: "/api/v1/outline", stream: false, socket: false },
+  { op: "spec_server.agent_export", method: "GET", path: "/api/v1/agents", stream: false, socket: false },
   { op: "spec_server.generated", method: "POST", path: "/api/v1/generated", stream: false, socket: false },
 ];
 
@@ -364,6 +365,8 @@ export interface Client {
   runTask(request: RunRequest, signal?: AbortSignal): AsyncIterable<RunEvent>;
   /** The nodes a file declares, which of them run, and the lines they span. */
   outline(request: OutlineRequest): Promise<Outline>;
+  /** The tree's [agent export](#tools.docs.agents.agent_export) as `heron generate agents` writes it: every file, or the one at `path`, as `INDEX.md`. */
+  agentExport(path?: string): Promise<GeneratedFiles>;
   /** The files generation would write, without writing them. */
   generated(request: TreeRequest): Promise<GeneratedFiles>;
 }
@@ -388,6 +391,7 @@ export function createClient(base = "", f: Fetch = (...a) => fetch(...a)): Clien
     problems: (request: TreeRequest) => call<Problems>(f, base, "POST", `/api/v1/problems`, request),
     runTask: (request: RunRequest, signal?: AbortSignal) => events<RunEvent>(f, base, "POST", `/api/v1/run`, request, signal),
     outline: (request: OutlineRequest) => call<Outline>(f, base, "POST", `/api/v1/outline`, request),
+    agentExport: (path?: string) => call<GeneratedFiles>(f, base, "GET", `/api/v1/agents` + q({ path: path }), undefined),
     generated: (request: TreeRequest) => call<GeneratedFiles>(f, base, "POST", `/api/v1/generated`, request),
   };
 }

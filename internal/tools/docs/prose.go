@@ -24,6 +24,10 @@ type proseBuf struct {
 	b     strings.Builder
 	parts []string // the HTML of each placeholder
 	block map[int]bool
+	// md writes Markdown rather than HTML: the prose's own Markdown kept
+	// as written, its links, inserts and code in Markdown, for the agent
+	// export.
+	md bool
 }
 
 func (p *proseBuf) place(h string, block bool) {
@@ -203,10 +207,20 @@ func (p *proseBuf) container(n *syntax.Node) {
 				}
 				lineStart = true
 			case syntax.CodeSpan:
+				if p.md {
+					p.place(ch.Text, false)
+					lineStart = false
+					continue
+				}
 				code := strings.Trim(ch.Text, "`")
 				p.place(`<code>`+p.s.highlightInline(code)+`</code>`, false)
 				lineStart = false
 			case syntax.Escape:
+				if p.md {
+					p.place(ch.Text, false)
+					lineStart = false
+					continue
+				}
 				p.place(esc(strings.TrimPrefix(ch.Text, `\`)), false)
 				lineStart = false
 			case syntax.HeadingMark, syntax.HeadingId:
@@ -231,6 +245,10 @@ func (p *proseBuf) container(n *syntax.Node) {
 
 // inlineNode renders a link, insert, tag or fence into a placeholder.
 func (p *proseBuf) inlineNode(n *syntax.Node) {
+	if p.md {
+		p.mdInlineNode(n)
+		return
+	}
 	switch n.Kind {
 	case syntax.Link:
 		p.place(p.link(ast.Link{N: n}), false)
@@ -270,7 +288,7 @@ func (p *proseBuf) inlineNode(n *syntax.Node) {
 }
 
 func (p *proseBuf) sub(children []syntax.Elem) string {
-	q := &proseBuf{s: p.s, site: p.site}
+	q := &proseBuf{s: p.s, site: p.site, md: p.md}
 	q.container(&syntax.Node{Kind: syntax.ProseLine, Children: children})
 	return q.inline(strings.Join(strings.Fields(q.b.String()), " "))
 }
@@ -432,6 +450,11 @@ var entityRe = regexp.MustCompile(`&(amp|lt|gt|quot);`)
 // text adds text, its entities as the characters they stand for, each in
 // place so it never starts a Markdown form.
 func (p *proseBuf) text(t string) {
+	if p.md {
+		// Markdown reads the entities as the characters they stand for.
+		p.b.WriteString(t)
+		return
+	}
 	for {
 		loc := entityRe.FindStringIndex(t)
 		if loc == nil {
@@ -693,6 +716,9 @@ var (
 
 // inline renders a run of text: escaping, emphasis, then placeholders.
 func (p *proseBuf) inline(t string) string {
+	if p.md {
+		return p.replace(t)
+	}
 	t = esc(t)
 	t = strongRe.ReplaceAllString(t, "<strong>$1</strong>")
 	t = emRe.ReplaceAllString(t, "$1<em>$2</em>$3")

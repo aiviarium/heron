@@ -5,7 +5,7 @@ cli: component("internal/core/cli", lang = "go") {
   | record kinds and setup funcs. Each command's arguments, options and exit codes are in
   | [the command reference](#heron.cli); this component holds what they share.
 
-  uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.eval, architecture.runtime.eval_host, architecture.runtime.format, architecture.runtime.lint, architecture.runtime.records, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.setup, architecture.runtime.types]
+  uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.eval, architecture.runtime.eval_host, architecture.runtime.format, architecture.runtime.lint, architecture.runtime.records, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.setup, architecture.runtime.types, architecture.runtime.version]
 
   dispatches: responsibility {{
     Looks the first argument up among the registered commands and runs it with the rest;
@@ -14,7 +14,7 @@ cli: component("internal/core/cli", lang = "go") {
   }}
 
   registers_unit_one: responsibility {{
-    Registers `check`, `fmt`, `lint` and `run`, the core lints, the `run` record kind and
+    Registers `check`, `fmt`, `lint`, `run` and `version`, the core lints, the `run` record kind and
     `std/repo`'s funcs. `generate` is registered by `gen`, and the commands of later
     [units](#delivery.units) by those [units](#delivery.units).
   }}
@@ -87,4 +87,5 @@ cli: component("internal/core/cli", lang = "go") {
   verify("scripts/e2e-interop.sh") {{ [heron generate](#heron.cli.generate) with an extension's target. }}
   verify("scripts/e2e-docs.sh") {{ [heron generate](#heron.cli.generate) `docs`. }}
   verify("internal/core/cli/cli_test.go", test = "TestSampleCommand") {{ [heron help](#heron.cli.help) and a sample command. }}
+  verify("internal/core/cli/cli_test.go", test = "TestVersionCommand") {{ [heron version](#heron.cli.version) and `heron --version`. }}
 }

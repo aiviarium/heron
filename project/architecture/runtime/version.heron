@@ -1,0 +1,23 @@
+@realizes(heron.system.command_line)
+version: component("internal/core/version", lang = "go") {
+  | Which `heron` a binary is: the product version, the spec version it implements and its
+  | build's commit, time and platform, as [heron version](#heron.cli.version) prints them.
+
+  uses = []
+
+  build_facts: responsibility {{
+    Holds the product version, takes the commit and the build time from what
+    `scripts/build.sh` stamps, or else from the VCS stamp Go records, and says `unknown`
+    for what neither gives.
+  }}
+
+  exports(title = "version.go") {{
+    var Version string
+    var Commit, Built string
+    func Spec() string
+    func Read() Info
+    func (in Info) Lines() string
+  }}
+
+  verify("internal/core/version/version_test.go", test = "TestVersionMatchesProject") {{ The product version is the project's. }}
+}

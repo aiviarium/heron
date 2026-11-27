@@ -78,3 +78,27 @@ func TestFmt(t *testing.T) {
 		t.Fatalf("check after fmt: code %d", code)
 	}
 }
+
+// TestVersionCommand: `heron version` and `heron --version` print the same
+// five lines, the product version first and the spec version it
+// implements next; an argument is a usage error.
+func TestVersionCommand(t *testing.T) {
+	r := registry.New()
+	cli.Register(r)
+	e, out, _ := env(t.TempDir())
+	if code := cli.Main(r, []string{"version"}, e); code != 0 {
+		t.Fatalf("heron version: %d", code)
+	}
+	e2, out2, _ := env(t.TempDir())
+	if code := cli.Main(r, []string{"--version"}, e2); code != 0 || out2.String() != out.String() {
+		t.Fatalf("heron --version: %d %q, heron version %q", code, out2, out)
+	}
+	ls := strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n")
+	if len(ls) != 5 || !strings.HasPrefix(ls[0], "heron 0.6.0+") || ls[1] != "spec 0.6.0" || !strings.HasPrefix(ls[2], "commit ") || !strings.HasPrefix(ls[3], "built ") || !strings.HasPrefix(ls[4], "platform ") {
+		t.Errorf("heron version printed %q", ls)
+	}
+	e3, _, _ := env(t.TempDir())
+	if code := cli.Main(r, []string{"version", "--json"}, e3); code != 2 {
+		t.Errorf("heron version --json: %d, want 2", code)
+	}
+}

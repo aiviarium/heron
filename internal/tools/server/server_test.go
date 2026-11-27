@@ -157,6 +157,41 @@ func TestSpecBrowser(t *testing.T) {
 	}
 }
 
+// The agent export of the served tree is under /agents/, its index at the
+// folder itself, and through agent_export: every file, or one by its path,
+// and no such file for a path the export lacks.
+func TestAgentExportServed(t *testing.T) {
+	ts, _ := petstore(t)
+	res, err := http.Get(ts.URL + "/agents/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	if res.StatusCode != 200 || !strings.HasPrefix(res.Header.Get("Content-Type"), "text/markdown") || !strings.Contains(string(body), "## How to read these files") {
+		t.Errorf("/agents/: %d %s %.200q", res.StatusCode, res.Header.Get("Content-Type"), body)
+	}
+	if code, body := get(t, ts.URL+"/agents/llms.txt"); code != 200 || !strings.Contains(body, "](INDEX.md)") {
+		t.Errorf("llms.txt: %d %.200q", code, body)
+	}
+	if code, _ := get(t, ts.URL+"/agents/nothing.md"); code != 404 {
+		t.Errorf("a missing file: %d", code)
+	}
+	var all api.GeneratedFiles
+	code, raw := get(t, ts.URL+"/api/v1/agents")
+	if code != 200 || json.Unmarshal([]byte(raw), &all) != nil || len(all.Files) < 3 || all.Files[0].Path != "INDEX.md" || all.Files[1].Path != "llms.txt" {
+		t.Fatalf("agent_export: %d %.300q", code, raw)
+	}
+	code, raw = get(t, ts.URL+"/api/v1/agents?path="+all.Files[2].Path)
+	var one api.GeneratedFiles
+	if code != 200 || json.Unmarshal([]byte(raw), &one) != nil || len(one.Files) != 1 || one.Files[0].Text != all.Files[2].Text {
+		t.Errorf("agent_export one file: %d %.300q", code, raw)
+	}
+	if code, raw := get(t, ts.URL+"/api/v1/agents?path=nothing.md"); code != 404 || !strings.Contains(raw, "server.NO_SUCH_FILE") {
+		t.Errorf("agent_export of a missing file: %d %.300q", code, raw)
+	}
+}
+
 // The docs under `heron serve` are cached as a static site's are: an asset
 // at its content's version is kept for good, and everything else is
 // revalidated with its ETag, so moving between pages fetches only the page.

@@ -19,6 +19,7 @@ include = [
   "./lens.heron",
   "./extension.heron",
   "./setup.heron",
+  "./version.heron",
   "./cli.heron",
   "./fixtures.heron",
   "./std.heron",

@@ -58,6 +58,14 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     TREE: Self
   }
 
+  /// What a lens is written as.
+  LensFormat: enum {
+    /// Pages of the site.
+    HTML: Self
+    /// Plain Markdown files for agents: the agent export.
+    MARKDOWN: Self
+  }
+
   /// A view of the site for one audience, built from the same tree as
   /// every other: which kinds and categories it shows, which it sums up in
   /// one line and which it leaves out, how its navigation is ordered and
@@ -82,6 +90,14 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     depth?: Int
     /// The URL path segment the lens is served under; "" for the default.
     prefix: String
+    /// What the lens is written as; HTML unless set.
+    format?: LensFormat
+    /// Whether `@lens(…)` marks naming other lenses leave nodes out of
+    /// this one; true unless set.
+    marks?: Bool
+    /// The size budget, in approximate tokens, of a file a Markdown lens
+    /// writes; 6000 unless set.
+    budget?: Int
   }
 
   /// For the people who use what a tree describes: the authored pages
@@ -113,6 +129,19 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     title = "Explore"
     nav = LensNav.TREE
     prefix = "explore"
+  }
+
+  /// For agents that build, change or review what the tree specifies:
+  /// every node but the authored pages, whatever the lens marks say, as
+  /// the plain Markdown files of the agent export.
+  agent: lens {
+    title = "Agents"
+    nav = LensNav.TREE
+    format = LensFormat.MARKDOWN
+    marks = false
+    hide = [authored]
+    budget = 6000
+    prefix = "agents"
   }
 
   /// Pages written for a lens's readers rather than derived from the

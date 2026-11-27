@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/aiviarium/heron/internal/core/gen"
+	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/registry"
 )
 
@@ -120,6 +121,7 @@ func Register(r *registry.Registry) {
 	registerRenderers(r)
 	registerAsyncAPI(r)
 	registerRPC(r)
+	registerAgents(r)
 	if err := r.SetGenerator(registry.Generator{Path: "docs.site", Target: "docs", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
 		gi := in.(*gen.Input)
 		versions := releasedVersions(filepath.Join(gi.Dir, OutDir))
@@ -131,6 +133,20 @@ func Register(r *registry.Registry) {
 		for _, f := range files {
 			out = append(out, registry.GeneratedFile{Path: OutDir + "/" + f.Path, Content: f.Content, Ignored: true})
 		}
+		// The agent export, in the site under the agent lens's prefix,
+		// and llms.txt at the site's root leading into it.
+		agents, err := Agents(gi.Tree, gi.Checker, AgentOptions{})
+		if err != nil {
+			return nil, err
+		}
+		prefix := lens.Agent(gi.Tree, gi.Checker).Prefix
+		if prefix == "" {
+			prefix = "agents"
+		}
+		for _, f := range agents {
+			out = append(out, registry.GeneratedFile{Path: OutDir + "/" + prefix + "/" + f.Path, Content: f.Content, Ignored: true})
+		}
+		out = append(out, registry.GeneratedFile{Path: OutDir + "/" + LLMsTxt, Content: LLMsFor(agents, prefix+"/"), Ignored: true})
 		vj, _ := json.Marshal(versions)
 		out = append(out, registry.GeneratedFile{Path: OutDir + "/versions.json", Content: append(vj, '\n'), Ignored: true})
 		manifest, err := removeStale(filepath.Join(gi.Dir, OutDir), out)
@@ -225,10 +241,15 @@ const manifestName = ".manifest"
 // this run doesn't write, and returns this run's manifest. A file the
 // previous manifest doesn't list is someone else's and stays.
 func removeStale(dir string, files []registry.GeneratedFile) ([]byte, error) {
+	return removeStaleIn(dir, OutDir, files)
+}
+
+// removeStaleIn is removeStale for the files written under out.
+func removeStaleIn(dir, out string, files []registry.GeneratedFile) ([]byte, error) {
 	now := map[string]bool{}
 	var lines []string
 	for _, f := range files {
-		rel := strings.TrimPrefix(f.Path, OutDir+"/")
+		rel := strings.TrimPrefix(f.Path, out+"/")
 		now[rel] = true
 		lines = append(lines, rel)
 	}
@@ -264,4 +285,33 @@ func assetVersion(path string) string { return assetVersions()[path] }
 func contentVersion(b []byte) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:6])
+}
+
+// AgentsDir is where `heron generate agents` writes the agent export.
+const AgentsDir = ".heron/agents"
+
+// PackKey is the generation input's option naming the node whose context
+// pack the agents target writes.
+const PackKey = "pack"
+
+func registerAgents(r *registry.Registry) {
+	if err := r.SetGenerator(registry.Generator{Path: "docs.agents", Target: "agents", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
+		gi := in.(*gen.Input)
+		files, err := Agents(gi.Tree, gi.Checker, AgentOptions{Pack: gi.Options[PackKey]})
+		if err != nil {
+			return nil, err
+		}
+		var out []registry.GeneratedFile
+		for _, f := range files {
+			out = append(out, registry.GeneratedFile{Path: AgentsDir + "/" + f.Path, Content: f.Content, Ignored: true})
+		}
+		manifest, err := removeStaleIn(filepath.Join(gi.Dir, AgentsDir), AgentsDir, out)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, registry.GeneratedFile{Path: AgentsDir + "/" + manifestName, Content: manifest, Ignored: true})
+		return out, nil
+	}}); err != nil {
+		panic(err)
+	}
 }
