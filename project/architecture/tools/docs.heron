@@ -11,6 +11,7 @@ docs: component("internal/tools/docs", lang = "go") {
   reference: responsibility {{ The API reference: an op page per op and a type page per type, with examples in every form. }}
   islands_owned: responsibility {{ Hold the built theme and islands, and the search index and hover cards every page loads. }}
   generation: responsibility {{ The `docs` generation target, and the released builds the version switch lists. }}
+  agent_export: responsibility {{ The [agent export](#heron.tools.docs.agents.agent_export): the tree through the `agent` lens as plain Markdown files, the `agents` target and its context packs. }}
 
   /// A site over a checked tree, its pages and the fragments the preview shows.
   exports(title = "site.go") {{
@@ -22,6 +23,13 @@ docs: component("internal/tools/docs", lang = "go") {
     func (s *Site) Search() []entry
     func (s *Site) DataJS() []byte
     func Register(r *registry.Registry)
+  }}
+
+  /// The agent export: its files, and llms.txt for a site that holds it.
+  exports(title = "agents.go") {{
+    func Agents(t *resolve.Tree, c *types.Checker, opts AgentOptions) ([]AgentFile, error)
+    func LLMsFor(files []AgentFile, prefix string) []byte
+    func Tokens(b []byte) int
   }}
 
   /// What a renderer sees: the node, its page, and how to write it.

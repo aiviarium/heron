@@ -17,6 +17,14 @@ tools_server: section {
     verify("internal/tools/server/server_test.go", test = "TestSpecBrowserCaching")
   }
 
+  proves(heron.tools.server.serving.agent_export_served) {
+    verify("internal/tools/server/server_test.go", test = "TestAgentExportServed")
+  }
+
+  proves(heron.tools.server.ops.agent_export_op) {
+    verify("internal/tools/server/server_test.go", test = "TestAgentExportServed")
+  }
+
   proves(heron.tools.server.serving.spec_browser) {
     verify("internal/tools/server/server_test.go", test = "TestSpecBrowser")
   }

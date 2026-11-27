@@ -147,3 +147,15 @@ export_orders(pet_id: Int, orders?: List(Order)): func(String) = tools.exportOrd
 		t.Fatalf("bindings.ts lacks %q:\n%s", want, binds)
 	}
 }
+
+// TestPackRunsAgentsAlone: --pack runs the agents target alone, and given
+// with another target it's a usage error.
+func TestPackRunsAgentsAlone(t *testing.T) {
+	r := registry.New()
+	Register(r)
+	var out, errb strings.Builder
+	env := &registry.Env{Dir: t.TempDir(), Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errb}
+	if code := r.Command("generate").Run(env, []string{"--pack", "language.apis", "docs"}); code != 2 || !strings.Contains(errb.String(), `--pack runs the agents target alone, not "docs"`) {
+		t.Errorf("--pack with docs: %d %q", code, errb.String())
+	}
+}

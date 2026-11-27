@@ -5,6 +5,11 @@ cli_generate: section {
     verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
   }
 
+  proves(heron.cli.generate.pack_runs_agents) {
+    verify("internal/core/gen/gen_test.go", test = "TestPackRunsAgentsAlone")
+    verify("internal/tools/docs/agents_test.go", test = "TestAgentContextPack")
+  }
+
   proves(heron.cli.generate.block_only_for_all) {
     verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock")
   }

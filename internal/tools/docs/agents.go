@@ -128,7 +128,7 @@ func Agents(t *resolve.Tree, c *types.Checker, opts AgentOptions) ([]AgentFile, 
 	l := lens.Agent(t, c)
 	s := New(t, c, Options{Lens: l})
 	s.kindPaths = map[*resolve.Node]string{}
-	e := &agentExport{s: s, l: l, top: s.homeNode(), owns: map[*resolve.Node]bool{}, budget: l.Budget,
+	e := &agentExport{s: s, l: l, top: agentTop(s), owns: map[*resolve.Node]bool{}, budget: l.Budget,
 		cache: map[agentKey]string{}, linkIdx: map[*resolve.Node]int{}, ops: map[*resolve.Node]*opInfo{},
 		terms: map[*resolve.Node][]*resolve.Node{}, headed: map[*resolve.Node]bool{}}
 	if e.budget <= 0 {
@@ -149,6 +149,40 @@ func Agents(t *resolve.Tree, c *types.Checker, opts AgentOptions) ([]AgentFile, 
 		out = append(out, e.writePack(n))
 	}
 	return out, nil
+}
+
+// agentTop is the node the export starts at: the tree's one package when
+// its root holds nothing else but the docs' configuration, else the root.
+func agentTop(s *Site) *resolve.Node {
+	r := s.Tree.Root
+	if len(r.Prose) > 0 {
+		return r
+	}
+	var pkg *resolve.Node
+	for _, c := range r.Children {
+		if !own(c) || c.Shape == resolve.ShapeSet || c.Shape == resolve.ShapeValue || c == s.Config.Node {
+			continue
+		}
+		if k := s.kindPath(c); k == "docs.lens" || k == "docs.site" {
+			continue
+		}
+		if !resolve.IsPackageNode(c) || pkg != nil {
+			return r
+		}
+		pkg = c
+	}
+	if pkg == nil {
+		return r
+	}
+	return pkg
+}
+
+// title is the export's title: the site's, or its package's name.
+func (e *agentExport) siteTitle() string {
+	if e.top != e.s.Tree.Root {
+		return displayName(e.s, e.top)
+	}
+	return e.s.title()
 }
 
 // find returns the node a stable id names.
@@ -535,12 +569,12 @@ func (e *agentExport) split() bool {
 			was := u.limit
 			switch {
 			case u.limit == 0:
-				u.limit = limit - 1024
+				u.limit = limit * 85 / 100
 			default:
 				u.limit = u.limit * 9 / 10
 			}
-			if u.limit < 1024 {
-				u.limit = 1024
+			if u.limit < limit/4 {
+				u.limit = limit / 4
 			}
 			changed = changed || u.limit != was
 			break
@@ -564,17 +598,21 @@ func (e *agentExport) write() []AgentFile {
 			if i > 0 {
 				title += fmt.Sprintf(" (part %d)", i+1)
 			}
-			files = append(files, AgentFile{Path: e.files[u][i], Title: title, ID: u.id, Summary: e.resolveLinks(e.summary(u.node)), Content: b})
+			sum := ""
+			if i == 0 {
+				sum = e.resolveLinks(e.summary(u.node))
+			}
+			files = append(files, AgentFile{Path: e.files[u][i], Title: title, ID: u.id, Summary: sum, Content: b})
 		}
 	}
-	idx := AgentFile{Path: AgentIndex, Title: e.s.title(), Content: e.index(files)}
-	llms := AgentFile{Path: LLMsTxt, Title: e.s.title(), Content: e.llms(files, "")}
+	idx := AgentFile{Path: AgentIndex, Title: e.siteTitle(), Content: e.index(files)}
+	llms := AgentFile{Path: LLMsTxt, Title: e.siteTitle(), Content: e.llms(files, "")}
 	return append([]AgentFile{idx, llms}, files...)
 }
 
 func (e *agentExport) title(u *agentUnit) string {
 	if u.node == e.top {
-		return e.s.title()
+		return e.siteTitle()
 	}
 	return displayName(e.s, u.node)
 }
@@ -619,7 +657,7 @@ func (e *agentExport) fileText(u *agentUnit, part int) []byte {
 		title += fmt.Sprintf(", part %d of %d", part+1, len(u.parts))
 	}
 	b.WriteString("# " + title + "\n\n")
-	nav := "Agent export of " + e.s.title() + ": start at [" + AgentIndex + "](" + AgentIndex + ")."
+	nav := "Agent export of " + e.siteTitle() + ": start at [" + AgentIndex + "](" + AgentIndex + ")."
 	if part > 0 {
 		nav += " Previous part: [" + e.files[u][part-1] + "](" + e.files[u][part-1] + ")."
 	}
@@ -1278,12 +1316,11 @@ func (e *agentExport) op(n *resolve.Node) string {
 			x += "?"
 		}
 		x += ": " + t
-		if p.loc != "" {
-			loc := p.loc
-			if p.loc == "header" {
-				loc = "header " + p.header
-			}
-			x = "@" + strings.Fields(loc)[0] + " " + x
+		switch {
+		case p.loc == "header":
+			x = "@header(" + strconv.Quote(p.header) + ") " + x
+		case p.loc != "":
+			x = "@" + p.loc + " " + x
 		}
 		params = append(params, x)
 	}
@@ -1617,8 +1654,8 @@ func (e *agentExport) linkedTerms(n, unit *resolve.Node) (out []*resolve.Node) {
 func (e *agentExport) index(files []AgentFile) []byte {
 	s := e.s
 	var b strings.Builder
-	b.WriteString("# " + s.title() + ": agent export\n\n")
-	b.WriteString("The specification of " + s.title() + " for agents, as plain Markdown files written from its Heron tree. Read this file first, then open the one file whose summary matches the task.\n")
+	b.WriteString("# " + e.siteTitle() + ": agent export\n\n")
+	b.WriteString("The specification of " + e.siteTitle() + " for agents, as plain Markdown files written from its Heron tree. Read this file first, then open the one file whose summary matches the task.\n")
 	top := e.top
 	var about []string
 	if p := s.proseMD(top); p != "" {
@@ -1678,9 +1715,8 @@ func (e *agentExport) indent(f AgentFile) string {
 
 // llms writes llms.txt, its links under prefix.
 func (e *agentExport) llms(files []AgentFile, prefix string) []byte {
-	s := e.s
 	var b strings.Builder
-	b.WriteString("# " + s.title() + "\n\n")
+	b.WriteString("# " + e.siteTitle() + "\n\n")
 	if sum := unlink(e.resolveLinks(e.summary(e.top))); sum != "" {
 		b.WriteString("> " + sum + "\n\n")
 	}
@@ -1745,7 +1781,7 @@ func (e *agentExport) writePack(n *resolve.Node) AgentFile {
 	e.files[u] = []string{packDir + u.base + ".md"}
 	var b strings.Builder
 	b.WriteString("# Context pack: " + displayName(e.s, n) + " (`" + u.id + "`)\n\n")
-	b.WriteString("One part of " + e.s.title() + "'s agent export, in full: [the index](../" + AgentIndex + ") maps the rest.\n")
+	b.WriteString("One part of " + e.siteTitle() + "'s agent export, in full: [the index](../" + AgentIndex + ") maps the rest.\n")
 	if p := e.s.proseMD(n); p != "" && e.container(n) {
 		b.WriteString("\n" + p + "\n")
 	}

@@ -398,3 +398,68 @@ page: guide {
 		}
 	}
 }
+
+const mdTree = `import = ["std/doc@1", "std/spec@1", "std/docs@1"]
+
+@lens(user)
+for_users: section {
+  | Only for users.
+
+  pick: rule {
+    must {{ pick }}
+  }
+}
+
+LENSES
+
+docs {
+  SITE
+}
+`
+
+func mdSrc(lenses, site string) string {
+	return strings.Replace(strings.Replace(mdTree, "LENSES", lenses, 1), "SITE", site, 1)
+}
+
+// std/docs's agent lens is written as Markdown, reads no lens marks and
+// has the default budget; a docs block can't list a Markdown lens, no lens
+// of the site may take the agent lens's prefix, and a budget is at least
+// 500 tokens.
+func TestMarkdownLens(t *testing.T) {
+	res := checkSrc(t, mdSrc("", "lenses = [user, developer, explore]"))
+	if res.Diags.HasErrors() {
+		t.Fatal(messages(res))
+	}
+	a := lens.Agent(res.Tree, res.Checker)
+	if a.Name != "agent" || a.Format != lens.Markdown || !a.NoMarks || a.Budget != lens.DefaultBudget || a.Prefix != "agents" {
+		t.Fatalf("agent = %+v", a)
+	}
+	rule := res.Tree.Root.Child("for_users").Child("pick")
+	if a.Mode(res.Checker, rule) != lens.Show {
+		t.Error("the agent lens leaves out a node @lens(user) marks")
+	}
+	for _, l := range lens.SiteOf(res.Tree, res.Checker).Lenses {
+		if l.Name == "developer" && l.Mode(res.Checker, rule) != lens.Hide {
+			t.Error("developer shows a node @lens(user) marks")
+		}
+	}
+	for _, c := range []struct{ lenses, site, want string }{
+		{"notes: lens {\n  title = \"Notes\"\n  nav = LensNav.TREE\n  format = LensFormat.MARKDOWN\n  prefix = \"notes\"\n}", "lenses = [user, notes]", "notes is written as Markdown; a site's lenses are written as HTML"},
+		{"taken: lens {\n  title = \"Taken\"\n  nav = LensNav.TOPIC\n  prefix = \"agents\"\n}", "lenses = [user, taken]", "agent and taken are both served under agents/"},
+		{"small: lens {\n  title = \"Small\"\n  nav = LensNav.TREE\n  format = LensFormat.MARKDOWN\n  budget = 100\n  prefix = \"small\"\n}", "lenses = [user]", "small: a budget is at least 500 tokens, not 100"},
+		{"odd: lens {\n  title = \"Odd\"\n  nav = LensNav.TREE\n  format = LensFormat.PDF\n  prefix = \"odd\"\n}", "lenses = [user]", "PDF"},
+	} {
+		res := checkSrc(t, mdSrc(c.lenses, c.site))
+		if !strings.Contains(messages(res), c.want) {
+			t.Errorf("%s: diagnostics %q, want %q", c.lenses, messages(res), c.want)
+		}
+	}
+	// A tree's own agent lens is the one the export is written through.
+	res = checkSrc(t, mdSrc("agent: lens {\n  title = \"Mine\"\n  nav = LensNav.TREE\n  format = LensFormat.MARKDOWN\n  budget = 900\n  prefix = \"ai\"\n}", "lenses = [user]"))
+	if res.Diags.HasErrors() {
+		t.Fatal(messages(res))
+	}
+	if a := lens.Agent(res.Tree, res.Checker); a.Title != "Mine" || a.Budget != 900 || a.Prefix != "ai" || a.NoMarks {
+		t.Errorf("own agent = %+v", a)
+	}
+}

@@ -1,0 +1,24 @@
+cli_version: section {
+  | The tests that prove the requirements of the spec's [cli.version](#heron.cli.version).
+
+  proves(heron.cli.version.prints_versions) {
+    verify("internal/core/cli/cli_test.go", test = "TestVersionCommand")
+    verify("internal/core/version/version_test.go", test = "TestVersionLines")
+  }
+
+  proves(heron.cli.version.unknown_build) {
+    verify("internal/core/version/version_test.go", test = "TestVersionLines")
+  }
+
+  proves(heron.cli.version.version_option) {
+    verify("internal/core/cli/cli_test.go", test = "TestVersionCommand")
+  }
+
+  proves(heron.cli.version.product_version) {
+    verify("internal/core/version/version_test.go", test = "TestVersionMatchesProject")
+  }
+
+  proves(heron.cli.version.exit_2) {
+    verify("internal/core/cli/cli_test.go", test = "TestVersionCommand")
+  }
+}
