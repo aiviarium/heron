@@ -17,7 +17,7 @@
 .api-facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--h-space-1); }
 
 /* The navigation's and the endpoint's method column. */
-.m-rpc, .m-srv, .m-clt, .m-bidi, .m-ntf, .m-json-rpc { color: var(--h-status-info); }
+.m-rpc, .m-srv, .m-clt, .m-bidi, .m-ntf, .m-json-rpc, .m-sparrow { color: var(--h-status-info); }
 .m-srv, .m-clt { color: var(--h-method-get); }
 .m-bidi { color: var(--h-method-patch); }
 .m-ntf { color: var(--h-text-faint); }

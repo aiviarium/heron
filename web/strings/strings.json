@@ -120,7 +120,9 @@
       "metadata": "Metadata",
       "result": "Result",
       "errors": "Errors",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "input": "Input",
+      "output": "Output"
     },
     "label": {
       "base_path": "Base path",
@@ -231,7 +233,18 @@
       "json_form": "JSON form",
       "framing": "Framing",
       "encoding": "Encoding",
-      "batch": "Batches"
+      "batch": "Batches",
+      "facet": "Facet",
+      "facet_id": "Facet id",
+      "facet_hash": "Facet hash",
+      "method_id": "Method id",
+      "service_id": "Service id",
+      "flags": "Flags",
+      "tag": "Tag",
+      "type_id": "TypeId",
+      "sigil": "Sigil",
+      "core_code": "Core code",
+      "retired": "Retired"
     },
     "lang": {
       "curl": "cURL",
@@ -326,7 +339,8 @@
       "http": "HTTP",
       "grpc": "gRPC",
       "connect": "Connect",
-      "jsonrpc": "JSON-RPC"
+      "jsonrpc": "JSON-RPC",
+      "sparrow": "Sparrow"
     },
     "kind": {
       "unary": "Unary",
@@ -349,7 +363,9 @@
       "browser_streams": "A browser can't stream from the client: call this method from a server with gRPC or Connect over HTTP/2",
       "notification": "A notification has no id and is never answered",
       "empty_message": "An empty message",
-      "no_params": "No params"
+      "no_params": "No params",
+      "no_input": "No input: the request carries unit",
+      "sparrow_notification": "A notification is sent with call id 0 and is never answered"
     },
     "kind_short": {
       "unary": "RPC",

@@ -61,7 +61,7 @@ type crossAnn struct {
 	on   *resolve.Node
 }
 
-var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true, "realizes": true, "proto": true, "jsonrpc": true, "server": true}
+var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true, "realizes": true, "proto": true, "jsonrpc": true, "sparrow": true, "retired": true, "server": true}
 
 func (s *Site) readOp(op *resolve.Node) *opInfo {
 	o := &opInfo{node: op, api: op.Parent}

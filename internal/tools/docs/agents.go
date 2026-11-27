@@ -11,6 +11,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/rpc"
 	"github.com/aiviarium/heron/internal/core/specmodel"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
@@ -1213,13 +1214,15 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 	if x := namedArg(args, "exit"); x != nil {
 		f = append(f, "exit "+strings.TrimSpace(x.Syntax().Text()))
 	}
-	if g, j := e.rpcCodes(n); g != "" || j != "" {
-		if g != "" {
-			f = append(f, "gRPC "+g)
-		}
-		if j != "" {
-			f = append(f, "JSON-RPC "+j)
-		}
+	g, j, sp := e.rpcCodes(n)
+	if g != "" {
+		f = append(f, "gRPC "+g)
+	}
+	if j != "" {
+		f = append(f, "JSON-RPC "+j)
+	}
+	if sp != "" {
+		f = append(f, "Sparrow "+sp)
 	}
 	if by := s.ruleBy(n); by != nil {
 		f = append(f, "by "+s.mdLink(by, stableID(by)))
@@ -1252,9 +1255,9 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 	return out
 }
 
-// rpcCodes are the gRPC and JSON-RPC codes an error has on the tree's
-// bindings, where an op answers it.
-func (e *agentExport) rpcCodes(n *resolve.Node) (grpc, jsonrpc string) {
+// rpcCodes are the gRPC, JSON-RPC and Sparrow codes an error has on the
+// tree's bindings, where an op answers it.
+func (e *agentExport) rpcCodes(n *resolve.Node) (grpc, jsonrpc, sparrow string) {
 	m := e.s.rpc()
 	for _, svc := range m.Services {
 		for _, meth := range svc.Methods {
@@ -1274,7 +1277,31 @@ func (e *agentExport) rpcCodes(n *resolve.Node) (grpc, jsonrpc string) {
 			}
 		}
 	}
+	for _, f := range m.Facets {
+		for _, svc := range f.Services {
+			for _, meth := range svc.Methods {
+				for i := range meth.Errors {
+					if x := &meth.Errors[i]; x.Node == n && sparrow == "" {
+						sparrow = sparrowCode(x)
+					}
+				}
+			}
+		}
+	}
 	return
+}
+
+// sparrowCode is an error's Sparrow status: its core code, as not_found
+// (5), or the sigil of its own, as sigil InvalidAddress (80).
+func sparrowCode(x *rpc.Error) string {
+	if x.Sparrow != "" {
+		n, _ := rpc.SparrowCode(x.Sparrow)
+		return x.Sparrow + " (" + strconv.FormatUint(n, 10) + ")"
+	}
+	if x.SparrowSigil != nil {
+		return "sigil " + x.SparrowSigil.Name + " (" + strconv.FormatUint(x.SparrowSigil.ID, 10) + ")"
+	}
+	return ""
 }
 
 // api writes an api's base path and its bindings.
@@ -1292,6 +1319,10 @@ func (e *agentExport) api(n *resolve.Node) string {
 	}
 	if j := s.rpc().JSONAPIOf(n); j != nil {
 		ls = append(ls, "JSON-RPC over "+j.Framing+", "+j.Encoding)
+	}
+	if svc := s.rpc().SparrowServiceOf(n); svc != nil {
+		f := svc.Facet
+		ls = append(ls, "Sparrow service `"+svc.Name+"` (id "+strconv.FormatUint(svc.ID, 10)+") of facet `"+f.Name+"` "+f.Version+" (id "+strconv.FormatUint(f.ID, 10)+", hash `"+f.HashHex()+"`)")
 	}
 	out := lines(ls...)
 	if p := s.proseMD(n); p != "" {
@@ -1352,6 +1383,14 @@ func (e *agentExport) op(n *resolve.Node) string {
 	if jm != nil {
 		ls = append(ls, "JSON-RPC method `"+jm.Name+"`")
 	}
+	sm := s.rpc().SparrowMethod(n)
+	if sm != nil {
+		x := "Sparrow method `" + sm.Service.Facet.Name + "/" + sm.Name + "` (id " + strconv.FormatUint(sm.ID, 10) + ", " + sm.Shape() + ", `" + sm.Input.String() + "` → `" + sm.Output.String() + "`"
+		if fl := sm.FlagNames(); len(fl) > 0 {
+			x += ", " + strings.Join(fl, ", ")
+		}
+		ls = append(ls, x+")")
+	}
 	for _, p := range o.params {
 		if p.doc != nil {
 			if d := e.docLine(p.doc, p.site); d != "" {
@@ -1379,6 +1418,16 @@ func (e *agentExport) op(n *resolve.Node) string {
 			for _, x := range jm.Errors {
 				if x.Node == er.typ && x.JSONRPC != "" {
 					f = append(f, "JSON-RPC "+x.JSONRPC)
+					break
+				}
+			}
+		}
+		if sm != nil {
+			for i := range sm.Errors {
+				if x := &sm.Errors[i]; x.Node == er.typ {
+					if c := sparrowCode(x); c != "" {
+						f = append(f, "Sparrow "+c)
+					}
 					break
 				}
 			}

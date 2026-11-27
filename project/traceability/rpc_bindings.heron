@@ -1,9 +1,9 @@
-// The proofs of the RPC bindings: gRPC, Connect and JSON-RPC, their
-// generators and their docs, across the spec's areas.
+// The proofs of the RPC bindings: gRPC, Connect, JSON-RPC and Sparrow,
+// their generators and their docs, across the spec's areas.
 rpc_bindings: section {
   | The tests that prove the requirements of the spec's RPC bindings: [gRPC and Connect](#heron.language.apis.grpc),
-  | [JSON-RPC](#heron.language.apis.jsonrpc), the [proto](#heron.tools.proto) and [OpenRPC](#heron.tools.openrpc) generators and
-  | the docs' views of services and methods.
+  | [JSON-RPC](#heron.language.apis.jsonrpc), [Sparrow](#heron.language.apis.sparrow), the [proto](#heron.tools.proto),
+  | [OpenRPC](#heron.tools.openrpc) and [Sparrow](#heron.tools.sparrow) generators and the docs' views of services and methods.
 
   proves(heron.language.core_format.nodes.annotations.ambiguous_annotations) {
     verify("internal/core/rpc/rpc_test.go", test = "TestAmbiguousCode")
@@ -379,5 +379,270 @@ rpc_bindings: section {
 
   proves(heron.language.data.encodings.json.json_names) {
     verify("internal/core/eval/eval_test.go", test = "TestJSONNames")
+  }
+
+  proves(heron.language.apis.sparrow.facets.facet_ops) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.facets.sparrow_arguments) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.facets.facet_names) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.facets.shared_facets) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowSharedFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.facets.facet_ids) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowSharedFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.facets.service_names) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.facets.method_names) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.facets.method_ids) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowSharedFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.facets.valid_facets) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowSharedFacet")
+  }
+
+  proves(heron.language.apis.sparrow.calls.call_shapes) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.calls.input_fields) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.calls.client_stream_alone) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.calls.notifications) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.calls.notifications_throw_nothing) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.calls.method_hints) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+  }
+
+  proves(heron.language.apis.sparrow.types.type_mapping) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.types.type_defs) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.types.any_values) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.types.sparse_structs) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.types.unmappable_types) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.auto_tags) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.all_or_none_tags) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.unique_tags) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.tag_range) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.reserved_tags) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.type_ids) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.sigil_ids) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.retired_ids) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowProjectionRules")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.numbering.implicit_ids) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowIDLints")
+  }
+
+  proves(heron.language.apis.sparrow.status_codes.core_codes) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+  }
+
+  proves(heron.language.apis.sparrow.status_codes.error_sigils) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFacet")
+  }
+
+  proves(heron.language.apis.sparrow.status_codes.code_or_sigil) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.sparrow_outside_facet) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.sparrow_argument_misplaced) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.invalid_facet_name) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.invalid_facet_version) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.facet_version_conflict) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.facet_id_reserved) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.facet_id_conflict) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.duplicate_facet_id) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.duplicate_sparrow_id) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.retired_id) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.negative_sparrow_id) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.sparrow_stream_with_fields) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.sparrow_notification_throws) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.mixed_tags) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.duplicate_tag) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.tag_out_of_range) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.reserved_tag) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.type_id_out_of_range) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.generic_type_id) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.sigil_out_of_range) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.mixed_sigils) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.no_sparrow_mapping) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.code_and_sigil) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowDiagnostics")
+  }
+
+  proves(heron.language.apis.sparrow.errors.implicit_sparrow_id) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowIDLints")
+  }
+
+  proves(heron.tools.sparrow.sparrow_target) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFiles")
+  }
+
+  proves(heron.tools.sparrow.sparrow_contents) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFiles")
+  }
+
+  proves(heron.tools.sparrow.sparrow_json) {
+    verify("internal/core/rpc/sparrow_test.go", test = "TestSparrowFiles")
+  }
+
+  proves(heron.tools.sparrow.sparrow_extra) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.sparrow_header) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestSparrowBinding")
+  }
+
+  proves(heron.tools.frontend.screens.op_page.bindings.sparrow_facts) {
+    verify("internal/tools/docs/rpc_test.go", test = "TestSparrowBinding")
   }
 }

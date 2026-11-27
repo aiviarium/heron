@@ -137,10 +137,12 @@ language_apis_planned: status<planned>(
   heron.language.apis.jsonrpc.params.whole_params,
   heron.language.apis.jsonrpc.wire.framed_messages,
   heron.language.apis.jsonrpc.error_objects.error_object,
+  heron.language.apis.sparrow.status_codes.error_answers,
 ) {
-  | Not built yet. The 29 requirements of [language.apis](#heron.language.apis): the wire
+  | Not built yet. The 30 requirements of [language.apis](#heron.language.apis): the wire
   | behaviour of the standard transports, whose gRPC, Connect and JSON-RPC calls the docs
-  | already show as the spec projects them.
+  | already show as the spec projects them, and how a Sparrow method answers an error, as
+  | `heron` builds the facets but carries no Sparrow call yet.
 }
 
 language_specifications_planned: status<planned>(
@@ -191,13 +193,12 @@ language_interop_planned: status<planned>(
   heron.language.interop.data_mapping.interpreter.streamed_results,
   heron.language.interop.timing.replay_from_record,
   heron.language.interop.timing.embedded_pure,
-  heron.language.interop.protocol.framing.json_wire_option,
   heron.language.interop.packaging.types.bindings_on_setup,
   heron.language.interop.packaging.distribution.npm_packages,
   heron.language.interop.packaging.distribution.heron_dev,
   heron.language.interop.packaging.distribution.testing_package,
 ) {
-  | Not built yet. The 11 requirements of [language.interop](#heron.language.interop).
+  | Not built yet. The 10 requirements of [language.interop](#heron.language.interop).
 }
 
 language_std_planned: status<planned>(
