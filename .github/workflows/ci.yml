@@ -1,12 +1,22 @@
-# scripts/ci.sh on GitHub: the whole check, as it runs locally. This file
-# only installs what the script expects to find (Go, Node, pnpm, Vale,
-# go-check-sumtype, Playwright's browsers) and puts the spec package where
-# scripts/spec-setup.sh reads it.
+# scripts/ci.sh on GitHub: the whole check, as it runs locally, with each of
+# its lanes as a job of its own, all at once. A job only installs what its
+# lane expects to find (Go, Node, pnpm, Vale, go-check-sumtype, Playwright's
+# browsers), restores its caches, puts the spec package where
+# scripts/spec-setup.sh reads it and runs `scripts/ci.sh <lane>`. The `ci`
+# job passes when every lane did: it's the status to require.
 #
 # The spec: aiviarium/heron-specs checked out at the commit heron.lock pins,
 # linked in through HERON_SPECS_DIR, so CI doesn't depend on the lock's tag
 # being on GitHub. Run it by hand with spec = install to take the lock-based
 # path instead (`heron run setup` fetches the pinned tag from git).
+#
+# Caches: each lane keeps its own Go build cache, saved when a commit
+# changes Go code (the key hashes go.sum and every .go file) and otherwise
+# reused as it is; a new key starts from the lane's latest. The pnpm store is
+# keyed on pnpm-lock.yaml (setup-node), the grammar's node_modules on its
+# package-lock.json, Vale and go-check-sumtype on their versions, and
+# Playwright's browsers on its version. A cache only saves time: what a lane
+# checks never comes from one (Go tests run with -count=1 on CI).
 name: CI
 
 on:
@@ -29,10 +39,28 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  VALE_VERSION: "3.28.1"
+  VALE_SHA256: 068954ad869ebec24b8dec6ebcd1cbb1fd5f5a83e966a35baedfae8b2cdc093a
+  SUMTYPE_VERSION: v0.3.1
+
 jobs:
-  ci:
+  lane:
+    name: ${{ matrix.lane }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # scripts/ci.sh --list; its lint lane checks this line names them all.
+        lane: [lint, web, gotest, golsp, gorace, treesitter, tree, e2e, unit1, editor, docs, docslens, docsspec]
+    env:
+      LANE: ${{ matrix.lane }}
+      # What the lane needs beyond Go.
+      NODE: ${{ !contains(fromJSON('["lint", "golsp", "gorace"]'), matrix.lane) }}
+      VALE: ${{ contains(fromJSON('["gotest", "golsp", "e2e"]'), matrix.lane) }}
+      SUMTYPE: ${{ matrix.lane == 'lint' }}
+      BROWSERS: ${{ startsWith(matrix.lane, 'docs') && 'chromium firefox webkit' || matrix.lane == 'editor' && 'chromium' || '' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,6 +74,7 @@ jobs:
           [ ${#commit} = 40 ] || { echo "no commit for heron-specs in heron.lock" >&2; exit 1; }
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "heron-specs at $commit"
+          echo "playwright=$(node -p 'require("./heron/web/package.json").devDependencies.playwright')" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         if: inputs.spec != 'install'
         with:
@@ -53,40 +82,89 @@ jobs:
           ref: ${{ steps.lock.outputs.commit }}
           path: heron-specs
 
+      # The Go build cache is the lane's own (see above), not setup-go's,
+      # whose key never changes with the code.
       - uses: actions/setup-go@v7
         with:
           go-version-file: heron/go.mod
-          cache: true
-          cache-dependency-path: heron/go.sum
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-${{ matrix.lane }}-${{ hashFiles('heron/go.sum') }}-${{ hashFiles('heron/**/*.go') }}
+          restore-keys: |
+            go-${{ matrix.lane }}-${{ hashFiles('heron/go.sum') }}-
+            go-${{ matrix.lane }}-
+
       # pnpm at the version web/package.json's packageManager names (10.x).
       - uses: pnpm/action-setup@v6
+        if: env.NODE == 'true'
         with:
           package_json_file: heron/web/package.json
       - uses: actions/setup-node@v7
+        if: env.NODE == 'true'
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: heron/web/pnpm-lock.yaml
 
-      # Tools ci.sh runs from PATH. Vale needs a newer Go than heron does, so
-      # its toolchain is fetched for that install. tree-sitter-cli is the
-      # grammar's devDependency, which ci.sh installs with npm ci.
-      - name: Install Vale and go-check-sumtype
+      # Playwright's browsers, and the system libraries they need, install
+      # in the background while the lane builds what it reads; ci.sh waits
+      # for them (HERON_CI_BEFORE_LANES) before the lane starts.
+      - uses: actions/cache@v5
+        if: env.BROWSERS != ''
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.lock.outputs.playwright }}-${{ matrix.lane == 'editor' && 'chromium' || 'all' }}
+      - name: Install Playwright's browsers, in the background
+        if: env.BROWSERS != ''
         env:
-          GOTOOLCHAIN: auto
+          PLAYWRIGHT: ${{ steps.lock.outputs.playwright }}
         run: |
-          go install github.com/vale-cli/vale/v3/cmd/vale@v3.28.1
-          go install github.com/alecthomas/go-check-sumtype/cmd/go-check-sumtype@v0.3.1
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          pw=$RUNNER_TEMP/playwright
+          mkdir -p "$pw"
+          {
+            (
+              set -e
+              cd "$pw"
+              npm install --silent --no-audit --no-fund --no-save "playwright@$PLAYWRIGHT"
+              npx --no-install playwright install-deps $BROWSERS
+              npx --no-install playwright install $BROWSERS
+            ) >"$pw/log" 2>&1
+            echo $? >"$pw/status"
+          } </dev/null >/dev/null 2>&1 &
+          echo "HERON_CI_BEFORE_LANES=until [ -f '$pw/status' ]; do sleep 0.5; done; cat '$pw/log'; [ \"\$(cat '$pw/status')\" = 0 ]" >> "$GITHUB_ENV"
 
-      # The e2e scripts load Playwright from the web workspace; its Chromium,
-      # and Firefox and WebKit, where the docs check that pages move in place
-      # without a flash, with the system libraries they need.
-      - name: Install the web workspace and Playwright's browsers
-        working-directory: heron/web
+      # Tools ci.sh runs from PATH, at pinned versions: Vale's release
+      # binary, checked against its checksum, and go-check-sumtype.
+      - uses: actions/cache@v5
+        if: env.VALE == 'true' || env.SUMTYPE == 'true'
+        id: tools
+        with:
+          path: ~/.cache/heron-ci-tools
+          key: tools-vale-${{ env.VALE_VERSION }}-sumtype-${{ env.SUMTYPE_VERSION }}
+      - name: Install Vale and go-check-sumtype
+        if: (env.VALE == 'true' || env.SUMTYPE == 'true') && steps.tools.outputs.cache-hit != 'true'
         run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install --with-deps chromium firefox webkit
+          bin=~/.cache/heron-ci-tools
+          mkdir -p "$bin"
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o vale.tar.gz "https://github.com/vale-cli/vale/releases/download/v$VALE_VERSION/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
+          echo "$VALE_SHA256  vale.tar.gz" | sha256sum -c -
+          tar -xzf vale.tar.gz -C "$bin" vale
+          GOBIN="$bin" go install "github.com/alecthomas/go-check-sumtype/cmd/go-check-sumtype@$SUMTYPE_VERSION"
+      - name: Tools on PATH
+        if: env.VALE == 'true' || env.SUMTYPE == 'true'
+        run: echo ~/.cache/heron-ci-tools >> "$GITHUB_PATH"
+
+      # The grammar's tree-sitter CLI, which npm ci installs.
+      - uses: actions/cache@v5
+        if: matrix.lane == 'treesitter'
+        with:
+          path: ~/.npm
+          key: npm-tree-sitter-${{ hashFiles('heron/grammar/tree-sitter-heron/package-lock.json') }}
 
       # Some tests and e2e scripts commit in scratch repositories.
       - name: Git identity
@@ -94,8 +172,20 @@ jobs:
           git config --global user.name "heron ci"
           git config --global user.email "ci@example.invalid"
 
-      - name: scripts/ci.sh
+      - name: scripts/ci.sh ${{ matrix.lane }}
         working-directory: heron
         env:
           HERON_SPECS_DIR: ${{ inputs.spec != 'install' && format('{0}/heron-specs/heron', github.workspace) || '' }}
-        run: scripts/ci.sh
+        run: scripts/ci.sh "$LANE"
+
+  # The one status for the whole check: it passes only when every lane did.
+  ci:
+    if: always()
+    needs: lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every lane passed
+        run: |
+          echo "lanes: ${{ needs.lane.result }}"
+          [ "${{ needs.lane.result }}" = success ]

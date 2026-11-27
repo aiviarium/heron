@@ -137,6 +137,8 @@ func TestOpenEveryFileWithoutFalseDiagnostics(t *testing.T) {
 		}
 		for order := 0; order < 3; order++ {
 			t.Run(set+"/order"+string(rune('0'+order)), func(t *testing.T) {
+				// Each order has a session of its own, so they run at once.
+				t.Parallel()
 				c := start(t, root)
 				fs := append([]string(nil), files...)
 				switch order {

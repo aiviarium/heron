@@ -21,9 +21,9 @@ type Client struct {
 	w  io.Writer
 	r  *bufio.Reader
 	mu sync.Mutex
-	// wmu serialises writes. It isn't mu: a write can block until the
-	// server reads, and the server reads only once the reader has taken
-	// what it wrote, which needs mu.
+	// wmu orders writes. It isn't mu: a write blocks until the server
+	// reads, and the server may be writing to us meanwhile, which only
+	// the reader, taking mu, drains.
 	wmu sync.Mutex
 	id  int
 	// waiting maps request ids to their reply channels.

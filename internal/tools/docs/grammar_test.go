@@ -53,6 +53,7 @@ func ungram(t *testing.T, path string) (tokens map[string]bool, prods map[string
 // grammar/heron.ungram, as rules ungram_is_the_spec and grammar_per_concern
 // state.
 func TestSpecGrammarIsUngram(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	const source = "grammar/heron.ungram"
 	s := site(t, entries["spec"])
 	wantTokens, wantProds := ungram(t, "../../../"+source)
@@ -119,6 +120,7 @@ func sortedKeys[V any](m map[string]V) []string {
 // A diagnostic renders as a card with its code, severity and messages, and
 // the diagnostics index lists it by code with a link to its section.
 func TestDiagnosticsRender(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	s := site(t, entries["spec"])
 	n := s.Tree.Find("heron.language.core_format.conflicts.errors.declared_twice")
 	if n == nil {

@@ -28,15 +28,24 @@ const url = (f) => "file://" + path.join(dir, f)
   page.on("pageerror", (e) => fail.push(`script error on ${page.url()}: ${e.message}`))
   page.on("console", (m) => m.type() === "error" && fail.push(`console error on ${page.url()}: ${m.text()}`))
 
-  // Links and anchors.
+  // Links and anchors: every page loaded, several at once (HERON_E2E_PAGES,
+  // 4 by default), each in a page of its own failing on its script errors.
   const ids = {}
   const links = {}
-  for (const f of pages) {
-    await page.goto(url(f))
-    await page.waitForFunction(() => document.documentElement.dataset.islands === "ready", null, { timeout: 10000 }).catch(() => fail.push(`${f}: islands never started`))
-    ids[f] = new Set(await page.$$eval("[id]", (els) => els.map((e) => e.id)))
-    links[f] = await page.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")))
+  const queue = [...pages]
+  const crawl = async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    page.on("pageerror", (e) => fail.push(`script error on ${page.url()}: ${e.message}`))
+    page.on("console", (m) => m.type() === "error" && fail.push(`console error on ${page.url()}: ${m.text()}`))
+    for (let f; (f = queue.shift()) !== undefined; ) {
+      await page.goto(url(f))
+      await page.waitForFunction(() => document.documentElement.dataset.islands === "ready", null, { timeout: 10000 }).catch(() => fail.push(`${f}: islands never started`))
+      ids[f] = new Set(await page.$$eval("[id]", (els) => els.map((e) => e.id)))
+      links[f] = await page.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")))
+    }
+    await page.close()
   }
+  await Promise.all(Array.from({ length: Math.max(1, Number(process.env.HERON_E2E_PAGES) || 4) }, crawl))
   for (const [f, hrefs] of Object.entries(links)) {
     for (const href of hrefs) {
       if (/^[a-z]+:/.test(href)) continue
@@ -126,7 +135,8 @@ const url = (f) => "file://" + path.join(dir, f)
       }
     }
   }
-  for (const [engine, b] of engines) {
+  // The engines at once, each through its own contexts.
+  await Promise.all(engines.map(async ([engine, b]) => {
     for (const [scheme, chosen] of [["dark", null], ["light", null], ["light", "dark"], ["dark", "light"]]) {
       const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, reducedMotion: "no-preference" })
       const p = await ctx.newPage()
@@ -183,7 +193,7 @@ const url = (f) => "file://" + path.join(dir, f)
       await ctx.close()
     }
     if (b !== browser) await b.close()
-  }
+  }))
 
   // Back and forward between pages shown in place: the page the URL names.
   {
@@ -311,6 +321,7 @@ const url = (f) => "file://" + path.join(dir, f)
       await p.focus(".version .select-trigger")
       await p.waitForFunction(() => document.activeElement?.matches(".version .select-trigger"), null, { timeout: 5000 }).catch(() => {})
       await p.keyboard.press("ArrowDown")
+      // Its own list: the lens switch's, closed, can still be in the page.
       const list = "#" + (await p.getAttribute(".version .select-trigger", "aria-controls")) + " .select-item"
       const open = await p.waitForSelector(list, { state: "visible", timeout: 5000 }).then(() => true, () => false)
       if (!open) fail.push("version: the keyboard doesn't open the version switch")
