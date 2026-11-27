@@ -8,7 +8,7 @@ import (
 )
 
 // specSrc holds one of each kind std/spec gives a specification.
-const specSrc = `import = ["std/doc@1", "std/types@1", "std/spec@1", "std/http@1"]
+const specSrc = `import = ["std/doc@1", "std/types@1", "std/spec@1", "std/http@1", "std/docs@1"]
 
 Status: enum {
   OPEN: Self
@@ -103,8 +103,9 @@ func TestSpecKindsRender(t *testing.T) {
 		"refunds.hints":        {"Guidance", "Use the ledger client."},
 		"refunds.fast_answers": {`<dt>Measure</dt><dd>within two seconds at the 99th percentile</dd>`, `<dt>Serves</dt><dd><a class="ref" href="refunds.html#refunds.quick">Quick</a></dd>`},
 		"refunds.quick":        {`<dt>Measure</dt><dd>Answers within two seconds.</dd>`, `Served by <span class="derived-mark">derived</span></span> <a class="ref" href="refunds.html#refunds.fast_answers">Fast answers</a>`},
-		"refunds.ticket_life":  {"<svg", "<code>shut</code>", "<code>OPEN</code>", "<code>SHUT</code>", ">close</code>"},
-		"which_days":           {"Open question", `<span class="owner">finance</span>`, "Business days"},
+		// A lifecycle's transition is a defined node: its mark in the gutter.
+		"refunds.ticket_life": {`<h2 class="h"><svg class="icon kind-mark"`, `<div class="rule transition" id="refunds.ticket_life.shut-detail"><p class="sentence"><a class="rule-link gutter-mark" href="#refunds.ticket_life.shut-detail" title="transition · Shut"`, "<code>shut</code>", "<code>OPEN</code>", "<code>SHUT</code>", ">close</code>"},
+		"which_days":          {"Open question", `<span class="owner">finance</span>`, "Business days"},
 	} {
 		h := render(path)
 		for _, want := range wants {

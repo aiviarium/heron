@@ -79,6 +79,7 @@ func visibleText(h string) []string {
 // packages its kinds are declared in) or from the catalogue: the renderer
 // adds headings, labels, navigation and values, never sentences of its own.
 func TestVisibleTextComesFromSpecOrCatalogue(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	for name, entry := range entries {
 		checkVisibleText(t, name, site(t, entry))
 	}
@@ -177,6 +178,7 @@ func TestCatalogueWording(t *testing.T) {
 // Every page renders, every id is unique, and every link within the site
 // resolves to a page and an anchor that exist.
 func TestLinksResolve(t *testing.T) {
+	t.Parallel() // a session and site of its own; the slow tests run at once
 	idRe := regexp.MustCompile(` id="([^"]+)"`)
 	hrefRe := regexp.MustCompile(` href="([^"]+)"`)
 	for name, entry := range entries {

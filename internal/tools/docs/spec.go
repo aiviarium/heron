@@ -547,7 +547,9 @@ func renderStates(c *Ctx) error {
 		extra = ` <code class="field">` + s.exprHTML(es[0], n.Decl) + `</code>`
 	}
 	c.W(`<section class="node lifecycle" id="`, attr(Anchor(n)), `">`)
-	c.title(extra)
+	// A lifecycle is a block the page defines: its kind's icon before its name.
+	pre, post := s.kindMark(n)
+	c.titlePre(pre, extra+post)
 	c.Prose(n)
 	c.lifecycleView(l)
 	for _, t := range l.transitions {
@@ -600,11 +602,14 @@ func renderTransition(c *Ctx) error {
 		}
 	}
 	name := s.linkHTML(n, `<code>`+esc(n.Name)+`</code>`, "")
+	// A transition is a node the page defines: its mark in the gutter,
+	// linking to this detail.
+	mark := s.gutterLink(n, "#"+Anchor(n)+"-detail")
 	if len(lead) > 0 {
 		sent := capitalise(strings.Join(lead, ", ")) + ": " + name
-		c.W(`<p class="sentence">`, sent, `</p>`)
+		c.W(`<p class="sentence">`, mark, sent, `</p>`)
 	} else {
-		c.W(`<p class="sentence">`, name, `</p>`)
+		c.W(`<p class="sentence">`, mark, name, `</p>`)
 	}
 	c.Prose(n)
 	c.consequences(n)

@@ -10,7 +10,9 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 cd "$here"
-ts=(npx --no-install tree-sitter)
+# The CLI npm installed, run directly: through npx, each run costs more
+# than the parse.
+ts=("$here/node_modules/.bin/tree-sitter")
 
 fx=$(mktemp -d); trap 'rm -rf "$fx"' EXIT
 (cd "$root" && go run ./internal/core/fixtures/extract -out "$fx" >/dev/null)
@@ -21,16 +23,22 @@ while IFS= read -r f; do files+=("$fx/$f"); done < <(
   node -e 'for (const e of require(process.argv[1])) if (e.mode === "heron") console.log(e.out)' "$fx/manifest.json")
 while IFS= read -r f; do files+=("$f"); done < <(
   find "$root/fixtures/context" "$root/std" "$spec" "$root/examples" "$root/project" "$root/index.heron" \
-    -name '*.heron' -not -path '*/node_modules/*' -not -path '*/.heron/*' | sort)
+    -type f -name '*.heron' -not -path '*/node_modules/*' -not -path '*/.heron/*' | sort)
 
+# One run parses them all; with --quiet it prints a line for each file with
+# an ERROR or MISSING node, and nothing for one without.
+printf '%s\n' "${files[@]}" >"$fx/paths.txt"
+code=0
+out=$("${ts[@]}" parse --quiet --paths "$fx/paths.txt" 2>"$fx/parse.err") || code=$?
+errs=$(grep -E '\((ERROR|MISSING) ' <<<"$out" || true)
+if [ "$code" != 0 ] && [ -z "$errs" ]; then
+  echo "tree-sitter parse failed:"; cat "$fx/parse.err"; exit 1
+fi
 bad=0
-for f in "${files[@]}"; do
-  out=$("${ts[@]}" parse --quiet "$f" 2>/dev/null || true)
-  if [ -n "$out" ] && grep -qE 'ERROR|MISSING' <<<"$out"; then
-    echo "$out"
-    bad=$((bad + 1))
-  fi
-done
+if [ -n "$errs" ]; then
+  echo "$errs"
+  bad=$(wc -l <<<"$errs" | tr -d ' ')
+fi
 echo "tree-sitter: ${#files[@]} files, $bad with ERROR or MISSING nodes"
 [ "$bad" = 0 ]
 
