@@ -25,6 +25,7 @@ func Register(r *registry.Registry) {
 		{Name: "example-params", Summary: "an op example that leaves out a required parameter", Run: wrap(exampleParams)},
 		{Name: "repeated-import", Summary: "an import that an enclosing scope already makes", Run: wrap(repeatedImport)},
 		{Name: "rpc-code", Summary: "an error an RPC method throws without a code for its binding, or a JSON-RPC code in the reserved range", Run: wrap(rpcCodes)},
+		{Name: "sparrow-id", Summary: "a Sparrow TypeId or method id left to the order it's reached in, while others of its facet are written", Run: wrap(sparrowIDs)},
 	} {
 		r.MustAddLint(l)
 	}
@@ -36,7 +37,20 @@ func wrap(f func(*Input)) func(any) { return func(in any) { f(in.(*Input)) } }
 // code of their binding, and JSON-RPC codes in the reserved range.
 func rpcCodes(in *Input) {
 	for _, f := range rpc.Build(in.Tree, in.Checker).Lints {
-		in.Report(f.Node, f.Site, diag.Warning, f.Message)
+		if f.Lint == "" {
+			in.Report(f.Node, f.Site, diag.Warning, f.Message)
+		}
+	}
+}
+
+// sparrowIDs reports the TypeIds and method ids of a Sparrow facet left to
+// the order they're reached in while others of the facet are written, as
+// a new type or op reached earlier would shift them.
+func sparrowIDs(in *Input) {
+	for _, f := range rpc.Build(in.Tree, in.Checker).Lints {
+		if f.Lint == "sparrow-id" {
+			in.Report(f.Node, f.Site, diag.Warning, f.Message)
+		}
 	}
 }
 

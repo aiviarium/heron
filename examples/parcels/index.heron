@@ -1,8 +1,9 @@
 // The parcels service: an api described once and served over HTTP, gRPC,
-// gRPC-Web and Connect, with one op also a JSON-RPC method. Its ops stream
-// in all four ways and fail with errors projected onto every binding. The
-// docs, `heron generate proto` and `heron generate openrpc` read it as the
-// RPC example; the tests and the docs' screenshots use it.
+// gRPC-Web, Connect and Sparrow, with one op also a JSON-RPC method. Its
+// ops stream in all four ways and fail with errors projected onto every
+// binding. The docs, `heron generate proto`, `heron generate openrpc` and
+// `heron generate sparrow` read it as the RPC example; the tests and the
+// docs' screenshots use it.
 import = [
   "std/doc@1",
   "std/types@1",
@@ -10,6 +11,7 @@ import = [
   "std/http@1",
   "std/proto@1",
   "std/jsonrpc@1",
+  "std/sparrow@1",
 ]
 
 include = ["./model.heron"]
@@ -19,14 +21,16 @@ include = ["./model.heron"]
 @server("https://parcels.example.com")
 @http(base_path = "/v1")
 @proto("acme.parcels.v1", protocols = [grpc, grpc_web, connect])
+@sparrow("acme.parcels", version = "1.0.0", facet_id = 16)
 parcels: api {
   | Labels parcels, follows them through the network and guides the couriers who deliver
-  | them. Every op is a method of `acme.parcels.v1.ParcelsService`; the unary ones are
-  | plain HTTP routes too.
+  | them. Every op is a method of `acme.parcels.v1.ParcelsService` and of the Sparrow facet
+  | `acme.parcels`; the unary ones are plain HTTP routes too.
 
   @http<get>("/parcels/:id")
   @jsonrpc("parcels.get")
   @proto(idempotency = no_side_effects)
+  @sparrow(id = 0, idempotent = true)
   @throws(ParcelNotFound)
   get_parcel(
     @path id: String,
@@ -55,6 +59,7 @@ parcels: api {
 
   @http<post>("/parcels")
   @proto(idempotency = idempotent)
+  @sparrow(id = 1, idempotent = true)
   @throws(InvalidAddress)
   create_label(@body request: LabelRequest): op(Parcel) {
     | Prints a label for a parcel and starts tracking it.
@@ -67,6 +72,7 @@ parcels: api {
 
   @http<get>("/parcels/:id/events")
   @proto(timeout = "10m")
+  @sparrow(id = 2, shared = true)
   @throws(ParcelNotFound)
   watch_parcel(@path id: String): op(Stream(ParcelEvent)) {
     | Streams a parcel's events as they happen, starting with its current status.
@@ -81,6 +87,7 @@ parcels: api {
     }
   }
 
+  @sparrow(id = 3)
   upload_scans(scans: Stream(Scan)): op(ScanSummary) {
     | Takes a depot's scans as its sorter reads them, and answers once the depot closes the
     | stream.
@@ -94,6 +101,7 @@ parcels: api {
     }
   }
 
+  @sparrow(id = 4)
   @throws(RouteUnavailable)
   navigate(positions: Stream(Position)): op(Stream(Instruction)) {
     | Guides a courier: each position the van sends is answered with the next instruction.

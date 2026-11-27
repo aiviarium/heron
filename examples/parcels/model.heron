@@ -1,22 +1,29 @@
-// The parcels service's types and errors. Parcel numbers its fields, so
-// they stay put when it grows; the others are numbered in the order their
-// fields are written.
+// The parcels service's types and errors. Parcel numbers its fields for
+// protobuf and tags them for Sparrow, so they stay put when it grows; the
+// others are numbered and tagged in the order their fields are written, and
+// every type takes its Sparrow TypeId in the order the facet reaches it.
 
 /// A parcel as the network tracks it.
-@reserved(4)
+@proto.reserved(4)
+@sparrow.reserved(3)
 Parcel: type {
   @field(1)
+  @tag(0)
   id: String
   @field(2)
+  @tag(1)
   status: ParcelStatus
   /// What the parcel weighs, as the depot's scale read it.
   @field(3)
+  @tag(2)
   weight_grams: Int(bits = 32)
   /// Where the parcel goes; left out until it's addressed.
   @field(5)
+  @tag(4)
   destination?: Destination
   /// Handling notes printed on the label, such as fragile.
   @field(6)
+  @tag(5)
   labels: Map(String, String) = {}
 }
 
@@ -90,6 +97,7 @@ Instruction: type {
 @status(404)
 @proto.code(NOT_FOUND)
 @jsonrpc.code(-32004)
+@sparrow.code(not_found)
 ParcelNotFound: type(Error) {
   message: String = "No parcel has this id."
   id: String = ""
@@ -98,6 +106,9 @@ ParcelNotFound: type(Error) {
 @status(422)
 @proto.code(INVALID_ARGUMENT)
 @jsonrpc.code(-32010)
+// Sparrow answers it with a sigil of its own rather than invalid_argument,
+// so a client tells it from any other bad input.
+@sigil(80)
 InvalidAddress: type(Error) {
   message: String = "The address can't be delivered to."
   /// The field of the address that's wrong.
@@ -107,6 +118,7 @@ InvalidAddress: type(Error) {
 @status(503)
 @proto.code(UNAVAILABLE)
 @jsonrpc.code(-32011)
+@sparrow.code(unavailable)
 RouteUnavailable: type(Error) {
   message: String = "No route can be planned right now; retry shortly."
 }

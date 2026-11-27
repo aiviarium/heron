@@ -182,11 +182,12 @@ func registerAsyncAPI(r *registry.Registry) {
 	}
 }
 
-// protoDir and openRPCDir are where `heron generate proto` and `heron
-// generate openrpc` write.
+// protoDir, openRPCDir and sparrowDir are where `heron generate proto`,
+// `heron generate openrpc` and `heron generate sparrow` write.
 const (
 	protoDir   = ".heron/proto"
 	openRPCDir = ".heron/openrpc"
+	sparrowDir = ".heron/sparrow"
 )
 
 func registerRPC(r *registry.Registry) {
@@ -195,6 +196,20 @@ func registerRPC(r *registry.Registry) {
 		var out []registry.GeneratedFile
 		for _, f := range rpc.Build(gi.Tree, gi.Checker).ProtoFiles() {
 			out = append(out, registry.GeneratedFile{Path: protoDir + "/" + f.Path, Content: f.Content, Ignored: true})
+		}
+		return out, nil
+	}}); err != nil {
+		panic(err)
+	}
+	if err := r.SetGenerator(registry.Generator{Path: "docs.sparrow", Target: "sparrow", OnRequest: true, Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
+		gi := in.(*gen.Input)
+		files, err := rpc.Build(gi.Tree, gi.Checker).SparrowFiles()
+		if err != nil {
+			return nil, err
+		}
+		var out []registry.GeneratedFile
+		for _, f := range files {
+			out = append(out, registry.GeneratedFile{Path: sparrowDir + "/" + f.Path, Content: f.Content, Ignored: true})
 		}
 		return out, nil
 	}}); err != nil {

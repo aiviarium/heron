@@ -8,12 +8,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aiviarium/sparrow-rpc/go/schema"
+
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/rpc"
 )
 
-// The RPC views: an op's gRPC, Connect and JSON-RPC bindings beside its
-// HTTP one, a service's index, and a message's protobuf and JSON forms.
+// The RPC views: an op's gRPC, Connect, JSON-RPC and Sparrow bindings
+// beside its HTTP one, a service's index, and a message's protobuf and JSON forms.
 // The projection itself is internal/core/rpc's, the one the checker and
 // the generators read.
 
@@ -23,14 +25,15 @@ const (
 	bindGRPC    = "grpc"
 	bindConnect = "connect"
 	bindJSONRPC = "jsonrpc"
+	bindSparrow = "sparrow"
 )
 
 // opBindings lists the bindings an op has, in the switch's order. An op
 // with no RPC binding has none listed, and reads as it always has.
 func (s *Site) opBindings(op *resolve.Node) []string {
 	m := s.rpc()
-	me, jm := m.Method(op), m.JSONMethod(op)
-	if me == nil && jm == nil {
+	me, jm, sm := m.Method(op), m.JSONMethod(op), m.SparrowMethod(op)
+	if me == nil && jm == nil && sm == nil {
 		return nil
 	}
 	var out []string
@@ -45,6 +48,9 @@ func (s *Site) opBindings(op *resolve.Node) []string {
 	}
 	if jm != nil {
 		out = append(out, bindJSONRPC)
+	}
+	if sm != nil {
+		out = append(out, bindSparrow)
 	}
 	return out
 }
@@ -65,7 +71,7 @@ func (s *Site) apiBindings(api *resolve.Node) []string {
 		}
 	}
 	var out []string
-	for _, b := range []string{bindHTTP, bindGRPC, bindConnect, bindJSONRPC} {
+	for _, b := range []string{bindHTTP, bindGRPC, bindConnect, bindJSONRPC, bindSparrow} {
 		if seen[b] {
 			out = append(out, b)
 		}
@@ -144,7 +150,18 @@ func (s *Site) navMethod(op *resolve.Node) string {
 		}
 		return label("docs.kind_short.unary")
 	}
+	if sm := m.SparrowMethod(op); sm != nil {
+		return sparrowShort(sm)
+	}
 	return ""
+}
+
+// sparrowShort is a Sparrow method's shape as the navigation shows it.
+func sparrowShort(sm *rpc.SparrowMethod) string {
+	if sm.Notification {
+		return label("docs.kind_short.notification")
+	}
+	return kindShort(sm.Kind)
 }
 
 // bindMethods is what the navigation shows beside an op for each of its
@@ -168,6 +185,8 @@ func (s *Site) bindMethods(op *resolve.Node, httpMethod string) [][2]string {
 				v = label("docs.kind_short.notification")
 			}
 			out = append(out, [2]string{b, v})
+		case bindSparrow:
+			out = append(out, [2]string{b, sparrowShort(m.SparrowMethod(op))})
 		}
 	}
 	return out
@@ -176,7 +195,7 @@ func (s *Site) bindMethods(op *resolve.Node, httpMethod string) [][2]string {
 // hasBindings reports whether any op of the tree has an RPC binding.
 func (s *Site) hasBindings() bool {
 	m := s.rpc()
-	return len(m.Services) > 0 || len(m.JSONAPIs) > 0
+	return len(m.Services) > 0 || len(m.JSONAPIs) > 0 || len(m.Facets) > 0
 }
 
 // bindingScript applies the binding the reader picked last, kept in
@@ -213,6 +232,98 @@ func (c *Ctx) rpcHeader(op *resolve.Node, b string) {
 		}
 		c.W(`</div>`)
 		c.Island("copy")
+	case bindSparrow:
+		sm := m.SparrowMethod(op)
+		path := sm.Service.Facet.Name + "/" + sm.Name
+		c.W(`<div class="endpoint rpc-endpoint">`, methodHTML("Sparrow"), `<code class="path">`, esc(path), `</code><button type="button" class="icon-btn copy" data-island="copy" data-copy="`, attr(path), `" aria-label="`, attr(label("docs.action.copy")), `">`, iconCopy, `</button>`)
+		if sm.Notification {
+			c.W(`<span class="rpc-kind kind-notification">`, esc(label("docs.kind.notification")), `</span>`)
+		} else {
+			c.W(kindBadge(sm.Kind))
+		}
+		c.W(`</div>`)
+		c.Island("copy")
+		c.W(`<pre class="rpc-sig"><code>`, c.sparrowSignatureHTML(sm), `</code></pre>`)
+	}
+}
+
+// sparrowSignatureHTML is a Sparrow method as getParcel(GetParcelInput)
+// returns (stream ParcelEvent), with its facet's method id.
+func (c *Ctx) sparrowSignatureHTML(sm *rpc.SparrowMethod) string {
+	half := func(r rpc.SparrowRef, part string) string {
+		kw := ""
+		if r.Kind == schema.RefStream {
+			kw = `<span class="tk-kw">stream</span> `
+			r = *r.Elem
+		}
+		return kw + `<a href="#` + attr(Anchor(sm.Op)+".sparrow."+part) + `" class="code-ref"><span class="tk-type">` + esc(r.String()) + `</span></a>`
+	}
+	return `<span class="tk-num">` + strconv.FormatUint(sm.ID, 10) + `</span> <span class="tk-name">` + esc(sm.Name) + `</span><span class="tk-punct">(</span>` + half(sm.Input, "input") + `<span class="tk-punct">)</span> <span class="tk-kw">returns</span> <span class="tk-punct">(</span>` + half(sm.Output, "output") + `<span class="tk-punct">)</span>`
+}
+
+// sparrowFacts are the facts of a Sparrow method: its facet and method id,
+// and its flags.
+func (s *Site) sparrowFacts(sm *rpc.SparrowMethod) []string {
+	f := sm.Service.Facet
+	facts := []string{
+		`<dt>` + esc(label("docs.label.facet")) + `</dt><dd><code>` + esc(f.Name) + `</code> <span class="mark">` + esc(label("docs.label.facet_id")) + ` <code>` + strconv.FormatUint(f.ID, 10) + `</code></span></dd>`,
+		`<dt>` + esc(label("docs.label.method_id")) + `</dt><dd><code>` + strconv.FormatUint(sm.ID, 10) + `</code></dd>`,
+	}
+	if fl := sm.FlagNames(); len(fl) > 0 {
+		var cs []string
+		for _, x := range fl {
+			cs = append(cs, `<code>`+esc(x)+`</code>`)
+		}
+		facts = append(facts, `<dt>`+esc(label("docs.label.flags"))+`</dt><dd>`+strings.Join(cs, " ")+`</dd>`)
+	}
+	return facts
+}
+
+// sparrowRefHTML is a reference, a type of the facet linked to its page
+// and marked with its TypeId.
+func (s *Site) sparrowRefHTML(r rpc.SparrowRef) string {
+	t := `<span class="tk-type">` + esc(r.String()) + `</span>`
+	if n := r.Named(); n != nil && n.Node != nil && own(n.Node) {
+		t = s.linkHTML(n.Node, t, "code-ref")
+	}
+	return t
+}
+
+// sparrowFields writes a struct's fields or a union's variants: tag, name,
+// type, whether it's optional, docs.
+func (c *Ctx) sparrowFields(t *rpc.SparrowType) {
+	c.W(`<ul class="lines rpc-fields">`)
+	for _, f := range t.Fields {
+		c.W(`<li><p class="line-head"><span class="fnum" title="`, attr(label("docs.label.tag")), `">`, strconv.FormatUint(f.Tag, 10), `</span> <code class="fname">`, esc(f.Name), `</code> <code class="t">`, c.Site.sparrowRefHTML(f.Type), `</code>`)
+		if f.Optional {
+			c.W(` <span class="mark">optional</span>`)
+		}
+		if n := f.Type.Named(); n != nil {
+			c.W(` <span class="mark">`, esc(label("docs.label.type_id")), ` <code>`, strconv.FormatUint(n.ID, 10), `</code></span>`)
+		}
+		c.W(`</p>`)
+		if f.Doc != "" {
+			c.W(`<div class="line-doc">`, esc(f.Doc), `</div>`)
+		}
+		c.W(`</li>`)
+	}
+	c.W(`</ul>`)
+}
+
+// sparrowHalf writes a method's input or output: the type with its
+// TypeId, and a struct's fields.
+func (c *Ctx) sparrowHalf(r rpc.SparrowRef, fields *rpc.SparrowType) {
+	if r.Kind == schema.RefNamed && r.Type == nil && r.Builtin == schema.TypeUnit && fields == nil {
+		c.W(`<p class="note">`, esc(label("docs.note.no_input")), `</p>`)
+		return
+	}
+	c.W(`<p><code class="t">`, c.Site.sparrowRefHTML(r), `</code>`)
+	if n := r.Named(); n != nil {
+		c.W(` <span class="mark">`, esc(label("docs.label.type_id")), ` <code>`, strconv.FormatUint(n.ID, 10), `</code></span>`)
+	}
+	c.W(`</p>`)
+	if fields != nil && len(fields.Fields) > 0 {
+		c.sparrowFields(fields)
 	}
 }
 
@@ -316,6 +427,18 @@ func (c *Ctx) rpcBody(op *resolve.Node, b string, first bool) {
 			c.W(`<p class="note">`, esc(label("docs.note.notification")), `</p>`)
 		}
 		c.rpcErrors(op, jm.Errors, b, first)
+	case bindSparrow:
+		sm := m.SparrowMethod(op)
+		c.W(`<dl class="facts">`, strings.Join(s.sparrowFacts(sm), ""), `</dl>`)
+		c.subHeading(id+".input", label("docs.heading.input"), "", first)
+		c.sparrowHalf(sm.Input, sm.InputType)
+		c.subHeading(id+".output", label("docs.heading.output"), "", first)
+		if sm.Notification {
+			c.W(`<p class="note">`, esc(label("docs.note.sparrow_notification")), `</p>`)
+		} else {
+			c.sparrowHalf(sm.Output, nil)
+		}
+		c.rpcErrors(op, sm.Errors, b, first)
 	}
 }
 
@@ -464,6 +587,13 @@ func (c *Ctx) rpcErrors(op *resolve.Node, errs []rpc.Error, b string, first bool
 			if e.JSONRPC != "" {
 				c.W(`<code class="status err">`, esc(e.JSONRPC), `</code>`)
 			}
+		case bindSparrow:
+			if e.Sparrow != "" {
+				n, _ := rpc.SparrowCode(e.Sparrow)
+				c.W(`<code class="status err" title="`, attr(label("docs.label.core_code")), `">`, esc(e.Sparrow), `</code> <code class="status-code">`, strconv.FormatUint(n, 10), `</code>`)
+			} else if e.SparrowSigil != nil {
+				c.W(`<code class="status err" title="`, attr(label("docs.label.sigil")), `">`, esc(e.SparrowSigil.Name), `</code> <code class="status-code">`, strconv.FormatUint(e.SparrowSigil.ID, 10), `</code>`)
+			}
 		}
 		if e.IsNode {
 			c.W(s.linkHTML(e.Node, esc(displayName(s, e.Node)), ""), ` <code class="err-code">`, esc(e.ID), `</code></div>`)
@@ -485,6 +615,8 @@ func (c *Ctx) rpcErrors(op *resolve.Node, errs []rpc.Error, b string, first bool
 			switch {
 			case b == bindJSONRPC:
 				where = label("docs.label.error_data")
+			case b == bindSparrow:
+				where = label("docs.label.error_detail")
 			case e.IsNode:
 				where = label("docs.label.error_info")
 			default:
@@ -1056,6 +1188,10 @@ func framed(j *rpc.JSONAPI, body string, server string) string {
 // call in the binding's forms, its messages and its response, and Try it
 // where a browser can make the call.
 func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
+	if b == bindSparrow {
+		// Sparrow's examples and Try it are left to its own tools.
+		return ""
+	}
 	s := c.Site
 	m := s.rpc()
 	op := o.node
@@ -1456,6 +1592,31 @@ func (c *Ctx) rpcIndex(api *resolve.Node, b string) {
 			}
 			c.W(`</ul></div>`)
 		}
+	case bindSparrow:
+		svc := m.SparrowServiceOf(api)
+		if svc == nil {
+			return
+		}
+		groups := map[string][]*rpc.SparrowMethod{}
+		for _, sm := range svc.Methods {
+			groups[sm.Shape()] = append(groups[sm.Shape()], sm)
+		}
+		for _, k := range []string{"unary", "server", "client", "bidi", "notification"} {
+			if len(groups[k]) == 0 {
+				continue
+			}
+			c.W(`<div class="rpc-group"><p class="rpc-group-head">`, esc(label("docs.kind."+k)), `</p><ul class="rpc-methods">`)
+			for _, sm := range groups[k] {
+				c.W(`<li><code class="rpc-sig-line">`, strconv.FormatUint(sm.ID, 10), ` `, esc(sm.Name), `(`, esc(sm.Input.String()), `) <span class="tk-kw">returns</span> (`, esc(sm.Output.String()), `)</code> `)
+				c.Link(sm.Op, displayName(s, sm.Op))
+				c.W(deprecatedBadge(sm.Op))
+				if t := firstSentence(inlineParagraph(s.proseHTML(sm.Op))); t != "" {
+					c.W(`<span class="op-line">`, t, `</span>`)
+				}
+				c.W(`</li>`)
+			}
+			c.W(`</ul></div>`)
+		}
 	case bindJSONRPC:
 		j := m.JSONAPIOf(api)
 		if j == nil {
@@ -1527,6 +1688,25 @@ func (s *Site) bindingFacts(api *resolve.Node, b string) []string {
 		facts = append(facts, `<dt>`+esc(label("docs.label.encoding"))+`</dt><dd>`+esc(label("docs.encoding."+j.Encoding))+`</dd>`)
 		if j.Batch {
 			facts = append(facts, `<dt>`+esc(label("docs.label.batch"))+`</dt><dd>`+esc(label("docs.label.batches"))+`</dd>`)
+		}
+	case bindSparrow:
+		svc := m.SparrowServiceOf(api)
+		if svc == nil {
+			return nil
+		}
+		f := svc.Facet
+		facts = append(facts, `<dt>`+esc(label("docs.label.facet"))+`</dt><dd><code class="rpc-service">`+esc(f.Name)+`</code><button type="button" class="icon-btn copy" data-island="copy" data-copy="`+attr(f.Name)+`" aria-label="`+attr(label("docs.action.copy"))+`">`+iconCopy+`</button> <span class="mark">`+esc(label("docs.label.facet_id"))+` <code>`+strconv.FormatUint(f.ID, 10)+`</code></span></dd>`)
+		facts = append(facts, `<dt>`+esc(label("docs.label.version"))+`</dt><dd><code>`+esc(f.Version)+`</code></dd>`)
+		facts = append(facts, `<dt>`+esc(label("docs.label.service"))+`</dt><dd><code>`+esc(svc.Name)+`</code> <span class="mark">`+esc(label("docs.label.service_id"))+` <code>`+strconv.FormatUint(svc.ID, 10)+`</code></span></dd>`)
+		if len(f.Retired) > 0 {
+			var rs []string
+			for _, r := range f.Retired {
+				rs = append(rs, `<code>`+esc(r.Space.String())+` `+strconv.FormatUint(r.ID, 10)+`</code>`)
+			}
+			facts = append(facts, `<dt>`+esc(label("docs.label.retired"))+`</dt><dd>`+strings.Join(rs, " ")+`</dd>`)
+		}
+		if h := f.HashHex(); h != "" {
+			facts = append(facts, `<dt>`+esc(label("docs.label.facet_hash"))+`</dt><dd><code class="rpc-hash" title="`+attr(h)+`">`+esc(h[:18])+`…</code><button type="button" class="icon-btn copy" data-island="copy" data-copy="`+attr(h)+`" aria-label="`+attr(label("docs.action.copy"))+`">`+iconCopy+`</button></dd>`)
 		}
 	}
 	return facts

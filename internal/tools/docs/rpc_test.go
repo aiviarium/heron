@@ -129,8 +129,8 @@ func TestServicePage(t *testing.T) {
 	mustHave(t, "the HTTP index", idx, `/parcels/:id`)
 	mustNotHave(t, "the HTTP index", idx, `Upload scans`, `Navigate`)
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(h)
-	mustHave(t, "nav", nav, `<span class="m m-bidi" data-m-grpc="BIDI" data-m-connect="BIDI">BIDI</span>`, `<span class="m m-clt"`,
-		`<span class="m m-get" data-m-http="GET" data-m-grpc="RPC" data-m-connect="RPC" data-m-jsonrpc="RPC">GET</span>`)
+	mustHave(t, "nav", nav, `<span class="m m-bidi" data-m-grpc="BIDI" data-m-connect="BIDI" data-m-sparrow="BIDI">BIDI</span>`, `<span class="m m-clt"`,
+		`<span class="m m-get" data-m-http="GET" data-m-grpc="RPC" data-m-connect="RPC" data-m-jsonrpc="RPC" data-m-sparrow="RPC">GET</span>`)
 	// Each binding's facts in its part, each a label and its value, and
 	// the servers for every binding; a group's methods carry no badge.
 	httpPart := regexp.MustCompile(`(?s)<div class="binding" data-binding="http">.*?</table>`).FindString(h)
@@ -142,6 +142,34 @@ func TestServicePage(t *testing.T) {
 	if i, j := strings.Index(h, `<dt>Servers</dt>`), strings.Index(h, `class="binding-switch"`); i < 0 || i > j {
 		t.Error("the servers are a fact of every binding, before the switch")
 	}
+}
+
+// The Sparrow binding: an op's method in its facet, with its id, shape,
+// flags, input and output with their TypeIds and tags, and errors by core
+// code or sigil; the api's facet, version, service, ids and facet hash; and
+// the methods by shape on the api page.
+func TestSparrowBinding(t *testing.T) {
+	f := parcelPages(t)
+	h := f["parcels.get_parcel.html"]
+	mustHave(t, "get_parcel", h,
+		`data-binding-tab="sparrow">Sparrow</button>`, `<div class="binding" data-binding="sparrow" hidden>`,
+		`<span class="method m-sparrow">Sparrow</span><code class="path">acme.parcels/getParcel</code>`,
+		`<span class="tk-num">0</span> <span class="tk-name">getParcel</span>`, `href="#parcels.get_parcel.sparrow.input"`,
+		`<dt>Facet</dt><dd><code>acme.parcels</code> <span class="mark">Facet id <code>16</code></span></dd><dt>Method id</dt><dd><code>0</code></dd><dt>Flags</dt><dd><code>idempotent</code></dd>`,
+		`<span class="fnum" title="Tag">1</span> <code class="fname">tenant</code> <code class="t"><span class="tk-type">string</span></code> <span class="mark">optional</span>`,
+		`<code class="status err" title="Core code">not_found</code> <code class="status-code">5</code>`,
+	)
+	mustHave(t, "create_label", f["parcels.create_label.html"], `<code class="status err" title="Sigil">InvalidAddress</code> <code class="status-code">80</code>`)
+	nav := f["parcels.navigate.html"]
+	mustHave(t, "navigate", nav, `<span class="tk-kw">stream</span> <a href="#parcels.navigate.sparrow.input"`, `<code>input_end</code> <code>output_end</code>`)
+	mustNotHave(t, "navigate", nav, `data-binding="sparrow" hidden data-island="examples"`)
+	api := f["parcels.html"]
+	mustHave(t, "parcels", api,
+		`data-binding-tab="sparrow">Sparrow</button>`,
+		`<dt>Facet</dt><dd><code class="rpc-service">acme.parcels</code>`, `<dt>Version</dt><dd><code>1.0.0</code></dd>`,
+		`<dt>Service</dt><dd><code>Parcels</code> <span class="mark">Service id <code>0</code></span></dd>`, `<dt>Facet hash</dt><dd><code class="rpc-hash" title="01`,
+		`<code class="rpc-sig-line">4 navigate(stream&lt;Position&gt;) <span class="tk-kw">returns</span> (stream&lt;Instruction&gt;)</code>`,
+	)
 }
 
 // A message's type page shows its .proto definition and its JSON form
@@ -204,7 +232,7 @@ R: type { z: String }
 	mustHave(t, "call", f["wire.call.html"], `one record as the whole of params`, `data-lang="raw"`, `length <span class="tk-num">`)
 }
 
-// heron generate proto and openrpc write the description each tool reads,
+// heron generate proto, openrpc and sparrow write the description each tool reads,
 // on request alone.
 func TestRPCGenerators(t *testing.T) {
 	id, _ := resolve.Canonical(parcelsEntry)
@@ -215,8 +243,13 @@ func TestRPCGenerators(t *testing.T) {
 	r := registry.New()
 	Register(r)
 	dir := t.TempDir()
-	if _, err := gen.Run(context.Background(), r, &gen.Input{Tree: res.Tree, Checker: res.Checker, Dir: dir}, []string{"proto", "openrpc"}); err != nil {
+	if _, err := gen.Run(context.Background(), r, &gen.Input{Tree: res.Tree, Checker: res.Checker, Dir: dir}, []string{"proto", "openrpc", "sparrow"}); err != nil {
 		t.Fatal(err)
+	}
+	for _, name := range []string{"acme.parcels.sparrow", "acme.parcels.json", "schema.sparrow", "schema.json"} {
+		if _, err := os.Stat(filepath.Join(dir, ".heron/sparrow", name)); err != nil {
+			t.Errorf("sparrow: %v", err)
+		}
 	}
 	src, err := os.ReadFile(filepath.Join(dir, ".heron/proto/acme/parcels/v1/parcels.proto"))
 	if err != nil || !strings.Contains(string(src), "service ParcelsService {") {
@@ -271,6 +304,9 @@ func TestRPCGenerators(t *testing.T) {
 	gen.Run(context.Background(), r, &gen.Input{Tree: res.Tree, Checker: res.Checker, Dir: dir2}, nil)
 	if _, err := os.Stat(filepath.Join(dir2, ".heron/proto")); err == nil {
 		t.Error("proto ran without being asked for")
+	}
+	if _, err := os.Stat(filepath.Join(dir2, ".heron/sparrow")); err == nil {
+		t.Error("sparrow ran without being asked for")
 	}
 }
 
