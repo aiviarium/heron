@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -201,14 +200,9 @@ func runLint(env *registry.Env, args []string, r *registry.Registry) int {
 	}
 	s := check.NewSession()
 	var all diag.List
-	defer r.Close()
 	for _, id := range ids {
 		res := s.Check(id)
 		all = append(all, res.Diags...)
-		// Extensions register the lints the tree declares.
-		if err := r.LoadTree(context.Background(), res); err != nil {
-			fmt.Fprintln(env.Stderr, "heron lint:", err)
-		}
 		all = append(all, lint.Run(r, res)...)
 	}
 	all = all.Sort()

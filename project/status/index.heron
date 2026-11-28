@@ -30,15 +30,8 @@ language_grammar_untested: status<untested>(
 language_schemas_untested: status<untested>(
   heron.language.schemas.kinds.refs.ref_kind_documents,
   heron.language.schemas.accept.verbatim_text,
-  heron.language.schemas.extensions.limits.unsandboxed,
-  heron.language.schemas.extensions.limits.hosts_not_filtered,
-  heron.language.schemas.extensions.limits.trust_first_run,
-  heron.language.schemas.extensions.limits.trust_first_run_otherwise,
-  heron.language.schemas.extensions.limits.js_host_unlimited,
-  heron.language.schemas.extensions.lifecycle.start_failure,
-  heron.language.schemas.extensions.lifecycle.builtins_same_contract,
 ) {
-  | Built, with no test proving it yet. The 9 requirements of [language.schemas](#heron.language.schemas).
+  | Built, with no test proving it yet. The 2 requirements of [language.schemas](#heron.language.schemas).
 }
 
 language_schemas_planned: status<planned>(
@@ -50,9 +43,8 @@ language_schemas_planned: status<planned>(
   heron.language.schemas.highlighting.injection,
   heron.language.schemas.highlighting.insert_safety,
   heron.language.schemas.highlighting.insert_safety_otherwise,
-  heron.language.schemas.extensions.manifest.pinned,
 ) {
-  | Not built yet. The 8 requirements of [language.schemas](#heron.language.schemas).
+  | Not built yet. The 7 requirements of [language.schemas](#heron.language.schemas).
 }
 
 language_markup_planned: status<planned>(
@@ -180,25 +172,11 @@ language_scripting_planned: status<planned>(
   heron.language.scripting.tasks.confirming.command_flag,
   heron.language.scripting.tasks.failing.stage_undo,
   heron.language.scripting.funcs_and_templates.funcs.no_effects_while_evaluating,
+  heron.language.scripting.funcs_and_templates.macros.expansion_is_evaluation,
   heron.language.scripting.funcs_and_templates.macros.macro_expansion,
   heron.language.scripting.funcs_and_templates.macros.expansion_errors,
 ) {
-  | Not built yet. The 6 requirements of [language.scripting](#heron.language.scripting).
-}
-
-language_interop_planned: status<planned>(
-  heron.language.interop.host.supervising.progress_shown,
-  heron.language.interop.host.services.secret_stores,
-  heron.language.interop.data_mapping.interpreter.typed_values,
-  heron.language.interop.data_mapping.interpreter.streamed_results,
-  heron.language.interop.timing.replay_from_record,
-  heron.language.interop.timing.embedded_pure,
-  heron.language.interop.packaging.types.bindings_on_setup,
-  heron.language.interop.packaging.distribution.npm_packages,
-  heron.language.interop.packaging.distribution.heron_dev,
-  heron.language.interop.packaging.distribution.testing_package,
-) {
-  | Not built yet. The 10 requirements of [language.interop](#heron.language.interop).
+  | Not built yet. The 7 requirements of [language.scripting](#heron.language.scripting).
 }
 
 language_std_planned: status<planned>(
@@ -225,20 +203,15 @@ tools_frontend_planned: status<planned>(
   | Not built yet. The 1 requirement of [tools.frontend](#heron.tools.frontend).
 }
 
-// Diagnostics the checker and the extension host report, with no test
-// that asserts their message yet.
+// Diagnostics the checker reports, with no test that asserts their message
+// yet.
 diagnostics_untested: status<untested>(
   heron.language.core_format.nodes.errors.not_a_kind,
   heron.language.core_format.nodes.errors.too_many_arguments,
   heron.language.core_format.nodes.errors.not_an_annotation,
   heron.language.schemas.flags.errors.not_a_flag,
-  heron.language.schemas.extensions.errors.cant_start,
-  heron.language.schemas.extensions.errors.any_host,
-  heron.language.schemas.extensions.errors.limits_not_enforced,
-  heron.language.schemas.extensions.errors.not_trusted,
 ) {
-  | Built, with no test that asserts the message yet: the checker reports the first four and
-  | the extension host the other four.
+  | Built, with no test that asserts the message yet: the checker reports all four.
 }
 
 lenses_planned: status<planned>(

@@ -145,7 +145,6 @@ language_scripting: section {
 
   proves(heron.language.scripting.code.failures.attempt_catches_throws) {
     verify("internal/core/eval/eval_test.go", test = "TestProcessesAndFiles")
-    verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
   }
 
   proves(heron.language.scripting.code.failures.attempt_passes_faults) {
@@ -440,23 +439,11 @@ language_scripting: section {
   }
 
   proves(heron.language.scripting.funcs_and_templates.funcs.bodiless_registered) {
-    verify("internal/core/eval/eval_test.go", test = "TestForeignFuncs")
+    verify("internal/core/eval/eval_test.go", test = "TestRegisteredFuncs")
   }
 
   proves(heron.language.scripting.funcs_and_templates.funcs.values_once) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
-  }
-
-  proves(heron.language.scripting.funcs_and_templates.funcs.pure_only_while_evaluating) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
-  }
-
-  proves(heron.language.scripting.funcs_and_templates.funcs.pure_cache) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
-  }
-
-  proves(heron.language.scripting.funcs_and_templates.funcs.pure_cache_misses) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureFailuresAreNotCached")
+    verify("internal/core/eval/eval_test.go", test = "TestValuesOnceAndEmit")
   }
 
   proves(heron.language.scripting.funcs_and_templates.macros.template_expansion) {
@@ -468,19 +455,11 @@ language_scripting: section {
   }
 
   proves(heron.language.scripting.funcs_and_templates.macros.emit_outside_macro) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureFailuresAreNotCached")
-  }
-
-  proves(heron.language.scripting.funcs_and_templates.macros.expansion_is_evaluation) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
-  }
-
-  proves(heron.language.scripting.funcs_and_templates.errors.not_pure) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
+    verify("internal/core/eval/eval_test.go", test = "TestValuesOnceAndEmit")
   }
 
   proves(heron.language.scripting.funcs_and_templates.errors.emit_outside) {
-    verify("internal/core/eval/foreign_test.go", test = "TestPureFailuresAreNotCached")
+    verify("internal/core/eval/eval_test.go", test = "TestValuesOnceAndEmit")
   }
 
   proves(heron.language.scripting.code.values.int_overflow, heron.language.scripting.code.errors.int_overflow) {

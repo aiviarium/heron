@@ -381,42 +381,51 @@ func TestCodeErrors(t *testing.T) {
 	}
 }
 
-// Foreign funcs reach their host through the registry, by module kind,
-// and funcs declared without a body through their path.
-func TestForeignFuncs(t *testing.T) {
+// Funcs declared without a body reach what is registered under their path.
+func TestRegisteredFuncs(t *testing.T) {
 	reg := registry.New()
-	var bound []string
-	reg.MustAddForeign(registry.Foreign{Kind: "js", Bind: func(m registry.Module, export string) (registry.FuncImpl, error) {
-		bound = append(bound, m.Kind+" "+m.Spec+" "+m.Path+" "+export)
-		return func(_ context.Context, call *registry.FuncCall) (any, error) {
-			if call.Args["pet_id"] == int64(0) {
-				return nil, &registry.Thrown{Type: "NotFound", Fields: map[string]any{"message": "no pet"}}
-			}
-			return map[string]any{"path": "/out/" + call.Func, "pet": call.Args["pet_id"]}, nil
-		}, nil
-	}})
 	reg.MustAddFunc(registry.Func{Name: "checksum", Call: func(_ context.Context, call *registry.FuncCall) (any, error) {
 		return float64(len(call.Args["text"].(string))), nil
 	}})
-	h := load(t, `import = ["std/js@1"]
+	h := load(t, `checksum(text: String): func(Int)
 
-tools: module = js("./tools/orders.ts")
-
-/// Writes every order of a pet to a CSV file and returns its path.
-export_orders(pet_id: Int): func(Any) = tools.exportOrders
-
-checksum(text: String): func(Int)
-
-export_pet_orders(pet_id: Int): task do {
-  let out = export_orders(pet_id = pet_id)
-  log("Wrote ${out.path} for ${out.pet}, sum ${checksum(out.path)}")
-  let missing = attempt(export_orders(pet_id = 0))
-  log(missing.error.message)
+sum_path(path: String): task do {
+  log("Sum ${checksum(path)}")
 }
 `, reg)
-	h.mustCall("export_pet_orders", map[string]eval.Value{"pet_id": int64(4)})
-	want(t, bound, []string{"js ./tools/orders.ts tools exportOrders"})
-	want(t, h.logs, []string{"Wrote /out/export_orders for 4, sum 18", "no pet"})
+	h.mustCall("sum_path", map[string]eval.Value{"path": "/out/export_orders"})
+	want(t, h.logs, []string{"Sum 18"})
+}
+
+// A value the tree declares is worked out the first time code reads it and
+// kept for the run, and emit works only inside a macro.
+func TestValuesOnceAndEmit(t *testing.T) {
+	reg := registry.New()
+	calls := 0
+	reg.MustAddFunc(registry.Func{Name: "shout", Call: func(_ context.Context, call *registry.FuncCall) (any, error) {
+		calls++
+		return strings.ToUpper(call.Args["text"].(string)), nil
+	}})
+	h := load(t, `shout(text: String): func(String)
+
+a: String = shout(text = "hi")
+
+both: func(String) do {
+  return "$a $a"
+}
+
+stray: func do {
+  emit("x: Int")
+}
+`, reg)
+	want(t, h.mustCall("both", nil), "HI HI")
+	want(t, h.mustCall("both", nil), "HI HI")
+	if calls != 1 {
+		t.Errorf("the value was worked out %d times; want once for the run", calls)
+	}
+	if _, err := h.call("stray", nil); err == nil || !strings.Contains(err.Error(), "only inside a macro") {
+		t.Errorf("emit outside a macro: %v", err)
+	}
 }
 
 func TestStepsAreRecorded(t *testing.T) {
@@ -616,13 +625,9 @@ func (missingProcs) Run(_ context.Context, c eval.Command) (eval.Exit, error) {
 // The edges of processes and files: a program that can't start, a script
 // with arguments, inserts that opt out of quoting, a file that isn't there
 // and a temp path asked for twice.
-// The error types std/files, std/json and std/core declare check where code
+// The error types std/files, std/json and the prelude declare check where code
 // names them, and a thrown error is its declared type and an Error.
 func TestDeclaredErrorTypes(t *testing.T) {
-	reg := registry.New()
-	reg.MustAddFunc(registry.Func{Name: "broken", Call: func(context.Context, *registry.FuncCall) (any, error) {
-		return nil, &registry.Thrown{Type: "ForeignError", Fields: map[string]any{"message": "host gone", "code": int64(-32000)}}
-	}})
 	h := load(t, `import = ["std/types@1", "std/files@1", "std/json@1"]
 
 file_error: func(List(Bool)) do {
@@ -639,18 +644,10 @@ parse_error: func(List(Bool)) do {
   let r = attempt(Int("three"))
   return [r.error is ParseError, r.error is Error, r.error is FileError]
 }
-
-broken: func(Any)
-
-foreign_error: func(List(Any)) do {
-  let r = attempt(broken())
-  return [r.error is ForeignError, r.error is Error, r.error.code]
-}
-`, reg)
+`, nil)
 	want(t, h.mustCall("file_error", nil), []eval.Value{true, true, false})
 	want(t, h.mustCall("decode_error", nil), []eval.Value{true, true})
 	want(t, h.mustCall("parse_error", nil), []eval.Value{true, true, false})
-	want(t, h.mustCall("foreign_error", nil), []eval.Value{true, true, int64(-32000)})
 }
 
 func TestProcessAndFileEdges(t *testing.T) {

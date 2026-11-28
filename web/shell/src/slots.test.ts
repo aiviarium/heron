@@ -1,5 +1,5 @@
-// The shell's extension points, each proven with a sample extension that
-// registers the way a later unit's frontend package would.
+// The shell's slots, each proven with a sample part that registers the way
+// a frontend package would.
 import { describe, expect, it } from "vitest";
 import { createRoot, flush } from "solid-js";
 import {
@@ -11,10 +11,10 @@ import {
   registerPanel,
   registerRenderer,
   rendererFor,
-} from "./extensions.ts";
+} from "./slots.ts";
 import { routes } from "./api.gen.ts";
 
-describe("extension points", () => {
+describe("slots", () => {
   it("mounts a sample panel, gutter provider, command and renderer", () => {
     createRoot((dispose) => {
       let ran = 0;

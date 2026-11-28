@@ -6,7 +6,6 @@
 package docs
 
 import (
-	"context"
 	"github.com/aiviarium/heron/internal/core/icon"
 	"github.com/aiviarium/heron/internal/core/rpc"
 	"sort"
@@ -107,8 +106,6 @@ type Site struct {
 	// ThemeErr says why it didn't.
 	Theme    *Theme
 	ThemeErr error
-	// RenderersErr says why a renderer module didn't load.
-	RenderersErr error
 
 	Pages []*Page
 	Areas []*Area
@@ -182,11 +179,6 @@ func New(t *resolve.Tree, c *types.Checker, opts Options) *Site {
 		implementors: map[*resolve.Node][]*resolve.Node{},
 		modes:        map[*resolve.Node]lens.Mode{},
 		places:       map[*resolve.Node]bool{},
-	}
-	if opts.Registry != nil {
-		// Renderer modules, such as a docs block's TS renderers, register
-		// their kinds once their process runs.
-		s.RenderersErr = opts.Registry.LoadRenderers(context.Background())
 	}
 	s.readConfig()
 	if s.Config.Theme != "" {
@@ -502,7 +494,7 @@ func (s *Site) buildPages() {
 	}
 	if len(s.apis) > 1 || len(s.apis) == 1 && len(rest) > 0 {
 		// The types no api names follow the last api of the scope that
-		// declares them, as a protocol's envelope follows its methods.
+		// declares them.
 		lastAPI := map[*resolve.Node]*resolve.Node{}
 		for _, a := range s.apis {
 			lastAPI[a.Parent] = a
@@ -518,8 +510,7 @@ func (s *Site) buildPages() {
 		}
 		rest = left
 		// Insert from the last api back, so earlier groups keep their place:
-		// a scope's own types, such as a protocol's envelope, under the
-		// scope's name after its last api.
+		// a scope's own types under the scope's name after its last api.
 		for i := len(s.apis) - 1; i >= 0; i-- {
 			a := s.apis[i]
 			if len(extra[a]) > 0 {
@@ -530,8 +521,8 @@ func (s *Site) buildPages() {
 	} else {
 		rest = s.types
 	}
-	// Types from more than one scope, such as an API's and a protocol's,
-	// group by the scope that declares them.
+	// Types from more than one scope group by the scope that declares
+	// them.
 	var scopes []*resolve.Node
 	byScope := map[*resolve.Node][]*resolve.Node{}
 	for _, t := range rest {

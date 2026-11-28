@@ -47,7 +47,7 @@ frontend: section {
 
   shell_package: component("web/shell", heron.system.editor, lang = "ts") {
     | The app `heron serve` embeds: the [editor screen](#heron.tools.frontend.screens.editor_screen), its state, the generated API client
-    | and the [extension points](#heron.tools.frontend.shell) later [units](#delivery.units) add their views through.
+    | and the [slots](#heron.tools.frontend.shell) its parts add their views through.
 
     uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings, architecture.tools.frontend.components, architecture.tools.frontend.editor_package]
 

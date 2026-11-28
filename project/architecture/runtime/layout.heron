@@ -15,7 +15,7 @@ layout: section {
     | cmd/heron/               // the single binary: installs each unit's registrations
     | internal/
     |   core/                  // 1. language and runtime
-    |     syntax/ ast/ resolve/ types/ eval/ lint/ format/ records/ gen/ extension/ registry/
+    |     syntax/ ast/ resolve/ types/ eval/ lint/ format/ records/ gen/ registry/
     |   tools/                 // 2. development tools
     |     lsp/ prose/ docs/ server/
     |   devops/                // 3. DevOps and testing
@@ -25,7 +25,6 @@ layout: section {
     | std/                     // standard packages as Heron source, embedded; each owned by one unit
     | grammar/                 // grammar description and the tree-sitter grammar
     | web/                     // pnpm workspace
-    |   runtime/               // @heron/runtime, the core's TS SDK
     |   components/ shell/     // the shared UI and the frontend shell, owned by development tools
     |   editor/ docs/          // code editor and preview, docs islands, editor extension
     |   dashboard/             // DevOps and testing panels
@@ -58,7 +57,8 @@ layout: section {
 
   generated_beside_source: property {
     must {{ commit generated code next to what it's generated from, and fail CI when a regeneration differs }}
-    | For example, `syntax/kinds_gen.go` and `ast/nodes_gen.go` from `grammar/heron.ungram`; `protocol_gen.go` and `web/runtime/src/protocol.gen.ts` from `protocol.heron`.
+    | For example, `syntax/kinds_gen.go` and `ast/nodes_gen.go` from `grammar/heron.ungram`;
+    | `api_gen.go` and `web/shell/src/api.gen.ts` from `spec_server`.
     verify("scripts/ci.sh", test = "generated code is current")
   }
 }

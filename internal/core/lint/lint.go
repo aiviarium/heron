@@ -1,6 +1,6 @@
 // Package lint runs the lints registered in the registry over a checked
-// tree: the core lints in this package, and those packages and extensions
-// add. A finding on a node is dropped when the node or one around it says
+// tree: the core lints in this package, and those other units add. A
+// finding on a node is dropped when the node or one around it says
 // @lint(allow = ["name"]).
 package lint
 
@@ -30,8 +30,7 @@ func (in *Input) Report(n *resolve.Node, at resolve.Site, sev diag.Severity, msg
 	in.out.Add(diag.Diagnostic{File: string(at.File.ID), Start: s, End: e, Severity: sev, Code: in.name, Message: msg})
 }
 
-// ReportFix adds a finding at a byte range with fixes, as an extension's
-// lint returns them; `heron lint --fix` applies the first.
+// ReportFix adds a finding at a byte range with fixes; `heron lint --fix` applies the first.
 func (in *Input) ReportFix(n *resolve.Node, f *resolve.File, start, end int, sev diag.Severity, msg string, fixes []diag.Fix) {
 	if allowed(in.Checker, n, in.name) || f == nil {
 		return

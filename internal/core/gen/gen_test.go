@@ -108,10 +108,8 @@ func TestRunWritesTargetsAndTheBlock(t *testing.T) {
 	}
 }
 
-func TestTSTypesAndBindings(t *testing.T) {
-	res, dir := checked(t, map[string]string{"index.heron": `import = ["std/schema@1", "std/types@1", "std/js@1"]
-
-tools: module = js("./tools/orders.ts")
+func TestTSTypes(t *testing.T) {
+	res, dir := checked(t, map[string]string{"index.heron": `import = ["std/types@1"]
 
 Status: enum {
   open: Self
@@ -125,16 +123,17 @@ Order: type {
   tags: List(String)
   status: Status
 }
-
-/// Writes every order of a pet to a CSV file and returns its path.
-export_orders(pet_id: Int, orders?: List(Order)): func(String) = tools.exportOrders
 `})
 	files, err := TS(&Input{Tree: res.Tree, Checker: res.Checker, Dir: dir})
 	if err != nil {
 		t.Fatal(err)
 	}
-	types, binds := string(files[0].Content), string(files[1].Content)
+	if len(files) != 1 || files[0].Path != ".heron/types.ts" {
+		t.Fatalf("files: %v", files)
+	}
+	types := string(files[0].Content)
 	for _, want := range []string{
+		"export type Decimal = string;",
 		`export type Status = "open" | "closed";`,
 		"export interface Order {\n  id: number;\n  note?: string | null;\n  tags: Array<string>;\n  status: Status;\n}",
 	} {
@@ -142,9 +141,8 @@ export_orders(pet_id: Int, orders?: List(Order)): func(String) = tools.exportOrd
 			t.Fatalf("types.ts lacks %q:\n%s", want, types)
 		}
 	}
-	want := `export_orders: (fn: (args: { pet_id: number; orders?: Array<T.Order> }, ctx: Ctx) => string | Promise<string>): FuncImpl<{ pet_id: number; orders?: Array<T.Order> }, string> => stamp(defineFunc(fn), "export_orders"),`
-	if !strings.Contains(binds, want) {
-		t.Fatalf("bindings.ts lacks %q:\n%s", want, binds)
+	if strings.Contains(types, "import") {
+		t.Fatalf("types.ts imports something:\n%s", types)
 	}
 }
 

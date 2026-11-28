@@ -1,4 +1,4 @@
-// The shell's extension points, for later units' frontend packages.
+// The shell's slots, for the frontend packages that register parts.
 export {
   registerPanel,
   registerGutterProvider,
@@ -15,5 +15,5 @@ export {
   type GutterContext,
   type Command,
   type KindRenderer,
-} from "./extensions.ts";
+} from "./slots.ts";
 export * as serverApi from "./api.gen.ts";

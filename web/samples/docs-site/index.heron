@@ -1,7 +1,7 @@
 // A sample docs site for the Development tools tab's "Styling and
-// extending the docs": a theme package, layouts, slots, and components
-// rendered in TS through the JS host.
-import = ["std/doc@1", "std/docs@1", "std/js@1", "./components.heron"]
+// extending the docs": a theme package, layouts, slots, and components of
+// its own.
+import = ["std/doc@1", "std/docs@1", "./components.heron"]
 
 guide: section {
   | The guide to the sample site. Its pages show the theme, the layouts
@@ -53,6 +53,4 @@ docs {
   slot("after", of = components.steps) {
     | Each step runs in the sample's folder.
   }
-
-  renderers = [js("./docs/renderers.ts")]
 }

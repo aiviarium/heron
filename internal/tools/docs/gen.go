@@ -93,9 +93,6 @@ func (s *Site) files(withAssets bool) ([]File, error) {
 	if s.ThemeErr != nil {
 		return nil, s.ThemeErr
 	}
-	if s.RenderersErr != nil {
-		return nil, s.RenderersErr
-	}
 	var out []File
 	for _, p := range s.Pages {
 		h, err := s.RenderPage(p)

@@ -170,10 +170,6 @@ language_schemas: section {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
   }
 
-  proves(heron.language.schemas.annotations.extern) {
-    verify("internal/core/extension/decl_test.go", test = "TestDiscoverExternDeclarations")
-  }
-
   proves(heron.language.schemas.annotations.errors.annotation_misplaced) {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
   }
@@ -236,35 +232,6 @@ language_schemas: section {
 
   proves(heron.language.schemas.mixing.extend_from_own_side) {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
-  }
-
-  proves(heron.language.schemas.extensions.manifest.one_declaration) {
-    verify("internal/core/extension/decl_test.go", test = "TestDiscoverExternDeclarations")
-  }
-
-  proves(heron.language.schemas.extensions.manifest.schema_keeps_types) {
-    verify("internal/core/extension/decl_test.go", test = "TestDiscoverTheSamplePackage")
-  }
-
-  proves(heron.language.schemas.extensions.limits.sandboxed) {
-    verify("internal/core/extension/sandbox_test.go", test = "TestExtensionRunsWithItsLimits")
-  }
-
-  proves(heron.language.schemas.extensions.lifecycle.handshake) {
-    verify("internal/core/extension/jshost_test.go", test = "TestHandshakeMismatchIsReported")
-  }
-
-  proves(heron.language.schemas.extensions.lifecycle.one_process) {
-    verify("internal/core/extension/jshost_test.go", test = "TestCrashFailsCallsAndRestarts")
-  }
-
-  proves(heron.language.schemas.extensions.lifecycle.run_id_on_requests) {
-    verify("internal/core/extension/protocol/conn_test.go", test = "TestRunIDTravels")
-    verify("internal/core/extension/protocol/conn_test.go", test = "TestTimeoutFromLimits")
-  }
-
-  proves(heron.language.schemas.extensions.errors.not_implemented) {
-    verify("internal/core/extension/jshost_test.go", test = "TestHandshakeMismatchIsReported")
   }
 
   proves(heron.language.schemas.flags.errors.flag_misplaced_on_annotation) {

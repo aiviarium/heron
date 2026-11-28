@@ -13,9 +13,6 @@ What done means for the unit, as the checklist the build is accepted by. Each it
 - [ ] **Tasks:** `heron run` runs a task with params from the command line, asks for missing
   ones, honours `@needs` and `@undo`, and records the run ([eval](#architecture.runtime.eval),
   `scripts/e2e-tasks.sh`).
-- [ ] **Extensions:** a sample TS package's foreign func, transport, lint and resource
-  driver type-check against their Heron declarations and work like built-in parts
-  ([extension](#architecture.runtime.extension), `scripts/e2e-interop.sh`).
 - [ ] **Prose view:** a sample prose lint provider flags words in body, `|` and `///` text,
   never inside code, inserts or links, with fixes applied to the exact source range
   ([prose view](#architecture.runtime.prose_view), `scripts/e2e-prose.sh`).

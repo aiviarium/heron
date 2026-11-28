@@ -1,7 +1,6 @@
-// The shell's extension points: panels, gutter result providers, commands
-// and renderers per kind. Built-in parts register through the same calls a
-// later unit's frontend package uses, so the shell never knows which units
-// exist.
+// The shell's slots: panels, gutter result providers, commands and
+// renderers per kind. Every part registers through the same calls, so the
+// shell never knows which parts exist.
 import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import type { NodeResult, OutlineNode } from "./api.gen.ts";

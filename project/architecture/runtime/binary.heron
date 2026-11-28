@@ -5,12 +5,12 @@ binary: component("cmd/heron", heron.system.command_line, lang = "go") {
   | `cmd/heron` holds no command of its own; it installs each built [unit](#delivery.units)'s
   | registrations into one registry and hands the arguments to the dispatcher in `cli`.
 
-  uses = [architecture.runtime.cli, architecture.runtime.extension, architecture.runtime.gen, architecture.runtime.registry, architecture.runtime.release, architecture.tools.docs, architecture.tools.lsp, architecture.tools.prose, architecture.tools.server]
+  uses = [architecture.runtime.cli, architecture.runtime.gen, architecture.runtime.registry, architecture.runtime.release, architecture.tools.docs, architecture.tools.lsp, architecture.tools.prose, architecture.tools.server]
 
   installs_units: responsibility {{
     Creates one registry, calls each installed [unit](#delivery.units)'s registration functions
     in [unit](#delivery.units) order, runs `cli.Main` with the process's arguments and environment,
-    closes the registry and exits with the status the command returned.
+    and exits with the status the command returned.
   }}
 
   /// [Unit](#delivery.units) 1 is always installed. Each later [unit](#delivery.units) appends its registrations
@@ -19,7 +19,7 @@ binary: component("cmd/heron", heron.system.command_line, lang = "go") {
     var units = []func(*registry.Registry){
       cli.Register, // 1. language and runtime
       gen.Register, //    generation targets and `heron generate`
-      func(r *registry.Registry) { extension.Register(r) },
+      release.Register, //    `heron release`, for projects that implement a spec
     }
 
     func main() {
@@ -27,9 +27,7 @@ binary: component("cmd/heron", heron.system.command_line, lang = "go") {
       for _, register := range units {
         register(r)
       }
-      code := cli.Main(r, os.Args[1:], cli.OSEnv())
-      r.Close()
-      os.Exit(code)
+      os.Exit(cli.Main(r, os.Args[1:], cli.OSEnv()))
     }
   }}
 

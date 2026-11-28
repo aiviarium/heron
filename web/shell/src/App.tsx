@@ -5,7 +5,7 @@ import { For, Show, createEffect, createMemo, onSettled } from "solid-js";
 import { CommandPalette, FileTree, Icon, IconButton, Kbd, type PaletteItem } from "@heron/components";
 import { Editor, Preview, monaco, type PreviewResult } from "@heron/editor";
 import { t } from "@heron/strings";
-import { allCommands, allPanels, gutterMarks, rendererFor } from "./extensions.ts";
+import { allCommands, allPanels, gutterMarks, rendererFor } from "./slots.ts";
 import * as s from "./state.ts";
 import { enhance } from "./docs.ts";
 

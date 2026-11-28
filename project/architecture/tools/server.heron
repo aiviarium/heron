@@ -1,35 +1,28 @@
 server: component("internal/tools/server", heron.system.server, lang = "go") {
   | The shell of `heron serve`: it serves the frontend, the spec browser, the editor's
-  | language server socket and the API on one address, and [mounts](#heron.language.core_format.mounts.mount) the ops other [units](#delivery.units)
-  | declare. The built frontend is embedded, so everything still ships in one binary.
+  | language server socket and the API on one address. The built frontend is embedded, so
+  | everything still ships in one binary.
 
   uses = [architecture.runtime.check, architecture.runtime.diag, architecture.runtime.gen, architecture.runtime.lint, architecture.runtime.records, architecture.runtime.registry, architecture.runtime.resolve, architecture.tools.docs, architecture.tools.lsp, architecture.tools.server_api, architecture.tools.server_route]
 
-  shell: responsibility {{ Route each request to the base API, a mounted extension, the spec browser, the `/lsp` socket or the frontend. }}
+  shell: responsibility {{ Route each request to the API, the spec browser, the `/lsp` socket or the frontend. }}
   workspace: responsibility {{ One check session over the served tree, shared by every request, so analysis stays incremental across edits. }}
   base_ops: responsibility {{ Implement the base API's ops: the workspace, files, problems, the outline, the preview, results, records, task runs and generated files. }}
 
-  /// The shell and the extensions `Mount` adds to it.
   exports(title = "server.go") {{
     type Shell struct {
       LSP      LSP
       Renderer Renderer
       Frontend fs.FS
     }
-    type Extension struct {
-      Name    string
-      Routes  []route.Route
-      Results []Results
-    }
     func Register(r *registry.Registry) *Shell
-    func (s *Shell) Mount(e Extension) error
     func (s *Shell) Handler(w *Workspace) (http.Handler, error)
     func OpenWorkspace(entry string, r *registry.Registry) (*Workspace, error)
   }}
 
   property() {
 
-    | Serve the base ops, the spec browser, a sample extension's routes and the socket from a real shell.
+    | Serve the base ops, the spec browser and the socket from a real shell.
 
     verify("internal/tools/server/server_test.go")
 
@@ -46,9 +39,7 @@ server: component("internal/tools/server", heron.system.server, lang = "go") {
 server_api: component("internal/tools/server/api", heron.system.server, lang = "go") {
   | The Go handlers of [the server API](#heron.tools.server_api.spec_server), which the spec package
   | publishes with its types and errors: `apigen` reads it from the spec package and writes
-  | `api_gen.go` here and the TS client of `web/shell`. A later [unit](#delivery.units) adds its
-  | ops by entering `spec_server` from its own files, as the sample under
-  | `internal/tools/server/internal/sample` does.
+  | `api_gen.go` here and the TS client of `web/shell`.
 
   uses = [architecture.tools.server_route]
 
@@ -65,14 +56,14 @@ server_api: component("internal/tools/server/api", heron.system.server, lang = "
 
 @display("API generator")
 server_apigen: component("internal/tools/server/apigen", heron.system.server, lang = "go") {
-  | Writes a [unit](#delivery.units)'s routes and client from its ops on `spec_server`:
-  | `go run ./internal/tools/server/apigen -base server.heron [-ext files] -go out.go -pkg name -ts out.ts`.
+  | Writes the routes and client of the ops on `spec_server`:
+  | `go run ./internal/tools/server/apigen -base server.heron -go out.go -pkg name -ts out.ts`.
 
   uses = [architecture.runtime.check, architecture.runtime.resolve, architecture.runtime.types]
 
-  only_own_ops: property {
-    must {{ check `spec_server` with the `-ext` files included, and write for their ops only, or for the base's when no `-ext` is given: Go types, a `Service` interface, `Routes(Service)`, and a TS client }}
-    verify("internal/tools/server/server_test.go", test = "TestExtensionRoutesAreMounted")
+  writes_api: property {
+    must {{ check `spec_server` and write for its ops Go types, a `Service` interface, `Routes(Service)`, and a TS client }}
+    verify("internal/tools/server/server_test.go", test = "TestGeneratedRoutesMatchTheHeron")
   }
 }
 

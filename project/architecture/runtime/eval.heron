@@ -1,7 +1,7 @@
 eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
   | The interpreter for the `do` code of funcs, macros, tasks and [hooks](#heron.language.scripting.code.hook). It does no I/O of
   | its own: processes, files, the environment and the clock come in through capabilities,
-  | and [foreign funcs](#heron.language.interop.declaring.foreign_func) and transports through the registry, so a run is replayable from what
+  | and built-in funcs and transports through the registry, so a run is replayable from what
   | those returned.
 
   uses = [architecture.runtime.ast, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
@@ -13,9 +13,8 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
   }}
 
   calls: responsibility {{
-    Calls a Heron func or task, a macro's expansion, a func the registry implements, a
-    [foreign func](#heron.language.interop.declaring.foreign_func) through the binder of its module's kind, and an op through the
-    transport its binding names, and serves the calls foreign code makes back.
+    Calls a Heron func or task, a macro's expansion, a func the registry implements, and
+    an op through the transport its binding names.
   }}
 
   natives: responsibility {{
@@ -25,7 +24,7 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
   }}
 
   events: responsibility {{
-    Reports each call, step, log line, field set, process and foreign call to `OnEvent`,
+    Reports each call, step, log line, field set and process to `OnEvent`,
     in order, for the run record.
   }}
 
@@ -37,15 +36,12 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
       Caps     Caps
       Dir      string      // where relative paths in run, read and write start
       OnEvent  func(Event) // what the run did, in order
-      Pure     PureCache   // results of pure foreign funcs, by a hash of their inputs
       State    map[*resolve.Node]map[string]Value // fields code set on nodes
     }
     func New(t *resolve.Tree, c *types.Checker, r *registry.Registry, caps Caps) *Machine
     func (m *Machine) Call(ctx context.Context, fn *resolve.Node, args Args) (Value, error)
     func (m *Machine) RunCode(ctx context.Context, n *resolve.Node, vars map[string]Value) (Value, error)
     func (m *Machine) Expand(ctx context.Context, macro *resolve.Node, args Args) (string, error)
-    // CallPath serves an extension's ctx.call: a func or op by its path.
-    func (m *Machine) CallPath(ctx context.Context, target string, args map[string]any) (any, error)
     func (m *Machine) Close() error // removes what the run made, such as temp(…) files
     func MachineOf(ctx context.Context) *Machine
 
@@ -107,7 +103,7 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
       Type   string
       Fields map[string]Value
     }
-    func Plain(v Value) any     // the form that crosses the foreign boundary
+    func Plain(v Value) any     // the form registered funcs and transports take
     func FromPlain(v any) Value
     func Str(v Value) string
     func Equal(a, b Value) bool
@@ -129,30 +125,25 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
     verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
   }
 
-  pure_at_evaluation: property {
-    mustNot {{ call a [foreign func](#heron.language.interop.declaring.foreign_func) that isn't declared pure while it evaluates a value or expands a macro }}
-    verify("internal/core/eval/foreign_test.go", test = "TestPureForeignFuncsAtEvaluationTime")
-  }
-
   responsibility {{ Returns the error *eval.Error: A fault in code, with the file, line and column: an unknown name, a wrong operand, division by zero, a non-Bool condition. It fails the run. }}
   responsibility {{ Returns the error *eval.Throw: An error thrown as a Heron value, such as a `ProcessError` from a process that exits non-zero; uncaught, it fails the run. }}
 
   property() {
 
-    | Bindings and control flow, operators, processes and files through fake capabilities, throws and faults, tasks, macros, node fields and [hooks](#heron.language.scripting.code.hook), [foreign funcs](#heron.language.interop.declaring.foreign_func), steps, strings and JSON.
+    | Bindings and control flow, operators, processes and files through fake capabilities, throws and faults, tasks, macros, node fields and [hooks](#heron.language.scripting.code.hook), registered funcs, steps, strings and JSON.
 
     verify("internal/core/eval/eval_test.go")
 
   }
   property() {
-    | Ops through their bound transport, pure [foreign funcs](#heron.language.interop.declaring.foreign_func) at [evaluation](#heron.language.scripting.funcs_and_templates.evaluation) time, and callbacks from foreign code.
-    verify("internal/core/eval/foreign_test.go")
+    | Ops through their bound transport.
+    verify("internal/core/eval/transport_test.go")
   }
 
   verify("scripts/e2e-tasks.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for tasks: `heron run` runs a task with params from the command line, asks for missing ones, honours `@needs` and `@undo`, and records the run. }}
 }
 
-eval_host: component("internal/core/eval/host", heron.system.interpreter, heron.system.extension_host, lang = "go") {
+eval_host: component("internal/core/eval/host", heron.system.interpreter, lang = "go") {
   | Supplies `eval`'s capabilities from the operating system: processes through `os/exec`,
   | files through `os`, the process environment and the wall clock. `heron run` and the
   | language server's task runs use it; tests use fakes instead.

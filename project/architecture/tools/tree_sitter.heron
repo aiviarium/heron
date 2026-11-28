@@ -29,7 +29,7 @@ tree_sitter: component("grammar/tree-sitter-heron", heron.system.editor_grammar,
   }
 
   same_fixtures: property {
-    must {{ parse every fixture of mode `heron`, the fixtures' context files, and every `.heron` file under std/, spec/, examples/ and the extension protocol with no `ERROR` or `MISSING` node }}
+    must {{ parse every fixture of mode `heron`, the fixtures' context files, and every `.heron` file under std/, spec/ and examples/ with no `ERROR` or `MISSING` node }}
     | A [prose file](#heron.language.core_format.prose_layer.prose_file) is Markdown to editors, with Heron in its fences, and a sketch elides
     | parts on purpose, so neither is parsed.
     verify("grammar/tree-sitter-heron/test-fixtures.sh")

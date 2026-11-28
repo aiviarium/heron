@@ -14,7 +14,7 @@ records: component("internal/core/records", heron.system.interpreter, lang = "go
   run_kind: responsibility {{
     Registers the `run` kind and records a `heron run` from the interpreter's events: its
     task, entry, arguments, the tasks it ran in order with their role (`needed`, `task` or
-    `undo`), status and timing, its steps, processes, logs, calls and resources, and its
+    `undo`), status and timing, its steps, processes, logs and calls, and its
     result or error and exit status.
   }}
 
@@ -46,9 +46,7 @@ records: component("internal/core/records", heron.system.interpreter, lang = "go
     const RunKind = "run"
     func Register(r *registry.Registry)
     func NewRunRecorder(task, entry string, args map[string]eval.Value, now func() time.Time) *RunRecorder
-    func (r *RunRecorder) ID() string
     func (r *RunRecorder) OnEvent(e eval.Event)
-    func (r *RunRecorder) OnResource(e registry.ResourceEvent)
     func (r *RunRecorder) StartTask(path, role string)
     func (r *RunRecorder) FinishTask(result eval.Value, err error)
     func (r *RunRecorder) Data(result eval.Value, err error, exit int) map[string]any

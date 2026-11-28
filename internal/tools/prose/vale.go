@@ -1,7 +1,7 @@
 // Package prose is unit 2's prose linting: Vale run as a process over the
 // prose view, with its alerts mapped back to exact source ranges, its fixes
 // and vocabulary actions, and the spec-aware prose lints of std/lint. Both
-// register as prose providers, unit 1's extension point.
+// register as prose providers.
 package prose
 
 import (

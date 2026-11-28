@@ -22,11 +22,9 @@ You need Git, Go 1.24.7 or newer, and Node.js 20 or newer, whose corepack
 runs the pnpm version `web/package.json` pins (10.28.0); nothing else is
 installed globally.
 
-Heron's extension protocol runs on [Sparrow](https://github.com/aiviarium/sparrow), and
-`std/sparrow` binds apis to it. Go takes Sparrow's module from the Go proxy, at the commit
-`go.mod` pins; its TS package, which isn't on npm, comes from the `web/sparrow` submodule at
-the same commit, and `web/runtime`'s install builds it. `scripts/build.sh` checks the
-submodule out when the clone didn't (`git clone --recurse-submodules` does).
+`std/sparrow` binds apis to [Sparrow](https://github.com/aiviarium/sparrow); Go takes
+Sparrow's module from the Go proxy, at the commit `go.mod` pins, for its schema package
+and canonical CBOR.
 
 ```sh
 git clone https://github.com/aiviarium/heron.git
@@ -93,8 +91,7 @@ This repository imports the spec as a package and never writes spec
 content: the package is sealed, so nothing here can amend, scope or set
 into its nodes, and a change to what the system does is made in
 heron-specs first. The fixtures the parser, formatter and checker are
-tested against are the spec's `example` nodes, and the extension protocol
-is generated from the spec's `language/interop/protocol_messages.heron`.
+tested against are the spec's `example` nodes.
 
 ## Getting the spec
 
@@ -123,7 +120,7 @@ scripts/spec-setup.sh            # links the checkout at .heron/packages/
 ```
 
 With it set, the link stands in for the installed package for `heron
-check` and the editor, and the Go tests, `protogen` and the scripts read
+check` and the editor, and the Go tests and the scripts read
 the package from `$HERON_SPECS_DIR` directly. Unset it and run
 `scripts/spec-setup.sh` again to go back to the pinned version.
 

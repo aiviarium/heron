@@ -1,7 +1,7 @@
-// Package registry holds the extension points every unit registers through:
-// commands, generation targets, lints, prose lint providers, record kinds,
-// drivers and renderers. Built-in parts and extensions register the same
-// way, so an earlier unit never knows which later units exist.
+// Package registry holds what every unit registers: commands, generation
+// targets, lints, prose lint providers, record kinds, transports and
+// renderers. Every part registers the same way, so an earlier unit never
+// knows which later units exist.
 package registry
 
 import (
@@ -27,12 +27,11 @@ type Command struct {
 	Run     func(env *Env, args []string) int
 }
 
-// Registry is the set of registered extension points.
+// Registry is the set of registered parts.
 type Registry struct {
 	commands map[string]*Command
 	lints    map[string]*Lint
 	funcs    map[string]*Func
-	foreign  map[string]*Foreign
 	prose    map[string]*ProseProvider
 	records  map[string]*RecordKind
 	setup    map[string]*SetupStep
@@ -47,8 +46,7 @@ func New() *Registry {
 	return &Registry{commands: map[string]*Command{}, lints: map[string]*Lint{}}
 }
 
-// Lint is a check over the resolved tree that `heron lint` runs. Core lints,
-// lints from packages and lints from extensions register alike.
+// Lint is a check over the resolved tree that `heron lint` runs.
 type Lint struct {
 	Name    string // stable, as written in @lint(allow = […])
 	Summary string

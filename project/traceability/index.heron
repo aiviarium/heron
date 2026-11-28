@@ -13,7 +13,6 @@ include = [
   "./language_apis.heron",
   "./language_specifications.heron",
   "./language_scripting.heron",
-  "./language_interop.heron",
   "./language_std.heron",
   "./cli_check.heron",
   "./cli_fmt.heron",

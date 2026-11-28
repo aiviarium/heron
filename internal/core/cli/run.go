@@ -140,26 +140,13 @@ func runTask(env *registry.Env, args []string, r *registry.Registry) int {
 		}
 	}
 
-	// Extensions register what the tree declares; they stop when the run ends.
-	defer r.Close()
-	if err := r.LoadTree(context.Background(), res); err != nil {
-		return fail(exitFailed, "%v", err)
-	}
 	m := eval.New(res.Tree, res.Checker, r, host.Caps(func(l string) { fmt.Fprintln(env.Stderr, l) }))
 	m.Dir = env.Dir
 	defer m.Close()
 	rec := records.NewRunRecorder(task.Path(), string(ids[0]), vars, nil)
 	m.OnEvent = rec.OnEvent
-	// The run's scope: extensions' ctx.call reaches this machine, and the
-	// resources it uses are set up on first use and torn down at the end.
-	run := r.StartRun(rec.ID())
-	run.Call = m.CallPath
-	run.OnResource = rec.OnResource
-	ctx := registry.WithRun(context.Background(), run)
+	ctx := context.Background()
 	code, result, runErr := runOrder(ctx, m, res.Checker, order, task, vars, o.undo, rec, env.Stderr)
-	if err := run.End(ctx); err != nil {
-		fmt.Fprintf(env.Stderr, "heron run: %v\n", err)
-	}
 	store := records.Open(filepath.Dir(string(ids[0])), records.Config{}, r)
 	if _, err := store.Write(records.RunKind, rec.Data(result, runErr, code)); err != nil {
 		fmt.Fprintf(env.Stderr, "heron run: the run wasn't recorded: %v\n", err)

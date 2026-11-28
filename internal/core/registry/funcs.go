@@ -42,34 +42,13 @@ func (t *Thrown) Error() string {
 	return t.Type
 }
 
-// Func is a func implemented in Go or by an extension, registered by the
+// Func is a func implemented in Go, registered by the
 // qualified path of its Heron declaration, which has no body of its own.
 // Eval calls it where the declaration is called.
 type Func struct {
 	Name    string // such as "seed.seed_pets"
 	Summary string
 	Call    FuncImpl
-	// Foreign names the process that serves the func, such as an
-	// extension, when it runs outside the binary; its calls are foreign
-	// calls, recorded as such and allowed at evaluation time only if pure.
-	Foreign string
-}
-
-// Module is a module node a foreign func is bound to, as in
-// `tools: module = js("./tools/orders.ts")`.
-type Module struct {
-	Kind string // the constructor's name, such as "js"
-	Spec string // its first argument, such as "./tools/orders.ts"
-	Path string // the module node's qualified path, such as "tools"
-	Dir  string // the directory of the file that declares the module
-}
-
-// Foreign binds funcs declared with `= module.export` to their
-// implementations, for modules of one kind: the JS host registers "js".
-// Bind is called once per bound func, the first time it is called.
-type Foreign struct {
-	Kind string
-	Bind func(m Module, export string) (FuncImpl, error)
 }
 
 // AddFunc registers a func by its declaration's path; a path registered
@@ -106,30 +85,4 @@ func (r *Registry) Funcs() []*Func {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
-}
-
-// AddForeign registers the binder for a module kind; a kind registered
-// twice is an error.
-func (r *Registry) AddForeign(f Foreign) error {
-	if f.Kind == "" || f.Bind == nil {
-		return fmt.Errorf("registry: a foreign binder needs a kind and a Bind function")
-	}
-	if r.foreign == nil {
-		r.foreign = map[string]*Foreign{}
-	}
-	if _, dup := r.foreign[f.Kind]; dup {
-		return fmt.Errorf("registry: foreign kind %q is registered twice", f.Kind)
-	}
-	r.foreign[f.Kind] = &f
-	return nil
-}
-
-// Foreign returns the binder registered for a module kind, or nil.
-func (r *Registry) Foreign(kind string) *Foreign { return r.foreign[kind] }
-
-// MustAddForeign is AddForeign for registrations at start-up.
-func (r *Registry) MustAddForeign(f Foreign) {
-	if err := r.AddForeign(f); err != nil {
-		panic(err)
-	}
 }

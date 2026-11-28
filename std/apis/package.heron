@@ -1,6 +1,5 @@
-// std/apis: the extension point transports implement, from the Interop and
-// APIs tabs. A transport that needs code implements Transport, usually in
-// TS, and is bound with js(…), so a new protocol never needs a new build.
+// std/apis: the interface transports implement, from the APIs tab. A
+// transport is declared in a package and implemented in heron.
 import = ["std/schema@1", "std/types@1"]
 
 apis: package(version = "1.0", requires = ["std/types@1"]) {
@@ -17,7 +16,7 @@ apis: package(version = "1.0", requires = ["std/types@1"]) {
   /// than one server.
   server(url: String): annotation<repeatable>(on = [types.api])
 
-  /// A transport bound to its implementation, as in
-  /// `grpc: transport = js("@acme/heron-grpc")`.
+  /// A transport that carries the ops its package's annotations bind,
+  /// implemented in heron, as in `carrier: transport`.
   transport: kind
 }

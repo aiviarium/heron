@@ -1,7 +1,6 @@
 // Package gen is the generation framework: adapters read the resolved tree
 // and return files, none with a config format of its own, and `heron
-// generate <target>` runs the adapters registered for a target. Built-in
-// adapters and those extensions implement register alike, through
+// generate <target>` runs the adapters registered for a target, through
 // registry.Generator. The framework also writes the managed ignore block.
 package gen
 
@@ -31,10 +30,6 @@ type Input struct {
 	// "pack" for the agents target's context pack.
 	Options map[string]string
 }
-
-// ResolvedTree gives an adapter in another package the tree without
-// importing gen, as the extension host's adapters do.
-func (in *Input) ResolvedTree() (*resolve.Tree, *types.Checker) { return in.Tree, in.Checker }
 
 // Result is what a run wrote.
 type Result struct {
@@ -120,7 +115,7 @@ func Register(r *registry.Registry) {
 		Usage:   "[--entry file] [--pack id] [targets…]",
 		Run:     func(env *registry.Env, args []string) int { return command(env, args, r) },
 	})
-	if err := r.SetGenerator(registry.Generator{Path: "js.ts", Target: "ts", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
+	if err := r.SetGenerator(registry.Generator{Path: "gen.ts", Target: "ts", Generate: func(ctx context.Context, in any) ([]registry.GeneratedFile, error) {
 		return TS(in.(*Input))
 	}}); err != nil {
 		panic(err)
@@ -168,12 +163,7 @@ func command(env *registry.Env, args []string, r *registry.Registry) int {
 		fmt.Fprintln(env.Stderr, "heron generate: the tree doesn't check")
 		return 1
 	}
-	defer r.Close()
 	ctx := context.Background()
-	if err := r.LoadTree(ctx, res); err != nil {
-		fmt.Fprintln(env.Stderr, "heron generate:", err)
-		return 1
-	}
 	out, err := Run(ctx, r, &Input{Tree: res.Tree, Checker: res.Checker, Dir: env.Dir, Options: map[string]string{"pack": *pack}}, targets)
 	if out != nil {
 		for _, w := range out.Written {

@@ -12,8 +12,6 @@ language.core_format.tour.format_tour                            core-format
 language.data.configuration.data_configuration                   data
 language.data.configuration.data_layering                        data
 language.data.types.data_types                                   data
-language.interop.declaring.interop_foreign_func                  interop
-language.interop.packaging.interop_transport                     interop
 language.markup.long_form.markup_documentation_page              markup
 language.markup.long_form.markup_page_structure                  markup
 language.markup.long_form.markup_prompt                          markup
@@ -21,7 +19,6 @@ language.markup.long_form.markup_prose_file                      markup
 language.schemas.categories.std_doc_schema                       schemas
 language.schemas.extending_types.std_http_schema                 schemas
 language.schemas.extending_types.std_types_schema                schemas
-language.schemas.extensions.compliance_extension                 schemas
 language.schemas.kinds.std_scenarios_schema                      schemas
 language.scripting.funcs_and_templates.scripting_example         scripting
 language.scripting.processes_and_files.scripting_processes       scripting

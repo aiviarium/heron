@@ -1,11 +1,9 @@
 # Roadmap {#roadmap}
 
-Units 3 and 4, deferred: what they'll add and the
-[extension points](#heron.language.interop.declaring.extension_point) they'll use.
+Units 3 and 4, deferred: what they'll add.
 
 Units 3 and 4 aren't implemented in the first build. Their tabs are exported and their
-code blocks extracted as fixtures, and units 1 and 2 expose every extension point
-they'll register through, so adding them later changes neither.
+code blocks extracted as fixtures.
 
 Ten Heron blocks of unit 1's tabs use what units 3 and 4 own: `std/ci` and `std/env` of
 DevOps on the Data and Example tabs, `std/scenarios` of Testing and `std/agents` of

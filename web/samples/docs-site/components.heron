@@ -1,5 +1,5 @@
-// The components the sample site's prose and slots use. Their renderers
-// are written in TS (docs/renderers.ts) and registered by the docs block.
+// The components the sample site's prose and slots use, shown by the docs'
+// generic view.
 import = ["std/schema@1", "std/types@1", "std/doc@1"]
 
 components: package(version = "1.0") {

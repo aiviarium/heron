@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/registry"
@@ -27,28 +26,18 @@ type Machine struct {
 	// OnEvent, when set, receives what the run did, in order: the run
 	// record is written from these.
 	OnEvent func(Event)
-	// Pure caches the results of pure foreign funcs by a hash of their
-	// inputs; New gives an in-memory cache, and a caller may back it with
-	// files.
-	Pure PureCache
-
 	// State holds the fields code set on nodes, as in `db.ready = true`.
 	State map[*resolve.Node]map[string]Value
 
 	active  map[*resolve.Node]bool
 	lets    map[*resolve.Local]Value
 	values  map[*resolve.Node]Value
-	foreign map[*resolve.Node]registry.FuncImpl
 	emits   []*[]string
 	depth   int
 	tempDir string
 	// evaluating counts the tree evaluations under way, such as a computed
-	// value or a macro's expansion, during which only pure foreign funcs run.
+	// value or a macro's expansion, during which no op is called.
 	evaluating int
-	// waiting counts the foreign calls the machine waits for; inbox carries
-	// the calls their code makes back (ctx.call), served while it waits.
-	waiting int
-	inbox   chan func()
 }
 
 // New returns a machine for a checked tree.
@@ -58,13 +47,10 @@ func New(t *resolve.Tree, c *types.Checker, r *registry.Registry, caps Caps) *Ma
 	}
 	return &Machine{
 		Tree: t, Types: c, Registry: r, Caps: caps,
-		State:   map[*resolve.Node]map[string]Value{},
-		active:  map[*resolve.Node]bool{},
-		lets:    map[*resolve.Local]Value{},
-		values:  map[*resolve.Node]Value{},
-		foreign: map[*resolve.Node]registry.FuncImpl{},
-		Pure:    MemoryCache{},
-		inbox:   make(chan func()),
+		State:  map[*resolve.Node]map[string]Value{},
+		active: map[*resolve.Node]bool{},
+		lets:   map[*resolve.Local]Value{},
+		values: map[*resolve.Node]Value{},
 	}
 }
 
@@ -86,8 +72,6 @@ type Event struct {
 	Value Value // the result, the value set or the line logged
 	Err   error
 	Depth int // how many calls deep it happened
-	// Duration is how long a foreign call took, by the run's clock.
-	Duration time.Duration
 }
 
 // EventKind says what an event records.
@@ -95,12 +79,11 @@ type EventKind string
 
 // The event kinds.
 const (
-	EventCall    EventKind = "call"    // a func, task or foreign call, after it returned
+	EventCall    EventKind = "call"    // a func, task or op call, after it returned
 	EventStep    EventKind = "step"    // a trailing block, as in check("x") { … }, after it ran
 	EventLog     EventKind = "log"     // a line of log(…)
 	EventSet     EventKind = "set"     // node.field = value
 	EventProcess EventKind = "process" // a process run(…) started, after it exited
-	EventForeign EventKind = "foreign" // a call into foreign code, a func or a transport, after it returned
 )
 
 func (m *Machine) event(e Event) {
@@ -303,16 +286,9 @@ func (m *Machine) callNode(ctx context.Context, n *resolve.Node, args callArgs, 
 	case len(n.Code) > 0:
 		v, err = m.runCode(ctx, n, vars)
 	case n.Value != nil:
-		if impl, ok, ferr := m.foreignImpl(n); ferr != nil {
-			err = ferr
-		} else if ok {
-			v, err = m.callImpl(ctx, n, impl, vars, st, "js")
-		} else {
-			v, err = m.expr(ctx, m.frameOf(n, vars), n.Value)
-		}
+		v, err = m.expr(ctx, m.frameOf(n, vars), n.Value)
 	case m.Registry.Func(key) != nil:
-		f := m.Registry.Func(key)
-		v, err = m.callImpl(ctx, n, f.Call, vars, st, f.Foreign)
+		v, err = m.callImpl(ctx, n, m.Registry.Func(key).Call, vars, st)
 	default:
 		err = m.errorf(n.Decl, nil, "%s has no body and no implementation is registered for %s", n.Name, key)
 	}
@@ -322,37 +298,8 @@ func (m *Machine) callNode(ctx context.Context, n *resolve.Node, args callArgs, 
 	return v, err
 }
 
-// callImpl calls a func implemented outside Heron. foreign names the
-// process that serves it when that is foreign code, such as "js"; such a
-// call is recorded with its duration, and while the tree is evaluated only
-// a pure one may run, cached by a hash of its inputs.
-func (m *Machine) callImpl(ctx context.Context, n *resolve.Node, impl registry.FuncImpl, vars map[string]Value, st *step, foreign string) (Value, error) {
-	if foreign == "" {
-		return m.callImplNow(ctx, n, impl, vars, st)
-	}
-	pure := types.HasKindFlag(n, "pure")
-	if m.evaluating > 0 && !pure {
-		return nil, m.errorf(n.Decl, nil, "%s is a foreign func that isn't <pure>, so it can't run while the tree is evaluated", n.Path())
-	}
-	var key string
-	if pure && m.Pure != nil && st == nil {
-		key = pureKey(qualified(n), vars)
-		if v, ok := m.Pure.Get(key); ok {
-			return v, nil
-		}
-	}
-	start := m.now()
-	var v Value
-	var err error
-	m.foreignCall(func() { v, err = m.callImplNow(ctx, n, impl, vars, st) })
-	m.event(Event{Kind: EventForeign, Name: qualified(n), Args: vars, Value: v, Err: err, Duration: m.now().Sub(start)})
-	if err == nil && key != "" {
-		m.Pure.Put(key, v)
-	}
-	return v, err
-}
-
-func (m *Machine) callImplNow(ctx context.Context, n *resolve.Node, impl registry.FuncImpl, vars map[string]Value, st *step) (Value, error) {
+// callImpl calls a func built into heron, registered under its path.
+func (m *Machine) callImpl(ctx context.Context, n *resolve.Node, impl registry.FuncImpl, vars map[string]Value, st *step) (Value, error) {
 	call := &registry.FuncCall{Func: qualified(n), Args: map[string]any{}, Dir: m.dirOf(n.Decl.File)}
 	for k, v := range vars {
 		call.Args[k] = Plain(v)
@@ -376,60 +323,6 @@ func (m *Machine) callImplNow(ctx context.Context, n *resolve.Node, impl registr
 		return nil, err
 	}
 	return FromPlain(out), nil
-}
-
-// foreignImpl finds the implementation of a func bound with `=` to an
-// export of a module node, as in `= tools.exportOrders`.
-func (m *Machine) foreignImpl(n *resolve.Node) (registry.FuncImpl, bool, error) {
-	if impl, ok := m.foreign[n]; ok {
-		return impl, true, nil
-	}
-	pe, ok := n.Value.(ast.PathExpr)
-	if !ok {
-		return nil, false, nil
-	}
-	segs := resolve.PathSegs(pe.Path().N)
-	if len(segs) != 2 {
-		return nil, false, nil
-	}
-	sc := n.ValueSite.Scope
-	if sc == nil {
-		sc = n.Decl.Scope
-	}
-	b := sc.Lookup(segs[0], n.ValueSite.File, -1)
-	mod := b.Node
-	if mod == nil || mod.Child(segs[1]) != nil {
-		return nil, false, nil
-	}
-	k := m.Types.KindOf(mod)
-	if k == nil {
-		k = m.Types.Meta(mod)
-	}
-	if k == nil || k.Name != "module" {
-		return nil, false, nil
-	}
-	info := registry.Module{Path: mod.Path(), Dir: m.dirOf(mod.Decl.File)}
-	if ce, ok := mod.Value.(ast.CallExpr); ok {
-		if p, ok := ce.Callee().(ast.PathExpr); ok {
-			info.Kind = resolve.PathText(p.Path().N)
-		}
-		for _, a := range ce.Args().Args() {
-			if pa, ok := a.(ast.PositionalArg); ok {
-				info.Spec, _ = resolve.StringValue(pa.Expr().Syntax())
-				break
-			}
-		}
-	}
-	fb := m.Registry.Foreign(info.Kind)
-	if fb == nil {
-		return nil, false, m.errorf(n.ValueSite, nil, "%s is bound to %s.%s, but no host for %s modules is registered", n.Name, segs[0], segs[1], info.Kind)
-	}
-	impl, err := fb.Bind(info, segs[1])
-	if err != nil {
-		return nil, false, m.errorf(n.ValueSite, nil, "binding %s to %s.%s: %v", n.Name, segs[0], segs[1], err)
-	}
-	m.foreign[n] = impl
-	return impl, true, nil
 }
 
 func (m *Machine) dirOf(f *resolve.File) string {

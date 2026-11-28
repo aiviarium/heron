@@ -1,10 +1,8 @@
 package docs
 
 import (
-	"context"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/registry"
 	uistrings "github.com/aiviarium/heron/web/strings"
 )
 
@@ -24,15 +22,6 @@ type tagFunc func(body string, attrs map[string]string) (string, bool)
 // first, then the built-in components of std/doc.
 func (s *Site) tagRenderer(kind string) tagFunc {
 	if r := s.Opts.Registry; r != nil {
-		if x := r.Renderer(kind); x != nil && x.Name != "docs" && x.Render == nil {
-			return func(body string, attrs map[string]string) (string, bool) {
-				out, err := x.Plain(context.Background(), &registry.RenderInput{Kind: kind, Body: body, Attrs: s.typedAttrs(kind, attrs)})
-				if err != nil {
-					return `<span class="ref-broken">` + esc(err.Error()) + `</span>`, false
-				}
-				return out.HTML, out.Block
-			}
-		}
 		if x := r.Renderer(kind); x != nil && x.Name != "docs" {
 			return func(body string, attrs map[string]string) (string, bool) {
 				c := s.newCtx(nil, nil, 2)

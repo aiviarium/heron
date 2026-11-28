@@ -1,7 +1,6 @@
 // Package server is the shell of `heron serve`: it serves the frontend, the
-// editor's language server socket and the API, and mounts the ops that
-// other units declare on `spec_server`. Each unit's routes come from code
-// apigen generates from its Heron files; the shell only mounts them.
+// editor's language server socket and the API, whose routes come from code
+// apigen generates from spec_server.
 package server
 
 import (
@@ -17,7 +16,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aiviarium/heron/internal/core/check"
@@ -39,20 +37,7 @@ type Renderer interface {
 	RenderFile(res *check.Result, file resolve.FileID) (string, error)
 }
 
-// Results gives the latest results for the nodes under a path ("" for all),
-// such as a task's last run. Units add providers; the run records are the
-// built-in one.
-type Results func(ctx context.Context, w *Workspace, path string) []api.NodeResult
-
-// Extension is what a unit mounts on the shell: the routes apigen generated
-// from its ops on spec_server, and its result providers.
-type Extension struct {
-	Name    string
-	Routes  []route.Route
-	Results []Results
-}
-
-// Shell is the server shell. Units mount extensions on it before it runs.
+// Shell is the server shell.
 type Shell struct {
 	// LSP opens the language server for /lsp; nil answers 503.
 	LSP LSP
@@ -63,32 +48,9 @@ type Shell struct {
 	// AllowOrigins are the origins besides the server's own whose pages may
 	// call the API.
 	AllowOrigins []string
-
-	mu   sync.Mutex
-	exts []Extension
 }
 
-// Mount adds a unit's extension. Two routes with one pattern are an error.
-func (s *Shell) Mount(e Extension) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	seen := map[string]bool{}
-	for _, x := range s.exts {
-		for _, r := range x.Routes {
-			seen[r.Pattern()] = true
-		}
-	}
-	for _, r := range e.Routes {
-		if seen[r.Pattern()] {
-			return fmt.Errorf("server: %s mounts %s, which is already mounted", e.Name, r.Pattern())
-		}
-	}
-	s.exts = append(s.exts, e)
-	return nil
-}
-
-// Register adds `heron serve` to the registry and returns the shell that
-// later units mount their extensions on.
+// Register adds `heron serve` to the registry and returns its shell.
 func Register(r *registry.Registry) *Shell {
 	s := &Shell{Renderer: DocsRenderer{Registry: r}, LSP: LanguageServer(r)}
 	r.MustAddCommand(registry.Command{
@@ -146,26 +108,15 @@ func (s *Shell) command(env *registry.Env, args []string, r *registry.Registry) 
 	return 0
 }
 
-// Handler returns the server for a workspace: the base API, every mounted
-// extension's routes, and the frontend, whose unknown paths serve
+// Handler returns the server for a workspace: the API's routes and the
+// frontend, whose unknown paths serve
 // index.html so the app's own routes load.
 func (s *Shell) Handler(w *Workspace) (http.Handler, error) {
 	mux := http.NewServeMux()
 	svc := &service{shell: s, ws: w, agents: &agentExport{ws: w}}
-	s.mu.Lock()
-	exts := append([]Extension{{Name: "base", Routes: api.Routes(svc)}}, s.exts...)
-	s.mu.Unlock()
-	svc.exts = exts
-	seen := map[string]string{}
-	for _, e := range exts {
-		for _, rt := range e.Routes {
-			p := rt.Pattern()
-			if prev, dup := seen[p]; dup {
-				return nil, fmt.Errorf("server: %s and %s both mount %s", prev, e.Name, p)
-			}
-			seen[p] = e.Name
-			mux.HandleFunc(p, rt.Handler)
-		}
+	routes := api.Routes(svc)
+	for _, rt := range routes {
+		mux.HandleFunc(rt.Pattern(), rt.Handler)
 	}
 	mux.HandleFunc("/api/", func(rw http.ResponseWriter, r *http.Request) {
 		route.WriteError(rw, route.Coded(http.StatusNotFound, "server.NO_OP", "no op at %s %s", r.Method, r.URL.Path))
@@ -175,10 +126,8 @@ func (s *Shell) Handler(w *Workspace) (http.Handler, error) {
 		front = Frontend()
 	}
 	served := map[string]bool{}
-	for _, e := range exts {
-		for _, rt := range e.Routes {
-			served[rt.Op] = true
-		}
+	for _, rt := range routes {
+		served[rt.Op] = true
 	}
 	mux.Handle("GET "+DocsPrefix, gzipped(&specBrowser{ws: w, served: served}))
 	mux.Handle("GET "+AgentsPrefix, gzipped(svc.agents))

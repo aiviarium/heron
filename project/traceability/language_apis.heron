@@ -18,7 +18,7 @@ language_apis: section {
   }
 
   proves(heron.language.apis.apis_and_ops.ops_called_by_parameters) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.params.location_annotations) {
@@ -50,7 +50,7 @@ language_apis: section {
   }
 
   proves(heron.language.apis.responses.transport_errors) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.streams.stream_directions) {
@@ -70,27 +70,27 @@ language_apis: section {
   }
 
   proves(heron.language.apis.transports.binding_by_package) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.transports.request_by_parameter) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.transports.unbound_op) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.transports.binding_without_transport) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.transports.several_transports) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.transports.unimplemented_transport) {
-    verify("internal/core/eval/foreign_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
+    verify("internal/core/eval/transport_test.go", test = "TestOpCallsGoThroughTheBoundTransport")
   }
 
   proves(heron.language.apis.examples.example_fields) {

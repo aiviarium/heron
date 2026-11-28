@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/aiviarium/heron/internal/core/cli"
-	"github.com/aiviarium/heron/internal/core/extension"
 	"github.com/aiviarium/heron/internal/core/gen"
 	"github.com/aiviarium/heron/internal/core/project/release"
 	"github.com/aiviarium/heron/internal/core/registry"
@@ -19,9 +18,8 @@ import (
 // units holds each installed unit's registrations, in unit order. Unit 1 is
 // always present; later units append theirs in init.
 var units = []func(*registry.Registry){
-	cli.Register, // 1. language and runtime
-	gen.Register, //    generation targets and `heron generate`
-	func(r *registry.Registry) { extension.Register(r) }, //    extensions and the JS host
+	cli.Register,     // 1. language and runtime
+	gen.Register,     //    generation targets and `heron generate`
 	release.Register, //    `heron release`, for projects that implement a spec
 }
 
@@ -30,7 +28,5 @@ func main() {
 	for _, register := range units {
 		register(r)
 	}
-	code := cli.Main(r, os.Args[1:], cli.OSEnv())
-	r.Close()
-	os.Exit(code)
+	os.Exit(cli.Main(r, os.Args[1:], cli.OSEnv()))
 }

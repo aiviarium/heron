@@ -17,7 +17,6 @@ include = [
   "./gen.heron",
   "./project.heron",
   "./lens.heron",
-  "./extension.heron",
   "./setup.heron",
   "./version.heron",
   "./cli.heron",
@@ -25,8 +24,8 @@ include = [
   "./std.heron",
 ]
 
-| [Unit](#delivery.units) 1, the language and runtime: a compiler with a runner attached, the extension and
-| interop host, and the standard packages that define the language. Every later [unit](#delivery.units)
+| [Unit](#delivery.units) 1, the language and runtime: a compiler with a runner attached and the
+| standard packages that define the language. Every later [unit](#delivery.units)
 | builds on it, and nothing in it knows they exist.
 |
 | Each Go package is one component: what it owns, its interface, what it may import, its
@@ -44,6 +43,5 @@ include = [
 | | [eval](#architecture.runtime.eval)                  | a checked tree           | the results of funcs, tasks and macros          |
 | | [gen](#architecture.runtime.gen)                    | a checked tree           | generated files                                 |
 |
-| Around them, [registry](#architecture.runtime.registry) holds the [extension points](#heron.language.interop.declaring.extension_point) every [unit](#delivery.units) registers
-| through, [extension](#architecture.runtime.extension) runs what extensions implement, and
+| Around them, [registry](#architecture.runtime.registry) holds what every [unit](#delivery.units) registers, and
 | [cli](#architecture.runtime.cli) and [the binary](#architecture.runtime.binary) put them on the command line.

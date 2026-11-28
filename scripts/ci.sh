@@ -27,21 +27,20 @@ lanes=(lint web gotest golsp gorace treesitter tree e2e unit1 editor docs docsle
 
 # What each lane reads that another step builds; built once, in this order,
 # before any lane starts.
-#   web     the web workspace installed and @heron/runtime built
+#   web     the web workspace installed
 #   shell   the editor's frontend built into internal/tools/server/frontend
 #   docsweb the docs theme and islands built into internal/tools/docs/assets
 #   heron   bin: the heron binary (with the frontend when shell is built)
-#   types   the inventory sample's types generated from Heron
 #   buf     buf on PATH, for the Go tests of the generated .proto files
 #   vale    Vale on PATH, and the tests that use it never skip
 needs_lint=""
 needs_web="web shell docsweb"
-needs_gotest="vale web heron types buf"
+needs_gotest="vale web heron buf"
 needs_golsp="vale"
 needs_gorace=""
 needs_treesitter=""
 needs_tree="web heron"
-needs_e2e="vale web heron types"
+needs_e2e="vale web heron"
 needs_unit1="web"
 needs_editor="web shell"
 needs_docs="web"
@@ -109,10 +108,8 @@ need() {
   case "$built" in *" $n "*) return ;; esac
   case "$n" in
   web)
-    step "sparrow: the web/sparrow submodule, whose TS package web/runtime's install builds"
-    [ -f web/sparrow/ts/package.json ] || git submodule update --init web/sparrow
-    step "web: install the workspace and build @heron/runtime"
-    (cd web && pnpm install --frozen-lockfile --silent && pnpm --filter @heron/runtime build)
+    step "web: install the workspace"
+    (cd web && pnpm install --frozen-lockfile --silent)
     ;;
   shell)
     step "web: build the shell, the editor and the components"
@@ -125,10 +122,6 @@ need() {
   heron)
     step "build heron"
     go build -o "$bin/heron" ./cmd/heron
-    ;;
-  types)
-    step "generate the inventory sample's types"
-    (cd web/samples/inventory && "$bin/heron" generate --entry example ts >/dev/null)
     ;;
   vale)
     step "Vale, pinned, from the Go proxy (CI puts its release binary on PATH)"
@@ -160,30 +153,11 @@ lane_lint() {
     -syntax "$g/kinds_gen.go" -ast "$g/nodes_gen.go"
   diff -q "$g/kinds_gen.go" internal/core/syntax/kinds_gen.go
   diff -q "$g/nodes_gen.go" internal/core/ast/nodes_gen.go
-  # The extension protocol, from the spec package's protocol_messages.heron.
-  go run ./internal/core/extension/protocol/internal/protogen \
-    -go "$g/protocol_gen.go" -ts "$g/protocol.gen.ts"
-  diff -q "$g/protocol_gen.go" internal/core/extension/protocol/protocol_gen.go
-  diff -q "$g/protocol.gen.ts" web/runtime/src/protocol.gen.ts
   go run ./internal/tools/server/apigen \
     -go "$g/api_gen.go" -pkg api -ts "$g/api.gen.ts"
   diff -q "$g/api_gen.go" internal/tools/server/api/api_gen.go
   diff -q "$g/api.gen.ts" web/shell/src/api.gen.ts
-  go run ./internal/tools/server/apigen \
-    -ext internal/tools/server/internal/sample/sample.heron \
-    -go "$g/sample_gen.go" -pkg sample -ts "$g/sample.gen.ts"
-  diff -q "$g/sample_gen.go" internal/tools/server/internal/sample/sample_gen.go
-  diff -q "$g/sample.gen.ts" internal/tools/server/internal/sample/sample.gen.ts
   go test -count=1 -run "TestGeneratedFilesAreCurrent|TestContrast" ./web/tokens/
-
-  step "Sparrow: go.mod's module and the web/sparrow submodule are one commit"
-  local gosparrow subsparrow
-  gosparrow=$(go list -m -f '{{.Version}}' github.com/aiviarium/sparrow/go | sed -n 's/.*-\([0-9a-f]\{12\}\)$/\1/p')
-  subsparrow=$(git ls-files -s web/sparrow | awk '{ print $2 }')
-  case "$subsparrow" in
-  "${gosparrow:-none}"*) echo "sparrow ${subsparrow:0:12}" ;;
-  *) echo "go.mod has Sparrow at ${gosparrow:-no pseudo-version}, web/sparrow at ${subsparrow:-nothing}"; return 1 ;;
-  esac
 
   step "go vet"
   go vet ./...
@@ -218,9 +192,6 @@ lane_lint() {
 }
 
 lane_web() {
-  step "web: test @heron/runtime"
-  (cd web && pnpm --filter @heron/runtime test)
-
   step "web: typecheck and test the shell, the editor and the components"
   (cd web/shell && npx tsc -p . && npx vitest run --silent)
 
@@ -273,7 +244,7 @@ lane_treesitter() {
 lane_tree() {
   local heron=$bin/heron
   step "the trees and examples are formatted"
-  "$heron" fmt --check index.heron project fixtures std examples internal/tools/server/api internal/tools/server/internal/sample web/samples/inventory/package.heron web/samples/inventory/example web/samples/docs-site
+  "$heron" fmt --check index.heron project fixtures std examples internal/tools/server/api web/samples/docs-site
 
   step "the repository's tree (the spec package and the project tree) and examples/ check and lint clean"
   "$heron" check . examples/petstore examples/parcels web/samples/docs-site
@@ -309,9 +280,6 @@ lane_e2e() {
   step "end to end: heron run"
   scripts/e2e-tasks.sh
 
-  step "interop end to end: the sample TS package's parts"
-  scripts/e2e-interop.sh
-
   step "end to end: a sealed spec and the project that implements it: sealed and project-mode errors, conformance, versions"
   scripts/e2e-project.sh
 
@@ -330,7 +298,6 @@ lane_unit1() {
   export HERON_TAGS=unit1
   scripts/e2e-setup.sh >/dev/null
   scripts/e2e-tasks.sh >/dev/null
-  scripts/e2e-interop.sh >/dev/null
   scripts/e2e-project.sh >/dev/null
 }
 
@@ -390,7 +357,7 @@ scripts/spec-setup.sh
 spec=$(go run ./internal/core/fixtures/specdir)
 echo "spec: $spec"
 # The needs of the lanes that run, in order.
-order="vale web shell docsweb heron types buf"
+order="vale web shell docsweb heron buf"
 for n in $order; do
   for l in "${selected[@]}"; do
     v=needs_$l

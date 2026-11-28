@@ -120,7 +120,7 @@ layered_requirements: section {
   }
 
   proves(heron.tools.frontend.shell.slots_registered_otherwise) {
-    verify("web/shell/src/extensions.test.ts")
+    verify("web/shell/src/slots.test.ts")
   }
 
   proves(heron.tools.lsp.extensions.source_request_otherwise) {

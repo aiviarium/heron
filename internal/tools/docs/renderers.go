@@ -63,9 +63,6 @@ func (s *Site) renderer(kind string) RenderFunc {
 	}
 	if r := s.Opts.Registry; r != nil {
 		if x := r.Renderer(kind); x != nil {
-			if x.Render == nil {
-				return s.plainRenderer(x)
-			}
 			return func(c *Ctx) error { return x.Render(c) }
 		}
 	}

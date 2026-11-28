@@ -58,7 +58,7 @@ docs: component("internal/tools/docs", heron.system.docs_generator, lang = "go")
   }
 
   go_renders: property {
-    must {{ render pages in Go from the node tree, with the islands and the built-in styles built once from `web/docs` and embedded in the binary, so that generating docs needs no Node unless the tree names a [TS renderer](#heron.tools.docs.renderers.ts_renderer) }}
+    must {{ render pages in Go from the node tree, with the islands and the built-in styles built once from `web/docs` and embedded in the binary, so that generating docs needs no Node }}
     verify("scripts/ci.sh")
   }
 

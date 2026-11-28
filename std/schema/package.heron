@@ -61,30 +61,6 @@ schema: package(version = "1.0") {
   /// An embedded language and the grammar to inject.
   language(grammar: String, env?: Env): kind
 
-  /// An external program that implements what `@extern(…)` declarations
-  /// name. It runs with limits: the files it may write, the hosts it may
-  /// reach and the commands it may run, which are none unless it declares
-  /// them. Its version and checksum pin it like any dependency.
-  extension(
-    command: List(String),
-    files?: List(String),
-    network?: List(String),
-    commands?: List(String),
-    version?: String,
-    checksum?: String,
-  ): kind
-
-  /// A resource whose instances a driver provides: setup, reset, snapshot,
-  /// restore, fork and teardown, as the Testing tab's lifecycle has them.
-  /// Its argument is the type of an instance.
-  resource(type?: Any): kind {
-    accept(code)
-  }
-
-  /// A generation adapter: it reads the resolved tree and writes files for
-  /// a target of `heron generate`.
-  generator(target: String): kind
-
   /// The built-in categories.
   flow: category
   phrasing: category
@@ -143,13 +119,4 @@ schema: package(version = "1.0") {
 
   /// Opts a node out of making inserted values safe.
   raw: flag(on = [insert])
-
-  /// A check over the node tree, written in Heron or implemented by an
-  /// extension, run by `heron lint`.
-  lint: kind {
-    accept(code)
-  }
-
-  /// Binds a declaration to the extension that implements it.
-  extern(by: Ref(extension)): annotation
 }

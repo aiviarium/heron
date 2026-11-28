@@ -98,19 +98,18 @@ if want shop; then
 fi
 
 # The sample site: a theme package from node_modules, the landing and
-# changelog layouts, slots, and components and a markup tag rendered by TS
-# through the JS host. It's generated where the workspace's node_modules
-# are, in the copy (scripts/ci.sh installs and builds web/ first).
+# changelog layouts, slots, and components of its own in the generic view.
+# It's generated where the workspace's node_modules are, in the copy
+# (scripts/ci.sh installs web/ first).
 d=$site/.heron/docs
 if want sample; then
   cp -a web/samples/docs-site/. "$site/"
-  (cd "$site" && npx tsc -p tsconfig.json --noEmit)
   (cd "$site" && rm -rf .heron && "$tmp/heron" generate docs >/dev/null)
   test -f "$d/_assets/theme/theme.css"
   test -f "$d/_assets/theme/logo.svg"
   test -f "$d/_assets/theme/fonts/fraunces-latin-600-normal.woff2"
-  grep -q '<ol class="steps" id="guide.setup.install" start="1">' "$d/guide.setup.html"
-  grep -q '<span class="status-badge" data-level="2">ready</span>' "$d/guide.setup.html"
+  grep -q '<section class="node" id="guide.setup.install" data-kind="components.steps">' "$d/guide.setup.html"
+  grep -q '<span class="tag tag-status">ready</span>' "$d/guide.setup.html"
   grep -q 'data-layout="landing"' "$d/guide.html"
   grep -q '<article class="entry" id="changes.v1_1">' "$d/changes.html"
   checks+=("e2e.cjs $d")

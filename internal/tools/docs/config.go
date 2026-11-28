@@ -9,8 +9,7 @@ import (
 )
 
 // Config is what a tree's `docs { … }` block (std/docs) sets: the theme,
-// the layout of each section, and the slots. Renderer modules register
-// through the registry (internal/core/extension), not here.
+// the layout of each section, and the slots.
 type Config struct {
 	// Node is the docs node, or nil when the tree doesn't import std/docs.
 	Node *resolve.Node

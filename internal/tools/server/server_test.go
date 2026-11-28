@@ -17,7 +17,6 @@ import (
 	"github.com/aiviarium/heron/internal/tools/docs"
 	"github.com/aiviarium/heron/internal/tools/server"
 	"github.com/aiviarium/heron/internal/tools/server/api"
-	"github.com/aiviarium/heron/internal/tools/server/internal/sample"
 	"github.com/coder/websocket"
 )
 
@@ -44,9 +43,6 @@ func petstore(t *testing.T) (*httptest.Server, *server.Shell) {
 		"index.html":    {Data: []byte("<!doctype html><title>app</title>")},
 		"assets/app.js": {Data: []byte("console.log(1)")},
 	}}
-	if err := s.Mount(sample.Extension()); err != nil {
-		t.Fatal(err)
-	}
 	w, err := server.OpenWorkspace("../../../examples/petstore", r)
 	if err != nil {
 		t.Fatal(err)
@@ -132,14 +128,6 @@ func TestBaseOps(t *testing.T) {
 	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: &off, Overlays: map[string]string{}}, &pv)
 	if pv.Path != "store_svc.test" || pv.Kind != "task" || !strings.Contains(pv.HTML, "test") {
 		t.Errorf("preview: %+v", pv)
-	}
-	// The sample extension's provider answers beside the built-in one.
-	found := false
-	for _, r := range pv.Results.Results {
-		found = found || r.Source == "sample"
-	}
-	if !found {
-		t.Errorf("results: %+v", pv.Results)
 	}
 }
 
@@ -230,19 +218,6 @@ func TestSpecBrowserCaching(t *testing.T) {
 		if again := head(ts.URL+p, tag); again.StatusCode != http.StatusNotModified {
 			t.Errorf("%s with its ETag: %d, not 304", p, again.StatusCode)
 		}
-	}
-}
-
-func TestExtensionRoutesAreMounted(t *testing.T) {
-	ts, s := petstore(t)
-	if code, body := get(t, ts.URL+"/api/v1/sample/echo/ab?times=3"); code != 200 || !strings.Contains(body, `"ababab"`) {
-		t.Errorf("sample op: %d %q", code, body)
-	}
-	if code, _ := get(t, ts.URL+"/api/v1/sample/echo/ab?times=x"); code != 400 {
-		t.Errorf("bad param: %d", code)
-	}
-	if err := s.Mount(sample.Extension()); err == nil {
-		t.Error("mounting one route twice was accepted")
 	}
 }
 

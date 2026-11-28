@@ -120,55 +120,13 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5))
 
-  runtime:
-    dependencies:
-      '@aiviarium/sparrow':
-        specifier: link:../sparrow/ts
-        version: link:../sparrow/ts
-    devDependencies:
-      '@types/node':
-        specifier: ^22.20.5
-        version: 22.20.5
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.12
-        version: 4.1.12(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5))
-
   samples/docs-site:
     dependencies:
-      '@heron/runtime':
-        specifier: workspace:*
-        version: link:../../runtime
       '@heron/sample-docs-theme':
         specifier: workspace:*
         version: link:../docs-theme
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.5
-        version: 22.20.5
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
 
   samples/docs-theme: {}
-
-  samples/inventory:
-    dependencies:
-      '@heron/runtime':
-        specifier: workspace:*
-        version: link:../../runtime
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.5
-        version: 22.20.5
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 4.1.12
-        version: 4.1.12(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5))
 
   shell:
     dependencies:
@@ -1529,6 +1487,7 @@ snapshots:
   '@types/node@22.20.5':
     dependencies:
       undici-types: 6.21.0
+    optional: true
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -1915,7 +1874,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  undici-types@6.21.0: {}
+  undici-types@6.21.0:
+    optional: true
 
   update-browserslist-db@1.4.0(browserslist@4.29.6):
     dependencies:

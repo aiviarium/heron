@@ -1,6 +1,6 @@
 // Package words is a sample prose lint provider: it flags configured words
 // in the prose view and offers each word's replacement as a fix. It proves
-// the prose provider extension point.
+// that prose providers register through the registry.
 package words
 
 import (

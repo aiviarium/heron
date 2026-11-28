@@ -18,7 +18,7 @@ where they disagree, the spec wins.
 
 ## Unit 1
 
-Unit 1 ("Language and runtime") against the five items of its "Done means"
+Unit 1 ("Language and runtime") against the four items of its "Done means"
 (the project tree's `delivery/unit_1/`). Every check named here runs in
 `scripts/ci.sh`, which also passes from a fresh `git clone` of the
 repository into an empty directory, with the spec package from `heron run
@@ -30,8 +30,7 @@ untracked or ignored file is needed.
 | 1 | Fixtures | `TestFixturesAreTheSpecExamples`, `TestFixturesParse`, `TestFixturePrefixes`, `FuzzParse`, `TestFixturesFormatToThemselves`, `TestFixturesCheckClean`, `TestCleanFixturesLintClean` | 26 of the spec's 29 Heron examples check clean; 3 pending |
 | 2 | Setup | `scripts/e2e-setup.sh`, `internal/core/setup` tests | met for the sample, with gaps below |
 | 3 | Tasks | `scripts/e2e-tasks.sh`, `internal/core/cli` and `records` tests | met |
-| 4 | Extensions | `scripts/e2e-interop.sh`, `internal/core/extension` tests, `web/runtime`'s vitest suite | met |
-| 5 | Prose view | `scripts/e2e-prose.sh`, `internal/core/lint` prose tests | met |
+| 4 | Prose view | `scripts/e2e-prose.sh`, `internal/core/lint` prose tests | met |
 
 ### 1. Fixtures
 
@@ -55,9 +54,6 @@ checking clean:
 The project's roadmap (`project/delivery/roadmap.heron`) plans them: they
 check clean once those units declare what they use, and unit 1 is done
 without them until then.
-
-Gaps: the spec's TS examples (Interop) aren't type-checked as fixtures,
-only the sample package's TS is.
 
 ### 2. Setup
 
@@ -83,39 +79,11 @@ Gaps:
 ones on a terminal (exit 2 without one), runs `@needs` once each in
 dependency order, asks for `<confirm>`, runs `@undo` newest first with
 `--undo-on-failure`, and records every run under `.heron/audit/run/` with
-its tasks, steps, processes, logs, calls, foreign calls (func, args, result
-or error, duration) and resource lifecycle.
+its tasks, steps, processes, logs and calls.
 
-Gaps: stages that start undo after a failed gate belong to DevOps; runs
-can't be replayed from their recorded foreign results yet.
+Gaps: stages that start undo after a failed gate belong to DevOps.
 
-### 4. Extensions
-
-`web/samples/inventory` provides a foreign func, a transport, a lint, a
-resource driver and a generator in TS. `heron generate ts` writes the types
-`tsc` checks them against, and a drifting signature is a compile error.
-Each is used like a built-in from `heron run`, `heron lint` (with `--fix`)
-and `heron generate`:
-
-- The transport carries the `inventory.shelf` api's ops in `heron run`,
-  bound by the package's `@in_memory` annotation
-  (`transport_binding`).
-- `inventory.describe` calls an op and a Heron func back through
-  `ctx.call` (`registry.Run.Call`, `eval.Machine.CallPath`).
-- `inventory.slugify`, a `<pure>` func, computes a value while the tree is
-  evaluated, cached by a hash of its inputs; an impure foreign call there is
-  an error (`TestPureForeignFuncsAtEvaluationTime`).
-- `ctx.resource` instances are set up on first use in a run and torn down
-  newest first when it ends (`registry.Run`, `TestRunScopesResourcesAndCalls`,
-  `TestRunResourceLifecycle`).
-
-Gaps: declared network hosts aren't filtered one by one
-(`per_host_network_limits`); the pure-func cache lives for one run, not in
-`records`; no `@heron/testing`, `heron dev` or npm package resolution;
-transports are only TS ones, as `std/http`, `std/proto` and `std/ws` have no
-built-in transport, so an op bound only by `@http` can't be called.
-
-### 5. Prose view
+### 4. Prose view
 
 `lint/prose` projects `|` lines, `{{ }}` bodies, `=|` values, `///` docs,
 `Prose` strings and prose files with code, inserts, links and tag
@@ -143,7 +111,7 @@ gives the language and runtime alone, with `check`, `fmt`, `lint`, `run`
 and `generate` and no `lsp`, `serve` or docs target. `scripts/ci.sh` builds
 it and, with it, formats, checks and lints the repository's tree (the spec
 package and the project tree) and `examples/petstore` and runs `e2e-setup.sh`, `e2e-tasks.sh` and
-`e2e-interop.sh` (`HERON_TAGS=unit1`; setup then pins no Vale).
+`e2e-project.sh` (`HERON_TAGS=unit1`; setup then pins no Vale).
 `e2e-prose.sh` builds its own unit-1 binary. CI also fails if a package
 under `internal/core` or `std`, or its tests, imports `internal/tools`, so
 unit 1's Go tests are unit 1's alone.
@@ -169,23 +137,21 @@ These are recommendations only; behaviour is unchanged.
 tree checks?** Yes, in two phases. Install first, from what needs no
 checking: the lock, which is a data file, and, on the first run without
 one, the `import` directives, which are syntactic and resolve without
-types. That phase fetches and verifies every pinned package and extension
+types. That phase fetches and verifies every pinned package
 (registry, npm through the project's package manager, git), then the tree
 is checked and the `setup` task runs as it does today, pinning anything new.
 Without the split a tree that imports a missing package can never install
 it, which the Core format tab rules out ("`heron.lock`, a data file written
-by `heron run setup`, pins the exact version and checksum of every package
-and extension, and is committed"). A lock entry that the imports no longer
+by `heron run setup`, pins the exact version and checksum of every package,
+and is committed"). A lock entry that the imports no longer
 name should be reported, not installed.
 
 **`setup_runs_generate`: should setup run every generation target?** Yes.
-The Interop tab has the TS types "generated on setup and after every
-change", and the Implementation tab has `heron generate` write "setup
+The Implementation tab has `heron generate` write "setup
 files and the managed ignore block", so after setup a fresh checkout should
 be where `heron generate` leaves it. `repo.generate` should run every
 registered target, as `heron generate` without targets does, after
-`pnpm install` so TS adapters find their runtime, writing all sections of
-the ignore block. A failing adapter should fail setup, and a second run
+`pnpm install`, writing all sections of the ignore block. A failing adapter should fail setup, and a second run
 must still change nothing, which the adapters' write-only-on-change rule
 gives.
 

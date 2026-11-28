@@ -277,8 +277,8 @@ type SparrowSigil struct {
 
 // SparrowValueTypes are the definitions Heron's Any is in a facet: the
 // recursive union Value at firstID and its helper struct VariantValue at
-// firstID+1. Every facet that reaches Any, and the extension protocol,
-// define them alike, so a value reads the same in each.
+// firstID+1. Every facet that reaches Any defines them alike, so a value
+// reads the same in each.
 //
 //	Value: union, variants by tag
 //	  0 null: unit       1 bool: bool        2 int: int

@@ -33,9 +33,6 @@ core: package(version = "1.0") {
     accept(code)
   }
 
-  /// A func that may run while the tree is evaluated, cached by its inputs.
-  pure: flag(on = [func])
-
   /// Produces source from a template.
   macro: kind {
     accept(code)
@@ -75,13 +72,6 @@ core: package(version = "1.0") {
   /// number asked for.
   ParseError: type(Error) {
     message: String
-  }
-
-  /// Foreign code that failed other than by throwing an error its declaration
-  /// names, or whose process couldn't serve the call.
-  ForeignError: type(Error) {
-    message: String
-    code: Int
   }
 
   /// Adds generated source in a macro's body.

@@ -7,14 +7,12 @@ units: section {
   | under `internal/<unit>/`, its standard packages under `std/`, its frontend packages under
   | `web/`, and the fixtures from its tabs.
   |
-  | The units are built in order, and each one only adds to those before it. DevOps and
-  | testing, and Agents, are pure extensions: they register commands, generation targets,
-  | drivers, packages, records, server routes and frontend views through the
-  | [extension points](#heron.language.interop.declaring.extension_point) of the first two units.
+  | The units are built in order, and each one only adds to those before it, registering
+  | its parts through the registry of the first.
   |
   | | Unit                    | Holds                                                                                              | Commands                          | Spec |
   | | ----------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------- | ---- |
-  | | 1. Language and runtime | parser, resolver, types, interpreter, lints, formatter, records, generation framework, extensions and interop, the registry, the standard packages | `check`, `fmt`, `lint`, `run`, `generate` | [the language](#heron.language) |
+  | | 1. Language and runtime | parser, resolver, types, interpreter, lints, formatter, records, generation framework, the registry, the standard packages | `check`, `fmt`, `lint`, `run`, `generate` | [the language](#heron.language) |
   | | 2. Development tools    | language server, editor grammar, prose linting with Vale, docs generator, server and frontend shells, spec browser, code editor and preview, the shared UI | `lsp`, `serve`, `generate docs` | [the tools](#heron.tools) |
   | | 3. DevOps and testing   | test planner, CI adapters, releases, test coordinator, workers, Incus driver, dashboard          | `test`, `worker`, `generate ci`   | not yet specified |
   | | 4. Agents               | prompt processing, harness adapters, agent environments, `delegate`, prompt workbench            | `generate agents`                 | not yet specified |
@@ -29,23 +27,18 @@ units: section {
     | - **Dependencies point backwards.** No unit imports a later one, and DevOps and testing
     |   and Agents don't import each other; they meet through data: records, the registry and
     |   the server API.
-    | - **Seams are extension points.** A unit registers its commands, generation targets,
-    |   drivers, lints, record kinds, server routes, frontend panels, gutter providers and
-    |   renderers the way an external extension does, so an earlier unit never knows which
-    |   later units exist.
-    | - **Missing seams are added, not special-cased.** When a later unit needs something an
-    |   earlier one doesn't offer, the earlier unit gains a general extension point, tested
-    |   with a sample extension, and no special case for that unit.
+    | - **Seams are registrations.** A unit registers its commands, generation targets,
+    |   lints, record kinds, frontend panels, gutter providers and renderers through the
+    |   registry, so an earlier unit never knows which later units exist.
   }
 
   build_order: section {
     | 1. **Language and runtime:** the lossless parser and `heron fmt`; resolution, types
     |    and the core lints; the interpreter, tasks and `heron run`, then the repository's
-    |    `setup`; the prose view, the generation framework, extensions, the extension protocol host
-    |    and the TS SDK, each proven with a sample extension.
+    |    `setup`; the prose view and the generation framework.
     | 2. **Development tools:** the tree-sitter grammar and `heron lsp`; prose linting
     |    with Vale; the docs renderer and `heron generate docs`; the server and frontend
-    |    shells with their extension points; the code editor with its live preview.
+    |    shells; the code editor with its live preview.
     | 3. **DevOps and testing:** the planner and Incus workers on a local daemon, then
     |    the coordinator with several hosts; CI adapters and releases; the dashboard panel
     |    and gutter results.

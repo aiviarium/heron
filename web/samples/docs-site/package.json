@@ -2,17 +2,9 @@
   "name": "@heron/sample-docs-site",
   "private": true,
   "version": "1.0.0",
-  "description": "A sample docs site: a theme package from node_modules, the changelog and landing layouts, slots, and components and a markup tag rendered by TS through the JS host.",
+  "description": "A sample docs site: a theme package from node_modules, the changelog and landing layouts, slots, and components of its own.",
   "type": "module",
-  "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
-  },
   "dependencies": {
-    "@heron/runtime": "workspace:*",
     "@heron/sample-docs-theme": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "22.20.5",
-    "typescript": "5.9.3"
   }
 }

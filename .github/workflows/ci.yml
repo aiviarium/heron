@@ -62,12 +62,9 @@ jobs:
       SUMTYPE: ${{ matrix.lane == 'lint' }}
       BROWSERS: ${{ startsWith(matrix.lane, 'docs') && 'chromium firefox webkit' || matrix.lane == 'editor' && 'chromium' || '' }}
     steps:
-      # With web/sparrow, the Sparrow submodule web/runtime builds its TS
-      # package from (Go takes Sparrow's module from the Go proxy).
       - uses: actions/checkout@v7
         with:
           path: heron
-          submodules: true
 
       - name: The spec commit heron.lock pins
         id: lock

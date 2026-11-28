@@ -65,7 +65,7 @@ func TestCheckCommand(t *testing.T) {
 	}
 }
 
-// TestSampleLint proves the lint extension point: a lint registered from
+// TestSampleLint proves that a lint registered from
 // outside the unit runs through `heron lint` like the core ones.
 func TestSampleLint(t *testing.T) {
 	r := registry.New()

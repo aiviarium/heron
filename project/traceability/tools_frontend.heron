@@ -151,19 +151,19 @@ tools_frontend: section {
   }
 
   proves(heron.tools.frontend.shell.slots_registered) {
-    verify("web/shell/src/extensions.test.ts")
+    verify("web/shell/src/slots.test.ts")
   }
 
   proves(heron.tools.frontend.shell.unique_ids) {
-    verify("web/shell/src/extensions.test.ts")
+    verify("web/shell/src/slots.test.ts")
   }
 
   proves(heron.tools.frontend.shell.unregister) {
-    verify("web/shell/src/extensions.test.ts")
+    verify("web/shell/src/slots.test.ts")
   }
 
   proves(heron.tools.frontend.shell.generated_client) {
-    verify("web/shell/src/extensions.test.ts")
+    verify("web/shell/src/slots.test.ts")
   }
 
   proves(heron.tools.frontend.shell.commands.builtin_commands) {

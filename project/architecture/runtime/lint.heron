@@ -1,7 +1,7 @@
 lint: component("internal/core/lint", heron.system.linter, lang = "go") {
   | Runs the registered lints and [prose lint providers](#heron.language.markup.prose_view.prose_lint_provider) over a checked tree, behind
-  | `heron lint` and the language server. The core lints live here; packages, extensions
-  | and later [units](#delivery.units) add theirs through the registry, and every lint reports alike.
+  | `heron lint` and the language server. The core lints live here; later
+  | [units](#delivery.units) add theirs through the registry, and every lint reports alike.
 
   uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.prose_view, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
 
@@ -147,7 +147,7 @@ prose_view: component("internal/core/lint/prose", heron.system.prose_linter, lan
 @display("Sample prose provider")
 prose_words: component("internal/core/lint/prose/words", heron.system.prose_linter, lang = "go") {
   | A sample [prose lint provider](#heron.language.markup.prose_view.prose_lint_provider) that flags configured words and offers each word's
-  | replacement as a fix. It proves the prose provider [extension point](#heron.language.interop.declaring.extension_point) end to end:
+  | replacement as a fix. It proves end to end that prose providers register through the registry:
   | `heronwords`, a binary built only by `scripts/e2e-prose.sh`, installs it with words
   | from `HERON_WORDS`, such as `simply=,utilize=use`.
 

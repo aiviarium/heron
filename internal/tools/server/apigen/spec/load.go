@@ -4,9 +4,7 @@ package spec
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
@@ -68,34 +66,14 @@ type API struct {
 	Records []*Record
 }
 
-// Load checks the tree of the spec package's entry, with the extension
-// files included, and returns the ops and types to write: those of the
-// extension files when there are any, otherwise those of the folder that
-// declares `spec_server`.
-func Load(entryPath string, exts []string) (*API, error) {
-	baseID, err := resolve.Canonical(entryPath)
+// Load checks the tree of the spec package's entry and returns the ops and
+// types to write: those of the folder that declares `spec_server`.
+func Load(entryPath string) (*API, error) {
+	entry, err := resolve.Canonical(entryPath)
 	if err != nil {
 		return nil, err
 	}
 	s := check.NewSession()
-	entry := baseID
-	emit := map[resolve.FileID]bool{}
-	if len(exts) > 0 {
-		inc := []string{strconv.Quote(string(baseID))}
-		for _, e := range exts {
-			id, err := resolve.Canonical(e)
-			if err != nil {
-				return nil, err
-			}
-			if _, err := os.Stat(string(id)); err != nil {
-				return nil, err
-			}
-			emit[id] = true
-			inc = append(inc, strconv.Quote(string(id)))
-		}
-		entry = resolve.FileID(filepath.Join(filepath.Dir(string(emitFirst(exts))), ".apigen-entry.heron"))
-		s.Loader.Overlay[entry] = "include = [" + strings.Join(inc, ", ") + "]\n"
-	}
 	res := s.Check(entry)
 	if res.Diags.HasErrors() {
 		var b strings.Builder
@@ -120,9 +98,6 @@ func Load(entryPath string, exts []string) (*API, error) {
 	emits := func(n *resolve.Node) bool {
 		if n.Decl.File == nil || n.Decl.File.ID.IsStd() {
 			return false
-		}
-		if len(emit) > 0 {
-			return emit[n.Decl.File.ID]
 		}
 		return filepath.Dir(string(n.Decl.File.ID)) == apiDir
 	}
@@ -152,7 +127,7 @@ func Load(entryPath string, exts []string) (*API, error) {
 			}
 		}
 	}
-	baseID = server.Decl.File.ID
+	baseID := server.Decl.File.ID
 	first := 0 // the base file's ops come first, in their order
 	for _, n := range server.Children {
 		if !emits(n) {
@@ -162,7 +137,7 @@ func Load(entryPath string, exts []string) (*API, error) {
 		if err != nil {
 			return nil, err
 		}
-		if n.Decl.File.ID == resolve.FileID(baseID) {
+		if n.Decl.File.ID == baseID {
 			a.Ops = append(a.Ops[:first], append([]*Op{op}, a.Ops[first:]...)...)
 			first++
 		} else {
@@ -280,8 +255,6 @@ func exprRef(e ast.Expr) Type {
 	}
 	return Type{Name: "Any"}
 }
-
-func emitFirst(exts []string) string { return exts[0] }
 
 // docOf is a node's docs: its `///` lines, else its prose.
 func docOf(n *resolve.Node) string {

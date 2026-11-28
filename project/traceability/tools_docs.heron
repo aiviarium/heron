@@ -190,14 +190,6 @@ tools_docs: section {
     verify("internal/tools/docs/markup_test.go", test = "TestMarkupRenders")
   }
 
-  proves(heron.tools.docs.renderers.ts_renderer_contract) {
-    verify("internal/tools/docs/ts_test.go", test = "TestTSRenderers")
-  }
-
-  proves(heron.tools.docs.renderers.ts_renderer_fallback) {
-    verify("internal/tools/docs/ts_test.go", test = "TestTSRenderers")
-  }
-
   proves(heron.tools.docs.extending.theme_layer) {
     verify("internal/tools/docs/config_test.go", test = "TestTheme")
   }

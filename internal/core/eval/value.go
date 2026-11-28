@@ -1,7 +1,7 @@
 // Package eval interprets the `do` code of funcs, macros, tasks and hooks,
 // as the Scripting tab describes it. It does no I/O of its own: processes,
-// files, the environment and the clock come in through Caps, and foreign
-// functions through the registry, so a run is replayable from what those
+// files, the environment and the clock come in through Caps, and built-in
+// funcs and transports through the registry, so a run is replayable from what those
 // returned. Package eval/host supplies the real capabilities.
 package eval
 
@@ -28,7 +28,7 @@ import (
 //   - TypeValue for a type in an argument, as in json.decode(List(Pet), …)
 //
 // Enum variants are their names as strings. Plain converts a value to the
-// form that crosses the foreign boundary.
+// form registered funcs and transports take.
 type Value = any
 
 // Record is a value of a declared type: its name and its members.
@@ -100,8 +100,8 @@ func Str(v Value) string {
 }
 
 // Plain converts a value to plain Go data: records become maps, typed
-// strings strings and refs their node paths, as the foreign boundary and
-// JSON output see them.
+// strings strings and refs their node paths, as registered funcs and JSON
+// output see them.
 func Plain(v Value) any {
 	switch v := v.(type) {
 	case []Value:
@@ -133,7 +133,7 @@ func Plain(v Value) any {
 	}
 }
 
-// FromPlain reads plain Go data, as a foreign function returns it, as a
+// FromPlain reads plain Go data, as a registered func returns it, as a
 // value: integral numbers become int64 and other numbers float64.
 func FromPlain(v any) Value {
 	switch v := v.(type) {

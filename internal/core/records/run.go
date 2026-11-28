@@ -43,9 +43,6 @@ type RunRecorder struct {
 	procs   []any
 	logs    []any
 	calls   []any
-	foreign []any
-	res     []any
-	id      string
 	current map[string]any
 }
 
@@ -59,19 +56,7 @@ func NewRunRecorder(task, entry string, args map[string]eval.Value, now func() t
 		plain[k] = eval.Plain(v)
 	}
 	start := now()
-	return &RunRecorder{now: now, start: start, task: task, entry: entry, args: plain, id: newID(start.UTC())}
-}
-
-// ID is the run's id, which its calls into extensions carry.
-func (r *RunRecorder) ID() string { return r.id }
-
-// OnResource records a resource instance set up or torn down in the run.
-func (r *RunRecorder) OnResource(e registry.ResourceEvent) {
-	ev := map[string]any{"at_ms": r.ms(r.now()), "resource": e.Resource, "phase": e.Phase, "duration_ms": e.Duration.Milliseconds()}
-	if e.Err != nil {
-		ev["error"] = e.Err.Error()
-	}
-	r.res = append(r.res, ev)
+	return &RunRecorder{now: now, start: start, task: task, entry: entry, args: plain}
 }
 
 func (r *RunRecorder) ms(t time.Time) int64 { return t.Sub(r.start).Milliseconds() }
@@ -130,15 +115,6 @@ func (r *RunRecorder) OnEvent(e eval.Event) {
 			ev["result"] = eval.Plain(e.Value)
 		}
 		r.calls = append(r.calls, ev)
-	case eval.EventForeign:
-		ev["func"] = e.Name
-		delete(ev, "name")
-		ev["args"] = plainMap(e.Args)
-		ev["duration_ms"] = e.Duration.Milliseconds()
-		if e.Err == nil {
-			ev["result"] = eval.Plain(e.Value)
-		}
-		r.foreign = append(r.foreign, ev)
 	case eval.EventSet:
 		ev["value"] = eval.Plain(e.Value)
 		r.calls = append(r.calls, ev)
@@ -162,9 +138,6 @@ func (r *RunRecorder) Data(result eval.Value, err error, exit int) map[string]an
 		"processes":   list(r.procs),
 		"logs":        list(r.logs),
 		"calls":       list(r.calls),
-		"foreign":     list(r.foreign),
-		"resources":   list(r.res),
-		"run_id":      r.id,
 	}
 	if err != nil {
 		d["status"] = "failed"

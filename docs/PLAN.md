@@ -27,9 +27,9 @@ package's `example` nodes.
 ```text
 cmd/heron/                 wires each unit's registrations; no logic
 internal/core/             unit 1
-  registry/                extension points: commands, generation targets,
-                           drivers, lints, record kinds, prose providers,
-                           renderers; built-ins and extensions register alike
+  registry/                what every unit registers: commands, generation
+                           targets, lints, record kinds, prose providers,
+                           funcs, transports, renderers
   syntax/                  lexer and lossless, error-recovering parser (CST)
   ast/                     typed views over the CST, generated from grammar/
   ast/internal/astgen/     the generator (go generate)
@@ -50,7 +50,6 @@ internal/core/             unit 1
   records/                 audit records, release output, caches as data files
   setup/                   std/repo's Go side: toolchain, heron.lock, sources
   gen/                     generation framework and `heron generate`
-  extension/               extension protocol host (Sparrow), handshake, limits, JS host supervision
   cli/                     unit 1's commands: check, fmt, lint, run, generate
   fixtures/                the fixtures: the code blocks of the spec
                            package's example nodes, by node path
@@ -58,8 +57,8 @@ internal/tools/            unit 2
   lsp/ prose/ docs/ server/
 std/                       standard packages as Heron source, embedded (std.go)
 grammar/                   heron.ungram (node kinds) and, later, tree-sitter
-web/                       pnpm workspace: runtime/ (@heron/runtime), then
-                           unit 2's components/ shell/ editor/ docs/
+web/                       pnpm workspace: unit 2's components/ shell/
+                           editor/ docs/
 index.heron                the repository's tree: imports the spec package,
                            includes the project tree, and its setup task
 heron.lock                 pins the spec package's tag and commit
@@ -106,32 +105,29 @@ starts when the one before it is done.
    files; `@needs`, `@undo`, prompting for missing params, run records.
    Done: criteria 2 (setup on a fresh sample repository, idempotent, writes
    `heron.lock` and the managed ignore block) and 3 (tasks).
-4. **Prose view, generation framework, extensions, extension protocol host, TS SDK.**
-   Done: criteria 4 (a sample TS package provides a foreign func, a
-   transport, a lint and a resource driver, each type-checked against its
-   Heron declaration) and 5 (a sample prose provider flags only prose words,
-   fixes land on the exact range).
+4. **Prose view and generation framework.**
+   Done: criterion 5 (a sample prose provider flags only prose words, fixes
+   land on the exact range).
 
 The spec package must check clean (and, once unit 2 has docs, render) at
 every stage; heron-specs' own CI builds this repository's binary for that.
 
-## Extension points and how each is proven
+## Registered parts and how each is proven
 
-Every seam is registered through `internal/core/registry`; built-in parts use
-the same call as external ones. Each gets a sample extension in tests before
-any later part relies on it.
+Every seam is registered through `internal/core/registry`; every unit uses
+the same call. Each gets a sample in tests before any later part relies on
+it.
 
-| Extension point | Registered by | Proven with |
+| Part | Registered by | Proven with |
 | --- | --- | --- |
 | Commands | name → handler in `registry.Commands` | a test-only command registered from a test package, run through the real CLI dispatcher |
 | Generation targets | target name → adapters | a sample adapter writing one file under a temp dir via `heron generate sample` |
-| Lints | name → check over the resolved tree | a sample lint package (Heron) and a Go-registered lint, both through `heron lint` |
+| Lints | name → check over the resolved tree | a Go-registered lint through `heron lint` |
 | Prose lint providers | name → provider over projected regions | sample provider flagging a word; fixes mapped back to exact ranges |
-| Drivers, resources, transports | kind → implementation | sample TS package through the extension protocol host |
-| Funcs and macros | packages (Heron) and `@extern` | sample package func, sample extension func |
+| Transports | declaration path → implementation | a Go-registered transport carrying an op call |
+| Funcs | declaration path → Go implementation | a Go-registered func called from a task |
 | Record kinds | kind → schema, one store | a sample record kind written and read back |
 | Renderers per kind (for unit 2) | kind → renderer | registered in unit 2's docs, proven there |
-| Extension protocol host | extension processes and the JS host | sample extension in TS via `@heron/runtime` |
 
 Unit 2's needs from unit 1, so the seams fit: positions and an incremental
 reparse in `syntax` (lsp), node paths and go-to-definition data from
@@ -153,8 +149,8 @@ generation target plus renderer registration.
 - The spec package is installed by `scripts/spec-setup.sh` (`heron run
   setup`, from `heron.lock`) under `.heron/packages/`. For local work and CI
   against a sibling checkout, `HERON_SPECS_DIR=../heron-specs/heron
-  scripts/spec-setup.sh` links that checkout in its place, and the Go tests,
-  `protogen` and the scripts read the package from `$HERON_SPECS_DIR` when
+  scripts/spec-setup.sh` links that checkout in its place, and the Go tests
+  and the scripts read the package from `$HERON_SPECS_DIR` when
   it's set. `go run ./internal/core/fixtures/extract -out DIR` writes the
   fixtures to a folder, as the tree-sitter test does.
 
@@ -176,7 +172,7 @@ script or test that proves each and the gaps that remain.
     merging, conflicts, overloads, locals visible below their line, prose
     file headings as sections.
   - `std/`: schema, types, core (the prelude), doc, spec, http, proto, ws,
-    json, process, files, js and apis, each checking and linting clean.
+    json, process, files and apis, each checking and linting clean.
   - `types`: kinds and types of every node, kind and type arguments,
     fields of kinds and types (with `args_from`, `fields_from` and
     bindings), flags, annotations, typed strings (`Duration`, `Money`,
@@ -240,7 +236,7 @@ script or test that proves each and the gaps that remain.
 `eval` does no I/O. `eval.New(tree, checker, registry, caps)` returns a
 `*Machine`; `Machine.Dir` is where relative paths start and `OnEvent`
 receives the run record's events (`call`, `step`, `log`, `set`,
-`process`, `foreign`; a foreign event carries its `Duration`).
+`process`).
 
 - `Call(ctx, node, eval.Args{Positional, Named})` calls a func or task;
   `RunCode(ctx, node, vars)` runs a node's `do` blocks (hooks, actions);
@@ -249,19 +245,14 @@ receives the run record's events (`call`, `step`, `log`, `set`,
 - Values (`eval.Value = any`): nil, bool, int64, float64, string,
   `[]Value`, `map[string]Value`, `*Record{Type, Fields}`, `Text{Lang,
   Text}` (embeds), `Ref{Node}`, `TypeValue`. Enum variants are strings.
-  `eval.Plain`/`FromPlain` convert to and from the plain data the foreign
-  boundary carries, which matches `extension/protocol`'s `Value`.
+  `eval.Plain`/`FromPlain` convert to and from the plain data registered
+  funcs and transports take.
 - Errors: `*eval.Throw` is a Heron error value that `attempt(…)` catches;
   `*eval.Error` is a fault in code, with file, line and column.
 - `eval.Caps` holds `Processes` (`Run(ctx, Command{Path, Args, Env, Dir,
   Stdin})`, an argument list, never a shell line), `Files`, `Env`, `Clock`
   and `Log`; `eval/host.Caps(log)` gives the real ones, through os/exec.
-- **Foreign funcs**, for the interop host: a func bound with `=` to an
-  export of a module node (`tools: module = js("./tools/orders.ts")`,
-  `export_orders(…): func(String) = tools.exportOrders`) is bound once
-  through `registry.Foreign{Kind: "js", Bind(registry.Module{Kind, Spec,
-  Path, Dir}, export) (registry.FuncImpl, error)}`. A func declared with
-  no body is looked up by its qualified path in `registry.Func{Name,
+- **Registered funcs:** a func declared with no body is looked up by its qualified path in `registry.Func{Name,
   Call}`. A `registry.FuncImpl` is `func(ctx, *registry.FuncCall{Func,
   Args map[string]any, Dir, Step}) (any, error)`: arguments arrive by
   parameter name as plain data, defaults applied, and returning a
@@ -277,24 +268,9 @@ receives the run record's events (`call`, `step`, `log`, `set`,
 - **Ops** go through the transport their bindings name
   (`transport_binding`): the transport declared in the package of an
   annotation on the op or its api, as `registry.Transport.Send(ctx, op,
-  request)`. No binding, or several transports, is an error.
-- **Foreign calls** (js funcs, `registry.Func`s with `Foreign` set, and
-  transports' `send`) are `foreign` events with args, result or error and
-  duration, and the run record lists them under `foreign`. While the tree
-  is evaluated (a computed value, a macro's expansion) only `<pure>` ones
-  run, cached in `Machine.Pure` by a hash of their path and arguments; any
-  other foreign call or an op call there is an error.
-- **Calls back from foreign code:** `Machine.CallPath(ctx, target, args)`
-  calls a func or op by path with plain data (an extension's `ctx.call`);
-  while the machine waits for a foreign call it serves these on its own
-  goroutine, so they run one at a time and nest.
-- **Runs** (`registry.StartRun(id)`, `WithRun`, `RunOf`): `heron run`
-  opens one per run with `Call = m.CallPath`; calls into extensions carry
-  its id, so their `ctx.call` and `ctx.resource` land in it. Resource
-  instances are set up on first use in the run and torn down newest first
-  at `Run.End`, both in the run record under `resources`; outside a run
-  the manager keeps a session run that `Close` ends.
-
+  request)`. No binding, or several transports, is an error, and so is an
+  op call while the tree is evaluated (a computed value, a macro's
+  expansion).
 
 ### The prose view
 
@@ -320,57 +296,11 @@ strength is an error; and `example` and `open` stay out of
 sections. The spec's examples are the fixtures themselves, so there's no
 second check that links them.
 
-### Interop, extensions and generation
+### Generation
 
-Phase 4's interop half, built on branch `u1-interop`; done criterion 4 is
-met by `scripts/e2e-interop.sh`. The interop spec is the spec package's
-`language/interop/`, whose `protocol_messages.heron` describes the
-protocol's messages.
-
-- **Protocol** (`internal/core/extension/protocol`): described once, in
-  the spec package's `language/interop/protocol_messages.heron`; `protogen`
-  reads it from the imported package and writes `protocol_gen.go` and
-  `web/runtime/src/protocol.gen.ts`, checked current against it in CI. `Conn` runs a
-  Sparrow session on the pipe binding (Sparrow's Go module and its TS
-  package), publishing the facets `heron.extension` and `heron.host`;
-  calls go both ways, with Sparrow's cancellation, streams, progress and
-  deadlines; it applies the message size, in-flight and timeout limits,
-  carries the run id as the metadata key `heron.run`, and keeps Heron
-  values' types through the `Value` union.
-- **Registry** (`registry/parts.go`): macros, transports, resource drivers
-  and generation adapters by declaration path, beside the interpreter's
-  `Func` and `Foreign`; `Loader`s register a checked tree's extension
-  parts (`r.LoadTree`, called by `heron run`, `heron lint` and `heron
-  generate`) and `r.Close` stops their processes.
-- **Extensions** (`internal/core/extension`): `Discover` finds js(…)
-  bindings and `@extern(…)` declarations in a tree and its packages;
-  `Manager` registers each part (js funcs through the `"js"` binder),
-  supervises processes (lazy start, handshake, restart after a crash,
-  `ForeignError` for calls in flight), serves `ctx` (node, call,
-  resource, secret, temp), asks before an extension's first run, and runs
-  `extension(command = …)` processes in user, mount and network
-  namespaces per their declared limits. The `extension` lint reports
-  declarations an extension doesn't implement.
-- **JS host and SDK** (`web/`, a pnpm workspace): `@heron/runtime` has the
-  TS connection, the `define*` SDK (funcs, macros, transports, lints,
-  resource drivers, generators) with `ctx`, the host (`dist/host-main.js`)
-  that loads modules by declaration, and a vitest suite.
-- **Generation** (`internal/core/gen`): `heron generate [targets…]` runs
-  the adapters of each target and, without targets, all of them plus the
-  managed ignore block; the built-in `ts` target writes `.heron/types.ts`
-  and `.heron/bindings.ts`.
-- **Sample** (`web/samples/inventory`): a foreign func, a transport (bound
-  to the `shelf` api by the package's `@in_memory`), a lint, a resource
-  driver and a generator in TS, declared in `package.heron` and used from
-  `example/`; `describe` calls an op and a Heron func back through
-  `ctx.call`, and `home_slug` is computed by a pure func.
-- Op calls through a transport, `ctx.call`, foreign calls in the run
-  record, pure funcs at evaluation time and run-scoped resource instances
-  are in the interpreter (see "The eval API"); `scripts/e2e-interop.sh`
-  drives the sample's transport from `heron run`.
-- Not yet: per-host network filtering, replaying runs from recorded
-  foreign results, a persistent pure-func cache, `@heron/testing`, `heron
-  dev`, and npm package resolution through `package.json`'s `heron` field.
+`heron generate [targets…]` (`internal/core/gen`) runs the adapters of
+each target and, without targets, all of them plus the managed ignore
+block; the built-in `ts` target writes `.heron/types.ts`.
 
 ## Unit 2: the language server library (`internal/tools/lsp`)
 
@@ -545,7 +475,6 @@ docs {
   layout("landing") { sections = [guide] }   // docs | api | changelog | landing
   slot("header") { status(level = 1) {{ Beta }} }  // header | sidebar | before | after
   slot("after", of = spec.rule) { | … }     // around every node of a kind
-  renderers = [js("./docs/renderers.ts")]
 }
 ```
 
@@ -562,16 +491,9 @@ docs {
 - **Slots:** page slots render in `topbar`, `sidebar` and around the
   content; kind slots wrap each node in `Ctx.render`, and a renderer places
   other names with `ctx.Slot(name)`.
-- **TS renderers:** a module exports renderers made with
-  `defineRenderer(kind, (node, ctx) => html)` from `@heron/runtime`;
-  `node` is plain data (path, kind, title, level, anchor, rendered prose,
-  children and slots; a tag's body and typed attrs). The JS host reports a
-  module's kinds in the handshake, the extension manager registers a
-  `registry.RendererSource`, and `docs.New` calls
-  `Registry.LoadRenderers`, which registers a `registry.Renderer` with a
-  `Plain` func per kind (`s.RenderersErr` on failure). A renderer must show
-  only the spec's text and catalogue strings. Sample:
-  `web/samples/docs-site`, generated and driven by `scripts/e2e-docs.sh`.
+- **Components** of a package without a renderer show as the generic
+  view. Sample: `web/samples/docs-site`, generated and driven by
+  `scripts/e2e-docs.sh`.
 
 ### The string catalogue (`web/strings`)
 
@@ -589,18 +511,15 @@ neither the spec nor the catalogue.
   frontend (unknown paths get `index.html`), the live spec browser under
   `/docs/` (the docs renderer on the tree on disk), one lsp session per
   `/api/v1/lsp` socket (`server.LanguageServer`, whole messages per frame)
-  and the API. `Shell.Mount(Extension{Routes, Results})` is the seam for a
-  later unit's ops and gutter results; `cmd/heron` holds the shell
-  `server.Register` returns.
+  and the API; `cmd/heron` holds the shell `server.Register` returns.
 - **The API** is the spec package's `tools/server_api/` (`spec_server`, its
   types and its errors), read from the spec package. `apigen` writes
-  `api_gen.go` (types, `Service`, `Routes`) and `web/shell/src/api.gen.ts`;
-  with `-ext` it writes a unit's own ops only, as the sample under
-  `internal/tools/server/internal/sample` proves. ci.sh checks both current.
+  `api_gen.go` (types, `Service`, `Routes`) and `web/shell/src/api.gen.ts`.
+  ci.sh checks both current.
 - **The frontend** (pnpm workspace): `@heron/components` (UI SDK composed:
   palette, file tree, buttons), `@heron/editor` (Monaco set up for Heron,
   its own reconnecting LSP client, one model per file, the preview),
-  `@heron/shell` (the editor screen, the extension points for panels,
+  `@heron/shell` (the editor screen, the slots for panels,
   gutter providers, commands and renderers per kind, the ⌘K palette and
   shortcuts). The app's strings are `app.*` in `web/strings`.
 - **Acceptance tests**: `scripts/e2e-app.sh` runs `web/shell/e2e/*.cjs`

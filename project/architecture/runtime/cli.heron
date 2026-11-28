@@ -83,7 +83,6 @@ cli: component("internal/core/cli", heron.system.command_line, lang = "go") {
   verify("internal/core/cli/run_test.go", test = "TestRunParamsAndNeeds") {{ [heron run](#heron.cli.run) with params and needs. }}
   verify("scripts/e2e-tasks.sh") {{ [heron run](#heron.cli.run) end to end. }}
   verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock") {{ [heron generate](#heron.cli.generate) writes the targets and the ignore block. }}
-  verify("scripts/e2e-interop.sh") {{ [heron generate](#heron.cli.generate) with an extension's target. }}
   verify("scripts/e2e-docs.sh") {{ [heron generate](#heron.cli.generate) `docs`. }}
   verify("internal/core/cli/cli_test.go", test = "TestSampleCommand") {{ [heron help](#heron.cli.help) and a sample command. }}
   verify("internal/core/cli/cli_test.go", test = "TestVersionCommand") {{ [heron version](#heron.cli.version) and `heron --version`. }}

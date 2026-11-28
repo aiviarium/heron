@@ -78,8 +78,4 @@ language_data: section {
     verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
   }
 
-  proves(heron.language.data.encodings.cbor.cbor_tags) {
-    verify("internal/core/extension/protocol/conn_test.go", test = "TestCBORTags")
-    verify("internal/core/extension/protocol/conn_test.go", test = "TestValuesKeepTheirTypes")
-  }
 }

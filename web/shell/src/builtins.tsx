@@ -1,8 +1,8 @@
-// The shell's own parts, registered through the same extension points a
-// later unit uses: the commands, the problems panel and the run gutter.
+// The shell's own parts, registered through its slots: the commands, the
+// problems panel and the run gutter.
 import { For, Show } from "solid-js";
 import { t } from "@heron/strings";
-import { registerCommand, registerGutterProvider, registerPanel } from "./extensions.ts";
+import { registerCommand, registerGutterProvider, registerPanel } from "./slots.ts";
 import * as s from "./state.ts";
 import { sourceName } from "@heron/editor";
 

@@ -96,9 +96,7 @@ func TestRunRecorder(t *testing.T) {
 	rec.StartTask("deploy", "task")
 	rec.OnEvent(eval.Event{Kind: eval.EventStep, Name: "rejected", Depth: 1})
 	rec.OnEvent(eval.Event{Kind: eval.EventLog, Value: "hello"})
-	rec.OnEvent(eval.Event{Kind: eval.EventForeign, Name: "tools.export", Args: map[string]eval.Value{"id": int64(1)}, Value: "/tmp/x.csv", Duration: 42 * time.Millisecond})
-	rec.OnEvent(eval.Event{Kind: eval.EventForeign, Name: "tools.fail", Err: errors.New("ForeignError: crashed")})
-	rec.OnResource(registry.ResourceEvent{Resource: "db", Phase: "setup"})
+	rec.OnEvent(eval.Event{Kind: eval.EventCall, Name: "tools.export", Args: map[string]eval.Value{"id": int64(1)}, Value: "/tmp/x.csv"})
 	rec.FinishTask(nil, errors.New("boom"))
 	d := rec.Data(nil, errors.New("deploy failed: boom"), 1)
 	if d["status"] != "failed" || d["error"] != "deploy failed: boom" || d["task"] != "deploy" {
@@ -118,22 +116,9 @@ func TestRunRecorder(t *testing.T) {
 	if steps := d["steps"].([]any); len(steps) != 1 || steps[0].(map[string]any)["name"] != "rejected" {
 		t.Errorf("steps: %v", steps)
 	}
-	foreign := d["foreign"].([]any)
-	if len(foreign) != 2 {
-		t.Fatalf("foreign: %v", foreign)
-	}
-	f0, f1 := foreign[0].(map[string]any), foreign[1].(map[string]any)
-	if f0["func"] != "tools.export" || f0["result"] != "/tmp/x.csv" || f0["duration_ms"] != int64(42) || f0["args"].(map[string]any)["id"] != int64(1) {
-		t.Errorf("a foreign call: %v", f0)
-	}
-	if f1["error"] != "ForeignError: crashed" || f1["result"] != nil {
-		t.Errorf("a failed foreign call: %v", f1)
-	}
-	if res := d["resources"].([]any); len(res) != 1 || res[0].(map[string]any)["phase"] != "setup" {
-		t.Errorf("resources: %v", res)
-	}
-	if d["run_id"] != rec.ID() || rec.ID() == "" {
-		t.Errorf("run id: %v", d["run_id"])
+	calls := d["calls"].([]any)
+	if len(calls) != 1 || calls[0].(map[string]any)["name"] != "tools.export" || calls[0].(map[string]any)["result"] != "/tmp/x.csv" {
+		t.Errorf("calls: %v", calls)
 	}
 	if d["duration_ms"].(int64) <= 0 {
 		t.Errorf("timing: %v", d["duration_ms"])

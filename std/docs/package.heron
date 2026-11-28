@@ -1,8 +1,8 @@
 // std/docs: how the docs generator is configured, from the Development
 // tools tab's "Styling and extending the docs": the theme, the layout each
-// section uses, the components each slot shows and the modules that render
-// kinds. A tree enters it once, as `docs { … }`.
-import = ["std/schema@1", "std/types@1", "std/js@1", "std/doc@1", "std/grammar@1"]
+// section uses and the components each slot shows. A tree enters it once,
+// as `docs { … }`.
+import = ["std/schema@1", "std/types@1", "std/doc@1", "std/grammar@1"]
 
 docs: package(version = "1.0", requires = ["std/doc@1"]) {
   /// The docs generator's configuration.
@@ -11,11 +11,6 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     /// a folder such as "./theme". Its tokens, fonts, logo and CSS go in a
     /// `theme` layer after the built-in theme.
     theme?: String
-    /// Modules whose renderers register per kind, such as
-    /// `js("./docs/renderers.ts")`. They run through the JS host when the
-    /// docs are generated; a kind none of them renders keeps its built-in
-    /// renderer, or the generic view of its fields and children.
-    renderers?: List(module)
     /// How many levels of sections get pages of their own; 2 unless set.
     /// Components, commands, use cases and screens get pages at any
     /// depth.

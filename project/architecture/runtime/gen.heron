@@ -1,10 +1,10 @@
 gen: component("internal/core/gen", heron.system.generator, lang = "go") {
   | The generation framework behind `heron generate`: adapters read the checked tree and
   | return files, none with a config format of its own, and the framework writes them and
-  | the managed ignore block. Built-in adapters and those extensions implement register
-  | alike, through the registry's generation targets.
+  | the managed ignore block. Adapters register through the registry's generation
+  | targets.
 
-  uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.extension, architecture.runtime.protocol, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
+  uses = [architecture.runtime.ast, architecture.runtime.check, architecture.runtime.diag, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types]
 
   runs_targets: responsibility {{
     Runs the adapters of the targets asked for, or of every target for none, writes each
@@ -20,10 +20,9 @@ gen: component("internal/core/gen", heron.system.generator, lang = "go") {
   }}
 
   ts_target: responsibility {{
-    Registers the `ts` target, adapter `js.ts`: `.heron/types.ts` holds an interface per
-    record type and a union per enum, in namespaces by path, and `.heron/bindings.ts`
-    holds `bind`, whose members wrap an implementation with its declaration's types and
-    stamp it with the declaration's path.
+    Registers the `ts` target, adapter `gen.ts`: `.heron/types.ts` holds an interface per
+    record type and a union per enum, in namespaces by path, after the types `Decimal`,
+    `Duration`, `Ref` and `MdastRoot` the built-in types map to, so it imports nothing.
   }}
 
   exports(title = "gen.go") {{
@@ -36,7 +35,6 @@ gen: component("internal/core/gen", heron.system.generator, lang = "go") {
       Checker *types.Checker
       Dir     string // the folder files are written under
     }
-    func (in *Input) ResolvedTree() (*resolve.Tree, *types.Checker)
 
     type Result struct {
       Written   []string // paths changed, relative to Dir

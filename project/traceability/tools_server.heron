@@ -37,14 +37,6 @@ tools_server: section {
     verify("internal/tools/server/lsp_test.go", test = "TestRealLanguageServerOnTheSocket")
   }
 
-  proves(heron.tools.server.extension_point.mount_routes) {
-    verify("internal/tools/server/server_test.go", test = "TestExtensionRoutesAreMounted")
-  }
-
-  proves(heron.tools.server.extension_point.route_clash) {
-    verify("internal/tools/server/server_test.go", test = "TestExtensionRoutesAreMounted")
-  }
-
   proves(heron.tools.server.ops.path_in_workspace) {
     verify("internal/tools/server/server_test.go", test = "TestBaseOps")
   }

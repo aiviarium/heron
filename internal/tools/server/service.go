@@ -25,7 +25,6 @@ import (
 type service struct {
 	shell  *Shell
 	ws     *Workspace
-	exts   []Extension
 	agents *agentExport
 }
 
@@ -120,11 +119,6 @@ func (s *service) Preview(ctx context.Context, req *api.PreviewRequest) (*api.Pr
 func (s *service) Results(ctx context.Context, path string) (*api.NodeResults, error) {
 	out := &api.NodeResults{Path: path, Results: []api.NodeResult{}}
 	out.Results = append(out.Results, runResults(s.ws, path)...)
-	for _, e := range s.exts {
-		for _, p := range e.Results {
-			out.Results = append(out.Results, p(ctx, s.ws, path)...)
-		}
-	}
 	return out, nil
 }
 
@@ -140,7 +134,7 @@ func (s *service) GetRecord(ctx context.Context, id string) (*api.Record, error)
 	return nil, route.Coded(http.StatusNotFound, "server.NO_RECORD", "no record %s", id)
 }
 
-// runResults is the built-in result provider: each task's last run.
+// runResults is each task's last run, from the run records.
 func runResults(w *Workspace, prefix string) []api.NodeResult {
 	rs, err := records.Open(w.Root, records.Config{}, w.Reg).List(records.RunKind)
 	if err != nil {

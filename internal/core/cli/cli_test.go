@@ -16,12 +16,12 @@ func env(dir string) (*registry.Env, *bytes.Buffer, *bytes.Buffer) {
 	return &registry.Env{Dir: dir, Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errb}, &out, &errb
 }
 
-// TestSampleCommand proves the command extension point: a command
+// TestSampleCommand proves that a command
 // registered from outside the unit runs through the same dispatcher.
 func TestSampleCommand(t *testing.T) {
 	r := registry.New()
 	cli.Register(r)
-	r.MustAddCommand(registry.Command{Name: "sample", Summary: "A sample extension command", Run: func(e *registry.Env, args []string) int {
+	r.MustAddCommand(registry.Command{Name: "sample", Summary: "A sample command", Run: func(e *registry.Env, args []string) int {
 		e.Stdout.Write([]byte("sample " + strings.Join(args, ",")))
 		return 3
 	}})
@@ -45,7 +45,7 @@ func TestSampleCommand(t *testing.T) {
 		if args != "" {
 			a = []string{args}
 		}
-		if code := cli.Main(r, a, e); code != want || out.Len() != 0 || !strings.Contains(errb.String(), "  sample     A sample extension command") {
+		if code := cli.Main(r, a, e); code != want || out.Len() != 0 || !strings.Contains(errb.String(), "  sample     A sample command") {
 			t.Errorf("heron %s: code %d, out %q, usage %q", args, code, out, errb)
 		}
 	}
