@@ -292,7 +292,7 @@ func renderType(c *Ctx) error {
 	default:
 		if ms := s.members(n, nil); len(ms) > 0 {
 			c.Heading(c.Level+1, Anchor(n)+".fields", label("docs.heading.fields"), "")
-			c.fieldsTable(n, ms)
+			c.typeViews(n, ms, frame)
 		}
 	}
 
@@ -404,6 +404,9 @@ func (c *Ctx) fieldsTable(owner *resolve.Node, ms []member) {
 		c.W(`</td><td><code>`, m.typ.html, `</code>`)
 		if m.from != nil {
 			c.W(` <span class="from">`, s.linkHTML(m.from, esc(m.from.Name), ""), `</span>`)
+		}
+		if c.nest {
+			c.W(c.nestedFields(owner, m))
 		}
 		c.W(`</td>`)
 		if hasDef {

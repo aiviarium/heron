@@ -70,8 +70,11 @@ type Page struct {
 	// BindMethods is what the navigation shows for each binding of an op
 	// with more than one, as {grpc, RPC}.
 	BindMethods [][2]string
-	prev        *Page
-	next        *Page
+	// icon is the icon a page without a node shows before its title, as
+	// a kind's page shows the kind's.
+	icon string
+	prev *Page
+	next *Page
 }
 
 // Area is a top-level part of the site, a tab in the top bar with its own
@@ -93,6 +96,12 @@ type NavGroup struct {
 	// Types are an api's types, listed after its ops in a group of their
 	// own that opens.
 	Types []*Page
+	// Part is the part of the area the group is in, as the Reference's
+	// API, Schema and CLI, headed where more than one part has a group.
+	Part string
+	// Fold shows the group's pages in a disclosure titled with its title,
+	// closed unless the page shown is one of them.
+	Fold bool
 }
 
 // Site is a tree prepared for rendering.
@@ -163,6 +172,8 @@ type Site struct {
 	commandThrows map[*resolve.Node]bool
 	// proven are the requirements a proof of the tree names.
 	proven map[*resolve.Node]bool
+	// schema is the schema reference, when the tree imports std/schema.
+	schema *schemaRef
 }
 
 // New prepares a site for a checked tree.
@@ -548,6 +559,7 @@ func (s *Site) buildPages() {
 		typeGroup(label("docs.nav.types"), rest)
 	}
 	typeGroup(label("docs.nav.errors"), s.errors)
+	s.referenceParts(docs, ref)
 
 	s.Areas = append(s.Areas, docs)
 	if len(ref.Groups) > 0 {
@@ -719,6 +731,9 @@ func Anchor(n *resolve.Node) string { return n.Path() }
 
 // URL returns the link to a node: its page, and its anchor on that page.
 func (s *Site) URL(n *resolve.Node) string {
+	if u := s.schemaURL(n); u != "" {
+		return u
+	}
 	if u := s.specURL(n); u != "" {
 		return u
 	}

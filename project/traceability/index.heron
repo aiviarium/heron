@@ -28,6 +28,7 @@ include = [
   "./tools_server.heron",
   "./tools_server_api.heron",
   "./tools_docs_design.heron",
+  "./tools_docs_schema.heron",
   "./tools_vscode.heron",
   "./rpc_bindings.heron",
 ]

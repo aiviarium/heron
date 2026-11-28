@@ -142,7 +142,7 @@ func Agents(t *resolve.Tree, c *types.Checker, opts AgentOptions) ([]AgentFile, 
 	}
 	s.mdHref = e.placeholder
 	e.assign()
-	out := e.write()
+	out := e.withSchema(e.write())
 	if opts.Pack != "" {
 		n := e.find(opts.Pack)
 		if n == nil {

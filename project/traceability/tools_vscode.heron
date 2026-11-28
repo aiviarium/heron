@@ -50,6 +50,10 @@ tools_vscode: section {
     verify("scripts/ci.sh", test = "vscode")
   }
 
+  proves(heron.tools.vscode.package.extension_icon) {
+    verify("editors/vscode/test/unit/extension.test.ts", test = "icon: Heron's icon, a 128 px PNG the manifest names and the package keeps")
+  }
+
   proves(heron.tools.vscode.fixing.fix_a_diagnostic) {
     verify("editors/vscode/test/e2e/suite.ts", test = "diagnostics come from the language server")
     verify("editors/vscode/test/e2e/suite.ts", test = "hover shows a node's docs")

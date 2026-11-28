@@ -1,0 +1,147 @@
+tools_docs_schema: section {
+  | The tests that prove the requirements of the spec's [Reference](#heron.tools.docs.reference): its parts, the schema reference's pages, a type page's views, the agent export's schema files and the site's marks.
+
+  proves(heron.tools.docs.reference.parts.reference_parts) {
+    verify("internal/tools/docs/schema_test.go", test = "TestReferenceParts")
+  }
+
+  proves(heron.tools.docs.reference.parts.commands_in_reference) {
+    verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
+  }
+
+  proves(heron.tools.docs.reference.parts.schema_packages_listed) {
+    verify("internal/tools/docs/schema_test.go", test = "TestReferenceParts")
+  }
+
+  proves(heron.tools.docs.reference.parts.schema_files) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.reference.parts.schema_searched) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaSearch")
+  }
+
+  proves(heron.tools.docs.reference.parts.generated_examples) {
+    verify("internal/tools/docs/schema_test.go", test = "TestGeneratedExamples")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.one_page) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.containment.tree_shown) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.containment.tree_entries) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.packages.kinds_listed) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.packages.annotations_listed) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.packages.flags_listed) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.schema_page.packages.categories_listed) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaLanding")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.lead.kind_title) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.lead.both_forms) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.summary.summary_rows) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.summary.goes_inside) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.summary.holds) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.summary.kind_references) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.summary.kind_annotations) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.summary.kind_flags) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.parameters.kind_params) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.parameters.kind_fields) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.example.example_tabs) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.checked_by.kind_rules) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.kind_page.used_in.kind_uses) {
+    verify("internal/tools/docs/schema_test.go", test = "TestKindPage")
+  }
+
+  proves(heron.tools.docs.screens.annotation_page.lead.annotation_signature) {
+    verify("internal/tools/docs/schema_test.go", test = "TestAnnotationPage")
+  }
+
+  proves(heron.tools.docs.screens.annotation_page.lead.annotation_facts) {
+    verify("internal/tools/docs/schema_test.go", test = "TestAnnotationPage")
+  }
+
+  proves(heron.tools.docs.screens.annotation_page.params.annotation_params) {
+    verify("internal/tools/docs/schema_test.go", test = "TestAnnotationPage")
+  }
+
+  proves(heron.tools.docs.screens.annotation_page.checked_by.annotation_rules) {
+    verify("internal/tools/docs/schema_test.go", test = "TestAnnotationPage")
+  }
+
+  proves(heron.tools.docs.screens.type_page.views.view_tabs) {
+    verify("scripts/e2e-docs.sh")
+  }
+
+  proves(heron.tools.docs.screens.type_page.views.nested_in_place) {
+    verify("internal/tools/docs/schema_test.go", test = "TestTypeViews")
+  }
+
+  proves(heron.tools.docs.screens.type_page.views.flat_paths) {
+    verify("internal/tools/docs/schema_test.go", test = "TestTypeViews")
+  }
+
+  proves(heron.tools.docs.screens.type_page.views.filled_example) {
+    verify("internal/tools/docs/schema_test.go", test = "TestTypeViews")
+  }
+
+  proves(heron.tools.docs.agents.files.schema_files_md) {
+    verify("internal/tools/docs/schema_test.go", test = "TestSchemaAgentExport")
+  }
+
+  proves(heron.tools.docs.page_layout.default_mark) {
+    verify("internal/tools/docs/schema_test.go", test = "TestBrandMarks")
+  }
+}

@@ -39,6 +39,7 @@ var entries = map[string]string{
 	"kinds":     "testdata/kinds/index.heron",
 	"shop":      "../../../examples/shop/index.heron",
 	"shop-spec": "../../../examples/shop-spec/index.heron",
+	"schema":    "testdata/schema/index.heron",
 }
 
 // The spec package's entry, as the repository imports it: from

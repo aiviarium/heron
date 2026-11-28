@@ -559,17 +559,49 @@ const url = (f) => "file://" + path.join(dir, f)
   // A theme package: its stylesheet loads in the theme layer and wins over
   // the built-in theme, its font loads, and its logo replaces the mark.
   if (await has('link[href$="theme/theme.css"]')) {
+    // What the theme sets is checked: its accent, its font, its logo.
+    const themeCSS = fs.readFileSync(path.join(dir, "_assets/theme/theme.css"), "utf8")
     const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--h-accent").trim())
-    const builtIn = ["#a99cf7", "#5b45cc"]
-    if (!accent || builtIn.includes(accent.toLowerCase())) fail.push(`theme: the theme's accent doesn't apply (${accent})`)
+    const builtIn = ["#4fb6f2", "#0b6fa8"]
+    if (/--h-accent:/.test(themeCSS) && (!accent || builtIn.includes(accent.toLowerCase()))) fail.push(`theme: the theme's accent doesn't apply (${accent})`)
     const logo = await page.$eval(".logo img.mark", (i) => i.complete && i.naturalWidth > 0).catch(() => false)
     if (!logo) fail.push("theme: the logo doesn't load")
-    const font = await page.evaluate(async () => {
+    const font = !/@font-face/.test(themeCSS) || await page.evaluate(async () => {
       const family = getComputedStyle(document.querySelector(".page-title")).fontFamily.split(",")[0].replace(/"/g, "").trim()
       await document.fonts.load(`600 16px "${family}"`)
       return [...document.fonts].some((f) => f.family.replace(/"/g, "") === family && f.status === "loaded")
     })
     if (!font) fail.push("theme: the theme's font doesn't load")
+  }
+
+  // Without a theme's logo, the top bar shows Heron's icon.
+  if (!(await has('link[href$="theme/theme.css"]'))) {
+    const mark = await page.$eval(".logo img.mark", (i) => i.complete && i.naturalWidth > 0).catch(() => false)
+    if (!mark) fail.push("mark: Heron's icon doesn't load in the top bar")
+  }
+
+  // Tabs over part of a page, as a kind's example or a type's views: the
+  // arrow keys move between them, and an anchor in a hidden tab opens it.
+  const tabbed = pages.find((f) => /role="tabpanel" id="[^"]*" aria-labelledby/.test(fs.readFileSync(path.join(dir, f), "utf8")))
+  if (tabbed) {
+    await ready(tabbed)
+    const moved = await page.evaluate(() => {
+      const list = document.querySelector('.view-tabs [role="tablist"]')
+      const tabs = [...list.querySelectorAll('[role="tab"]')]
+      tabs[0].focus()
+      tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+      const panel = document.getElementById(tabs[1].getAttribute("aria-controls"))
+      return document.activeElement === tabs[1] && tabs[1].getAttribute("aria-selected") === "true" && !panel.hidden
+    })
+    if (!moved) fail.push(`${tabbed}: the right arrow doesn't move to the next tab`)
+  }
+  const flatRow = /<table class="fields flat"><thead>[\s\S]*?<\/thead><tbody><tr id="([^"]+)"/
+  const flat = pages.find((f) => flatRow.test(fs.readFileSync(path.join(dir, f), "utf8")))
+  if (flat) {
+    const id = fs.readFileSync(path.join(dir, flat), "utf8").match(flatRow)[1]
+    await page.goto(url(flat) + "#" + encodeURIComponent(id))
+    await page.waitForFunction(() => document.documentElement.dataset.islands === "ready")
+    if (!(await page.evaluate((id) => document.getElementById(id).checkVisibility(), id))) fail.push(`${flat}: an anchor in the Flat tab doesn't open it`)
   }
 
   // Slots render on every page that has them.
