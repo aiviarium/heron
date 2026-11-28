@@ -129,7 +129,7 @@ func referenceWords(c *types.Checker, n *resolve.Node) string {
 		case kp == "spec.actor", kp == "spec.persona", kp == "spec.part":
 			meaning = "subject"
 			switch project.KindPath(c, n) {
-			case "spec.goal", "spec.constraint":
+			case "spec.goal":
 				meaning = "asked by"
 			case "spec.feature":
 				meaning = "for"

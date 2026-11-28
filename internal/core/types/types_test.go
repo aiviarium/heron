@@ -271,7 +271,7 @@ func TestSpecKinds(t *testing.T) {
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.GONE)\n}\n":                          "Status has no member GONE",
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.SHUT) {\n    must {{ x }}\n  }\n}\n": "transition doesn't accept must",
 		"d: decision<accepted> {\n  choice =| x\n}\n":                                                     "unknown kind or type decision",
-		"q: constraint(reason = \"x\") {\n  must {{ a }}\n  should {{ b }}\n}\n":                          "constraint accepts at most 1 strength node",
+		"q: rule {\n  must {{ a }}\n  should {{ b }}\n}\n":                                                "rule accepts at most 1 strength node",
 		"c: scenario {\n  when {{ a }}\n  when {{ b }}\n}\n":                                              "scenario accepts at most 1 when",
 		"a: actor<robot> {{ x }}\n":                                                                       "unknown flag robot",
 		"s: persona(nobody) {\n  goals =| w\n}\n":                                                         "unknown name nobody",

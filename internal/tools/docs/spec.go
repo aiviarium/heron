@@ -310,7 +310,7 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 	for _, l := range []struct {
 		ts  []*resolve.Node
 		key string
-	}{{project.Served(s.Checker, n), "docs.label.serves"}, {project.ReliedOn(s.Checker, n), "docs.label.relies"}, {project.AskedBy(s.Checker, n), "docs.label.asked_by"}} {
+	}{{project.Served(s.Checker, n), "docs.label.serves"}, {project.ReliedOn(s.Checker, n), "docs.label.relies"}} {
 		if len(l.ts) > 0 {
 			parts = append(parts, esc(label(l.key))+` `+c.refLinks(l.ts))
 		}

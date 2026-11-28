@@ -496,14 +496,14 @@ func (s *Site) schemaLinks(n *resolve.Node) []*resolve.Node {
 	return sr.links[n]
 }
 
-// checkedBy are the rules and constraints of the tree that link a
+// checkedBy are the rules of the tree that link a
 // declaration in their text, each with the ids of the errors whose prose
 // links it.
 func (s *Site) checkedBy(n *resolve.Node) (rules []*resolve.Node, codes map[*resolve.Node][]string) {
 	codes = map[*resolve.Node][]string{}
 	for _, o := range s.schemaLinks(n) {
 		switch s.kindPath(o) {
-		case "spec.rule", "spec.constraint":
+		case "spec.rule":
 		default:
 			continue
 		}

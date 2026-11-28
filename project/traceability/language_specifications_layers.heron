@@ -230,14 +230,6 @@ language_specifications_layers: section {
     verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
   }
 
-  proves(heron.language.specifications.requirements.constraint_reason) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
-  }
-
-  proves(heron.language.specifications.requirements.errors.constraint_without_reason) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
-  }
-
   proves(heron.language.specifications.requirements.errors.scenario_form) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
   }

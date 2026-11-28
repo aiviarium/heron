@@ -109,7 +109,7 @@ func Subject(c *types.Checker, n *resolve.Node) *resolve.Node {
 	return nil
 }
 
-// AskedBy are the actors and personas a goal's or a constraint's references
+// AskedBy are the actors and personas a goal's references
 // name: who asked for it.
 func AskedBy(c *types.Checker, n *resolve.Node) []*resolve.Node {
 	return ReferenceTargets(c, n, "spec.actor", "spec.persona")
@@ -137,7 +137,7 @@ func Described(c *types.Checker, n *resolve.Node) *resolve.Node {
 	return nil
 }
 
-// Rationale is a rule's or a constraint's rationale node, or nil.
+// Rationale is a rule's rationale node, or nil.
 func Rationale(c *types.Checker, n *resolve.Node) *resolve.Node {
 	for _, ch := range n.Children {
 		if KindPath(c, ch) == "spec.rationale" {

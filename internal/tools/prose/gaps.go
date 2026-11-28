@@ -63,7 +63,7 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 			}
 		}
 	}
-	if layer != specmodel.Contract && !specmodel.Is(f.c, owner, "spec.constraint") {
+	if layer != specmodel.Contract {
 		// A word the tree declares as a term is its domain's, not design.
 		var words []string
 		for _, w := range designWords {
@@ -77,7 +77,7 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 				words = append(words, w, w+"s")
 			}
 		}
-		phrase(words, "DesignWord", "%q is a design word in the %s layer; say what's observable, or write a constraint with its reason")
+		phrase(words, "DesignWord", "%q is a design word in the %s layer; say what's observable, or declare it as a term")
 	}
 	phrase(deliveryWords, "DeliveryWord", "%q is delivery vocabulary%.0s; plan work in the project, not the spec")
 	kindOf := func(n *resolve.Node) string { return project.KindPath(f.c, n) }
@@ -192,7 +192,7 @@ func reportGaps(li *lint.Input) {
 		case is(n, "spec.quality"):
 			goals = append(goals, n)
 			qualities = append(qualities, n)
-		case is(n, "spec.rule", "spec.constraint", "spec.usecase"):
+		case is(n, "spec.rule", "spec.usecase"):
 			reqs = append(reqs, n)
 			if is(n, "spec.usecase") {
 				usecases = append(usecases, n)
@@ -240,7 +240,8 @@ func reportGaps(li *lint.Input) {
 		for _, g := range s {
 			served[g] = true
 		}
-		if len(s) > 0 {
+		// A rule's rationale says why it holds when no goal does.
+		if len(s) > 0 || is(r, "spec.rule") && project.Rationale(c, r) != nil {
 			motivated[r] = true
 		}
 	}
@@ -250,8 +251,8 @@ func reportGaps(li *lint.Input) {
 		}
 	}
 	for _, r := range reqs {
-		if !motivated[r] && !is(r, "spec.constraint") {
-			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; reference a goal or a quality in its signature, or make it a constraint with its reason", r.Name))
+		if !motivated[r] {
+			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; reference a goal or a quality, or give it a rationale", r.Name))
 		}
 	}
 	for _, e := range entries {

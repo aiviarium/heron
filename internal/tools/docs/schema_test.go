@@ -91,7 +91,7 @@ func TestSchemaLanding(t *testing.T) {
 	)
 	// A category's kinds are listed once, where the tree first meets it,
 	// and its name alone links that place wherever it's met again: a
-	// constraint holds the conditions a rule lists.
+	// transition holds the conditions a rule lists.
 	tree := h[strings.Index(h, `id="schema-tree"`):strings.Index(h, `id="ui"`)]
 	if n := strings.Count(tree, `href="_schema.spec.where.html"`); n != 1 {
 		t.Errorf("where is listed %d times in the tree", n)

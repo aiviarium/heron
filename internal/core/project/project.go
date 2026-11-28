@@ -36,7 +36,6 @@ var SpecKinds = map[string]string{
 	"spec.assumption":    "assumption",
 	"spec.quality":       "quality",
 	"spec.rule":          "rule",
-	"spec.constraint":    "constraint",
 	"spec.part":          "part",
 	"spec.feature":       "feature",
 	"spec.scenario":      "scenario",
@@ -59,7 +58,6 @@ var SpecKinds = map[string]string{
 // validated, never proven.
 var RequirementKinds = map[string]bool{
 	"spec.rule":       true,
-	"spec.constraint": true,
 	"spec.scenario":   true,
 	"spec.usecase":    true,
 	"spec.transition": true,
@@ -221,7 +219,7 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 				continue
 			}
 			if !RequirementKinds[KindPath(c, target)] {
-				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or progress names a rule, a constraint, a scenario, a use case or its step, a transition or an error", target.Path())
+				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or progress names a rule, a scenario, a use case or its step, a transition or an error", target.Path())
 			}
 		}
 	}
@@ -732,7 +730,7 @@ func ProseLinks(c *types.Checker, n *resolve.Node) []*resolve.Node {
 }
 
 // ErrorRules are the requirements an error's prose links to: the rules,
-// constraints, use cases and use case steps that say when it's reported.
+// use cases and use case steps that say when it's reported.
 // An error names no raiser and realizes nothing; this is how it points up.
 func ErrorRules(c *types.Checker, n *resolve.Node) []*resolve.Node {
 	var out []*resolve.Node
@@ -742,7 +740,7 @@ func ErrorRules(c *types.Checker, n *resolve.Node) []*resolve.Node {
 			continue
 		}
 		switch KindPath(c, t) {
-		case "spec.rule", "spec.constraint", "spec.usecase":
+		case "spec.rule", "spec.usecase":
 		default:
 			if t.Shape != resolve.ShapeStep {
 				continue

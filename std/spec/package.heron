@@ -70,7 +70,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Intent ---
 
   /// Why a requirement exists: the goals and qualities it serves. A
-  /// feature, a rule, a constraint, a use case and a story reference it.
+  /// feature, a rule, a use case and a story reference it.
   motivation: category
 
   /// What a product is for, in the words of the people it's for, with an
@@ -122,7 +122,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   // --- Specification ---
 
   /// Kinds of other packages that a contract surface's hard references may
-  /// name, as this package's rule, constraint, use case, part, lifecycle
+  /// name, as this package's rule, use case, part, lifecycle
   /// and transition. A kind with no `references` of its own takes them with
   /// `@touch`, as a type does.
   touchable: category
@@ -169,21 +169,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = then, max = 1)
     accept(kind = instead, max = 1)
     accept(category = condition)
-    accept(kind = rationale, max = 1)
-    accept(kind = example)
-  }
-
-  /// A limit on the solution with a reason from outside it, its
-  /// `rationale`; its references name the goals and qualities it serves,
-  /// the assumptions it relies on and the actors who asked for it.
-  constraint(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [motivation, assumption, actor]) {
-    accept(prose)
-    accept(category = strength, max = 1)
-    accept(kind = where, max = 1)
-    accept(kind = while)
-    accept(kind = when, max = 1)
-    accept(kind = spec.if, max = 1)
-    accept(kind = then, max = 1)
     accept(kind = rationale, max = 1)
     accept(kind = example)
   }
@@ -252,7 +237,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// Why a rule or a constraint holds, in a line.
+  /// Why a rule holds, in a line.
   rationale: kind {
     accept(prose)
   }
@@ -350,7 +335,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// The revision of a requirement or contract entry, a whole number from
   /// 1, raised when its meaning changes; on a proof, the revision it proves.
-  rev(n: Int): annotation(on = [rule, constraint, scenario, usecase, types.error, command, screen, revised])
+  rev(n: Int): annotation(on = [rule, scenario, usecase, types.error, command, screen, revised])
 
   // --- Contract ---
 

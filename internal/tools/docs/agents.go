@@ -386,7 +386,7 @@ func (e *agentExport) separate(ch, parent *resolve.Node) bool {
 		return false
 	}
 	switch e.s.kindPath(ch) {
-	case "spec.rule", "spec.constraint", "spec.quality", "spec.guidance", "spec.open", "spec.goal", "spec.nongoal",
+	case "spec.rule", "spec.quality", "spec.guidance", "spec.open", "spec.goal", "spec.nongoal",
 		"spec.assumption", "spec.term", "spec.scenario", "spec.usecase", "types.op", "types.api", "spec.command",
 		"spec.part", "spec.actor", "spec.persona", "spec.states", "grammar.grammar":
 		return true
@@ -399,7 +399,7 @@ func (e *agentExport) separate(ch, parent *resolve.Node) bool {
 }
 
 func strengthHolder(k string) bool {
-	return k == "spec.rule" || k == "spec.constraint" || k == "spec.quality"
+	return k == "spec.rule" || k == "spec.quality"
 }
 
 // block adds a node of a layer, and the nodes below it that get headings
@@ -895,7 +895,7 @@ func (e *agentExport) subject(n *resolve.Node) string {
 	return label("docs.rule.subject")
 }
 
-// requirement writes a rule, a constraint or a quality.
+// requirement writes a rule or a quality.
 func (e *agentExport) requirement(n *resolve.Node) string {
 	s := e.s
 	var ls []string
@@ -932,7 +932,7 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 	for _, l := range []struct {
 		words string
 		ts    []*resolve.Node
-	}{{"serves", project.Served(s.Checker, n)}, {"relies on", project.ReliedOn(s.Checker, n)}, {"asked by", project.AskedBy(s.Checker, n)}, {"joins", project.ReferenceTargets(s.Checker, n, "spec.feature")}} {
+	}{{"serves", project.Served(s.Checker, n)}, {"relies on", project.ReliedOn(s.Checker, n)}, {"joins", project.ReferenceTargets(s.Checker, n, "spec.feature")}} {
 		if len(l.ts) > 0 {
 			refs = append(refs, l.words+" "+e.links(l.ts))
 		}
@@ -1096,7 +1096,7 @@ func (e *agentExport) stepLinks(p specmodel.Parsed, start, end int) (by *resolve
 			by = t
 		case k == "spec.usecase":
 			includes = append(includes, t)
-		case k == "spec.rule" || k == "spec.constraint" || k == "spec.term":
+		case k == "spec.rule" || k == "spec.term":
 			uses = append(uses, t)
 		}
 	}

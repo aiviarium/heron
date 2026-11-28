@@ -26,7 +26,6 @@ func init() {
 		"spec.term":       renderTerm,
 		"spec.rule":       renderRule,
 		"spec.states":     renderStates,
-		"spec.constraint": renderRule,
 		"spec.guidance":   renderLabelled("docs.label.guidance"),
 		"spec.open":       renderOpen,
 		"spec.project":    renderProject,

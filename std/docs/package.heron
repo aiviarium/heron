@@ -126,7 +126,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   developer: lens {
     title = "Developer"
     nav = LensNav.TOPIC
-    summarize = [spec.rule, spec.constraint, spec.guidance]
+    summarize = [spec.rule, spec.guidance]
     prefix = "dev"
   }
 

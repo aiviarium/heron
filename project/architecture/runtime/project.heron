@@ -9,7 +9,7 @@ project: component("internal/core/project", heron.system.checker, lang = "go") {
   project_mode: responsibility {{
     Finds a root's `implements(spec, at)` and reports, in a tree that has one, each spec
     kind the tree declares (goals, actors, personas, nongoals, assumptions, qualities,
-    features, rules, constraints, parts, scenarios, use cases, terms,
+    features, rules, parts, scenarios, use cases, terms,
     [lifecycles](#heron.language.specifications.lifecycles.lifecycle) and their transitions, errors, commands, screens and their regions,
     grammars, productions, tokens and apis), once at the outermost, and the proofs and
     progresses that name no spec requirement or nothing in the spec.

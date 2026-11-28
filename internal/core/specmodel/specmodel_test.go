@@ -214,7 +214,7 @@ ex_case: scenario(r) {
   then {{ it's refunded }}
 }
 `)
-	wantAll(t, res, "reference: self_service is a goal, and a op references only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition")
+	wantAll(t, res, "reference: self_service is a goal, and a op references only a rule, a use case or its step, a part, a lifecycle or a transition")
 	wantNone(t, res, "type:", "too-many-arguments", "Refund is a", "r is a rule", "refund.2", "unresolved", "missing-argument")
 	c := res.Checker
 	for path, want := range map[string]int{"payments.create": 2, "payments.ping": 1, "payments.named": 1, "payments": 1, "c": 1, "s": 1, "s.list": 1, "bare": 1, "g": 1, "g.P": 1, "g.T": 1, "uc": 2, "ex_case": 1} {
@@ -308,7 +308,7 @@ payments: api {
 		"reference: other is a rule, and a rule references only goal, quality, actor, part, assumption or feature",
 		"reference: desk is listed twice, in the constructor and in @touch; list it once",
 		"reference: r is listed twice, in the constructor and in @touch; list it once",
-		"reference: self_service is a goal, and @touch on a enum takes only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition",
+		"reference: self_service is a goal, and @touch on a enum takes only a rule, a use case or its step, a part, a lifecycle or a transition",
 		"reference: window is a term, which is vocabulary: a enum doesn't reference it; mention it in the prose",
 		"reference: window is a term, which is vocabulary: @see doesn't reference it; mention it in the prose",
 		"rule-link: rule sees_rule links the rule other",
@@ -362,7 +362,7 @@ t2: plain_rule(b) {
 	wantNone(t, res, "too-many-arguments", "accept:")
 }
 
-// A rule references no term; a constraint needs its reason; a persona
+// A rule references no term; a persona
 // plays an actor; a scenario has one form, an outcome scenario references
 // one rule or path, a quality scenario has a measure and references the
 // quality it measures; at most one trigger.
@@ -372,10 +372,6 @@ r: rule(window) {
   when {{ a }}
   if {{ b }}
   must {{ x }}
-}
-
-c: constraint {
-  must {{ y }}
 }
 
 p: persona(desk) {{ Someone. }}
@@ -415,7 +411,6 @@ measured: scenario(q) {
 	wantAll(t, res,
 		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
 		"accept: rule accepts at most 1 trigger, when or if",
-		"missing-rationale: constraint c needs a rationale, its reason from outside the solution",
 		"reference: desk is a part, and a persona references only actor",
 		"scenario: scenario both mixes outcome clauses and quality fields",
 		"scenario: scenario none has neither outcome clauses nor quality fields",

@@ -277,7 +277,7 @@ type backlinkGroup struct {
 
 // backlinkOrder is the order the derived lists of the core kinds come in;
 // a custom kind's come after, by name.
-var backlinkOrder = []string{"op", "api", "command", "argument", "option", "screen", "region", "grammar", "production", "token", "type", "enum", "union", "interface", "error", "component", "scenario", "example", "usecase", "rule", "constraint", "goal", "story"}
+var backlinkOrder = []string{"op", "api", "command", "argument", "option", "screen", "region", "grammar", "production", "token", "type", "enum", "union", "interface", "error", "component", "scenario", "example", "usecase", "rule", "goal", "story"}
 
 // backlinkGroups are a node's derived lists: the nodes that reference it,
 // grouped by their kind, the errors whose prose links it among them, then

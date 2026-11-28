@@ -14,7 +14,7 @@ import (
 
 // featureKinds are the kinds a feature counts among its requirements,
 // in the order its page groups them.
-var featureKinds = []string{"spec.rule", "spec.constraint", "spec.usecase", "spec.scenario", "spec.states"}
+var featureKinds = []string{"spec.rule", "spec.usecase", "spec.scenario", "spec.states"}
 
 // featureRequirements are a feature's requirements: those it holds at any
 // depth outside a nested feature, then the rules anywhere that reference

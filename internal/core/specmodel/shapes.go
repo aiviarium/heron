@@ -70,12 +70,6 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		triggers(c, n, ds)
 		whereFeature(c, t, n, ds)
 		revision(n, ds)
-	case Is(c, n, "spec.constraint"):
-		if r := childrenOf(c, n, "spec.rationale"); len(r) == 0 || strings.TrimSpace(project.ProseText(r[0])) == "" {
-			errAt(ds, n.Decl, "missing-rationale", "constraint %s needs a rationale, its reason from outside the solution", n.Name)
-		}
-		whereFeature(c, t, n, ds)
-		revision(n, ds)
 	case Is(c, n, "spec.scenario"):
 		scenario(c, n, ds)
 		revision(n, ds)
@@ -115,7 +109,7 @@ func nodeRefs(c *types.Checker, n *resolve.Node) []Ref {
 }
 
 // realizedNames is how a message names the kinds in spec.touchable.
-const realizedNames = "a rule, a constraint, a use case or its step, a part, a lifecycle or a transition"
+const realizedNames = "a rule, a use case or its step, a part, a lifecycle or a transition"
 
 // references checks a node's hard references, in its constructor and its
 // @touch: each names a kind its kind's `references` lists, or a kind that

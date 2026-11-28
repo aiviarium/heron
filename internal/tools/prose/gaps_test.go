@@ -99,7 +99,8 @@ func TestGapAndLayerLints(t *testing.T) {
 	}
 }
 
-// A requirement no goal reaches is unmotivated, unless it's a constraint.
+// A requirement no goal reaches is unmotivated, unless it's a rule with a
+// rationale.
 func TestUnmotivated(t *testing.T) {
 	dir := t.TempDir()
 	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/lint@1"]
@@ -110,7 +111,7 @@ r: rule(desk) {
   must {{ refund }}
 }
 
-c: constraint {
+c: rule {
   must {{ refund to the card }}
   rationale {{ The card network says so. }}
 }
@@ -129,16 +130,16 @@ joins: rule(desk, refunds) {
   must {{ refund in the currency paid }}
 }
 `)
-	got, _ := lintDir(t, dir, lint.NewProseCache())
+	got, ds := lintDir(t, dir, lint.NewProseCache())
 	var un []string
-	for _, f := range got {
-		if f.code == "Spec.Unmotivated" {
-			un = append(un, f.text)
+	for _, d := range ds {
+		if d.Code == "Spec.Unmotivated" {
+			un = append(un, d.Message)
 		}
 	}
 	// The feature's goal motivates the rules it holds and those that
-	// reference it.
-	if len(un) != 1 || !strings.Contains(un[0], "r: rule") {
+	// reference it, and a rationale alone motivates c.
+	if len(un) != 1 || un[0] != "r serves no goal; reference a goal or a quality, or give it a rationale" {
 		t.Errorf("unmotivated: %q", un)
 	}
 	for _, f := range got {

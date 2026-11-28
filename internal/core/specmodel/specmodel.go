@@ -1,6 +1,6 @@
 // Package specmodel checks what std/spec's layers ask of a tree: the layer
 // of each node, references that never point down, the links' targets, and
-// the shapes of the kinds that need more than a schema says: rules, constraints, scenarios, personas, use cases
+// the shapes of the kinds that need more than a schema says: rules, scenarios, personas, use cases
 // and errors.
 package specmodel
 
