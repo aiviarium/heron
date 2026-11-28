@@ -24,6 +24,16 @@ type Config struct {
 	Slots   []*Slot
 	// Depth is how many levels of sections get pages of their own.
 	Depth int
+	// Areas are the docs block's `area(…)` nodes, in the order written.
+	Areas []*AreaDecl
+}
+
+// AreaDecl is an `area(node)` of the docs block: a top-level node with a
+// site area of its own, offered as a tab in the top bar or, with
+// `<menu>`, in the area switcher at the top of the sidebar.
+type AreaDecl struct {
+	Node *resolve.Node
+	Menu bool
 }
 
 // Slot is a `slot(name, of?)` of the docs block: components a place shows.
@@ -86,6 +96,17 @@ func (s *Site) readConfig() {
 				if t := s.refTarget(e.Syntax(), sec.ValueSite); t != nil {
 					s.Config.Layouts[t] = l
 				}
+			}
+		case s.kindPath(c) == "docs.area":
+			e := namedArg(kindArgs(c), "node")
+			if e == nil {
+				e = positionalArg(kindArgs(c), 0)
+			}
+			if e == nil {
+				continue
+			}
+			if t := s.refTarget(e.Syntax(), c.Decl); t != nil {
+				s.Config.Areas = append(s.Config.Areas, &AreaDecl{Node: t, Menu: hasFlagName(kindFlags(c), "menu")})
 			}
 		case s.kindPath(c) == "docs.slot":
 			args := kindArgs(c)
@@ -170,4 +191,30 @@ func (s *Site) inConfig(n *resolve.Node) bool {
 		}
 	}
 	return false
+}
+
+func hasFlagName(flags []string, name string) bool {
+	for _, f := range flags {
+		if f == name {
+			return true
+		}
+	}
+	return false
+}
+
+// positionalArg is the expression of an argument by its position, or nil.
+func positionalArg(args ast.Args, index int) ast.Expr {
+	if args.N == nil {
+		return nil
+	}
+	pos := 0
+	for _, a := range args.Args() {
+		if pa, ok := a.(ast.PositionalArg); ok {
+			if pos == index {
+				return pa.Expr()
+			}
+			pos++
+		}
+	}
+	return nil
 }

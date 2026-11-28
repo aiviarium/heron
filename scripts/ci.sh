@@ -237,8 +237,8 @@ lane_tree() {
   "$heron" fmt --check index.heron fixtures std examples internal/tools/server/api web/samples/docs-site
 
   step "the repository's tree (the spec package and the root project) and examples/ check and lint clean"
-  "$heron" check . examples/petstore examples/parcels web/samples/docs-site
-  "$heron" lint . examples/petstore examples/parcels web/samples/docs-site
+  "$heron" check . examples/petstore examples/parcels examples/suite web/samples/docs-site
+  "$heron" lint . examples/petstore examples/parcels examples/suite web/samples/docs-site
 
   step "the spec package checks on its own, as it's released"
   "$heron" check "$spec"
@@ -264,8 +264,8 @@ lane_unit1() {
   go build -tags unit1 -o "$heron1" ./cmd/heron
   if "$heron1" lsp </dev/null >/dev/null 2>&1; then echo "the unit-1 binary has unit 2's lsp"; return 1; fi
   "$heron1" fmt --check index.heron fixtures std examples
-  "$heron1" check . examples/petstore examples/parcels
-  "$heron1" lint . examples/petstore examples/parcels
+  "$heron1" check . examples/petstore examples/parcels examples/suite
+  "$heron1" lint . examples/petstore examples/parcels examples/suite
   export HERON_TAGS=unit1
   scripts/e2e-setup.sh >/dev/null
   scripts/e2e-tasks.sh >/dev/null

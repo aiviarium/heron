@@ -142,26 +142,26 @@ func TestLensSwitcher(t *testing.T) {
 	mustHave(t, "dev glossary switcher", sw.FindString(f["dev/_glossary.html"]), `href="../_glossary.html"`)
 }
 
-// The user lens opens on its tasks: the root's prose marked for it, its
-// first tutorial as the primary link and a group per group of its
-// navigation, which lists the authored pages by kind, then the reference
-// with the errors and the glossary, and a page holding only authored pages
-// once; it shows commands, terms, examples and diagnostics as errors with
-// their fixes, and leaves out rules and the tree's section prose, keeping
-// a section's heading where it holds what it shows.
+// The user lens opens on the pages written for its readers: the root's
+// prose marked for it, its first authored page as the primary link and a
+// card per other top-level entry of its navigation, which lists the pages
+// it keeps as the tree nests them, in the tree's order, and the errors and
+// the glossary at the bottom; it shows commands, terms, examples and
+// diagnostics as errors with their fixes, and leaves out rules and the
+// tree's section prose, keeping a section's heading where it holds what it
+// shows.
 func TestUserLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	home := f["index.html"]
 	mustHave(t, "user home", home, "Kite syncs a folder of notes",
-		`<a class="home-primary" href="kite.first_sync.html"><span class="home-primary-title">First sync</span><span class="home-primary-text">Build a notes folder from nothing and keep it in sync.</span>`,
-		`<h2 class="home-group-title">How-to guides</h2>`, `href="kite.start.html"`, `href="kite.set_up_store.html"`,
-		`<h2 class="home-group-title">Reference</h2>`, `href="kite.cli.html"`, `href="_diagnostics.html"><span class="home-link-title">Errors</span>`, `href="_glossary.html"`,
-		`<span class="home-link-text">Keep the folder small: Kite copies changed notes only, so a large folder syncs as fast as a small one.</span>`)
-	mustNotHave(t, "user home", home, "The spec of Kite 1.4", `<h2 class="home-group-title">Tutorials</h2>`, `class="tile"`)
+		`<a class="home-primary" href="kite.start.html"><span class="home-primary-title">`, `Start</span><span class="home-primary-text">Install Kite, point it at a folder and run your first sync.</span>`,
+		`<ul class="page-links home-cards">`, `href="kite.set_up_store.html"><span class="home-link-title">Set up store</span>`, `href="kite.first_sync.html"`, `href="kite.cli.html"`,
+		`<span class="home-link-text">More pages for people who sync notes.</span>`)
+	mustNotHave(t, "user home", home, "The spec of Kite 1.4", `home-group-title`, `class="tile"`)
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(home)
-	mustNotHave(t, "user nav", nav, ">More<")
-	order := []string{">Guides<", ">Start<", ">Tutorials<", ">First sync<", ">How-to guides<", ">Set up store<", ">Concepts<", ">Tips<", ">Conflicts<", ">Reference<", ">CLI<", ">Errors<", ">Glossary<"}
-	rest := nav[strings.Index(nav, `class="nav-group"`):]
+	mustNotHave(t, "user nav", nav, `class="label"`, ">Guides<", ">How-to guides<")
+	order := []string{">Start<", ">Set up store<", ">First sync<", ">More<", ">Tips<", ">Conflicts<", ">Sync<", ">Retries<", ">CLI<", `class="nav-group nav-site"`, ">Errors<", ">Glossary<"}
+	rest := nav[strings.Index(nav, `<ul class="nav">`):]
 	for _, o := range order {
 		i := strings.Index(rest, o)
 		if i < 0 {
@@ -169,6 +169,10 @@ func TestUserLens(t *testing.T) {
 			break
 		}
 		rest = rest[i:]
+	}
+	// The user lens shows no rule, and so has no gaps page.
+	if _, ok := f["_gaps.html"]; ok {
+		t.Error("the user lens has a gaps page")
 	}
 	sync := f["kite.sync.html"]
 	mustHave(t, "user sync", sync, "conflict")
@@ -319,38 +323,95 @@ func TestIntentFirst(t *testing.T) {
 
 // Explore shows every node in full: each rule with a facts line of its
 // path, kind, targets, subject and strength, each node's kind beside its
-// name; the navigation lists pages alone, and the page's nodes are in its
-// outline.
+// name.
 func TestExploreLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	sync := f["explore/kite.sync.html"]
 	mustHave(t, "explore sync", sync, `<span class="rule-meta"><code class="meta-name">sync.copies_changed</code>`,
 		`<code class="meta-kind">rule</code>`, `<code class="meta-strength">must</code>`,
-		`aria-label="term"><title>term</title>`, `id="kite.sync.unreadable"`)
+		`id="kite.sync.unreadable"`)
 	// No kind in words beside a name, in explore as anywhere.
 	mustNotHave(t, "explore sync", sync, `<span class="kind">`)
 	mustNotHave(t, "explore sync", sync, `<details class="rule`)
-	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`).FindString(sync)
-	mustHave(t, "explore sync outline", outline, `<li class="l2"><a href="#kite.sync.keeps_both">`)
 }
 
-// In every lens the navigation lists pages, never an anchor on a page;
-// a page's outline holds its headings and, under a node's heading, the
-// nodes inside it, two levels deep, or on a page without headings its
-// nodes and theirs.
-func TestNavPagesOutlineNested(t *testing.T) {
+// In every lens the navigation lists pages, never an anchor on a page.
+func TestNavPagesOnly(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`)
-	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`)
 	for path, h := range f {
 		if strings.HasSuffix(path, ".html") && strings.Contains(nav.FindString(h), `href="#`) {
 			t.Errorf("%s: the navigation lists an anchor", path)
 		}
 	}
-	mustHave(t, "user retries outline", outline.FindString(f["kite.sync.retries.html"]),
-		`<li class="l2"><a href="#kite.sync.retries.backoff">Backoff</a></li><li class="l3"><a href="#kite.sync.retries.backoff.wait">Wait</a></li>`)
-	mustHave(t, "explore backoff outline", outline.FindString(f["explore/kite.sync.retries.backoff.html"]),
-		`<li class="l2"><a href="#kite.sync.retries.backoff.backoff_doubles">`, `<li class="l2"><a href="#kite.sync.retries.backoff.wait">`)
+}
+
+// outlineTree has sections with terms, rules and examples: what a lens
+// shows as headings, and a rule's example that goes with its rule.
+const outlineTree = `import = ["std/doc@1", "std/docs@1"]
+
+reader: actor {{ Someone who reads. }}
+
+format: section {
+  | The format.
+
+  core: section {
+    | The core of the format.
+
+    naming: section {
+      | How nodes are named.
+
+      path: term {{ The names from the root to a node. }}
+
+      link_lookup: rule(reader) {
+        must {{ find a node by its [path](#format.core.naming.path) }}
+        example {{ ` + "`[Orders](#format)`" + ` finds the format }}
+      }
+
+      a_link: example {{ ` + "`[Format](#format)`" + ` }}
+    }
+
+    values: section {
+      | How values are written.
+
+      set_one_field: rule(reader) {
+        must {{ read one field set at a time }}
+        example {{ ` + "`a.b = 1`" + ` sets one field }}
+      }
+    }
+  }
+}
+
+docs {
+  depth = 2
+  lenses = [user, developer, explore]
+}
+`
+
+// A page's outline lists its headings alone, the same in every lens that
+// shows them: never a term or a rule on one line; and a lens that leaves a
+// rule out leaves its examples out too, so no rule's title is the empty
+// heading of its example.
+func TestOutlineHeadings(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.heron"), []byte(outlineTree), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
+	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`)
+	for _, p := range []string{"dev/format.core.html", "explore/format.core.html"} {
+		ol := outline.FindString(f[p])
+		mustHave(t, p+" outline", ol, `<li class="l2"><a href="#format.core.naming">`, `<li class="l2"><a href="#format.core.values">`)
+		mustNotHave(t, p+" outline", ol, `#format.core.naming.path"`, `#format.core.naming.link_lookup"`, `#format.core.values.set_one_field"`)
+	}
+	user := f["format.core.html"]
+	mustHave(t, "user format", user, `id="format.core.naming.a_link"`)
+	mustNotHave(t, "user format", user, "Link lookup", "Set one field", "finds the format", "sets one field", `id="format.core.values"`)
+	mustHave(t, "explore format", f["explore/format.core.html"], "Link lookup", "finds the format")
+	// An outline of one heading says nothing the title doesn't.
+	if ol := outline.FindString(user); strings.Count(ol, "<li") < 2 && ol != "" {
+		t.Errorf("an outline of one entry: %s", ol)
+	}
 }
 
 // A link to a node its lens leaves out opens it in the first lens that
@@ -457,7 +518,6 @@ start: guide {
 
 support: lens {
   title = "Support"
-  nav = LensNav.TASK
   show = [spec.command, spec.error]
   prefix = "support"
 }
@@ -465,7 +525,6 @@ support: lens {
 user: lens {
   title = "User"
   default = true
-  nav = LensNav.TASK
   show = [spec.command]
   prefix = ""
 }

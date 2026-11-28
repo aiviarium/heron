@@ -290,7 +290,6 @@ shop: package(version = "1.0") {
 
 agent: lens {
   title = "Agents"
-  nav = LensNav.TREE
   format = LensFormat.MARKDOWN
   marks = false
   hide = [docs.authored]

@@ -66,6 +66,7 @@ scripts/ci.sh              local CI: the spec package, gofmt, vet,
                            go-check-sumtype, tests, fixture checks,
                            the e2e-*.sh scripts
 examples/petstore/         the Example tab's repository, as far as unit 1 goes
+examples/suite/            two products and their shared help on one docs site: the site's areas
 ```
 
 `syntax` and `eval` import nothing that performs I/O (no `os`, `net`,

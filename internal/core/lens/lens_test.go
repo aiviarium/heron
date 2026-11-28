@@ -80,7 +80,7 @@ both: section {
 
 agent: lens {
   title = "Agent"
-  nav = LensNav.TREE
+  format = LensFormat.HTML
   prefix = "agent"
   hide = [doc.section]
   show = [guide]
@@ -104,9 +104,9 @@ func TestLensesCheck(t *testing.T) {
 	s := lens.SiteOf(res.Tree, res.Checker)
 	var got []string
 	for _, l := range s.Lenses {
-		got = append(got, l.Name+":"+l.Prefix+":"+string(l.Nav))
+		got = append(got, l.Name+":"+l.Prefix)
 	}
-	if want := "user::TASK developer:dev:TOPIC agent:agent:TREE explore:explore:TREE"; strings.Join(got, " ") != want {
+	if want := "user: developer:dev agent:agent explore:explore"; strings.Join(got, " ") != want {
 		t.Fatalf("lenses = %q, want %q", got, want)
 	}
 	if s.Default == nil || s.Default.Name != "user" {
@@ -154,13 +154,13 @@ func TestUnknownLens(t *testing.T) {
 func TestOneDefaultLens(t *testing.T) {
 	for _, c := range []struct{ lenses, want string }{
 		{"lenses = [developer, explore]", "a site has exactly one default lens; 0 of developer, explore set default = true"},
-		{"lenses = [user, other]\n  other: lens {\n    title = \"Other\"\n    default = true\n    nav = LensNav.TOPIC\n    prefix = \"o\"\n  }", "a site has exactly one default lens; 2 of user, other set default = true"},
-		{"lenses = [user, developer, again]\n  again: lens {\n    title = \"Again\"\n    nav = LensNav.TOPIC\n    prefix = \"dev\"\n  }", "developer and again are both served under dev/"},
-		{"lenses = [user, root]\n  root: lens {\n    title = \"Root\"\n    nav = LensNav.TOPIC\n    prefix = \"\"\n  }", "root: only the default lens is served at the site's root"},
-		{"lenses = [user, slash]\n  slash: lens {\n    title = \"Slash\"\n    nav = LensNav.TOPIC\n    prefix = \"/dev/\"\n  }", `slash: the prefix "/dev/" isn't one path segment`},
+		{"lenses = [user, other]\n  other: lens {\n    title = \"Other\"\n    default = true\n    prefix = \"o\"\n  }", "a site has exactly one default lens; 2 of user, other set default = true"},
+		{"lenses = [user, developer, again]\n  again: lens {\n    title = \"Again\"\n    prefix = \"dev\"\n  }", "developer and again are both served under dev/"},
+		{"lenses = [user, root]\n  root: lens {\n    title = \"Root\"\n    prefix = \"\"\n  }", "root: only the default lens is served at the site's root"},
+		{"lenses = [user, slash]\n  slash: lens {\n    title = \"Slash\"\n    prefix = \"/dev/\"\n  }", `slash: the prefix "/dev/" isn't one path segment`},
 		{"lenses = []", "the site builds no lens"},
-		{"lenses = [user]\n  odd: lens {\n    title = \"Odd\"\n    nav = LensNav.TOPIC\n    prefix = \"odd\"\n    show = [intro]\n    entry = [intro]\n  }", "intro is a section; a lens's show lists kinds and categories"},
-		{"lenses = [user]\n  odd: lens {\n    title = \"Odd\"\n    nav = LensNav.TOPIC\n    prefix = \"odd\"\n    entry = [intro]\n  }", "intro is a section; a lens's entry lists guides, how-tos, concepts and tutorials"},
+		{"lenses = [user]\n  odd: lens {\n    title = \"Odd\"\n    prefix = \"odd\"\n    show = [intro]\n    entry = [intro]\n  }", "intro is a section; a lens's show lists kinds and categories"},
+		{"lenses = [user]\n  odd: lens {\n    title = \"Odd\"\n    prefix = \"odd\"\n    entry = [intro]\n  }", "intro is a section; a lens's entry lists guides, how-tos, concepts and tutorials"},
 	} {
 		res := checkSrc(t, withLenses(c.lenses))
 		if !strings.Contains(messages(res), c.want) {
@@ -277,15 +277,14 @@ buy: usecase(shopper) {
 // A lens's fields are checked against std/docs's declaration, and a tree's
 // own lens of a standard name is the one its docs block and marks use.
 func TestLensFieldsAndOverride(t *testing.T) {
-	res := checkSrc(t, strings.Replace(withLenses("lenses = [user, explore]"), "nav = LensNav.TREE", "nav = LensNav.PAGES", 1))
-	if !strings.Contains(messages(res), "LensNav has no member PAGES") {
+	res := checkSrc(t, strings.Replace(withLenses("lenses = [user, explore]"), "format = LensFormat.HTML", "format = LensFormat.PDF", 1))
+	if !strings.Contains(messages(res), "LensFormat has no member PDF") {
 		t.Errorf("diagnostics %q", messages(res))
 	}
 	src := withLenses("lenses = [user, explore]") + `
 user: lens {
   title = "Customers"
   default = true
-  nav = LensNav.TOPIC
   prefix = ""
 }
 `
@@ -444,10 +443,10 @@ func TestMarkdownLens(t *testing.T) {
 		}
 	}
 	for _, c := range []struct{ lenses, site, want string }{
-		{"notes: lens {\n  title = \"Notes\"\n  nav = LensNav.TREE\n  format = LensFormat.MARKDOWN\n  prefix = \"notes\"\n}", "lenses = [user, notes]", "notes is written as Markdown; a site's lenses are written as HTML"},
-		{"taken: lens {\n  title = \"Taken\"\n  nav = LensNav.TOPIC\n  prefix = \"agents\"\n}", "lenses = [user, taken]", "agent and taken are both served under agents/"},
-		{"small: lens {\n  title = \"Small\"\n  nav = LensNav.TREE\n  format = LensFormat.MARKDOWN\n  budget = 100\n  prefix = \"small\"\n}", "lenses = [user]", "small: a budget is at least 500 tokens, not 100"},
-		{"odd: lens {\n  title = \"Odd\"\n  nav = LensNav.TREE\n  format = LensFormat.PDF\n  prefix = \"odd\"\n}", "lenses = [user]", "PDF"},
+		{"notes: lens {\n  title = \"Notes\"\n  format = LensFormat.MARKDOWN\n  prefix = \"notes\"\n}", "lenses = [user, notes]", "notes is written as Markdown; a site's lenses are written as HTML"},
+		{"taken: lens {\n  title = \"Taken\"\n  prefix = \"agents\"\n}", "lenses = [user, taken]", "agent and taken are both served under agents/"},
+		{"small: lens {\n  title = \"Small\"\n  format = LensFormat.MARKDOWN\n  budget = 100\n  prefix = \"small\"\n}", "lenses = [user]", "small: a budget is at least 500 tokens, not 100"},
+		{"odd: lens {\n  title = \"Odd\"\n  format = LensFormat.PDF\n  prefix = \"odd\"\n}", "lenses = [user]", "PDF"},
 	} {
 		res := checkSrc(t, mdSrc(c.lenses, c.site))
 		if !strings.Contains(messages(res), c.want) {
@@ -455,7 +454,7 @@ func TestMarkdownLens(t *testing.T) {
 		}
 	}
 	// A tree's own agent lens is the one the export is written through.
-	res = checkSrc(t, mdSrc("agent: lens {\n  title = \"Mine\"\n  nav = LensNav.TREE\n  format = LensFormat.MARKDOWN\n  budget = 900\n  prefix = \"ai\"\n}", "lenses = [user]"))
+	res = checkSrc(t, mdSrc("agent: lens {\n  title = \"Mine\"\n  format = LensFormat.MARKDOWN\n  budget = 900\n  prefix = \"ai\"\n}", "lenses = [user]"))
 	if res.Diags.HasErrors() {
 		t.Fatal(messages(res))
 	}

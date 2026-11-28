@@ -4,166 +4,110 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-// Each lens orders its navigation its own way: TREE keeps the node tree,
-// TOPIC makes each top-level section a labelled group of its pages, and
-// TASK puts the authored pages first, entry pages before the rest, then
-// the reference as TOPIC does.
+// Every lens has one navigation: the pages it keeps, nested as the tree
+// nests them, in the tree's order, its entry pages first, split into the
+// site's areas. The docs block's `area(…)` nodes each get an area of
+// their own; the other top-level pages are the Docs area's; the API, the
+// schema and the commands are the Reference's. The site's own pages, the
+// features, errors, glossary and gaps, close every area's sidebar.
 
-// authoredGroups are the authored kinds in the order TASK lists them,
-// with the catalogue key of each group's label.
-var authoredGroups = []struct{ kind, key string }{
-	{"docs.guide", "docs.nav.guides"},
-	{"docs.tutorial", "docs.nav.tutorials"},
-	{"docs.howto", "docs.nav.howtos"},
-	{"docs.concept", "docs.nav.concepts"},
-}
-
-// nav is the site's navigation strategy.
-func (s *Site) nav() lens.Nav {
-	if s.Opts.Lens == nil {
-		return lens.NavTree
+// arrangeAreas splits the top-level pages into the site's areas: the
+// declared ones in the order the docs block writes them, then Docs, then
+// Reference, each left out where the lens gives it no page.
+func (s *Site) arrangeAreas(docs, ref *Area) {
+	docs.Pages = s.dropAPIScopes(docs.Pages, ref)
+	var declared []*Area
+	for _, d := range s.Config.Areas {
+		a := &Area{Key: "area:" + d.Node.Path(), Title: displayName(s, d.Node), Node: d.Node, Menu: d.Menu}
+		declared = append(declared, a)
 	}
-	return s.Opts.Lens.Nav
-}
-
-// applyNav reorders the docs area for the lens's strategy.
-func (s *Site) applyNav(docs *Area) {
-	switch s.nav() {
-	case lens.NavTopic:
-		docs.Groups = append(s.topicGroups(docs.Pages), docs.Groups...)
-		docs.Pages = nil
-	case lens.NavTask:
-		groups := s.taskGroups(docs)
-		var rest []*Page
-		for _, p := range s.referencePages(docs.Pages) {
-			if p == s.Home {
-				continue
-			}
-			if p.Layout == "diagnostics" {
-				// The diagnostics page, as the errors a person meets.
-				p.Title = label("docs.page.errors")
-			}
-			rest = append(rest, p)
-		}
-		for _, p := range s.Pages {
-			if p.Layout == "glossary" {
-				rest = append(rest, p)
-			}
-		}
-		if len(rest) > 0 {
-			groups = append(groups, NavGroup{Title: label("docs.nav.reference"), Pages: rest})
-		}
-		docs.Groups = append(groups, docs.Groups...)
-		docs.Pages = nil
-		for _, a := range s.Areas {
-			if a.Key == "glossary" {
-				// The glossary is listed in the reference, so its tab
-				// shows the same navigation rather than a list of one.
-				a.Groups, a.Pages = docs.Groups, nil
-			}
-		}
-	}
-}
-
-// topicGroups turns top-level pages into groups: a page with pages below
-// it becomes a group labelled with its title, linking to it, and runs of
-// pages without any become a group with no label.
-func (s *Site) topicGroups(pages []*Page) []NavGroup {
-	var out []NavGroup
-	var loose []*Page
-	flush := func() {
-		if len(loose) > 0 {
-			out = append(out, NavGroup{Pages: loose})
-			loose = nil
-		}
-	}
-	for _, p := range pages {
-		if p == s.Home {
-			continue
-		}
-		if len(p.Children) == 0 {
-			loose = append(loose, p)
-			continue
-		}
-		flush()
-		out = append(out, NavGroup{Title: p.Title, Head: p, Pages: p.Children})
-	}
-	flush()
-	return out
-}
-
-// taskGroups takes the authored pages out of the tree's order: the lens's
-// entry pages first, then each authored kind's pages.
-func (s *Site) taskGroups(docs *Area) []NavGroup {
-	var authored []*Page
-	var walk func(ps []*Page) []*Page
-	walk = func(ps []*Page) []*Page {
-		var keep []*Page
-		for _, p := range ps {
-			p.Children = walk(p.Children)
-			if p.Node != nil && s.authored(p.Node) {
-				authored = append(authored, p)
-				continue
-			}
-			keep = append(keep, p)
-		}
-		return keep
-	}
-	docs.Pages = walk(docs.Pages)
-	for _, p := range authored {
-		p.Parent = nil
-	}
-	var groups []NavGroup
-	taken := map[*Page]bool{}
-	if l := s.Opts.Lens; l != nil && len(l.Entry) > 0 {
-		g := NavGroup{Title: label("docs.nav.start")}
-		for _, n := range l.Entry {
-			if p := s.pageOf[n]; p != nil && !taken[p] {
-				g.Pages = append(g.Pages, p)
-				taken[p] = true
-				if !s.authored(n) {
-					// A section as an entry page leaves its place too.
-					docs.Pages = removePage(docs.Pages, p)
+	areaOf := func(n *resolve.Node) *Area {
+		for x := n; x != nil; x = x.Parent {
+			for _, a := range declared {
+				if a.Node == x {
+					return a
 				}
 			}
 		}
-		if len(g.Pages) > 0 {
-			groups = append(groups, g)
-		}
+		return docs
 	}
-	for _, ag := range authoredGroups {
-		g := NavGroup{Title: label(ag.key)}
-		for _, p := range authored {
-			if !taken[p] && s.kindPath(p.Node) == ag.kind {
-				g.Pages = append(g.Pages, p)
-				taken[p] = true
+	var rest []*Page
+	for _, p := range docs.Pages {
+		a := areaOf(p.Node)
+		if a == docs {
+			rest = append(rest, p)
+			continue
+		}
+		var move func(q *Page)
+		move = func(q *Page) {
+			q.Area = a
+			for _, c := range q.Children {
+				move(c)
 			}
 		}
-		if len(g.Pages) > 0 {
-			groups = append(groups, g)
+		move(p)
+		a.Pages = append(a.Pages, p)
+		if p.Node == a.Node {
+			// The area's own page opens its navigation, and the pages
+			// below it are the area's top-level entries.
+			a.Pages = append(a.Pages, p.Children...)
+			p.Children = nil
 		}
 	}
-	for _, p := range authored {
-		// An authored kind of another package's.
-		if !taken[p] {
-			groups = append(groups, NavGroup{Title: p.Title, Pages: []*Page{p}})
+	docs.Pages = rest
+
+	// The lens's entry pages come first in their area, out of their place.
+	if l := s.Opts.Lens; l != nil {
+		for i := len(l.Entry) - 1; i >= 0; i-- {
+			p := s.pageOf[l.Entry[i]]
+			if p == nil || p.Area == nil || p.Area == ref || p == s.Home {
+				continue
+			}
+			a := p.Area
+			a.Pages = removePage(a.Pages, p)
+			p.Parent = nil
+			a.Pages = append([]*Page{p}, a.Pages...)
 		}
 	}
-	return groups
+
+	for _, a := range declared {
+		if len(a.Pages) > 0 {
+			s.Areas = append(s.Areas, a)
+		}
+	}
+	if len(docs.Pages) > 0 || len(s.Areas) == 0 {
+		s.Areas = append(s.Areas, docs)
+	}
+	if len(ref.Groups) > 0 {
+		s.Areas = append(s.Areas, ref)
+	}
+	// The home page and the site's pages are the first area's.
+	home := s.Areas[0]
+	s.Home.Area = home
+	for _, p := range s.sitePages {
+		p.Area = home
+	}
 }
 
-// referencePages drops from TASK's reference the pages that hold nothing
-// the lens shows but their own prose and authored pages, which the
-// navigation already lists in their groups.
-func (s *Site) referencePages(ps []*Page) []*Page {
+// dropAPIScopes moves the pages of the sections and scopes that hold an
+// api and no page of their own but the api's and its errors' out of the
+// navigation and into the Reference area, which lists the api.
+func (s *Site) dropAPIScopes(ps []*Page, ref *Area) []*Page {
 	var out []*Page
 	for _, p := range ps {
-		p.Children = s.referencePages(p.Children)
-		if p.Node != nil && len(p.Children) == 0 && !s.holdsReference(p.Node) {
+		p.Children = s.dropAPIScopes(p.Children, ref)
+		if s.apiScope(p) {
+			var move func(q *Page)
+			move = func(q *Page) {
+				q.Area = ref
+				for _, c := range q.Children {
+					move(c)
+				}
+			}
+			move(p)
 			continue
 		}
 		out = append(out, p)
@@ -171,14 +115,24 @@ func (s *Site) referencePages(ps []*Page) []*Page {
 	return out
 }
 
-// holdsReference reports whether a node holds a node the lens shows
-// that isn't an authored page or a container of them.
-func (s *Site) holdsReference(n *resolve.Node) bool {
-	for _, ch := range n.Children {
-		if ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || !own(ch) || !s.placed(ch) || s.authored(ch) {
-			continue
+// apiScope reports whether a page is a section's or a scope's that holds
+// an api and no page of its own but the api's and its errors'.
+func (s *Site) apiScope(p *Page) bool {
+	if p.Node == nil || !s.isContainer(p.Node) || !s.holdsAPI(p.Node) {
+		return false
+	}
+	for _, c := range p.Children {
+		if c.Node == nil || len(c.Children) > 0 || !s.isContainer(c.Node) || !s.onlyDiagnostics(c.Node) {
+			return false
 		}
-		if !s.isContainer(ch) || s.holdsReference(ch) {
+	}
+	return true
+}
+
+// holdsAPI reports whether a node holds an api the Reference lists.
+func (s *Site) holdsAPI(n *resolve.Node) bool {
+	for _, ch := range n.Children {
+		if s.kindPath(ch) == "types.api" && s.pageOf[ch] != nil {
 			return true
 		}
 	}
@@ -196,33 +150,26 @@ func removePage(ps []*Page, p *Page) []*Page {
 	return out
 }
 
-// homeTiles writes a lens's home page below the root's prose: TASK its
-// primary page, the first entry page or else the first tutorial, then a
-// group per group of its navigation; TOPIC a group per topic.
+// homeTiles writes a lens's home page below the root's prose: its first
+// entry page, or else its first authored page, as the primary link, then
+// a card for each top-level entry of the home's area.
 func (s *Site) homeTiles(c *Ctx) {
-	var area *Area
-	for _, a := range s.Areas {
-		if a.Key == "docs" {
-			area = a
-		}
-	}
+	area := s.Home.Area
 	if area == nil {
 		return
 	}
 	var primary *Page
-	if s.nav() == lens.NavTask {
-		if l := s.Opts.Lens; l != nil {
-			for _, n := range l.Entry {
-				if p := s.pageOf[n]; p != nil && primary == nil {
-					primary = p
-				}
+	if l := s.Opts.Lens; l != nil {
+		for _, n := range l.Entry {
+			if p := s.pageOf[n]; p != nil && primary == nil {
+				primary = p
 			}
 		}
-		if primary == nil {
-			for _, p := range s.Pages {
-				if primary == nil && p.Node != nil && s.kindPath(p.Node) == "docs.tutorial" {
-					primary = p
-				}
+	}
+	if primary == nil {
+		for _, p := range s.Pages {
+			if primary == nil && p.Node != nil && s.authored(p.Node) {
+				primary = p
 			}
 		}
 	}
@@ -233,36 +180,24 @@ func (s *Site) homeTiles(c *Ctx) {
 		}
 		c.W(`<span class="home-primary-arrow" aria-hidden="true">→</span></a>`)
 	}
-	c.W(`<div class="home-groups">`)
-	for _, g := range area.Groups {
-		var pages []*Page
-		for _, p := range g.Pages {
-			if p != primary {
-				pages = append(pages, p)
-			}
+	var cards []*Page
+	for _, p := range area.Pages {
+		if p != primary && p != s.Home && (area.Node == nil || p.Node != area.Node) {
+			cards = append(cards, p)
 		}
-		if len(pages) == 0 && g.Head == nil {
-			continue
-		}
-		c.W(`<section class="home-group">`)
-		if g.Title != "" {
-			title := esc(g.Title)
-			if g.Head != nil {
-				title = `<a href="` + attr(s.href(g.Head.File)) + `">` + s.ownIcon(g.Head.Node) + title + `</a>`
-			}
-			c.W(`<h2 class="home-group-title">`, title, `</h2>`)
-		}
-		c.W(`<ul class="home-links">`)
-		for _, p := range pages {
-			c.W(`<li><a href="`, attr(s.href(p.File)), `"><span class="home-link-title">`, s.nodeIcon(p.Node, "icon"), esc(p.Title), `</span>`)
-			if t := s.pageSentence(p); t != "" {
-				c.W(`<span class="home-link-text">`, t, `</span>`)
-			}
-			c.W(`</a></li>`)
-		}
-		c.W(`</ul></section>`)
 	}
-	c.W(`</div>`)
+	if len(cards) == 0 {
+		return
+	}
+	c.W(`<ul class="page-links home-cards">`)
+	for _, p := range cards {
+		c.W(`<li><a href="`, attr(s.href(p.File)), `"><span class="home-link-title">`, s.ownIcon(p.Node), esc(p.Title), `</span>`)
+		if t := s.pageSentence(p); t != "" {
+			c.W(`<span class="home-link-text">`, t, `</span>`)
+		}
+		c.W(`</a></li>`)
+	}
+	c.W(`</ul>`)
 }
 
 // pageSentence is the first sentence of a page's prose in the lens, as
@@ -309,6 +244,3 @@ func firstSentence(h string) string {
 	}
 	return h
 }
-
-// isAuthoredPage reports whether a page is an authored node's.
-func (s *Site) isAuthoredPage(p *Page) bool { return p != nil && p.Node != nil && s.authored(p.Node) }

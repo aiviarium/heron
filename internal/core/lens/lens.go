@@ -46,15 +46,6 @@ const (
 	Markdown Format = "MARKDOWN"
 )
 
-// Nav is how a lens orders its navigation: a LensNav value.
-type Nav string
-
-const (
-	NavTask  Nav = "TASK"
-	NavTopic Nav = "TOPIC"
-	NavTree  Nav = "TREE"
-)
-
 // Mode is how a lens renders a node.
 type Mode int
 
@@ -70,7 +61,6 @@ type Lens struct {
 	Name    string
 	Title   string
 	Default bool
-	Nav     Nav
 	// Prefix is the URL path segment the lens is served under, "" at the
 	// site's root.
 	Prefix string
@@ -99,7 +89,7 @@ func (l *Lens) Explore() bool { return l == nil || l.Name == ExploreName }
 
 // Read reads a lens node.
 func Read(c *types.Checker, n *resolve.Node) *Lens {
-	l := &Lens{Node: n, Name: n.Name, Title: n.Name, Nav: NavTree, Format: HTML, Budget: DefaultBudget}
+	l := &Lens{Node: n, Name: n.Name, Title: n.Name, Format: HTML, Budget: DefaultBudget}
 	for _, ch := range n.Children {
 		if ch.Value == nil {
 			continue
@@ -112,12 +102,6 @@ func Read(c *types.Checker, n *resolve.Node) *Lens {
 			l.Prefix, _ = resolve.StringValue(ch.Value.Syntax())
 		case "default":
 			l.Default = strings.TrimSpace(ch.Value.Syntax().Text()) == "true"
-		case "nav":
-			t := strings.TrimSpace(ch.Value.Syntax().Text())
-			if i := strings.LastIndex(t, "."); i >= 0 {
-				t = t[i+1:]
-			}
-			l.Nav = Nav(t)
 		case "show":
 			l.Show = refList(c, ch.Value, site, nil)
 		case "summarize":
@@ -260,7 +244,7 @@ func SiteOf(t *resolve.Tree, c *types.Checker) *Site {
 		}
 	}
 	if len(s.Lenses) == 0 {
-		l := &Lens{Name: ExploreName, Title: "Explore", Nav: NavTree, Default: true}
+		l := &Lens{Name: ExploreName, Title: "Explore", Default: true}
 		if n := stdLens(t, ExploreName); n != nil {
 			l = Read(c, n)
 			l.Default, l.Prefix = true, ""
@@ -307,7 +291,7 @@ func Agent(t *resolve.Tree, c *types.Checker) *Lens {
 	if n := stdLens(t, AgentName); n != nil {
 		return Read(c, n)
 	}
-	return &Lens{Name: AgentName, Title: "Agents", Nav: NavTree, Format: Markdown, NoMarks: true, Budget: DefaultBudget, Prefix: "agents"}
+	return &Lens{Name: AgentName, Title: "Agents", Format: Markdown, NoMarks: true, Budget: DefaultBudget, Prefix: "agents"}
 }
 
 // stdLens finds a lens std/docs ships, by name, among the tree's imports.
@@ -500,6 +484,22 @@ func (l *Lens) Mode(c *types.Checker, n *resolve.Node) Mode {
 	if l.Explore() {
 		return Show
 	}
+	m := l.ownMode(c, n)
+	if m != Hide && RuleExample(c, n) && Restriction(c, n) == nil && l.Mode(c, n.Parent) == Hide {
+		// A rule's example illustrates the rule: it goes with it.
+		return Hide
+	}
+	return m
+}
+
+// RuleExample reports whether a node is an example a rule holds, which
+// a lens leaves out with its rule.
+func RuleExample(c *types.Checker, n *resolve.Node) bool {
+	return n != nil && n.Parent != nil && project.KindPath(c, n) == "spec.example" && project.KindPath(c, n.Parent) == "spec.rule"
+}
+
+// ownMode is how the lens renders a node by its marks and its kind.
+func (l *Lens) ownMode(c *types.Checker, n *resolve.Node) Mode {
 	if l.NoMarks {
 		return l.kindMode(c, n)
 	}

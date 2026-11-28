@@ -25,6 +25,15 @@ area: section {
     }
 
     | <warning>Mind it.</warning>
+
+    @icon("flag")
+    first: section {
+      | The first heading.
+    }
+
+    second: section {
+      | The second heading.
+    }
   }
 }
 
@@ -90,8 +99,8 @@ func TestIconsRender(t *testing.T) {
 		t.Error("a section with no icon shows one in its title")
 	}
 	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`).FindString(page)
-	if !strings.Contains(outline, `<svg class="icon kind-icon"`) {
-		t.Errorf("the outline lacks the rule's kind icon:\n%s", outline)
+	if !strings.Contains(outline, `<svg class="icon kind-icon"`) || strings.Contains(outline, "area.part.holds") {
+		t.Errorf("the outline lacks its heading's icon, or lists the rule:\n%s", outline)
 	}
 	// A rule carries its mark in the gutter: the link to it, its kind and
 	// name as its tooltip.

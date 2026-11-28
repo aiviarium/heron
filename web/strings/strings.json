@@ -3,26 +3,23 @@
   "docs": {
     "area": {
       "docs": "Docs",
-      "reference": "Reference",
-      "glossary": "Glossary"
+      "reference": "Reference"
     },
     "page": {
       "glossary": "Glossary",
       "diagnostics": "Diagnostics",
       "errors": "Errors",
       "features": "Features",
-      "schema": "Schema"
+      "schema": "Schema",
+      "gaps": "Gaps"
+    },
+    "gaps": {
+      "unrealized": "Behaviour no contract entry carries out",
+      "unrealized_note": "Rules on a part or the system, and use case steps a part takes, that no contract entry references and no error links; listed for reading, nothing fails"
     },
     "nav": {
       "types": "Types",
       "errors": "Errors",
-      "start": "Get started",
-      "tutorials": "Tutorials",
-      "guides": "Guides",
-      "howtos": "How-to guides",
-      "concepts": "Concepts",
-      "reference": "Reference",
-      "topics": "Topics",
       "part_api": "API",
       "part_schema": "Schema",
       "part_cli": "CLI"
@@ -145,6 +142,7 @@
       "about": "About",
       "opens_in": "Opens in the {lens} docs",
       "sections": "Sections",
+      "area": "Area",
       "socket": "Socket",
       "source": "Source",
       "start": "Start",

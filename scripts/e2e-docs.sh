@@ -8,13 +8,13 @@
 #   scripts/e2e-docs.sh [--screenshots] [SITE...]   those sites (all by default)
 #   scripts/e2e-docs.sh --except SITE...            every site but those
 #
-# The sites: petstore parcels spec lenses sample. Their checks run at
+# The sites: petstore parcels suite spec lenses sample. Their checks run at
 # once, HERON_E2E_JOBS at a time (half as many as there are CPUs by default),
 # each one's output shown whole.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
-all=(petstore parcels spec lenses sample)
+all=(petstore parcels suite spec lenses sample)
 shots=0
 except=0
 sites=()
@@ -64,6 +64,16 @@ if want parcels; then
   # The binding switch and Try it over Connect and JSON-RPC, against a mock
   # of the parcels service.
   checks+=("e2e-rpc.cjs $tmp/parcels/.heron/docs")
+fi
+
+# A suite of two products, each an area of the area switcher, and a tab.
+if want suite; then
+  cp -r examples/suite "$tmp/suite"
+  rm -rf "$tmp/suite/.heron"
+  (cd "$tmp/suite" && "$tmp/heron" generate docs >/dev/null)
+  grep -q '<details class="area-switch">' "$tmp/suite/.heron/docs/notes.html"
+  grep -q '<a href="help.html">Help</a>' "$tmp/suite/.heron/docs/notes.html"
+  checks+=("e2e.cjs $tmp/suite/.heron/docs")
 fi
 
 # Heron's own spec, the package this repository imports, as the language's

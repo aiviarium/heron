@@ -18,6 +18,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     accept(kind = layout)
     accept(kind = slot)
     accept(kind = lens)
+    accept(kind = area)
     /// The lenses the site builds, in the order the lens switcher lists
     /// them: the default one at the site's root and the others under their
     /// prefix. Unset, the site builds `explore` alone, at its root.
@@ -43,15 +44,17 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     accept(category = block)
   }
 
-  /// How a lens orders its navigation.
-  LensNav: enum {
-    /// The authored pages first, then the reference.
-    TASK: Self
-    /// The sections, by topic.
-    TOPIC: Self
-    /// The node tree, as written.
-    TREE: Self
-  }
+  /// A top-level node of the tree that gets a site area of its own, with
+  /// its own navigation; its title and icon come from the node's @display
+  /// and @icon.
+  area(node: Ref(Any)): kind
+
+  /// Where an area is offered: as a tab in the top bar (the default), or
+  /// in the area switcher at the top of the sidebar, which lists the
+  /// switcher's areas with their icon and the first sentence of their
+  /// prose.
+  tab: flag(on = [area], group = "placement")
+  menu: flag(on = [area], group = "placement")
 
   /// What a lens is written as.
   LensFormat: enum {
@@ -72,7 +75,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
 
   /// A view of the site for one audience, built from the same tree as
   /// every other: which kinds and categories it shows, which it sums up in
-  /// one line and which it leaves out, how its navigation is ordered and
+  /// one line and which it leaves out, which pages it puts first and
   /// where it's served. `@lens(…)` keeps a node or a prose block to some
   /// lenses; explore shows everything.
   lens: kind {
@@ -86,7 +89,6 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     summarize?: List(Ref(Any))
     /// Kinds left out.
     hide?: List(Ref(Any))
-    nav: LensNav
     /// Authored pages shown first.
     entry?: List(Ref(Any))
     /// How many levels of sections get pages of their own in the lens, in
@@ -106,26 +108,24 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     kinds?: KindMarks
   }
 
-  /// For the people who use what a tree describes: the authored pages
-  /// first, then the commands, examples, terms and errors they act on,
+  /// For the people who use what a tree describes: the authored pages,
+  /// and the commands, examples, terms and errors they act on,
   /// without the rules that bind an implementation or the tree's sections,
   /// with a page per part of the tree rather than per concern.
   user: lens {
     title = "User"
     default = true
-    nav = LensNav.TASK
     show = [authored, step, spec.goal, spec.nongoal, spec.example, spec.term, spec.command, types.error]
     hide = [spec.rule, spec.condition, production]
     depth = 2
     prefix = ""
   }
 
-  /// For the people who write specs of their own: sections by topic, the
+  /// For the people who write specs of their own: every section, the
   /// examples, APIs and diagrams up front, and each rule summed up in one
   /// line.
   developer: lens {
     title = "Developer"
-    nav = LensNav.TOPIC
     summarize = [spec.rule, spec.guidance]
     prefix = "dev"
   }
@@ -133,7 +133,6 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   /// Everything the tree holds, as the node tree.
   explore: lens {
     title = "Explore"
-    nav = LensNav.TREE
     prefix = "explore"
   }
 
@@ -142,7 +141,6 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
   /// the plain Markdown files of the agent export.
   agent: lens {
     title = "Agents"
-    nav = LensNav.TREE
     format = LensFormat.MARKDOWN
     marks = false
     hide = [authored]

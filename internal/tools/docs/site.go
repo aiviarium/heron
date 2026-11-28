@@ -56,7 +56,7 @@ type Page struct {
 	File  string        // file name, such as "orders.ordering.html"
 	Title string
 	// Layout is "home", "section", "api", "op", "type", "glossary",
-	// or "diagnostics"; a docs block's
+	// "features", "gaps" or "diagnostics"; a docs block's
 	// layout(…) sets "api", "changelog" or
 	// "landing" on sections.
 	Layout string
@@ -76,11 +76,17 @@ type Page struct {
 	next *Page
 }
 
-// Area is a top-level part of the site, a tab in the top bar with its own
-// navigation tree.
+// Area is a top-level part of the site with its own navigation tree: a
+// tab in the top bar, or an entry of the area switcher at the top of the
+// sidebar.
 type Area struct {
-	Key    string // "docs", "reference", "glossary"
-	Title  string
+	Key   string // "docs", "reference", or "area:" and the node's path
+	Title string
+	// Node is the top-level node an `area(…)` of the docs block names;
+	// nil for Docs and Reference.
+	Node *resolve.Node
+	// Menu is set for an area the docs block offers in the switcher.
+	Menu   bool
 	Pages  []*Page // top-level navigation entries
 	Groups []NavGroup
 }
@@ -118,6 +124,11 @@ type Site struct {
 	Pages []*Page
 	Areas []*Area
 	Home  *Page
+	// sitePages are the pages of the whole site, as the features, errors,
+	// glossary and gaps pages, listed at the bottom of every sidebar.
+	sitePages []*Page
+	// gaps is the gap report's groups the lens shows, once built.
+	gaps []gapGroup
 
 	pageOf    map[*resolve.Node]*Page
 	anchorOf  map[*resolve.Node]*Page // the page a node is shown on
@@ -531,37 +542,38 @@ func (s *Site) buildPages() {
 	typeGroup(label("docs.nav.errors"), s.errors)
 	s.referenceParts(docs, ref)
 
-	s.Areas = append(s.Areas, docs)
-	if len(ref.Groups) > 0 {
-		s.Areas = append(s.Areas, ref)
-	}
-	if len(s.terms) > 0 {
-		gl := &Area{Key: "glossary", Title: label("docs.area.glossary")}
-		p := &Page{File: "_glossary.html", Title: label("docs.page.glossary"), Layout: "glossary", Area: gl}
-		s.add(p)
-		gl.Pages = []*Page{p}
-		s.Areas = append(s.Areas, gl)
-		for _, t := range s.terms {
-			if s.anchorOf[t] == nil {
-				s.anchorOf[t] = p
-			}
-		}
-	}
+	// The pages of the whole site: one small group at the bottom of every
+	// area's sidebar.
 	if s.hasFeatures() {
-		p := &Page{File: "_features.html", Title: label("docs.page.features"), Layout: "features", Area: docs}
+		p := &Page{File: "_features.html", Title: label("docs.page.features"), Layout: "features"}
 		s.Pages = append(s.Pages, p)
-		docs.Pages = append(docs.Pages, p)
+		s.sitePages = append(s.sitePages, p)
 	}
 	if len(s.diagnostics) > 0 {
-		p := &Page{File: "_diagnostics.html", Title: label("docs.page.errors"), Layout: "diagnostics", Area: docs}
+		p := &Page{File: "_diagnostics.html", Title: label("docs.page.errors"), Layout: "diagnostics"}
 		s.Pages = append(s.Pages, p)
-		docs.Pages = append(docs.Pages, p)
+		s.sitePages = append(s.sitePages, p)
 		if s.errorsGathered() {
 			// Each diagnostic's anchor is its entry on this page.
 			for _, d := range s.diagnostics {
 				s.anchorOf[d] = p
 			}
 		}
+	}
+	if len(s.terms) > 0 {
+		p := &Page{File: "_glossary.html", Title: label("docs.page.glossary"), Layout: "glossary"}
+		s.add(p)
+		s.sitePages = append(s.sitePages, p)
+		for _, t := range s.terms {
+			if s.anchorOf[t] == nil {
+				s.anchorOf[t] = p
+			}
+		}
+	}
+	if s.gaps = s.gapGroups(); len(s.gaps) > 0 {
+		p := &Page{File: "_gaps.html", Title: label("docs.page.gaps"), Layout: "gaps"}
+		s.Pages = append(s.Pages, p)
+		s.sitePages = append(s.sitePages, p)
 	}
 
 	// Every other node is shown on the page of its nearest ancestor that
@@ -589,9 +601,10 @@ func (s *Site) buildPages() {
 		}
 	}
 
-	s.applyNav(docs)
+	s.arrangeAreas(docs, ref)
 
-	// Previous and next follow the navigation order of each area.
+	// Previous and next follow the navigation order of each area; the
+	// site's pages close the home's area.
 	for _, a := range s.Areas {
 		var order []*Page
 		seen := map[*Page]bool{}
@@ -615,6 +628,9 @@ func (s *Site) buildPages() {
 			}
 			flat(g.Pages)
 			flat(g.Types)
+		}
+		if a == s.Home.Area {
+			flat(s.sitePages)
 		}
 		for i, p := range order {
 			if i > 0 {

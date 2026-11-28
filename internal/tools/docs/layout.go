@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aiviarium/heron/internal/core/lens"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/web/tokens"
 )
@@ -32,6 +31,8 @@ func (s *Site) PageFragment(p *Page) (*Fragment, error) {
 		err = s.diagnosticsPage(c)
 	case "features":
 		err = s.featuresPage(c)
+	case "gaps":
+		err = s.gapsPage(c)
 	case "home":
 		err = s.home(c)
 	case "changelog":
@@ -111,40 +112,30 @@ func (s *Site) RenderFile(file resolve.FileID) (*Fragment, error) {
 
 func (s *Site) home(c *Ctx) error {
 	n := s.homeNode()
-	if s.nav() != lens.NavTree {
-		if h := s.proseHTML(n); h != "" {
-			c.W(`<div class="lead prose">`, h, `</div>`)
-		}
-		// The package's goals open its home page, before the tiles.
-		d := c.at(n, c.Level)
-		for _, ch := range n.Children {
-			if s.isIntent(ch) && s.shown(ch) && s.pageOf[ch] == nil {
-				if err := d.Render(ch); err != nil {
-					return err
-				}
-			}
-		}
-		s.homeTiles(c)
-		// The nodes the root holds that have no page of their own still
-		// have their place here.
-		for _, ch := range s.inOrder(n.Children) {
-			if !s.shown(ch) || s.pageOf[ch] != nil || s.isIntent(ch) {
-				continue
-			}
+	if h := s.proseHTML(n); h != "" {
+		c.W(`<div class="lead prose">`, h, `</div>`)
+	}
+	// The package's goals open its home page, before the tiles.
+	d := c.at(n, c.Level)
+	for _, ch := range n.Children {
+		if s.isIntent(ch) && s.shown(ch) && s.pageOf[ch] == nil {
 			if err := d.Render(ch); err != nil {
 				return err
 			}
 		}
-		return nil
 	}
-	if n != s.Tree.Root {
-		if h := s.proseHTML(n); h != "" {
-			c.W(`<div class="lead prose">`, h, `</div>`)
+	s.homeTiles(c)
+	// The nodes the root holds that have no page of their own still have
+	// their place here.
+	for _, ch := range s.inOrder(n.Children) {
+		if !s.shown(ch) || s.pageOf[ch] != nil || s.isIntent(ch) {
+			continue
 		}
-		return c.at(n, c.Level).childrenOrLinks()
+		if err := d.Render(ch); err != nil {
+			return err
+		}
 	}
-	c.Prose(n)
-	return c.childrenOrLinks()
+	return nil
 }
 
 func (s *Site) glossary(c *Ctx) error {
@@ -226,7 +217,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 			b.WriteString(`<li><a href="` + attr(s.href(c.File)) + `">` + esc(c.Title) + `</a></li>`)
 		}
 		b.WriteString(`</ol></nav>`)
-	} else if p.Area != nil && p != s.Home && len(s.Areas) > 1 && p.Layout != "glossary" && p.Area.Key != "docs" {
+	} else if p.Area != nil && p != s.Home && len(s.Areas) > 1 && !s.isSitePage(p) && p.Area.Key == "reference" {
 		b.WriteString(`<nav class="crumbs" aria-label="` + attr(label("docs.label.breadcrumb")) + `"><ol><li>` + esc(p.Area.Title) + `</li></ol></nav>`)
 	}
 	b.WriteString(`<h1 class="page-title">` + s.nodeIcon(p.Node, "icon title-icon") + strings.Replace(p.icon, `class="icon"`, `class="icon title-icon"`, 1) + esc(p.Title) + s.kindTag(p.Node) + `</h1>`)
@@ -239,8 +230,8 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	if f.Aside != "" {
 		b.WriteString(f.Aside)
 	}
-	ol := s.outline(p, f)
-	if len(ol) > 1 || f.Aside == "" && len(ol) > 0 {
+	// An outline of one heading says nothing the page's title doesn't.
+	if ol := s.outline(p, f); len(ol) > 1 {
 		b.WriteString(`<nav class="outline" aria-label="` + attr(label("docs.label.outline")) + `"><div class="label">` + esc(label("docs.label.on_this_page")) + `</div><ul>`)
 		for _, h := range ol {
 			bind := ""
@@ -271,18 +262,14 @@ func (s *Site) topbar(b *strings.Builder, p *Page) {
 	b.WriteString(`<button type="button" class="icon-btn nav-toggle" aria-label="` + attr(label("docs.action.menu")) + `" aria-expanded="false" data-island="nav">` + iconMenu + `</button>`)
 	mark, cls := s.logoMark()
 	b.WriteString(`<a class="` + cls + `" href="` + attr(s.href(s.Home.File)) + `">` + mark + `<span>` + esc(s.title()) + `</span></a>`)
-	if len(s.Areas) > 1 {
+	if tabs := s.tabs(p); len(tabs) > 1 {
 		b.WriteString(`<nav class="tabs" aria-label="` + attr(label("docs.label.sections")) + `">`)
-		for _, a := range s.Areas {
-			first := s.firstPage(a)
-			if first == nil {
-				continue
-			}
+		for _, t := range tabs {
 			cur := ""
-			if p.Area == a {
+			if t.cur {
 				cur = ` aria-current="true"`
 			}
-			b.WriteString(`<a href="` + attr(s.href(first.File)) + `"` + cur + `>` + esc(a.Title) + `</a>`)
+			b.WriteString(`<a href="` + attr(s.href(t.first.File)) + `"` + cur + `>` + esc(t.area.Title) + `</a>`)
 		}
 		b.WriteString(`</nav>`)
 	}
@@ -338,23 +325,102 @@ func (s *Site) firstPage(a *Area) *Page {
 	return nil
 }
 
+// tab is an entry of the top bar's tabs: an area, current when the page
+// is in it, linking to its first page.
+type tab struct {
+	area  *Area
+	first *Page
+	cur   bool
+}
+
+// tabs are the top bar's tabs: one per area in the site's order, but the
+// areas of the area switcher, which share one tab at the place of the
+// first of them, titled as the one the page is in, else as the first.
+func (s *Site) tabs(p *Page) []tab {
+	var out []tab
+	menu := false
+	for _, a := range s.Areas {
+		if a.Menu {
+			if menu {
+				continue
+			}
+			menu = true
+			if p.Area != nil && p.Area.Menu {
+				a = p.Area
+			}
+		}
+		f := s.firstPage(a)
+		if f == nil {
+			continue
+		}
+		out = append(out, tab{area: a, first: f, cur: p.Area == a})
+	}
+	return out
+}
+
+// menuAreas are the areas of the area switcher.
+func (s *Site) menuAreas() []*Area {
+	var out []*Area
+	for _, a := range s.Areas {
+		if a.Menu && s.firstPage(a) != nil {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// isSitePage reports whether a page is one of the whole site's, as the
+// glossary is.
+func (s *Site) isSitePage(p *Page) bool {
+	for _, q := range s.sitePages {
+		if q == p {
+			return true
+		}
+	}
+	return false
+}
+
+// areaSwitch writes the area switcher at the top of the sidebar of a page
+// in one of its areas: the current area, opening to every area of the
+// switcher with its icon and the first sentence of its prose, each a
+// plain link that works without a script.
+func (s *Site) areaSwitch(b *strings.Builder, a *Area) {
+	areas := s.menuAreas()
+	if !a.Menu || len(areas) == 0 {
+		return
+	}
+	b.WriteString(`<details class="area-switch"><summary aria-label="` + attr(label("docs.label.area")) + `"><span class="area-switch-cur">` + s.ownIcon(a.Node) + `<span class="t">` + esc(a.Title) + `</span></span></summary><ul>`)
+	for _, x := range areas {
+		cur := ""
+		if x == a {
+			cur = ` aria-current="true"`
+		}
+		b.WriteString(`<li><a href="` + attr(s.href(s.firstPage(x).File)) + `"` + cur + `><span class="area-switch-title">` + s.ownIcon(x.Node) + esc(x.Title) + `</span>`)
+		if t := firstSentence(inlineParagraph(s.proseHTML(x.Node))); t != "" {
+			b.WriteString(`<span class="area-switch-text">` + t + `</span>`)
+		}
+		b.WriteString(`</a></li>`)
+	}
+	b.WriteString(`</ul></details>`)
+}
+
 func (s *Site) sidebar(b *strings.Builder, p *Page) {
-	b.WriteString(`<nav class="sidebar" aria-label="` + attr(label("docs.label.navigation")) + `"><div class="sidebar-in">`)
 	a := p.Area
 	if a == nil {
 		a = s.Areas[0]
 	}
-	if len(s.Areas) > 1 {
+	b.WriteString(`<nav class="sidebar" aria-label="` + attr(label("docs.label.navigation")) + `">`)
+	s.areaSwitch(b, a)
+	b.WriteString(`<div class="sidebar-in">`)
+	if tabs := s.tabs(p); len(tabs) > 1 {
 		// On narrow screens the tabs move into the sidebar.
 		b.WriteString(`<div class="nav-areas">`)
-		for _, x := range s.Areas {
-			if f := s.firstPage(x); f != nil {
-				cur := ""
-				if x == a {
-					cur = ` aria-current="true"`
-				}
-				b.WriteString(`<a href="` + attr(s.href(f.File)) + `"` + cur + `>` + esc(x.Title) + `</a>`)
+		for _, t := range tabs {
+			cur := ""
+			if t.cur {
+				cur = ` aria-current="true"`
 			}
+			b.WriteString(`<a href="` + attr(s.href(t.first.File)) + `"` + cur + `>` + esc(t.area.Title) + `</a>`)
 		}
 		b.WriteString(`</div>`)
 	}
@@ -375,8 +441,10 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			}
 			b.WriteString(`>` + esc(q.Method) + `</span>`)
 		}
-		if q.Layout != "op" {
-			b.WriteString(s.nodeIcon(q.Node, "icon") + q.icon)
+		if q.Layout != "op" && depth == 0 {
+			// Icons mark the top-level entries alone, where their authors
+			// set one.
+			b.WriteString(s.ownIcon(q.Node) + q.icon)
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
 		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {
@@ -471,6 +539,14 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			b.WriteString(`</ul></details>`)
 		}
 		b.WriteString(`</div>`)
+	}
+	if len(s.sitePages) > 0 {
+		// The pages of the whole site close every area's navigation.
+		b.WriteString(`<div class="nav-group nav-site"><ul class="nav">`)
+		for _, q := range s.sitePages {
+			item(q, 1)
+		}
+		b.WriteString(`</ul></div>`)
 	}
 	b.WriteString(s.slotHTML(nil, "sidebar", ""))
 	b.WriteString(`</div></nav>`)
@@ -571,63 +647,8 @@ const (
 	iconMenu   = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`
 )
 
-// outline is a page's outline: its headings and, under the heading of a
-// node with no subheadings of its own, the nodes the page shows inside it
-// that have an anchor, two levels deep in all. What's on a page is here,
-// and the navigation lists pages alone.
-func (s *Site) outline(p *Page, f *Fragment) []Heading {
-	if p.Node == nil {
-		return f.Outline
-	}
-	byAnchor := map[string]*resolve.Node{}
-	var walk func(n *resolve.Node)
-	walk = func(n *resolve.Node) {
-		for _, ch := range n.Children {
-			if s.anchorOf[ch] == p && s.pageOf[ch] == nil {
-				byAnchor[Anchor(ch)] = ch
-				walk(ch)
-			}
-		}
-	}
-	walk(p.Node)
-	shown := func(n *resolve.Node) []*resolve.Node {
-		var out []*resolve.Node
-		for _, ch := range n.Children {
-			if ch.Name == "" || !own(ch) || ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || ch.Shape == resolve.ShapeStep || s.anchorOf[ch] != p || s.pageOf[ch] != nil {
-				continue
-			}
-			if strings.Contains(f.HTML, `id="`+attr(Anchor(ch))+`"`) {
-				out = append(out, ch)
-			}
-		}
-		// In the order the page shows them, which is not the tree's.
-		at := func(n *resolve.Node) int { return strings.Index(f.HTML, `id="`+attr(Anchor(n))+`"`) }
-		sort.SliceStable(out, func(i, j int) bool { return at(out[i]) < at(out[j]) })
-		return out
-	}
-	var out []Heading
-	if len(f.Outline) == 0 {
-		// A page without headings: the nodes it shows, and theirs.
-		for _, ch := range shown(p.Node) {
-			out = append(out, Heading{ID: Anchor(ch), Title: displayName(s, ch), Level: 2})
-			for _, g := range shown(ch) {
-				out = append(out, Heading{ID: Anchor(g), Title: displayName(s, g), Level: 3})
-			}
-		}
-		return out
-	}
-	for i, h := range f.Outline {
-		out = append(out, h)
-		if h.Level != 2 || i+1 < len(f.Outline) && f.Outline[i+1].Level > 2 {
-			continue
-		}
-		n := byAnchor[h.ID]
-		if n == nil {
-			continue
-		}
-		for _, ch := range shown(n) {
-			out = append(out, Heading{ID: Anchor(ch), Title: displayName(s, ch), Level: 3})
-		}
-	}
-	return out
-}
+// outline is a page's outline: its headings, the sections and the nodes
+// rendered as headings, in the order the page shows them, the same in
+// every lens. What's on a page is here, and the navigation lists pages
+// alone.
+func (s *Site) outline(p *Page, f *Fragment) []Heading { return f.Outline }

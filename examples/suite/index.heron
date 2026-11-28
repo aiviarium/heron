@@ -1,0 +1,89 @@
+// A suite of two products documented on one site: each product is an area
+// of the area switcher at the top of the sidebar, and the help pages they
+// share are a tab of their own. The docs tests and screenshots use it for
+// the site's areas.
+import = ["std/doc@1", "std/impl@1", "std/docs@1"]
+
+/// The suite's repository, whose name titles the site.
+@display("Suite")
+suite: project(path = ".") {}
+
+@lens(user, developer)
+| The suite's products and the help they share. Pick a product at the top of the sidebar.
+
+/// Notes keeps a folder of notes in sync across devices.
+@display("Notes")
+@icon("notebook-pen")
+notes: section {
+  @lens(user, developer)
+  | Notes keeps a folder of notes in sync across every device you sign in on, and keeps a
+  | history of each note.
+
+  writer: actor {{ Someone who keeps notes and reads them on more than one device. }}
+
+  start: guide {
+    | Sign in on a second device and your notes are there within a minute. Every edit
+    | after that syncs on its own.
+  }
+
+  syncing: section {
+    | A note syncs when it's saved.
+
+    note: term {{ A file of text the writer keeps in the folder. }}
+
+    sync_on_save: rule(writer) {
+      must {{ see a saved [note](#notes.syncing.note) on their other devices within a minute }}
+    }
+
+    history: section {
+      | Each save of a note is kept, so an edit can be undone on any device.
+    }
+  }
+}
+
+/// Calendar shares events between the people of a team.
+@display("Calendar")
+@icon("users")
+calendar: section {
+  @lens(user, developer)
+  | Calendar shares events between the people of a team, so a meeting set on one
+  | calendar shows on everyone's.
+
+  member: actor {{ Someone who belongs to a team and keeps its calendar. }}
+
+  invite: guide {
+    | Invite your team: each member gets the team's events on their own calendar.
+  }
+
+  events: section {
+    | An event has a start, an end and the people it's for.
+
+    event: term {{ A span of time on the calendar, with the people it's for. }}
+
+    shared_events: rule(member) {
+      must {{ see every [event](#calendar.events.event) their team sets on their own calendar }}
+    }
+  }
+}
+
+@icon("circle-help")
+@lens(user, developer)
+help: section {
+  | Help for every product of the suite: accounts, billing and support.
+
+  accounts: section {
+    | One account signs in to every product of the suite.
+  }
+
+  support: section {
+    | Write to support from any product's menu; a person answers within a day.
+  }
+}
+
+// The products are areas of the switcher; the help pages are a tab.
+docs {
+  lenses = [user, developer, explore]
+  area<menu>(notes)
+  area<menu>(calendar)
+  area(help)
+}
