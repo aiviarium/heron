@@ -54,6 +54,10 @@ tools_lsp: section {
     verify("internal/tools/lsp/features_test.go", test = "TestReferenceCompletionAndHover")
   }
 
+  proves(heron.tools.lsp.hover.hover_reference_kinds) {
+    verify("internal/tools/lsp/features_test.go", test = "TestHoverReferenceCategories")
+  }
+
   proves(heron.tools.lsp.completion.completion_list) {
     verify("internal/tools/lsp/features_test.go", test = "TestCompletion")
   }

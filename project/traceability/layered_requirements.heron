@@ -108,6 +108,10 @@ layered_requirements: section {
     verify("internal/tools/docs/docs_test.go", test = "TestRendererRegistry")
   }
 
+  proves(heron.tools.docs.renderers.kind_references_shown) {
+    verify("internal/tools/docs/spec_test.go", test = "TestReferenceCategoriesRender")
+  }
+
   proves(heron.tools.docs.screens.op_page.body.parameters.grouped_params_otherwise) {
     verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
   }

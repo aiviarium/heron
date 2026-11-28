@@ -69,11 +69,15 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   // --- Intent ---
 
+  /// Why a requirement exists: the goals and qualities it serves. A
+  /// feature, a rule, a constraint, a use case and a story reference it.
+  motivation: category
+
   /// What a product is for, in the words of the people it's for, with an
   /// optional measure of success; its references name the actors or
   /// personas who asked for it. Validated, never proven by a test.
   @icon("target")
-  goal(refs<variadic>?: Ref(Any), measure?: String): kind(in = [block], layer = Layer.INTENT, references = [actor, persona]) {
+  goal(refs<variadic>?: Ref(Any), measure?: String): kind(in = [block, motivation], layer = Layer.INTENT, references = [actor, persona]) {
     accept(prose)
   }
 
@@ -111,7 +115,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// One of the few qualities that matter most; its quality scenarios
   /// measure it.
-  quality(measure?: String): kind(in = [block], layer = Layer.INTENT) {
+  quality(measure?: String): kind(in = [block, motivation], layer = Layer.INTENT) {
     accept(prose)
   }
 
@@ -124,13 +128,14 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   touchable: category
 
   /// A capability of the product, as its users see it: the goals and
-  /// qualities it serves and the actors it's for as its references, its
-  /// intent in prose, then what it leaves out and its rules, use cases,
-  /// scenarios, lifecycles, terms and guidance. Features nest. An
+  /// qualities it serves, the actors it's for and the assumptions it
+  /// relies on as its references, its intent in prose, then what it leaves
+  /// out and its rules, use cases, scenarios, lifecycles, terms and
+  /// guidance. Features nest. An
   /// `optional` feature is one a product may leave out; a rule's `where`
   /// links one.
   @icon("puzzle")
-  feature(refs<variadic>?: Ref(Any), optional?: Bool): kind(in = [block], layer = Layer.SPECIFICATION, references = [goal, quality, actor]) {
+  feature(refs<variadic>?: Ref(Any), optional?: Bool): kind(in = [block], layer = Layer.SPECIFICATION, references = [motivation, actor, assumption]) {
     accept(prose)
     accept(category = block)
   }
@@ -154,7 +159,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// features it belongs to beyond the one it stands in. It never
   /// references another rule; the terms it uses are linked in its prose.
   @icon("scale")
-  rule(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [actor, part, goal, quality, assumption, feature]) {
+  rule(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [motivation, actor, part, assumption, feature]) {
     accept(prose)
     accept(category = strength, max = 1)
     accept(kind = where, max = 1)
@@ -170,9 +175,8 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// A limit on the solution with a reason from outside it, its
   /// `rationale`; its references name the goals and qualities it serves,
-  /// the assumptions it relies on and the actors or personas who asked for
-  /// it.
-  constraint(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [goal, quality, assumption, actor, persona]) {
+  /// the assumptions it relies on and the actors who asked for it.
+  constraint(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [motivation, assumption, actor]) {
     accept(prose)
     accept(category = strength, max = 1)
     accept(kind = where, max = 1)
@@ -255,10 +259,10 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// An outcome scenario, one case of the one rule or path of a use case it
   /// references, in given, when and then; or a quality scenario, with
-  /// stimulus, environment, response and measure, referencing the quality
-  /// it measures.
+  /// stimulus, environment, response and measure, linking the quality it
+  /// measures in its prose.
   @icon("list-checks")
-  scenario(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION, references = [rule, usecase, quality]) {
+  scenario(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION, references = [rule, usecase]) {
     stimulus?: Prose
     environment?: Prose
     response?: Prose
@@ -281,7 +285,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// secondary actor, the goals and qualities it serves and the
   /// assumptions it relies on; it references at least one actor.
   @icon("route")
-  usecase(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [actor, goal, quality, assumption]) {
+  usecase(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [motivation, actor, assumption]) {
     accept(prose)
     accept(kind = success, max = 1)
     accept(kind = minimal, max = 1)

@@ -53,7 +53,7 @@ bad_ref: feature(desk) {{ A feature for a part. }}
 	wantAll(t, res,
 		"where: where in stateful links no optional feature",
 		"where: where in required_link links no optional feature",
-		"reference: desk is a part, and a feature references only goal, quality or actor")
+		"reference: desk is a part, and a feature references only goal, quality, actor or assumption")
 	wantNone(t, res, "where in gift_limit", "cycle:", "late is a rule", "security is a feature")
 	c := res.Checker
 	late := res.Tree.Find("refunds.late")

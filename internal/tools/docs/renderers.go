@@ -9,6 +9,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/types"
 )
 
 // RenderFunc renders the node a context is positioned on.
@@ -120,6 +121,7 @@ func renderGeneric(c *Ctx) error {
 		c.titlePre(pre, post)
 	}
 	c.Prose(n)
+	c.referenceKinds(n)
 	c.fields(n)
 	c.dependencyGraph(n)
 	if err := c.childrenOrLinks(); err != nil {
@@ -127,6 +129,30 @@ func renderGeneric(c *Ctx) error {
 	}
 	c.W(`</section>`)
 	return nil
+}
+
+// referenceKinds writes, for a kind declared with `references`, the kinds
+// and categories its references may name, each by its name as the list
+// writes it and linked where the site documents it. A category stays one
+// name, marked as a category, never expanded into the kinds in it.
+func (c *Ctx) referenceKinds(n *resolve.Node) {
+	s := c.Site
+	if !s.Checker.IsKind(n) || types.DeclNamedArg(n, "references") == nil {
+		return
+	}
+	ks, _ := s.Checker.ReferenceKinds(n)
+	var parts []string
+	for _, k := range ks {
+		h := `<code>` + esc(k.Name) + `</code>`
+		if own(k) && s.URL(k) != "" {
+			h = s.linkHTML(k, h, "")
+		}
+		if s.Checker.IsCategory(k) {
+			h += ` <span class="kind">` + esc(label("docs.label.category")) + `</span>`
+		}
+		parts = append(parts, h)
+	}
+	c.factList([][2]string{{label("docs.label.references"), strings.Join(parts, `<span class="sep">, </span>`)}})
 }
 
 // fields writes the values set on a node as a two-column list.

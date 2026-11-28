@@ -154,7 +154,7 @@ p2: part {{ Works with [p1](#p1). }}
 c: command("x", window)
 `)
 	wantAll(t, res,
-		"reference: b is a rule, and a rule references only actor, part, goal, quality, assumption or feature",
+		"reference: b is a rule, and a rule references only goal, quality, actor, part, assumption or feature",
 		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
 		"reference: window is a term, which is vocabulary: a command doesn't reference it; mention it in the prose",
 		"subject: rule two binds desk and customer; a rule references at most one actor or part, its subject",
@@ -305,7 +305,7 @@ payments: api {
 }
 `)
 	wantAll(t, res,
-		"reference: other is a rule, and a rule references only actor, part, goal, quality, assumption or feature",
+		"reference: other is a rule, and a rule references only goal, quality, actor, part, assumption or feature",
 		"reference: desk is listed twice, in the constructor and in @touch; list it once",
 		"reference: r is listed twice, in the constructor and in @touch; list it once",
 		"reference: self_service is a goal, and @touch on a enum takes only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition",
@@ -357,15 +357,15 @@ t2: plain_rule(b) {
 `)
 	wantAll(t, res,
 		"reference: desk is a part, and a team_rule references only actor",
-		"reference: b is a rule, and a plain_rule references only actor, part, goal, quality, assumption or feature")
+		"reference: b is a rule, and a plain_rule references only goal, quality, actor, part, assumption or feature")
 	// A kind that extends another takes its parameters and its body.
 	wantNone(t, res, "too-many-arguments", "accept:")
 }
 
 // A rule references no term; a constraint needs its reason; a persona
 // plays an actor; a scenario has one form, an outcome scenario references
-// one rule or path, a quality scenario has a measure and references the
-// quality it measures; at most one trigger.
+// one rule or path, a quality scenario has a measure, references nothing
+// and links the quality it measures in its prose; at most one trigger.
 func TestShapes(t *testing.T) {
 	res := checkSrc(t, head+`
 r: rule(window) {
@@ -393,8 +393,30 @@ lost: scenario {
 
 q: quality {{ Quick. }}
 
-unmeasured: scenario(q) {
+unmeasured: scenario {
+  | Measures [q].
   stimulus =| a
+}
+
+pointed: scenario(r) {
+  stimulus =| a
+  measure =| fast
+}
+
+unlinked: scenario {
+  stimulus =| a
+  measure =| fast
+}
+
+linked: scenario {
+  stimulus =| a
+  measure =| as fast as [q] asks
+}
+
+measured: scenario {
+  | Measures [q].
+  stimulus =| a
+  measure =| fast
 }
 `)
 	wantAll(t, res,
@@ -405,7 +427,10 @@ unmeasured: scenario(q) {
 		"scenario: scenario both mixes outcome clauses and quality fields",
 		"scenario: scenario none has neither outcome clauses nor quality fields",
 		"scenario: scenario lost references no rule or path of a use case",
-		"scenario: scenario unmeasured has no measure")
+		"scenario: scenario unmeasured has no measure",
+		"scenario: scenario pointed references a rule or a use case; a quality scenario links the quality it measures in its prose",
+		"scenario: scenario unlinked links no quality it measures in its prose")
+	wantNone(t, res, "scenario linked", "scenario measured")
 }
 
 // A use case's body is its main path and its extensions; steps open with

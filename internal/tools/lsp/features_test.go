@@ -565,6 +565,56 @@ customer: actor {{ Someone who paid. }}
 	}
 }
 
+// Hover on a kind declared with `references` names each kind and category
+// on the list, linked to its declaration; a category stays one name, as
+// std/spec's motivation on a rule, never the kinds in it.
+func TestHoverReferenceCategories(t *testing.T) {
+	dir := t.TempDir()
+	src := `import = ["std/doc@1", "std/types@1", "std/schema@1"]
+
+/// Who a team rule is for.
+audience: category
+
+team_rule(refs<variadic>?: Ref(Any)): kind(in = [block], references = [spec.motivation, audience]) {
+  accept(prose)
+}
+
+crew: kind(in = [block, audience]) {
+  accept(prose)
+}
+
+fast: goal {{ Refunds are quick. }}
+
+late: rule(fast) {
+  must {{ reject a late refund }}
+}
+`
+	write(t, filepath.Join(dir, "index.heron"), src)
+	c := start(t, dir)
+	uri := lsptest.FileURI(filepath.Join(dir, "index.heron"))
+	c.Open(uri, src)
+	var h struct {
+		Contents struct{ Value string }
+	}
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, "team_rule(", 0, 1)), &h); err != nil {
+		t.Fatal(err)
+	}
+	v := h.Contents.Value
+	if !strings.Contains(v, "its references name [`motivation`](heron:/std/spec/package.heron#L") || !strings.Contains(v, ") (category), [`audience`]("+uri+"#L4) (category)") {
+		t.Errorf("hover on a kind with categories:\n%s", v)
+	}
+	if strings.Contains(v, "`goal`") || strings.Contains(v, "`crew`") {
+		t.Errorf("hover expands a category:\n%s", v)
+	}
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, "rule(fast)", 0, 1)), &h); err != nil {
+		t.Fatal(err)
+	}
+	v = h.Contents.Value
+	if !strings.Contains(v, "its references name [`motivation`](heron:/std/spec/package.heron#L") || strings.Contains(v, "[`goal`]") {
+		t.Errorf("hover on std/spec's rule:\n%s", v)
+	}
+}
+
 // heron/preview renders the node at the cursor from the text as typed, as
 // its docs page shows it, with the stylesheet when asked, and the file's
 // nodes where the cursor is on none.

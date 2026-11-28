@@ -88,11 +88,11 @@ func (s *Site) covered(r *resolve.Node) bool {
 	return s.proven[r]
 }
 
-// featureFacts are a feature's goals, qualities and actors as links, its
-// optional mark and its flags.
+// featureFacts are a feature's goals, qualities, actors and assumptions as
+// links, its optional mark and its flags.
 func (s *Site) featureFacts(f *resolve.Node) []string {
 	var out []string
-	var goals, actors []string
+	var goals, actors, assumptions []string
 	for _, t := range project.HardTargets(s.Checker, f) {
 		link := s.linkHTML(t, esc(displayName(s, t)), "")
 		switch s.kindPath(t) {
@@ -100,6 +100,8 @@ func (s *Site) featureFacts(f *resolve.Node) []string {
 			goals = append(goals, link)
 		case "spec.actor":
 			actors = append(actors, link)
+		case "spec.assumption":
+			assumptions = append(assumptions, link)
 		}
 	}
 	if len(goals) > 0 {
@@ -107,6 +109,9 @@ func (s *Site) featureFacts(f *resolve.Node) []string {
 	}
 	if len(actors) > 0 {
 		out = append(out, esc(label("docs.label.for_actors"))+` `+strings.Join(actors, ", "))
+	}
+	if len(assumptions) > 0 {
+		out = append(out, esc(label("docs.label.relies"))+` `+strings.Join(assumptions, ", "))
 	}
 	if project.FeatureOptional(f) {
 		out = append(out, `<span class="mark">`+esc(label("docs.label.optional"))+`</span>`)

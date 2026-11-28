@@ -51,7 +51,8 @@ refunds: section {
 
   quick: quality(measure = "Answers within two seconds.") {{ Refunds feel quick. }}
 
-  fast_answers: scenario(refunds.quick) {
+  fast_answers: scenario {
+    | Measures [quick](#refunds.quick).
     stimulus =| a refund is requested
     environment =| production
     response =| the request is answered
@@ -112,6 +113,51 @@ func TestSpecKindsRender(t *testing.T) {
 			if !strings.Contains(h, want) {
 				t.Errorf("%s lacks %q in\n%s", path, want, h)
 			}
+		}
+	}
+}
+
+// A kind declared with `references` lists them by name: a category stays
+// one name, linked where the site documents it and marked as a category,
+// never expanded into its kinds; a Ref type names the category as written.
+func TestReferenceCategoriesRender(t *testing.T) {
+	dir := t.TempDir()
+	src := `import = ["std/doc@1", "std/types@1", "std/schema@1"]
+
+/// Who a team rule is for.
+audience: category
+
+/// A rule a team owns.
+team_rule(refs<variadic>?: Ref(Any)): kind(in = [block], references = [spec.motivation, audience]) {
+  accept(prose)
+}
+
+/// A crew.
+crew: kind(in = [block, audience]) {
+  accept(prose)
+}
+
+Note: type {
+  about: Ref(audience)
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "index.heron"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := site(t, filepath.Join(dir, "index.heron"))
+	for path, want := range map[string]string{
+		"team_rule": `<dt>References</dt><dd><code>motivation</code> <span class="kind">category</span><span class="sep">, </span><a class="ref" href="index.html#audience"><code>audience</code></a> <span class="kind">category</span></dd>`,
+		"Note":      `<span class="tk-type">Ref</span><span class="tk-punct">(</span><a class="ref code-ref" href="index.html#audience"><span class="tk-name">audience</span></a><span class="tk-punct">)</span>`,
+	} {
+		f, err := s.RenderNode(s.Tree.Find(path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(f.HTML, want) {
+			t.Errorf("%s lacks %q in\n%s", path, want, f.HTML)
+		}
+		if strings.Contains(f.HTML, "crew") || strings.Contains(f.HTML, ">goal<") {
+			t.Errorf("%s expands a category:\n%s", path, f.HTML)
 		}
 	}
 }

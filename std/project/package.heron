@@ -108,7 +108,7 @@ project: package(version = "1.1", requires = ["std/doc@1"]) {
   /// references name the goals it advances, `adds` and `changes` the spec
   /// items it adds and changes. It states no behaviour; its `done` holds
   /// what delivery alone needs.
-  story(refs<variadic>?: Ref(Any), adds?: List(Ref(Any)), changes?: List(Ref(Any))): kind(in = [block], references = [spec.goal, spec.quality]) {
+  story(refs<variadic>?: Ref(Any), adds?: List(Ref(Any)), changes?: List(Ref(Any))): kind(in = [block], references = [spec.motivation]) {
     accept(prose)
     accept(kind = done, max = 1)
   }

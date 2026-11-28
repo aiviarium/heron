@@ -239,7 +239,7 @@ func renderScenario(c *Ctx) error {
 	if t := project.Described(s.Checker, n); t != nil {
 		rows = append(rows, [2]string{label("docs.label.illustrates"), s.linkHTML(t, esc(displayName(s, t)), "")})
 	}
-	rows = append(rows, [2]string{label("docs.label.measures"), c.refLinks(project.ReferenceTargets(s.Checker, n, "spec.quality"))})
+	rows = append(rows, [2]string{label("docs.label.measures"), c.refLinks(project.Measures(s.Checker, n))})
 	c.factList(rows)
 	c.W(c.verifyList(n))
 	c.W(c.derivedLists(n))

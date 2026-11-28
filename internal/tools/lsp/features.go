@@ -108,6 +108,9 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	if refs := referenceWords(r.res.Checker, n); refs != "" {
 		b.WriteString("\n\nreferences " + refs)
 	}
+	if ks := s.referenceKindLinks(r.res.Checker, n); ks != "" {
+		b.WriteString("\n\nits references name " + ks)
+	}
 	return Hover{Contents: MarkupContent{Kind: "markdown", Value: b.String()}, Range: &rng}, nil
 }
 
@@ -135,9 +138,6 @@ func referenceWords(c *types.Checker, n *resolve.Node) string {
 			meaning = "joins"
 		case kp == "spec.goal", kp == "spec.quality":
 			meaning = "serves"
-			if project.KindPath(c, n) == "spec.scenario" {
-				meaning = "measures"
-			}
 		case kp == "spec.assumption":
 			meaning = "relies on"
 		case kp == "spec.scenario":
@@ -151,8 +151,37 @@ func referenceWords(c *types.Checker, n *resolve.Node) string {
 		}
 		out = append(out, w)
 	}
+	// A quality scenario links the quality it measures in its prose.
+	if project.KindPath(c, n) == "spec.scenario" {
+		for _, t := range project.Measures(c, n) {
+			out = append(out, "`"+t.Path()+"` (measures)")
+		}
+	}
 	for _, t := range project.SeeAlso(c, n) {
 		out = append(out, "`"+t.Path()+"` (see also)")
+	}
+	return strings.Join(out, ", ")
+}
+
+// referenceKindLinks are the kinds and categories a kind's `references`
+// lists, each by its name, linked to its declaration, a category marked as
+// one and never expanded into its kinds, as "[`motivation`](…) (category),
+// [`actor`](…)", or "" for a node that's no kind with a list.
+func (s *Session) referenceKindLinks(c *types.Checker, n *resolve.Node) string {
+	if !c.IsKind(n) || types.DeclNamedArg(n, "references") == nil {
+		return ""
+	}
+	ks, _ := c.ReferenceKinds(n)
+	var out []string
+	for _, k := range ks {
+		w := "`" + k.Name + "`"
+		if site, st, _ := declSpan(k); site.File != nil {
+			w = "[" + w + "](" + s.uriOf(site.File.ID) + fmt.Sprintf("#L%d", newLines(site.File.Src).pos(st).Line+1) + ")"
+		}
+		if c.IsCategory(k) {
+			w += " (category)"
+		}
+		out = append(out, w)
 	}
 	return strings.Join(out, ", ")
 }

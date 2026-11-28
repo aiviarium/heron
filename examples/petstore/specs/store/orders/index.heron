@@ -54,7 +54,8 @@ pet_lifecycle: states(Pet.status) {
 
 fast_orders: quality(measure = "Orders answer within 200 ms at the 99th percentile.") {{ Placing an order feels instant. }}
 
-order_speed: scenario(fast_orders) {
+order_speed: scenario {
+  | How fast orders are, as [fast_orders] measures it.
   stimulus =| a customer places an order
   environment =| normal load
   response =| the order is answered
