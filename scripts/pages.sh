@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The published site, as .github/workflows/pages.yml deploys it to GitHub
 # Pages: the spec package's site with every lens its docs block builds
-# (the user lens at the root, then dev/ and explore/) and its agent export
+# (the user lens at the root, then contributor/ and explore/) and its agent export
 # under agents/ with llms.txt at the root.
 #
 #   scripts/pages.sh <out dir>
@@ -29,7 +29,7 @@ trap 'rm -rf "$work"' EXIT
 cp -r "$work/.heron/docs/." "$out/"
 
 test -f "$out/index.html"
-for d in dev explore; do
+for d in contributor explore; do
   if grep -q "lenses" "$spec/index.heron"; then test -f "$out/$d/index.html"; fi
 done
 test -f "$out/agents/INDEX.md"

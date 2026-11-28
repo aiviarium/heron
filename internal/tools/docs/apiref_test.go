@@ -14,7 +14,7 @@ import (
 // lists the types and errors the ops name.
 func TestAPILanding(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	h := f["dev/kite.store_api.html"]
+	h := f["contributor/kite.store_api.html"]
 	mustHave(t, "api page", h,
 		`<dt>Wire format</dt><dd>JSON over HTTP; streams as server-sent events; sockets as websocket frames</dd>`,
 		`<span class="op-line">Returns one note, with the time it last changed.</span>`,
@@ -28,17 +28,17 @@ func TestAPILanding(t *testing.T) {
 // example shows its messages as JSON built from their types.
 func TestOpPageOutcomes(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	get := f["dev/kite.store_api.get_note.html"]
+	get := f["contributor/kite.store_api.get_note.html"]
 	mustHave(t, "get_note", get, `<dt>Carries out</dt><dd><a class="ref" href="index.html#kite.gone_notes">Gone notes</a></dd>`)
 	mustNotHave(t, "get_note", get, `(gone_notes)`)
-	put := f["dev/kite.store_api.put_note.html"]
+	put := f["contributor/kite.store_api.put_note.html"]
 	mustHave(t, "put_note", put,
 		`<code class="status err">423</code>`, `<code class="err-code">store.NOTE_LOCKED</code>`,
 		`<p class="err-title"><span class="ph">‹id›</span> is being written by another sync</p>`,
 		`<span class="label">Fields</span> <code>id</code> <code class="t">String</code>`,
 		// No example: the body as JSON from Note's fields.
 		`&#34;updated_at&#34;`)
-	list := f["dev/kite.store_api.list_notes.html"]
+	list := f["contributor/kite.store_api.list_notes.html"]
 	mustHave(t, "list_notes", list, `<span class="badge badge-deprecated">Deprecated</span>`)
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(list)
 	mustHave(t, "nav", nav, `<span class="nav-deprecated"`)

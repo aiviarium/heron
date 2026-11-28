@@ -514,33 +514,60 @@ func (l *Lens) ownMode(c *types.Checker, n *resolve.Node) Mode {
 
 func (l *Lens) kindMode(c *types.Checker, n *resolve.Node) Mode {
 	if k := c.KindOf(n); k != nil {
-		has := func(list []*resolve.Node, x *resolve.Node) bool {
-			for _, y := range list {
-				if y == x {
-					return true
-				}
-			}
-			return false
-		}
-		cands := append([]*resolve.Node{k}, c.Categories(k)...)
-		for _, x := range cands {
-			switch {
-			case has(l.Hide, x):
-				return Hide
-			case has(l.Summarize, x):
-				return Summarize
-			case has(l.Show, x):
-				return Show
-			}
+		if m, ok := l.listMode(c, k); ok {
+			return m
 		}
 	}
 	if n.Parent == nil || n.Parent.Parent == nil {
-		if len(l.Show) > 0 {
-			return Hide
-		}
-		return Show
+		return l.unlisted()
 	}
 	return l.kindMode(c, n.Parent)
+}
+
+// KindMode is how the lens's lists render a node of a kind, with no mark
+// and no parent to follow: by the kind and its categories, and as a child
+// of the tree's root when no list names either.
+func (l *Lens) KindMode(c *types.Checker, k *resolve.Node) Mode {
+	if l.Explore() {
+		return Show
+	}
+	if m, ok := l.listMode(c, k); ok {
+		return m
+	}
+	return l.unlisted()
+}
+
+// listMode is the mode the first of a kind and its categories that a list
+// names gets, hide winning over summarize and summarize over show.
+func (l *Lens) listMode(c *types.Checker, k *resolve.Node) (Mode, bool) {
+	has := func(list []*resolve.Node, x *resolve.Node) bool {
+		for _, y := range list {
+			if y == x {
+				return true
+			}
+		}
+		return false
+	}
+	for _, x := range append([]*resolve.Node{k}, c.Categories(k)...) {
+		switch {
+		case has(l.Hide, x):
+			return Hide, true
+		case has(l.Summarize, x):
+			return Summarize, true
+		case has(l.Show, x):
+			return Show, true
+		}
+	}
+	return Show, false
+}
+
+// unlisted is the mode of a child of the tree's root whose kind no list
+// names: shown when the lens sets no show, left out when it does.
+func (l *Lens) unlisted() Mode {
+	if len(l.Show) > 0 {
+		return Hide
+	}
+	return Show
 }
 
 // IsAuthored reports whether a node is of an authored kind: a guide, a

@@ -116,20 +116,6 @@ func renderError(c *Ctx) error {
 func renderDiagnostic(c *Ctx) error {
 	n := c.Node
 	s := c.Site
-	if s.Opts.Lens != nil && s.Opts.Lens.Name == "user" {
-		// The error a person meets: code and message, and the fix.
-		code := s.Checker.ErrorID(n)
-		c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line"><code class="diag-code">`, esc(code), `</code>`)
-		if m := s.errorText(n, "title"); m != "" {
-			c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
-		}
-		c.W(`</p>`)
-		if fix := firstSentence(inlineParagraph(s.proseHTML(n))); fix != "" {
-			c.W(`<p class="diag-fix">`, fix, `</p>`)
-		}
-		c.W(`</div>`)
-		return nil
-	}
 	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, s.diagnosticBadges(n))
 	if m := s.errorText(n, "title"); m != "" {
 		c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)

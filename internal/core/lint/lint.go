@@ -93,3 +93,10 @@ func childPath(n *syntax.Node) *syntax.Node {
 	}
 	return nil
 }
+
+// Allowed reports whether a node, or one around it, allows the lint of a
+// code with @lint(allow = [… code …]), for a tool that reads a lint's
+// findings outside `heron lint`.
+func Allowed(c *types.Checker, n *resolve.Node, code string) bool {
+	return allowed(c, n, code)
+}

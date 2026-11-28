@@ -50,8 +50,10 @@ button, select, input, textarea { font: inherit; color: inherit; }
   position: sticky; top: 0; z-index: 20;
   height: var(--h-size-topbar);
   background: var(--h-bg-topbar);
-  backdrop-filter: saturate(1.4) blur(12px);
+  /* The prefixed form first: the minifier keeps the last of the two, and
+     only the standard one blurs in Chromium and Firefox. */
   -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
   border-bottom: 1px solid var(--h-border-faint);
 }
 .topbar-in { height: 100%; max-width: var(--h-frame-max); margin: 0 auto; padding: 0 var(--h-space-6); display: flex; align-items: center; gap: var(--h-space-4); }
@@ -880,4 +882,15 @@ table.ops code.path { overflow-wrap: anywhere; }
 .gap-group > summary > * { min-width: 0; overflow-wrap: anywhere; }
 .gap-count { flex: none; margin-left: auto; font: 12px var(--h-font-mono); color: var(--h-text-faint); }
 .gap-group .gap-list { margin: 0 0 var(--h-space-3); padding-left: var(--h-space-5); font-size: var(--h-font-size-ui); line-height: 1.8; overflow-wrap: anywhere; }
+.gap-message { color: var(--h-text-secondary); }
+/* --- contract coverage: a figure on a feature's page, a column of the
+   Features page --- */
+.feature-contract { margin: var(--h-space-2) 0 var(--h-space-4); max-width: var(--h-size-measure); font-size: var(--h-font-size-ui); color: var(--h-text-secondary); }
+.feature-contract-label { color: var(--h-text); font-weight: var(--h-font-weight-medium); }
+.feature-contract .feature-figure { color: var(--h-text); font-variant-numeric: tabular-nums; }
+.feature-contract-note::before { content: "\00b7"; margin-right: var(--h-space-1); color: var(--h-text-decor); }
+.features-head, .features .line-head { display: flex; align-items: baseline; gap: var(--h-space-4); }
+.features-head { margin: var(--h-space-4) 0 var(--h-space-2); padding-bottom: var(--h-space-1); border-bottom: 1px solid var(--h-border-faint); font-size: var(--h-font-size-ui); color: var(--h-text-faint); }
+.features-head > :first-child, .features .feature-line { flex: 1; min-width: 0; }
+.features .line-head > .feature-figure { flex: none; min-width: 7ch; text-align: right; font: 13px var(--h-font-mono); font-variant-numeric: tabular-nums; color: var(--h-text-secondary); }
 }

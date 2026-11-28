@@ -1,7 +1,7 @@
 // Package project reads a checked tree as the spec model the tools share:
 // a node's standard kind, its arguments, annotations and references, the
-// features it belongs to and the links of its prose, and the gap report
-// those links leave open.
+// features it belongs to and the links of its prose, and the contract
+// coverage those links give.
 package project
 
 import (

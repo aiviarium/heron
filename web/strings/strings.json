@@ -14,8 +14,11 @@
       "gaps": "Gaps"
     },
     "gaps": {
-      "unrealized": "Behaviour no contract entry carries out",
-      "unrealized_note": "Rules on a part or the system, and use case steps a part takes, that no contract entry references and no error links; listed for reading, nothing fails"
+      "note": "What the spec's links leave open, as heron lint reports it: a goal or quality nothing serves, a requirement that serves no goal, an entry or error that carries out nothing, and a failure no error handles"
+    },
+    "coverage": {
+      "figure": "{done} of {all}",
+      "note": "Rules about a part or the system that a contract entry carries out: the rules are already the formal statement, and a contract entry is needed only where a consumer relies on an exact surface"
     },
     "nav": {
       "types": "Types",
@@ -118,6 +121,8 @@
       "example": "Example",
       "examples": "Examples",
       "goal": "Goal",
+      "feature": "Feature",
+      "contract_coverage": "Contract coverage",
       "guidance": "Guidance",
       "implements": "Implements",
       "language": "Language",

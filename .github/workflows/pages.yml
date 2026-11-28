@@ -1,6 +1,6 @@
 # The published site on GitHub Pages, https://aiviarium.github.io/heron/:
 # the spec package's own site with its lenses (the user lens at the root,
-# dev/ and explore/) and its agent export, built by scripts/pages.sh. The
+# contributor/ and explore/) and its agent export, built by scripts/pages.sh. The
 # spec is heron-specs at the commit heron.lock pins, as in CI.
 #
 # The repository's Settings > Pages > Source must be "GitHub Actions".

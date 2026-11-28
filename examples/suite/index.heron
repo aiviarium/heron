@@ -8,14 +8,12 @@ import = ["std/doc@1", "std/impl@1", "std/docs@1"]
 @display("Suite")
 suite: project(path = ".") {}
 
-@lens(user, developer)
 | The suite's products and the help they share. Pick a product at the top of the sidebar.
 
 /// Notes keeps a folder of notes in sync across devices.
 @display("Notes")
 @icon("notebook-pen")
 notes: section {
-  @lens(user, developer)
   | Notes keeps a folder of notes in sync across every device you sign in on, and keeps a
   | history of each note.
 
@@ -45,7 +43,6 @@ notes: section {
 @display("Calendar")
 @icon("users")
 calendar: section {
-  @lens(user, developer)
   | Calendar shares events between the people of a team, so a meeting set on one
   | calendar shows on everyone's.
 
@@ -67,7 +64,6 @@ calendar: section {
 }
 
 @icon("circle-help")
-@lens(user, developer)
 help: section {
   | Help for every product of the suite: accounts, billing and support.
 
@@ -82,7 +78,7 @@ help: section {
 
 // The products are areas of the switcher; the help pages are a tab.
 docs {
-  lenses = [user, developer, explore]
+  lenses = [user, contributor, explore]
   area<menu>(notes)
   area<menu>(calendar)
   area(help)

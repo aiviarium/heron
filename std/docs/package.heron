@@ -108,26 +108,23 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     kinds?: KindMarks
   }
 
-  /// For the people who use what a tree describes: the authored pages,
-  /// and the commands, examples, terms and errors they act on,
-  /// without the rules that bind an implementation or the tree's sections,
-  /// with a page per part of the tree rather than per concern.
+  /// For the developers who use what a tree describes: the full
+  /// reference, each rule summed up in one line that opens in place, and
+  /// none of what's only about building the product, its actors and its
+  /// parts.
   user: lens {
     title = "User"
     default = true
-    show = [authored, step, spec.goal, spec.nongoal, spec.example, spec.term, spec.command, types.error]
-    hide = [spec.rule, spec.condition, production]
-    depth = 2
+    summarize = [spec.rule]
+    hide = [spec.actor, spec.part]
     prefix = ""
   }
 
-  /// For the people who write specs of their own: every section, the
-  /// examples, APIs and diagrams up front, and each rule summed up in one
-  /// line.
-  developer: lens {
-    title = "Developer"
-    summarize = [spec.rule, spec.guidance]
-    prefix = "dev"
+  /// For the people who work on the product itself: everything in full,
+  /// with its actors, its parts, its gaps and its contract coverage.
+  contributor: lens {
+    title = "Contributor"
+    prefix = "contributor"
   }
 
   /// Everything the tree holds, as the node tree.

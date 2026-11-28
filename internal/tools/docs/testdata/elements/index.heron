@@ -20,5 +20,5 @@ refunds: section {
 }
 
 docs {
-  lenses = [user, developer, explore]
+  lenses = [user, contributor, explore]
 }

@@ -141,6 +141,9 @@ func renderFeature(c *Ctx) error {
 			}
 		}
 		c.W(`<p class="feature-coverage">`, esc(label("docs.label.covered")), ` `, strconv.Itoa(covered), ` / `, strconv.Itoa(len(reqs)), `</p>`)
+		if done, all := s.contractCoverage(n); all > 0 {
+			c.W(`<p class="feature-contract"><span class="feature-contract-label">`, esc(label("docs.label.contract_coverage")), `</span> <span class="feature-figure">`, esc(coverageFigure(done, all)), `</span> <span class="feature-contract-note">`, esc(label("docs.coverage.note")), `</span></p>`)
+		}
 		c.W(`<ul class="lines">`)
 		for _, k := range featureKinds {
 			var links []string
@@ -170,7 +173,8 @@ func renderFeature(c *Ctx) error {
 }
 
 // featuresPage lists every feature of the tree, nested as they nest, with
-// its goals, its marks and the number of its requirements.
+// its goals, its marks and the number of its requirements, and, in the
+// lenses that show it, its contract coverage as a column.
 func (s *Site) featuresPage(c *Ctx) error {
 	var list func(fs []*resolve.Node)
 	children := func(f *resolve.Node) []*resolve.Node {
@@ -190,19 +194,42 @@ func (s *Site) featuresPage(c *Ctx) error {
 		walk(f)
 		return out
 	}
+	// The contract coverage column, in the lenses that show it, when a
+	// feature has a rule it counts.
+	figures := false
+	if s.buildsProduct() {
+		s.Tree.Walk(func(n *resolve.Node) {
+			if !figures && own(n) && s.kindPath(n) == "spec.feature" && s.kept(n) {
+				_, all := s.contractCoverage(n)
+				figures = all > 0
+			}
+		})
+	}
 	list = func(fs []*resolve.Node) {
 		c.W(`<ul class="features">`)
 		for _, f := range fs {
-			c.W(`<li id="`, attr("features."+Anchor(f)), `"><p class="line-head">`, s.linkHTML(f, esc(displayName(s, f)), ""))
+			c.W(`<li id="`, attr("features."+Anchor(f)), `"><p class="line-head"><span class="feature-line">`, s.linkHTML(f, esc(displayName(s, f)), ""))
 			facts := s.featureFacts(f)
 			facts = append(facts, esc(label("docs.label.requirements"))+` `+strconv.Itoa(len(s.featureRequirements(f))))
-			c.W(` <span class="rule-meta">`, strings.Join(facts, `<span class="dot"> · </span>`), `</span></p>`)
+			c.W(` <span class="rule-meta">`, strings.Join(facts, `<span class="dot"> · </span>`), `</span></span>`)
+			if figures {
+				fig := ""
+				if done, all := s.contractCoverage(f); all > 0 {
+					fig = esc(coverageFigure(done, all))
+				}
+				c.W(`<span class="feature-figure">`, fig, `</span>`)
+			}
+			c.W(`</p>`)
 			if sub := children(f); len(sub) > 0 {
 				list(sub)
 			}
 			c.W(`</li>`)
 		}
 		c.W(`</ul>`)
+	}
+	if figures {
+		c.W(`<p class="feature-contract"><span class="feature-contract-label">`, esc(label("docs.label.contract_coverage")), `</span> <span class="feature-contract-note">`, esc(label("docs.coverage.note")), `</span></p>`)
+		c.W(`<p class="features-head"><span>`, esc(label("docs.label.feature")), `</span><span>`, esc(label("docs.label.contract_coverage")), `</span></p>`)
 	}
 	list(children(s.Tree.Root))
 	return nil

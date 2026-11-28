@@ -185,21 +185,6 @@ func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
 	return out
 }
 
-// errorsGathered reports whether the lens shows diagnostics on its
-// diagnostics page alone, as the user lens does.
-func (s *Site) errorsGathered() bool {
-	return s.Opts.Lens != nil && s.Opts.Lens.Name == "user"
-}
-
-// gatheredDiagnostic reports whether a node is a diagnostic, or a section
-// of diagnostics only, that the lens shows on its diagnostics page alone.
-func (s *Site) gatheredDiagnostic(n *resolve.Node) bool {
-	if !s.errorsGathered() {
-		return false
-	}
-	return s.kindPath(n) == "types.error" || s.isContainer(n) && s.onlyDiagnostics(n)
-}
-
 // onlyDiagnostics reports whether a section holds diagnostics and nothing
 // else the lens shows.
 func (s *Site) onlyDiagnostics(n *resolve.Node) bool {
@@ -271,7 +256,7 @@ func (s *Site) shown(n *resolve.Node) bool {
 	if !own(n) && !s.inConfig(n) {
 		return false
 	}
-	if s.hidden(n) || s.gatheredDiagnostic(n) {
+	if s.hidden(n) {
 		return false
 	}
 	switch n.Shape {
