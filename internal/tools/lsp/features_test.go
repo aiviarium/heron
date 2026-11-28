@@ -541,3 +541,42 @@ shop: api {
 		t.Errorf("hover on an op:\n%s", h.Contents.Value)
 	}
 }
+
+// heron/preview renders the node at the cursor from the text as typed, as
+// its docs page shows it, with the stylesheet when asked, and the file's
+// nodes where the cursor is on none.
+func TestPreviewRequest(t *testing.T) {
+	f := newFixture(t)
+	type page struct {
+		Path, HTML, Error, Styles string
+	}
+	var p page
+	at := lsptest.At(indexSrc, "Read [the order]", 0, 2)
+	if err := f.c.Call("heron/preview", map[string]any{"uri": f.indexURI, "position": at, "styles": true}, &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Path != "guide" || !strings.Contains(p.HTML, "the order") || p.Error != "" || !strings.Contains(p.Styles, "--h-") {
+		t.Errorf("preview of guide: %+v", page{Path: p.Path, HTML: p.HTML, Error: p.Error, Styles: p.Styles[:min(len(p.Styles), 40)]})
+	}
+	// The text as typed, without the stylesheet.
+	edited := strings.Replace(indexSrc, "Read [the order]", "Look at [the order]", 1)
+	f.c.Replace(f.indexURI, edited)
+	p = page{}
+	if err := f.c.Call("heron/preview", map[string]any{"uri": f.indexURI, "position": lsptest.At(edited, "Look at", 0, 2)}, &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Path != "guide" || !strings.Contains(p.HTML, "Look at") || p.Styles != "" {
+		t.Errorf("preview of the unsaved text: %+v", p)
+	}
+	// On no node: the file.
+	p = page{}
+	if err := f.c.Call("heron/preview", map[string]any{"uri": f.indexURI, "position": lsptest.Position{Line: 0, Character: 0}}, &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Path != "" || !strings.Contains(p.HTML, "Guide") {
+		t.Errorf("preview of the file: %+v", p)
+	}
+	if err := f.c.Call("heron/preview", map[string]any{"uri": "file:///nowhere/x.heron", "position": lsptest.Position{}}, &p); err == nil || !strings.Contains(err.Error(), "-32602") {
+		t.Errorf("preview of no file: %v", err)
+	}
+}

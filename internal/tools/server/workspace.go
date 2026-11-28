@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -11,8 +10,6 @@ import (
 	"time"
 
 	"github.com/aiviarium/heron/internal/core/check"
-	"github.com/aiviarium/heron/internal/core/diag"
-	"github.com/aiviarium/heron/internal/core/lint"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
@@ -24,9 +21,6 @@ type Workspace struct {
 	Root  string // the entry point's folder
 	Entry resolve.FileID
 	Reg   *registry.Registry
-
-	writeMu sync.Mutex // serializes writes, so if_match is checked and written at once
-	events  *hub
 
 	mu   sync.Mutex
 	sess *check.Session
@@ -48,9 +42,7 @@ func OpenWorkspace(entry string, r *registry.Registry) (*Workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	w := &Workspace{Root: id.Dir(), Entry: id, Reg: r, sess: check.NewSession()}
-	w.events = newHub(w)
-	return w, nil
+	return &Workspace{Root: id.Dir(), Entry: id, Reg: r, sess: check.NewSession()}, nil
 }
 
 // Rel returns a file's path relative to the workspace, with slashes.
@@ -107,37 +99,4 @@ func (w *Workspace) Analyze(overlays map[string]string, f func(a *Analysis) erro
 		w.at = time.Now()
 	}
 	return f(&Analysis{W: w, Res: w.last, Pos: w.sess.Pos})
-}
-
-// Invalidate drops the reused result, after a file was written.
-func (w *Workspace) Invalidate() {
-	w.mu.Lock()
-	w.last = nil
-	w.mu.Unlock()
-}
-
-// Lint runs the registered lints over the analysis.
-func (a *Analysis) Lint() diag.List { return lint.Run(a.W.Reg, a.Res) }
-
-// Files returns the tree's own files, relative, in the order they joined.
-func (a *Analysis) Files() []string {
-	var out []string
-	for _, f := range a.Res.Tree.Files {
-		if f.ID.IsStd() {
-			continue
-		}
-		out = append(out, a.W.Rel(f.ID))
-	}
-	return out
-}
-
-// Branch returns the git branch the workspace is on, or "".
-func (w *Workspace) Branch() string {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	cmd.Dir = w.Root
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
 }

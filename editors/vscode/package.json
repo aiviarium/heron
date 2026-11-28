@@ -1,0 +1,155 @@
+{
+  "name": "heron",
+  "displayName": "Heron",
+  "description": "Heron for VS Code: the language server, highlighting and a live docs preview.",
+  "version": "0.1.0",
+  "publisher": "aiviarium",
+  "license": "UNLICENSED",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aiviarium/heron"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "main": "./dist/extension.js",
+  "browser": "./dist/web.js",
+  "activationEvents": [
+    "workspaceContains:**/*.heron"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "heron",
+        "aliases": [
+          "Heron",
+          "heron"
+        ],
+        "extensions": [
+          ".heron"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "heron-md",
+        "aliases": [
+          "Heron Markdown",
+          "heron-md"
+        ],
+        "extensions": [
+          ".heron.md"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "heron",
+        "scopeName": "source.heron",
+        "path": "./syntaxes/heron.tmLanguage.json"
+      },
+      {
+        "language": "heron-md",
+        "scopeName": "text.heron.markdown",
+        "path": "./syntaxes/heron-md.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.heron": "heron"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "heron.check",
+        "title": "Check",
+        "category": "Heron"
+      },
+      {
+        "command": "heron.lint",
+        "title": "Lint",
+        "category": "Heron"
+      },
+      {
+        "command": "heron.generateDocs",
+        "title": "Generate Docs",
+        "category": "Heron"
+      },
+      {
+        "command": "heron.generate",
+        "title": "Generate…",
+        "category": "Heron"
+      },
+      {
+        "command": "heron.openPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "Heron",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "heron.restartServer",
+        "title": "Restart Language Server",
+        "category": "Heron"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "heron.openPreviewToSide",
+          "when": "editorLangId == heron || editorLangId == heron-md",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Heron",
+      "properties": {
+        "heron.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "The `heron` binary the extension runs, for the language server and the commands. Empty runs `heron` from `PATH`."
+        }
+      }
+    },
+    "taskDefinitions": [
+      {
+        "type": "heron",
+        "required": [
+          "args"
+        ],
+        "properties": {
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The heron command's arguments."
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "node build.mjs --tests && node --test out/unit/*.test.cjs",
+    "test:e2e": "node build.mjs --tests && node out/e2e/run.js",
+    "package": "node build.mjs && vsce package --no-dependencies --skip-license --out heron.vsix"
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.0",
+    "@types/vscode": "1.91.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "3.6.2",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  }
+}

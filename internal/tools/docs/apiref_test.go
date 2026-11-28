@@ -45,7 +45,7 @@ func TestOpPageOutcomes(t *testing.T) {
 }
 
 // The server's own API offers Try it only where that server serves the
-// page, through the generated client.
+// page, sent to the page's own origin.
 func TestServedTryIt(t *testing.T) {
 	dir := t.TempDir()
 	src := `import = ["std/types@1", "std/http@1"]
@@ -86,5 +86,5 @@ Workspace: type {
 	static := page(nil)
 	mustNotHave(t, "static build", static, `data-tryit`)
 	served := page(map[string]bool{"spec_server.workspace": true})
-	mustHave(t, "served", served, `data-tryit`, `"client":"workspace"`)
+	mustHave(t, "served", served, `data-tryit`, `"served":true`)
 }

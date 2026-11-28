@@ -1,6 +1,7 @@
 // Package textmate builds the published TextMate grammars of Heron files
-// and prose files from the editor's static grammar's token kinds, which
-// grammar/textmate/scopes.json maps to TextMate's standard scope names. The
+// and prose files, the static grammar the VS Code extension colours with,
+// from token kinds that grammar/textmate/scopes.json maps to TextMate's
+// standard scope names. The
 // files are written by `go run ./internal/tools/textmate/write`, and a test
 // keeps them equal to what this package builds.
 package textmate
@@ -94,6 +95,9 @@ func Grammars(scopes map[string]string) (map[string][]byte, error) {
 			"beginCaptures": map[string]any{"0": map[string]any{"name": sc("string.code")}},
 			"endCaptures":   map[string]any{"0": map[string]any{"name": sc("string.code")}}}
 		if scope != "" {
+			// The embedded language's scope, so an editor treats the
+			// fence's code as that language: its comments and brackets.
+			r["contentName"] = "meta.embedded.block." + lang
 			r["patterns"] = []any{inc(scope)}
 		} else {
 			r["contentName"] = sc("string.code")

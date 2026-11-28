@@ -12,15 +12,16 @@ agent export for agents at [/agents/](https://aiviarium.github.io/heron/agents/I
 project site (architecture, conformance, releases) at
 [/project/](https://aiviarium.github.io/heron/project/).
 
-The implementation of Heron: the `heron` binary, its standard packages and
-its frontend. What Heron does is specified apart from this repository, in
+The implementation of Heron: the `heron` binary, its standard packages, the
+docs theme and the VS Code extension. What Heron does is specified apart from this repository, in
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs).
 
 ## Build from source and try it
 
-You need Git, Go 1.24.7 or newer, and Node.js 20 or newer, whose corepack
-runs the pnpm version `web/package.json` pins (10.28.0); nothing else is
-installed globally.
+You need Git and Go 1.24.7 or newer to build `heron`. The checks and the
+VS Code extension also need Node.js 22, with corepack running the pnpm
+version `web/package.json` pins (10.28.0) for the docs theme; nothing else
+is installed globally.
 
 `std/sparrow` binds apis to [Sparrow](https://github.com/aiviarium/sparrow); Go takes
 Sparrow's module from the Go proxy, at the commit `go.mod` pins, for its schema package
@@ -29,9 +30,8 @@ and canonical CBOR.
 ```sh
 git clone https://github.com/aiviarium/heron.git
 cd heron
-scripts/build.sh            # checks the prerequisites, installs the web
-                            # dependencies, builds the editor's frontend into
-                            # the binary and writes bin/heron (or: make build)
+scripts/build.sh            # checks the prerequisites and writes bin/heron
+                            # (or: make build)
 bin/heron version           # heron 0.6.0+build1, the spec version, commit, build time
 ```
 
@@ -43,9 +43,8 @@ make install                     # or: copies bin/heron to ~/.local/bin (PREFIX=
 ```
 
 `go install ./cmd/heron` also works, without `scripts/build.sh`: it builds
-the same commands, but `heron serve` then embeds the frontend only if
-`scripts/build.sh` built it before, and `heron version` reports the commit
-and build time Go recorded, or `unknown`.
+the same binary, but `heron version` reports the commit and build time Go
+recorded, or `unknown`.
 
 Try it on an example:
 
@@ -55,8 +54,8 @@ heron check .                    # the tree checks clean: no output, exit 0
 heron lint .                     # the lints and the spec-aware prose checks
 heron generate docs              # the documentation site, in .heron/docs/
 heron generate agents            # the spec as Markdown for agents, in .heron/agents/INDEX.md
-heron serve                      # the editor at http://127.0.0.1:7340/, the docs at /docs/,
-                                 # the agent export at /agents/; Ctrl-C stops it
+heron serve                      # the live docs at http://127.0.0.1:7340/docs/, the agent
+                                 # export at /agents/; Ctrl-C stops it
 cd ../..
 ```
 
@@ -66,6 +65,25 @@ as it is:
 ```sh
 scripts/play.sh                  # petstore; or: scripts/play.sh parcels, make play EXAMPLE=parcels
 ```
+
+## Edit in VS Code
+
+[`editors/vscode`](editors/vscode) is the Heron extension for VS Code and the
+editors built on it (Cursor, VSCodium): it starts `heron lsp` for diagnostics,
+completion, hover, navigation, rename, formatting and fixes, colours Heron with
+the TextMate grammars from `grammar/textmate`, shows a live preview of the node
+under the cursor as its docs page shows it (**Heron: Open Preview to the Side**),
+and runs Check, Lint and Generate as tasks. Build and install it:
+
+```sh
+cd editors/vscode && npm ci && npm run package   # writes heron.vsix
+code --install-extension heron.vsix              # or Extensions: Install from VSIX…
+```
+
+CI uploads the same `heron.vsix` as the `heron-vsix` artifact of the `vscode`
+lane; it isn't published to a marketplace. `heron` must be on `PATH`, or
+`heron.path` set to it. [Its README](editors/vscode/README.md) lists the
+settings and features.
 
 Run the tests:
 
@@ -120,7 +138,7 @@ scripts/spec-setup.sh            # links the checkout at .heron/packages/
 ```
 
 With it set, the link stands in for the installed package for `heron
-check` and the editor, and the Go tests and the scripts read
+check` and the language server, and the Go tests and the scripts read
 the package from `$HERON_SPECS_DIR` directly. Unset it and run
 `scripts/spec-setup.sh` again to go back to the pinned version.
 
@@ -142,7 +160,7 @@ and `version` the project version; releases are tagged `v<version>`.
 scripts/ci.sh                                   # the whole check, run before every push
 HERON_SPECS_DIR=../heron-specs/heron scripts/ci.sh
 scripts/ci.sh --list                            # its lanes; scripts/ci.sh docs e2e runs those alone
-scripts/play.sh                                 # heron serve on a copy of examples/petstore
+scripts/play.sh                                 # heron serve on a copy of examples/petstore, and how to open it in VS Code
 scripts/spec-docs.sh                            # the spec package as its docs site
 scripts/pages.sh /tmp/site                      # the published site: spec at /, agents/, project at project/
 ```
@@ -153,7 +171,7 @@ Actions runs the same script on every push and pull request to `main`
 `heron.lock` pins and linked in through `HERON_SPECS_DIR`; a manual run with
 `spec = install` takes the lock-based `heron run setup` path instead. The
 script sets up the spec package first, then runs gofmt, vet, the
-generated-code checks, the Go, web and tree-sitter tests, the fixtures, the
+generated-code checks, the Go, web, tree-sitter and VS Code extension tests, the fixtures, the
 checks and lints of the repository's tree and the examples, conformance
 (every spec requirement proven, planned or untested; none missing) and the
 end-to-end scripts. It runs them as lanes, all at once, each one's output in

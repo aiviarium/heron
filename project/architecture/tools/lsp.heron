@@ -1,14 +1,14 @@
 @display("LSP")
 lsp: component("internal/tools/lsp", heron.system.language_server, lang = "go") {
   | The language server as a library: one [session](#heron.tools.lsp.session.lsp_session) per client, served over
-  | standard input and output by `heron lsp` and over the `/lsp` socket by [the server](#architecture.tools.server). It answers from the
+  | standard input and output by `heron lsp`. It answers from the
   | same checked tree as `heron check` and `heron lint`, so an editor never disagrees with
   | them.
 
-  uses = [architecture.runtime.check, architecture.runtime.diag, architecture.runtime.format, architecture.runtime.lint, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types, architecture.tools.prose, architecture.runtime.std]
+  uses = [architecture.runtime.check, architecture.runtime.diag, architecture.runtime.format, architecture.runtime.lint, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types, architecture.tools.prose, architecture.runtime.std, architecture.tools.docs]
 
   sessions: responsibility {{ Keep one analysis per client over the open documents, and publish every file's diagnostics after a change. }}
-  features: responsibility {{ Answer the language features below from the checked tree. }}
+  features: responsibility {{ Answer the language features below from the checked tree, and `heron/preview` through the docs renderer. }}
   protocol: responsibility {{ Read and write JSON-RPC messages, framed with `Content-Length` headers on a stream. }}
 
   /// A connection that carries whole JSON-RPC messages, one per call.
@@ -66,5 +66,5 @@ lsp: component("internal/tools/lsp", heron.system.language_server, lang = "go") 
   }
 
   verify("scripts/e2e-lsp.sh") {{ [heron lsp](#heron.cli.lsp) over stdio. }}
-  verify("scripts/e2e-app.sh", test = "lsp") {{ [Unit](#delivery.units) 2's [done criterion](#delivery.unit_2) for the language server: diagnostics, completion, hover, go to definition and rename in an editor. }}
+  verify("editors/vscode/test/e2e/suite.ts") {{ [Unit](#delivery.units) 2's [done criterion](#delivery.unit_2) for the language server: diagnostics, completion and hover in VS Code. }}
 }

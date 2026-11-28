@@ -1,8 +1,9 @@
 // Package docs renders a checked Heron tree as documentation: the static
 // site `heron generate docs` writes, and the pages, nodes and fragments the
-// spec browser and the editor's live preview show. Every kind renders
-// through the renderer registered for it (registry.SetRenderer); a kind
-// without one falls back to its fields and children.
+// spec browser, the server's preview and the language server's
+// heron/preview show. Every kind renders through the renderer registered
+// for it (registry.SetRenderer); a kind without one falls back to its
+// fields and children.
 package docs
 
 import (

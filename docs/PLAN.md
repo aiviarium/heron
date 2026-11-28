@@ -57,8 +57,8 @@ internal/tools/            unit 2
   lsp/ prose/ docs/ server/
 std/                       standard packages as Heron source, embedded (std.go)
 grammar/                   heron.ungram (node kinds) and, later, tree-sitter
-web/                       pnpm workspace: unit 2's components/ shell/
-                           editor/ docs/
+web/                       pnpm workspace: unit 2's tokens/ strings/ docs/
+editors/vscode/            unit 2's VS Code extension
 index.heron                the repository's tree: imports the spec package,
                            includes the project tree, and its setup task
 heron.lock                 pins the spec package's tag and commit
@@ -326,10 +326,8 @@ func (s *Session) Run(ctx context.Context) error // until `exit`, EOF or ctx is 
 func Serve(ctx context.Context, rw io.ReadWriter, o Options) error // StreamConn + Run
 ```
 
-A websocket handler wraps each text frame as one message (no
-Content-Length headers, as `vscode-ws-jsonrpc` and `monaco-languageclient`
-send them) and calls `NewSession(conn, opts).Run(ctx)`; sessions share the
-registry and nothing else.
+`heron lsp` serves one session over stdio; sessions share the registry and
+nothing else.
 
 - Files: one identity per file (`resolve.Canonical`), whatever URI
   spelling reaches it; an open document is the loader's overlay for that
@@ -337,7 +335,9 @@ registry and nothing else.
   with, or the canonical `file://` URI.
 - Embedded standard files are `heron:/std/<path>` URIs (definition into
   std); the custom request `heron/source {uri}` → `{text}` returns their
-  text, so Monaco can open them read-only.
+  text, so an editor can open them read-only. `heron/preview {uri, position,
+  styles?}` → `{path, html, error?, styles?}` renders the node at the cursor
+  through the docs renderer, for the VS Code extension's preview.
 - Capabilities: diagnostics (each `source` is "heron check", "heron lint"
   or the prose provider, such as "Vale"; `code` is the stable code),
   completion, hover, definition, references, rename, formatting, semantic
@@ -413,7 +413,7 @@ imports `@heron/tokens` (values, `cssVar`, `valueVar`) and
 
 ### The docs renderer (`internal/tools/docs`), its library API
 
-The generated site, the spec browser and the editor's live preview all
+The generated site, the spec browser and the live previews all
 render through one package. Build a site from a checked tree, then ask it
 for pages, nodes, files or fragments:
 
@@ -499,33 +499,29 @@ docs {
 
 Every string the tools show that isn't from a spec is in
 `web/strings/strings.json`, keyed `<tool>.<group>.<name>` (`docs.*` for the
-renderer, `docs.island.*` for the islands, `app.*` for the app). Go reads it
-through `uistrings.Get/Format` (package
-`github.com/aiviarium/heron/web/strings`); TS imports the JSON. A
+renderer, `docs.island.*` for the islands). Go reads it through
+`uistrings.Get/Format` (package `github.com/aiviarium/heron/web/strings`),
+and the islands get theirs through `data.js`. A
 missing key panics, and the docs test fails on visible text that's in
 neither the spec nor the catalogue.
 
-## Unit 2: the server, the shell and the editor
+## Unit 2: the server and the VS Code extension
 
-- **`heron serve`** (`internal/tools/server`): serves the embedded
-  frontend (unknown paths get `index.html`), the live spec browser under
-  `/docs/` (the docs renderer on the tree on disk), one lsp session per
-  `/api/v1/lsp` socket (`server.LanguageServer`, whole messages per frame)
-  and the API; `cmd/heron` holds the shell `server.Register` returns.
+- **`heron serve`** (`internal/tools/server`): serves the live spec browser
+  under `/docs/` (the docs renderer on the tree on disk, so a reload shows
+  the latest edits), the agent export under `/agents/`, `/` as a redirect to
+  `/docs/`, and the API; `cmd/heron` holds the shell `server.Register`
+  returns.
 - **The API** is the spec package's `tools/server_api/` (`spec_server`, its
-  types and its errors), read from the spec package. `apigen` writes
-  `api_gen.go` (types, `Service`, `Routes`) and `web/shell/src/api.gen.ts`.
-  ci.sh checks both current.
-- **The frontend** (pnpm workspace): `@heron/components` (UI SDK composed:
-  palette, file tree, buttons), `@heron/editor` (Monaco set up for Heron,
-  its own reconnecting LSP client, one model per file, the preview),
-  `@heron/shell` (the editor screen, the slots for panels,
-  gutter providers, commands and renderers per kind, the ⌘K palette and
-  shortcuts). The app's strings are `app.*` in `web/strings`.
-- **Acceptance tests**: `scripts/e2e-app.sh` runs `web/shell/e2e/*.cjs`
-  with Playwright against `heron serve` on fresh copies of the sample:
-  first run, file switching, typing, indentation and completion, Done
-  means #1 (`lsp`), the preview half of #2 (`preview`) and visible text.
-  `node web/shell/e2e/screenshots.cjs` (with `HERON` set) writes
-  `web/screenshots/app-*.png`. `scripts/play.sh` serves a temporary copy
-  of the sample and prints its URL.
+  types and its errors), read from the spec package: `preview` and
+  `agent_export`. `apigen` writes `api_gen.go` (types, `Service`,
+  `Routes`); ci.sh checks it current.
+- **The VS Code extension** (`editors/vscode`): TypeScript bundled by
+  esbuild, `vscode-languageclient` over `heron lsp --stdio`, the TextMate
+  grammars of `grammar/textmate` copied in at build time, the preview from
+  the language server's `heron/preview` in a webview with a strict CSP, and
+  the Check, Lint and Generate commands as tasks. `@vscode/vsce` packages
+  `heron.vsix`; the `vscode` lane of ci.sh builds, tests (unit tests, and a
+  real VS Code through `@vscode/test-electron`) and packages it, and CI
+  uploads the `.vsix` as an artifact. `scripts/play.sh` serves a temporary
+  copy of the sample and prints how to open it in VS Code.

@@ -6,7 +6,7 @@ EXAMPLE ?= petstore
 
 .PHONY: build install play test clean
 
-# bin/heron, with the editor's frontend embedded and the version stamped.
+# bin/heron, with the version stamped.
 build:
 	scripts/build.sh
 

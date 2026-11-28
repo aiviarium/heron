@@ -1,8 +1,4 @@
 packages:
   - tokens
   - docs
-  - strings
-  - components
-  - editor
-  - shell
   - samples/*

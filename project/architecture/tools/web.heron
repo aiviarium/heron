@@ -1,0 +1,43 @@
+web: section {
+  | The pnpm workspace under `web/`, one component each: the design tokens, the string
+  | catalogue and the docs' theme and islands, in TypeScript with Solid 2, built with Vite.
+
+  tokens: component("web/tokens", heron.system.docs_generator, lang = "ts") {
+    | The design tokens, declared once in `tokens.json` and generated to CSS, TS and Go, as
+    | [the design system](#heron.tools.docs.design_system) says.
+
+    uses = []
+
+    property() {
+
+      | Keep the generated files current, and check contrast, neutral [surfaces](#heron.tools.docs.design_system.surfaces) and the scales.
+
+      verify("web/tokens/tokens_test.go")
+
+    }
+  }
+
+  strings: component("web/strings", heron.system.docs_generator, lang = "go") {
+    | The catalogue of every string the tools show that doesn't come from a spec, in
+    | `strings.json`, keyed `<tool>.<group>.<name>`: the docs renderer reads `docs.*` and its
+    | islands `docs.island.*` through `data.js`. Go reads it through the package `uistrings`.
+
+    uses = []
+
+    one_catalogue: property {
+      must {{ hold every string the docs renderer and its islands show that doesn't come from a spec }}
+      verify("internal/tools/docs/docs_test.go", test = "TestVisibleTextComesFromSpecOrCatalogue")
+    }
+  }
+
+  docs_islands: component("web/docs", heron.system.docs_generator, lang = "ts") {
+    | The docs' built-in theme and [islands](#heron.tools.docs.islands), built once into `internal/tools/docs/assets` and embedded.
+
+    uses = [architecture.tools.web.tokens, architecture.tools.web.strings]
+
+    assets_current: property {
+      must {{ keep the committed `docs.js` and `docs.css` equal to the build of `web/docs` }}
+      verify("scripts/ci.sh")
+    }
+  }
+}

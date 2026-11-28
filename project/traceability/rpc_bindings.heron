@@ -278,102 +278,102 @@ rpc_bindings: section {
     verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
   }
 
-  proves(heron.tools.frontend.screens.api_page.service.service_lead) {
+  proves(heron.tools.docs.screens.api_page.service.service_lead) {
     verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
     verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
   }
 
-  proves(heron.tools.frontend.screens.api_page.service.methods_grouped) {
+  proves(heron.tools.docs.screens.api_page.service.methods_grouped) {
     verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
   }
 
-  proves(heron.tools.frontend.screens.api_page.service.signature_each) {
+  proves(heron.tools.docs.screens.api_page.service.signature_each) {
     verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
   }
 
-  proves(heron.tools.frontend.screens.api_page.service.both_indexes) {
+  proves(heron.tools.docs.screens.api_page.service.both_indexes) {
     verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
   }
 
-  proves(heron.tools.frontend.screens.op_page.sidebar.types_by_api) {
+  proves(heron.tools.docs.screens.op_page.sidebar.types_by_api) {
     verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
   }
 
-  proves(heron.tools.frontend.screens.op_page.sidebar.apis_by_size) {
+  proves(heron.tools.docs.screens.op_page.sidebar.apis_by_size) {
     verify("internal/tools/docs/rpc_test.go", test = "TestAPIsBySize")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.binding_switch) {
+  proves(heron.tools.docs.screens.op_page.bindings.binding_switch) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("scripts/e2e-docs.sh")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.op_bindings) {
+  proves(heron.tools.docs.screens.op_page.bindings.op_bindings) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.rpc_header) {
+  proves(heron.tools.docs.screens.op_page.bindings.rpc_header) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.jsonrpc_header) {
+  proves(heron.tools.docs.screens.op_page.bindings.jsonrpc_header) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.rpc_facts) {
+  proves(heron.tools.docs.screens.op_page.bindings.rpc_facts) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
   }
 
-  proves(heron.tools.frontend.screens.op_page.body.parameters.rpc_messages) {
+  proves(heron.tools.docs.screens.op_page.body.parameters.rpc_messages) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
   }
 
-  proves(heron.tools.frontend.screens.op_page.body.parameters.jsonrpc_params) {
+  proves(heron.tools.docs.screens.op_page.body.parameters.jsonrpc_params) {
     verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
   }
 
-  proves(heron.tools.frontend.screens.op_page.body.responses.errors_by_code) {
+  proves(heron.tools.docs.screens.op_page.body.responses.errors_by_code) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.rpc_example_forms) {
+  proves(heron.tools.docs.screens.op_page.examples.rpc_example_forms) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
     verify("internal/tools/docs/rpc_test.go", test = "TestSparrowExamples")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.sparrow_no_try_it) {
+  proves(heron.tools.docs.screens.op_page.examples.sparrow_no_try_it) {
     verify("internal/tools/docs/rpc_test.go", test = "TestSparrowExamples")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.rpc_try_it) {
+  proves(heron.tools.docs.screens.op_page.examples.rpc_try_it) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("scripts/e2e-docs.sh")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.grpc_no_try_it) {
+  proves(heron.tools.docs.screens.op_page.examples.grpc_no_try_it) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("internal/tools/docs/rpc_test.go", test = "TestStreamingMethods")
   }
 
-  proves(heron.tools.frontend.screens.type_page.signature.proto_definition) {
+  proves(heron.tools.docs.screens.type_page.signature.proto_definition) {
     verify("internal/tools/docs/rpc_test.go", test = "TestMessageTypePage")
   }
 
-  proves(heron.tools.frontend.screens.api_page.service.facts_by_binding) {
+  proves(heron.tools.docs.screens.api_page.service.facts_by_binding) {
     verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
     verify("internal/tools/docs/rpc_test.go", test = "TestTypesByAPI")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.outline_follows_binding) {
+  proves(heron.tools.docs.screens.op_page.bindings.outline_follows_binding) {
     verify("internal/tools/docs/rpc_test.go", test = "TestBindingSwitch")
     verify("scripts/e2e-docs.sh")
   }
 
-  proves(heron.tools.frontend.screens.op_page.sidebar.methods_follow_binding) {
+  proves(heron.tools.docs.screens.op_page.sidebar.methods_follow_binding) {
     verify("internal/tools/docs/rpc_test.go", test = "TestServicePage")
     verify("scripts/e2e-docs.sh")
   }
@@ -651,11 +651,11 @@ rpc_bindings: section {
     verify("internal/tools/docs/rpc_test.go", test = "TestRPCGenerators")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.sparrow_header) {
+  proves(heron.tools.docs.screens.op_page.bindings.sparrow_header) {
     verify("internal/tools/docs/rpc_test.go", test = "TestSparrowBinding")
   }
 
-  proves(heron.tools.frontend.screens.op_page.bindings.sparrow_facts) {
+  proves(heron.tools.docs.screens.op_page.bindings.sparrow_facts) {
     verify("internal/tools/docs/rpc_test.go", test = "TestSparrowBinding")
   }
 }

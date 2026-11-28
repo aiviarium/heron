@@ -1,28 +1,21 @@
 #!/usr/bin/env bash
 # Builds bin/heron from a checkout, a fresh clone included: checks the
-# prerequisites, installs the web dependencies, builds the editor's
-# frontend into internal/tools/server/frontend/dist, which the binary
-# embeds, and builds the binary with its commit and build time stamped.
+# prerequisites and builds the binary with its commit and build time
+# stamped. The docs' theme is committed, built, under
+# internal/tools/docs/assets, so the build needs Go alone.
 #
-#   scripts/build.sh              the frontend and bin/heron
-#   scripts/build.sh --no-web     bin/heron alone, with the frontend already
-#                                 built (or none: heron serve then serves
-#                                 the docs and the API but no editor)
+#   scripts/build.sh              bin/heron
 #   scripts/build.sh -o <path>    the binary at <path> instead of bin/heron
 #
-# Needs Go (the version go.mod names, or newer), and for the frontend
-# Node.js 20 or newer with corepack, which runs the pnpm version
-# web/package.json pins.
+# Needs Go (the version go.mod names, or newer). The VS Code extension
+# builds apart, from editors/vscode (its README says how).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-root=$PWD
 out=bin/heron
-web=1
 while [ $# -gt 0 ]; do
   case "$1" in
-    --no-web) web=0 ;;
     -o) out=$2; shift ;;
-    *) echo "usage: scripts/build.sh [--no-web] [-o path]" >&2; exit 2 ;;
+    *) echo "usage: scripts/build.sh [-o path]" >&2; exit 2 ;;
   esac
   shift
 done
@@ -38,32 +31,6 @@ older() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" != "$2" ]; }
 if older "$have_go" "$want_go"; then fail "Go $have_go is older than the $want_go go.mod needs"; fi
 echo "go $have_go"
 
-if [ "$web" = 1 ]; then
-  command -v node >/dev/null || fail "Node.js isn't installed: get version 20 or newer from https://nodejs.org/, or build with --no-web"
-  node_major=$(node -p 'process.versions.node.split(".")[0]')
-  [ "$node_major" -ge 20 ] || fail "Node.js $(node --version) is older than 20"
-  echo "node $(node --version)"
-  # pnpm: the version web/package.json's packageManager pins, through
-  # corepack, which ships with Node.js; a pnpm on the PATH of that version
-  # does as well.
-  want_pnpm=$(node -p 'require("./web/package.json").packageManager.split("@")[1]')
-  if command -v pnpm >/dev/null && [ "$(pnpm --version 2>/dev/null)" = "$want_pnpm" ]; then
-    pnpm=(pnpm)
-  elif command -v corepack >/dev/null; then
-    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-    pnpm=(corepack pnpm)
-  else
-    fail "neither pnpm $want_pnpm nor corepack is installed: run 'npm install -g corepack', or build with --no-web"
-  fi
-  echo "pnpm $("${pnpm[@]}" --version)"
-
-  step "web: install the dependencies"
-  (cd web && "${pnpm[@]}" install --frozen-lockfile --silent)
-  step "web: build the editor into internal/tools/server/frontend/dist"
-  (cd web && "${pnpm[@]}" --filter @heron/shell build --logLevel warn)
-  test -f internal/tools/server/frontend/dist/index.html || fail "the frontend build wrote no index.html"
-fi
-
 step "go: build $out"
 pkg=github.com/aiviarium/heron/internal/core/version
 commit=unknown
@@ -75,7 +42,4 @@ built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 mkdir -p "$(dirname "$out")"
 go build -trimpath -ldflags "-X $pkg.Commit=$commit -X $pkg.Built=$built" -o "$out" ./cmd/heron
 "$out" version
-if [ ! -f internal/tools/server/frontend/dist/index.html ]; then
-  echo "build: no frontend was built, so heron serve serves the docs and the API but no editor" >&2
-fi
 echo "built $out"

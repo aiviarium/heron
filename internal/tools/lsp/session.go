@@ -220,6 +220,7 @@ var requests = map[string]handler{
 	"textDocument/foldingRange":        (*Session).foldingRanges,
 	"workspace/executeCommand":         (*Session).executeCommand,
 	"heron/source":                     (*Session).source,
+	"heron/preview":                    (*Session).preview,
 }
 
 var notifications = map[string]func(s *Session, params json.RawMessage){

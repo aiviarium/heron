@@ -14,9 +14,12 @@
 # changes Go code (the key hashes go.sum and every .go file) and otherwise
 # reused as it is; a new key starts from the lane's latest. The pnpm store is
 # keyed on pnpm-lock.yaml (setup-node), the grammar's node_modules on its
-# package-lock.json, Vale and go-check-sumtype on their versions, and
-# Playwright's browsers on its version. A cache only saves time: what a lane
-# checks never comes from one (Go tests run with -count=1 on CI).
+# package-lock.json, the VS Code extension's npm cache and the VS Code its
+# test downloads on its package-lock.json and test runner, Vale and
+# go-check-sumtype on their versions, and Playwright's browsers on its
+# version. A cache only saves time: what a lane checks never comes from one
+# (Go tests run with -count=1 on CI). The vscode lane uploads the .vsix it
+# packages as the heron-vsix artifact; nothing is published.
 name: CI
 
 on:
@@ -53,14 +56,14 @@ jobs:
       fail-fast: false
       matrix:
         # scripts/ci.sh --list; its lint lane checks this line names them all.
-        lane: [lint, web, gotest, golsp, gorace, treesitter, tree, e2e, unit1, editor, docs, docslens, docsspec]
+        lane: [lint, web, gotest, golsp, gorace, treesitter, tree, e2e, unit1, vscode, docs, docslens, docsspec]
     env:
       LANE: ${{ matrix.lane }}
       # What the lane needs beyond Go.
       NODE: ${{ !contains(fromJSON('["lint", "golsp", "gorace"]'), matrix.lane) }}
       VALE: ${{ contains(fromJSON('["gotest", "golsp", "e2e"]'), matrix.lane) }}
       SUMTYPE: ${{ matrix.lane == 'lint' }}
-      BROWSERS: ${{ startsWith(matrix.lane, 'docs') && 'chromium firefox webkit' || matrix.lane == 'editor' && 'chromium' || '' }}
+      BROWSERS: ${{ startsWith(matrix.lane, 'docs') && 'chromium firefox webkit' || '' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -107,9 +110,9 @@ jobs:
         if: env.NODE == 'true'
         with:
           node-version: 22
-          # The grammar lane runs npm, not pnpm: with no pnpm store to save,
-          # the cache's post step would fail.
-          cache: ${{ matrix.lane != 'treesitter' && 'pnpm' || '' }}
+          # The grammar and VS Code lanes run npm, not pnpm: with no pnpm
+          # store to save, the cache's post step would fail.
+          cache: ${{ !contains(fromJSON('["treesitter", "vscode"]'), matrix.lane) && 'pnpm' || '' }}
           cache-dependency-path: heron/web/pnpm-lock.yaml
 
       # Playwright's browsers, and the system libraries they need, install
@@ -119,7 +122,7 @@ jobs:
         if: env.BROWSERS != ''
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ steps.lock.outputs.playwright }}-${{ matrix.lane == 'editor' && 'chromium' || 'all' }}
+          key: playwright-${{ steps.lock.outputs.playwright }}-all
       - name: Install Playwright's browsers, in the background
         if: env.BROWSERS != ''
         env:
@@ -168,6 +171,16 @@ jobs:
           path: ~/.npm
           key: npm-tree-sitter-${{ hashFiles('heron/grammar/tree-sitter-heron/package-lock.json') }}
 
+      # The VS Code extension's npm packages, and the VS Code build its end
+      # to end test downloads (@vscode/test-electron), at the version it names.
+      - uses: actions/cache@v5
+        if: matrix.lane == 'vscode'
+        with:
+          path: |
+            ~/.npm
+            heron/editors/vscode/.vscode-test
+          key: vscode-${{ hashFiles('heron/editors/vscode/package-lock.json', 'heron/editors/vscode/test/e2e/run.ts') }}
+
       # Some tests and e2e scripts commit in scratch repositories.
       - name: Git identity
         run: |
@@ -179,6 +192,15 @@ jobs:
         env:
           HERON_SPECS_DIR: ${{ inputs.spec != 'install' && format('{0}/heron-specs/heron', github.workspace) || '' }}
         run: scripts/ci.sh "$LANE"
+
+      # The extension the vscode lane packaged, to install from the .vsix;
+      # nothing is published to a marketplace.
+      - uses: actions/upload-artifact@v5
+        if: matrix.lane == 'vscode'
+        with:
+          name: heron-vsix
+          path: heron/editors/vscode/heron.vsix
+          if-no-files-found: error
 
   # The one status for the whole check: it passes only when every lane did.
   ci:

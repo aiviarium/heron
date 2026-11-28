@@ -1169,8 +1169,8 @@ func (c *Ctx) opAside(o *opInfo, bs []string) {
 		data["server"] = o.server
 	}
 	if served {
-		// Sent through the generated client, as the frontend sends it.
-		data["client"] = clientName(o.node.Name)
+		// Sent to the page's own origin, the server that publishes it.
+		data["served"] = true
 		data["stream"] = o.stream
 	}
 	var params []map[string]any
@@ -1410,16 +1410,4 @@ func (s *Site) apiTypes(api *resolve.Node) []*resolve.Node {
 		}
 	}
 	return out
-}
-
-// clientName is an op's method on the generated TS client: its name in
-// lower camel case, as get_record is getRecord.
-func clientName(op string) string {
-	parts := strings.Split(op, "_")
-	for i := 1; i < len(parts); i++ {
-		if parts[i] != "" {
-			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
-		}
-	}
-	return strings.Join(parts, "")
 }

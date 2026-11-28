@@ -197,10 +197,10 @@ tools_docs_planned: status<planned>(
   | Not built yet. The 5 requirements of [tools.docs](#heron.tools.docs).
 }
 
-tools_frontend_planned: status<planned>(
-  heron.tools.frontend.writing.catalogue_wording.interface_style,
+tools_writing_planned: status<planned>(
+  heron.tools.docs.writing.catalogue_wording.interface_style,
 ) {
-  | Not built yet. The 1 requirement of [tools.frontend](#heron.tools.frontend).
+  | Not built yet. The 1 requirement of [writing in the interface](#heron.tools.docs.writing).
 }
 
 // Diagnostics the checker reports, with no test that asserts their message
@@ -228,8 +228,8 @@ lenses_untested: status<untested>(
   heron.tools.docs.rendering.one_indent,
   heron.tools.docs.rendering.no_nested_boxes,
   heron.tools.docs.rendering.content_width,
-  heron.tools.frontend.design_system.typography.sentences_at_full_strength,
-  heron.tools.frontend.design_system.typography.small_text_for_facts,
+  heron.tools.docs.design_system.typography.sentences_at_full_strength,
+  heron.tools.docs.design_system.typography.small_text_for_facts,
 ) {
   | Built in the docs theme and the navigation, and reviewed on the screenshots of every
   | lens, with no test that measures the rendered pages yet.
@@ -267,4 +267,12 @@ tools_server_untested: status<untested>(
 ) {
   | Built, with no test proving it yet: the server keeps no client's state, which a test can only
   | show by the ops it lacks.
+}
+
+tools_vscode_untested: status<untested>(
+  heron.tools.vscode.languages.web_highlighting,
+  heron.tools.vscode.preview.preview_error_in_place,
+) {
+  | Built, with no test proving it yet: the end-to-end test runs the desktop VS Code, not VS
+  | Code for the Web, and has no tree whose render fails.
 }

@@ -1,1 +1,0 @@
-The built frontend goes to dist/ here; see frontend.go.

@@ -2119,3 +2119,15 @@ func highlightProto(src string) string {
 	}
 	return strings.Join(out, "\n")
 }
+
+// clientName is a method's name on a generated TS client: lower camel
+// case, as get_record is getRecord.
+func clientName(op string) string {
+	parts := strings.Split(op, "_")
+	for i := 1; i < len(parts); i++ {
+		if parts[i] != "" {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}

@@ -210,7 +210,7 @@ func TestAgentUsecaseLines(t *testing.T) {
 	var uc string
 	for _, f := range files {
 		c := string(f.Content)
-		if i := strings.Index(c, "### usecase tools.frontend.editor.fix_a_diagnostic"); i >= 0 {
+		if i := strings.Index(c, "### usecase tools.vscode.fixing.fix_a_diagnostic"); i >= 0 {
 			uc = c[i:]
 			if j := strings.Index(uc[4:], "\n### "); j >= 0 {
 				uc = uc[:j+4]
@@ -222,8 +222,8 @@ func TestAgentUsecaseLines(t *testing.T) {
 	}
 	for _, want := range []string{
 		"- actor [actors.author](actors.md#actors.author) · level USER",
-		"- step 1 · by [system.editor](system.md#system.editor): ",
-		"- extension 1a · at step 1 · if The language server isn't connected · by [system.editor](system.md#system.editor) · outcome fails: ",
+		"- step 1 · by [system.editor_extension](system.md#system.editor_extension): ",
+		"- extension 1a · at step 1 · if The language server isn't running · by [system.editor_extension](system.md#system.editor_extension) · outcome fails: ",
 		"· outcome back to 4: ",
 	} {
 		if !strings.Contains(uc, want) {

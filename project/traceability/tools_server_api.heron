@@ -1,20 +1,20 @@
 tools_server_api: section {
   | The tests that prove the requirements of the spec's [server API](#heron.tools.server_api), of what
-  | [the server](#heron.tools.server) does with it, of the [API reference](#heron.tools.frontend.screens.api_page),
+  | [the server](#heron.tools.server) does with it, of the [API reference](#heron.tools.docs.screens.api_page),
   | [AsyncAPI](#heron.tools.asyncapi) and the [TextMate grammar](#heron.tools.tree_sitter.textmate).
 
   proves(heron.tools.server.serving.json_wire) {
-    verify("internal/tools/server/files_test.go", test = "TestNoOp")
-    verify("internal/tools/server/files_test.go", test = "TestConditionalWrite")
+    verify("internal/tools/server/api_test.go", test = "TestNoOp")
+    verify("internal/tools/server/server_test.go", test = "TestPreview")
   }
 
   proves(heron.tools.server.serving.compressed_assets) {
-    verify("internal/tools/server/files_test.go", test = "TestCompressedAssets")
+    verify("internal/tools/server/api_test.go", test = "TestCompressedAssets")
   }
 
   proves(heron.tools.server.serving.loopback_default) {
     verify("internal/tools/server/loopback_test.go", test = "TestLoopback")
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/server_test.go", test = "TestServeCommand")
   }
 
   proves(heron.tools.server.serving.non_loopback_warning) {
@@ -22,139 +22,76 @@ tools_server_api: section {
   }
 
   proves(heron.tools.server.serving.same_origin) {
-    verify("internal/tools/server/files_test.go", test = "TestOrigins")
-  }
-
-  proves(heron.tools.server.serving.allowed_origins) {
-    verify("internal/tools/server/files_test.go", test = "TestOrigins")
-  }
-
-  proves(heron.tools.server.ops.file_listing) {
-    verify("internal/tools/server/files_test.go", test = "TestListFiles")
-  }
-
-  proves(heron.tools.server.ops.file_versions) {
-    verify("internal/tools/server/files_test.go", test = "TestConditionalWrite")
-    verify("internal/tools/server/files_test.go", test = "TestFileChanges")
-  }
-
-  proves(heron.tools.server.ops.conditional_write) {
-    verify("internal/tools/server/files_test.go", test = "TestConditionalWrite")
-  }
-
-  proves(heron.tools.server.ops.file_changes) {
-    verify("internal/tools/server/files_test.go", test = "TestFileChanges")
-  }
-
-  proves(heron.tools.server.ops.binary_content) {
-    verify("internal/tools/server/files_test.go", test = "TestBinaryContent")
-  }
-
-  proves(heron.tools.server.ops.workspace_events) {
-    verify("internal/tools/server/files_test.go", test = "TestWatch")
-  }
-
-  proves(heron.tools.server.ops.std_sources) {
-    verify("internal/tools/server/files_test.go", test = "TestStdSources")
+    verify("internal/tools/server/api_test.go", test = "TestOrigins")
   }
 
   proves(heron.tools.server.ops.preview_position) {
-    verify("internal/tools/server/files_test.go", test = "TestPreviewPosition")
+    verify("internal/tools/server/api_test.go", test = "TestPreviewPosition")
   }
 
   proves(heron.tools.server.ops.preview_styling) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
-    verify("internal/tools/server/files_test.go", test = "TestCompressedAssets")
-  }
-
-  proves(heron.tools.server.api.api_only) {
-    verify("web/shell/src/api_only.test.ts")
-    verify("internal/tools/server/files_test.go", test = "TestNoOp")
-  }
-
-  proves(heron.tools.server.api.api_static_paths) {
-    verify("web/shell/src/api_only.test.ts")
+    verify("internal/tools/server/server_test.go", test = "TestPreview")
+    verify("internal/tools/server/api_test.go", test = "TestCompressedAssets")
   }
 
   proves(heron.tools.lsp.extensions.workspace_uris) {
-    verify("internal/tools/server/files_test.go", test = "TestRootURI")
     verify("internal/tools/lsp/features_test.go", test = "TestHoverShowsDocs")
   }
 
   proves(heron.tools.server_api.not_in_workspace) {
-    verify("internal/tools/server/files_test.go", test = "TestConditionalWrite")
+    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
   }
 
   proves(heron.tools.server_api.no_such_file) {
-    verify("internal/tools/server/files_test.go", test = "TestFileChanges")
-  }
-
-  proves(heron.tools.server_api.file_exists) {
-    verify("internal/tools/server/files_test.go", test = "TestFileChanges")
-  }
-
-  proves(heron.tools.server_api.file_changed) {
-    verify("internal/tools/server/files_test.go", test = "TestConditionalWrite")
-  }
-
-  proves(heron.tools.server_api.no_record) {
-    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
-  }
-
-  proves(heron.tools.server_api.already_running) {
-    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
-  }
-
-  proves(heron.tools.server_api.no_language_server) {
     verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
   }
 
   proves(heron.tools.server_api.no_op) {
-    verify("internal/tools/server/files_test.go", test = "TestNoOp")
+    verify("internal/tools/server/api_test.go", test = "TestNoOp")
   }
 
   proves(heron.tools.server_api.origin_not_allowed) {
-    verify("internal/tools/server/files_test.go", test = "TestOrigins")
+    verify("internal/tools/server/api_test.go", test = "TestOrigins")
   }
 
-  proves(heron.tools.frontend.screens.api_page.lead.api_facts) {
+  proves(heron.tools.docs.screens.api_page.lead.api_facts) {
     verify("internal/tools/docs/apiref_test.go", test = "TestAPILanding")
   }
 
-  proves(heron.tools.frontend.screens.api_page.ops.ops_grouped) {
+  proves(heron.tools.docs.screens.api_page.ops.ops_grouped) {
     verify("internal/tools/docs/apiref_test.go", test = "TestAPILanding")
   }
 
-  proves(heron.tools.frontend.screens.api_page.ops.one_line_each) {
+  proves(heron.tools.docs.screens.api_page.ops.one_line_each) {
     verify("internal/tools/docs/apiref_test.go", test = "TestAPILanding")
   }
 
-  proves(heron.tools.frontend.screens.api_page.types.types_listed) {
+  proves(heron.tools.docs.screens.api_page.types.types_listed) {
     verify("internal/tools/docs/apiref_test.go", test = "TestAPILanding")
   }
 
-  proves(heron.tools.frontend.screens.op_page.body.trace.realized_shown) {
+  proves(heron.tools.docs.screens.op_page.body.trace.realized_shown) {
     verify("internal/tools/docs/apiref_test.go", test = "TestOpPageOutcomes")
   }
 
-  proves(heron.tools.frontend.screens.op_page.body.trace.deprecated_shown) {
+  proves(heron.tools.docs.screens.op_page.body.trace.deprecated_shown) {
     verify("internal/tools/docs/apiref_test.go", test = "TestOpPageOutcomes")
     verify("internal/tools/docs/apiref_test.go", test = "TestAPILanding")
   }
 
-  proves(heron.tools.frontend.screens.op_page.body.responses.error_projections) {
+  proves(heron.tools.docs.screens.op_page.body.responses.error_projections) {
     verify("internal/tools/docs/apiref_test.go", test = "TestOpPageOutcomes")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.json_messages) {
+  proves(heron.tools.docs.screens.op_page.examples.json_messages) {
     verify("internal/tools/docs/apiref_test.go", test = "TestOpPageOutcomes")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.served_try_it) {
+  proves(heron.tools.docs.screens.op_page.examples.served_try_it) {
     verify("internal/tools/docs/apiref_test.go", test = "TestServedTryIt")
   }
 
-  proves(heron.tools.frontend.screens.op_page.examples.static_try_it) {
+  proves(heron.tools.docs.screens.op_page.examples.static_try_it) {
     verify("internal/tools/docs/apiref_test.go", test = "TestServedTryIt")
   }
 

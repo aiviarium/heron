@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/aiviarium/heron/internal/core/registry"
@@ -19,7 +18,7 @@ func TestErrorCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := &service{shell: &Shell{}, ws: w}
+	svc := &service{shell: &Shell{}, ws: w, agents: &agentExport{ws: w}}
 	code := func(err error) (int, string) {
 		var e *route.Error
 		if !errors.As(err, &e) {
@@ -27,22 +26,12 @@ func TestErrorCodes(t *testing.T) {
 		}
 		return e.Status, e.Code
 	}
-	// A task already running.
-	runs.Store("store_svc.test", true)
-	defer runs.Delete("store_svc.test")
-	err = svc.RunTask(context.Background(), &api.RunRequest{Path: "store_svc.test"}, func(*api.RunEvent) error { return nil })
-	if st, c := code(err); st != http.StatusConflict || c != "server.ALREADY_RUNNING" || err.Error() != "store_svc.test is already running" {
-		t.Errorf("already running: %d %s %v", st, c, err)
+	_, err = svc.Preview(context.Background(), &api.PreviewRequest{File: "/etc/passwd"})
+	if st, c := code(err); st != http.StatusBadRequest || c != "server.NOT_IN_WORKSPACE" || err.Error() != "/etc/passwd is not a path in the workspace" {
+		t.Errorf("not in workspace: %d %s %v", st, c, err)
 	}
-	// No such record.
-	_, err = svc.GetRecord(context.Background(), "nope")
-	if st, c := code(err); st != http.StatusNotFound || c != "server.NO_RECORD" {
-		t.Errorf("no record: %d %s", st, c)
-	}
-	// No language server.
-	rec := httptest.NewRecorder()
-	svc.Lsp(rec, httptest.NewRequest("GET", "/api/v1/lsp", nil))
-	if rec.Code != http.StatusServiceUnavailable || rec.Body.String() != "{\"code\":\"server.NO_LANGUAGE_SERVER\",\"error\":\"no language server is installed\"}\n" {
-		t.Errorf("no language server: %d %s", rec.Code, rec.Body.String())
+	_, err = svc.AgentExport(context.Background(), "nothing.md")
+	if st, c := code(err); st != http.StatusNotFound || c != "server.NO_SUCH_FILE" || err.Error() != "nothing.md: no such file" {
+		t.Errorf("no such file: %d %s %v", st, c, err)
 	}
 }

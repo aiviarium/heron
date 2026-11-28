@@ -2,8 +2,9 @@ done_means: section {
   | What done means for the unit, as the checklist the build is accepted by. Each item is a
   | `verify` on the component it exercises.
   |
-  | - [ ] **Language server:** it works in an editor with diagnostics, completion, hover, go to
-  |   definition and rename ([lsp](#architecture.tools.lsp), `scripts/e2e-app.sh`, step `lsp`).
+  | - [ ] **Language server:** it works in VS Code with diagnostics, completion and hover, and
+  |   go to definition and rename over stdio ([lsp](#architecture.tools.lsp),
+  |   `editors/vscode/test/e2e/suite.ts`, `scripts/e2e-lsp.sh`).
   | - [ ] **Prose linting:** Vale alerts from the team's .vale.ini show in the editor on the
   |   right words of a Heron file, never inside code or links, with their fixes and vocabulary
   |   actions, and unlinked terms are flagged in the sample repository

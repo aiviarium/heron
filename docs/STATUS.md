@@ -172,8 +172,8 @@ installed from the Go proxy).
 
 | # | Item | Proven by | Status |
 | --- | --- | --- | --- |
-| 1 | Language server | `scripts/e2e-lsp.sh` (a scripted client over stdio), `web/shell/e2e/lsp.cjs` (Monaco through `heron serve`), `internal/tools/lsp` tests | met |
-| 2 | Preview and docs | `web/shell/e2e/preview.cjs`, `first-run.cjs`, `scripts/e2e-docs.sh`, `internal/tools/docs` tests | met, with gaps below |
+| 1 | Language server | `scripts/e2e-lsp.sh` (a scripted client over stdio), `editors/vscode/test/e2e/suite.ts` (VS Code over stdio), `internal/tools/lsp` tests | met |
+| 2 | Preview and docs | `editors/vscode/test/e2e/suite.ts`, `scripts/e2e-docs.sh`, `internal/tools/docs` and `internal/tools/lsp` tests | met, with gaps below |
 | 3 | Prose | `scripts/e2e-lsp.sh`, `internal/tools/prose` tests, `heron lint .` in CI | met, with gaps below |
 
 ### 1. Language server
@@ -182,36 +182,25 @@ installed from the Go proxy).
 providers, each with its source, plus completion, hover, go to definition
 (into std and from import and include strings), references, rename by path,
 formatting, semantic tokens, symbols, folding and code actions.
-`e2e-lsp.sh` drives the binary over stdio on a copy of the sample; `lsp.cjs`
-does the same five things in Monaco against `heron serve`'s `/api/v1/lsp`
-socket. The Go tests open every file of `examples/petstore` and of the spec package
+`e2e-lsp.sh` drives the binary over stdio on a copy of the sample; the VS
+Code extension's end-to-end suite (`@vscode/test-electron`, a real VS Code)
+sees its diagnostics, hover and completion on a sample tree. The Go tests open every file of `examples/petstore` and of the spec package
 through five URI spellings in three orders with zero diagnostics.
 The tree-sitter grammar parses every fixture (`test-fixtures.sh`).
 
-Gaps: only Monaco is tested as an editor; the generated VS Code
-extension, if one is wanted, isn't built.
+Gaps: VS Code is the only editor tested; VS Code for the Web isn't.
 
 ### 2. Preview and docs
 
-`preview.cjs` edits an op's path in the editor and sees the preview change
-within a second (the test fails over 1000 ms), checks that the preview and
-the docs page render the same text, and that a task run from the gutter
-shows its latest record beside the node. `first-run.cjs` opens `/` in an
-empty profile and follows the file tree, the outline, the palette, the
-preview, the problems and a gutter run, failing on any console error,
-failed request or page error; `switching.cjs`, `typing.cjs`, `indent.cjs`
-and `visible-text.cjs` cover the rest of the editor screen.
-`e2e-docs.sh` runs `heron generate docs` on the sample and on the spec package and
+The VS Code extension's preview shows `heron/preview` of the cursor, the
+node as its docs page shows it; its end-to-end suite edits a section and
+moves the cursor and sees the preview follow. `e2e-docs.sh` runs `heron generate docs` on the sample and on the spec package and
 checks every link and island in Chromium.
 
 Gaps:
-- The only records in a 1–2 build are task runs, so "the latest records
-  beside each node" is proven for tasks; test results arrive with unit 3
-  through `Shell.Mount`.
 - Release notes and the package graph wait on `docs_release_notes` and
   `docs_package_graph`.
-- Monaco's own widget text ("Quick Fix…", the find widget) isn't in the
-  catalogue (`third_party_widget_text`).
+- A preview whose render fails isn't tested in VS Code, only in Go.
 
 ### 3. Prose
 
@@ -225,13 +214,13 @@ sample. `heron run setup` pins Vale in `heron.lock` and syncs its packages
 providers and nothing silenced.
 
 Gaps:
-- Vale alerts are tested through the stdio client, not in Monaco.
+- Vale alerts are tested through the stdio client, not in VS Code.
 - The catalogue is checked by a Go test for the tab's banned words and
   full stops, not yet by a Vale style for interface text.
 
 ### Unit 2's polish from this review
 
-The editor's preview of `projects.heron` showed "Petstore ." because the
+The preview of `projects.heron` showed "Petstore ." because the
 root project's path `"."` was printed after its name; a project now shows
 its path from the tree's root and nothing at the root. The "required" badge
 is coloured text with no outline. A declaration nested in a block, such as a

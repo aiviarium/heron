@@ -16,6 +16,6 @@ func init() {
 		prose.Register, // Vale and the spec-aware prose lints
 		lsp.Register,   // `heron lsp`
 		docs.Register,  // the docs renderer and `heron generate docs`
-		func(r *registry.Registry) { server.Register(r) }, // `heron serve`, with the language server on /lsp
+		func(r *registry.Registry) { server.Register(r) }, // `heron serve`: the spec browser and the preview
 	)
 }

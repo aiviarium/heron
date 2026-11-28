@@ -1,19 +1,16 @@
 server: component("internal/tools/server", heron.system.server, lang = "go") {
-  | The shell of `heron serve`: it serves the frontend, the spec browser, the editor's
-  | language server socket and the API on one address. The built frontend is embedded, so
-  | everything still ships in one binary.
+  | The shell of `heron serve`: it serves the spec browser, the agent export and the API on
+  | one address, rendered live from one check session.
 
-  uses = [architecture.runtime.check, architecture.runtime.diag, architecture.runtime.gen, architecture.runtime.lint, architecture.runtime.records, architecture.runtime.registry, architecture.runtime.resolve, architecture.tools.docs, architecture.tools.lsp, architecture.tools.server_api, architecture.tools.server_route]
+  uses = [architecture.runtime.check, architecture.runtime.registry, architecture.runtime.resolve, architecture.tools.docs, architecture.tools.server_api, architecture.tools.server_route]
 
-  shell: responsibility {{ Route each request to the API, the spec browser, the `/lsp` socket or the frontend. }}
+  shell: responsibility {{ Route each request to the API, the spec browser or the agent export, and `/` to the spec browser. }}
   workspace: responsibility {{ One check session over the served tree, shared by every request, so analysis stays incremental across edits. }}
-  base_ops: responsibility {{ Implement the base API's ops: the workspace, files, problems, the outline, the preview, results, records, task runs and generated files. }}
+  base_ops: responsibility {{ Implement the API's ops: the preview and the agent export. }}
 
   exports(title = "server.go") {{
     type Shell struct {
-      LSP      LSP
       Renderer Renderer
-      Frontend fs.FS
     }
     func Register(r *registry.Registry) *Shell
     func (s *Shell) Handler(w *Workspace) (http.Handler, error)
@@ -22,47 +19,45 @@ server: component("internal/tools/server", heron.system.server, lang = "go") {
 
   property() {
 
-    | Serve the base ops, the spec browser and the socket from a real shell.
+    | Serve the ops, the spec browser and the agent export from a real shell, and run `heron serve`.
 
     verify("internal/tools/server/server_test.go")
 
   }
 
   one_binary: property {
-    must {{ embed the built frontend, so `heron serve` needs nothing beside the binary }}
-    verify("internal/tools/server/server_test.go", test = "TestFrontendFallsBackToIndex")
+    must {{ serve the docs' theme embedded in the binary, so `heron serve` needs nothing beside it }}
+    verify("internal/tools/server/server_test.go", test = "TestSpecBrowser")
   }
-
-  verify("scripts/e2e-app.sh") {{ [heron serve](#heron.cli.serve) with the editor in Chromium. }}
 }
 
 server_api: component("internal/tools/server/api", heron.system.server, lang = "go") {
   | The Go handlers of [the server API](#heron.tools.server_api.spec_server), which the spec package
   | publishes with its types and errors: `apigen` reads it from the spec package and writes
-  | `api_gen.go` here and the TS client of `web/shell`.
+  | `api_gen.go` here.
 
   uses = [architecture.tools.server_route]
 
   generated_current: property {
-    must {{ keep the committed `api_gen.go` and `web/shell/src/api.gen.ts` equal to what [the API generator](#architecture.tools.server_apigen) writes from the [Heron files](#heron.language.core_format.files.heron_file) }}
+    must {{ keep the committed `api_gen.go` equal to what [the API generator](#architecture.tools.server_apigen) writes from the [Heron files](#heron.language.core_format.files.heron_file) }}
     verify("internal/tools/server/server_test.go", test = "TestGeneratedRoutesMatchTheHeron")
   }
 
-  no_hand_written_requests: property {
-    must {{ give the frontend every request type and call through the generated client, with none written by hand }}
+  no_hand_written_routes: property {
+    must {{ route every op of `spec_server`, and only those, through the generated handlers, with none written by hand }}
     verify("internal/tools/server/server_test.go", test = "TestGeneratedRoutesMatchTheHeron")
   }
 }
 
 @display("API generator")
 server_apigen: component("internal/tools/server/apigen", heron.system.server, lang = "go") {
-  | Writes the routes and client of the ops on `spec_server`:
-  | `go run ./internal/tools/server/apigen -base server.heron -go out.go -pkg name -ts out.ts`.
+  | Writes the routes of the ops on `spec_server`:
+  | `go run ./internal/tools/server/apigen -go out.go -pkg name`, from the spec package's tree unless `-base` names another.
 
   uses = [architecture.runtime.check, architecture.runtime.resolve, architecture.runtime.types]
 
   writes_api: property {
-    must {{ check `spec_server` and write for its ops Go types, a `Service` interface, `Routes(Service)`, and a TS client }}
+    must {{ check `spec_server` and write for its ops Go types, a `Service` interface and `Routes(Service)` }}
     verify("internal/tools/server/server_test.go", test = "TestGeneratedRoutesMatchTheHeron")
   }
 }
@@ -89,11 +84,6 @@ server_route: component("internal/tools/server/route", heron.system.server, lang
 
   errors_as_json: property {
     must {{ write an error as `{"error": "‹message›"}` with its status, 500 when it carries none, and a body that isn't JSON as 400 "invalid body: ‹reason›" }}
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
-  }
-
-  stream_errors: property {
-    must {{ end a stream that fails before its first event with an error response, and one that fails later with an `error` event }}
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/server_test.go", test = "TestPreview")
   }
 }

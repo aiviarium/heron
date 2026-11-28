@@ -1,48 +1,29 @@
 package server_test
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
-	"testing/fstest"
+	"time"
 
 	"github.com/aiviarium/heron/internal/core/cli"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/tools/docs"
 	"github.com/aiviarium/heron/internal/tools/server"
 	"github.com/aiviarium/heron/internal/tools/server/api"
-	"github.com/coder/websocket"
 )
-
-// echoLSP is a test double for the language server: it answers every
-// message with the same message.
-func echoLSP(ctx context.Context, root string, c server.MessageConn) error {
-	for {
-		m, err := c.ReadMessage()
-		if err != nil {
-			return nil
-		}
-		if err := c.WriteMessage(m); err != nil {
-			return err
-		}
-	}
-}
 
 func petstore(t *testing.T) (*httptest.Server, *server.Shell) {
 	t.Helper()
 	r := registry.New()
 	cli.Register(r)
 	docs.Register(r)
-	s := &server.Shell{LSP: echoLSP, Renderer: server.DocsRenderer{Registry: r}, Frontend: fstest.MapFS{
-		"index.html":    {Data: []byte("<!doctype html><title>app</title>")},
-		"assets/app.js": {Data: []byte("console.log(1)")},
-	}}
+	s := &server.Shell{Renderer: server.DocsRenderer{Registry: r}}
 	w, err := server.OpenWorkspace("../../../examples/petstore", r)
 	if err != nil {
 		t.Fatal(err)
@@ -67,36 +48,37 @@ func get(t *testing.T, url string) (int, string) {
 	return res.StatusCode, string(b)
 }
 
-func TestFrontendFallsBackToIndex(t *testing.T) {
+// / redirects to the spec browser, and a path outside /api/, /docs/ and
+// /agents/ answers not found.
+func TestRootRedirects(t *testing.T) {
 	ts, _ := petstore(t)
-	for _, p := range []string{"/", "/edit/specs/store/api.heron", "/anything/else"} {
-		if code, body := get(t, ts.URL+p); code != 200 || !strings.Contains(body, "<title>app</title>") {
-			t.Errorf("%s: %d %q", p, code, body)
-		}
+	c := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	res, err := c.Get(ts.URL + "/")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, body := get(t, ts.URL+"/assets/app.js"); body != "console.log(1)" {
-		t.Errorf("asset: %q", body)
+	res.Body.Close()
+	if res.StatusCode != http.StatusFound || res.Header.Get("Location") != "/docs/" {
+		t.Errorf("/: %d %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	for _, p := range []string{"/edit/specs/store/api.heron", "/assets/app.js"} {
+		if code, _ := get(t, ts.URL+p); code != 404 {
+			t.Errorf("%s: %d", p, code)
+		}
 	}
 	if code, body := get(t, ts.URL+"/api/v1/nothing"); code != 404 || !strings.Contains(body, `"error"`) {
 		t.Errorf("unknown op: %d %q", code, body)
 	}
 }
 
-func TestBaseOps(t *testing.T) {
+// preview renders the node at the cursor from the unsaved texts, and
+// refuses a path that leaves the workspace.
+func TestPreview(t *testing.T) {
 	ts, _ := petstore(t)
-	c := api.Routes(nil)
-	if len(c) == 0 {
+	if len(api.Routes(nil)) == 0 {
 		t.Fatal("no routes generated")
 	}
-	_, body := get(t, ts.URL+"/api/v1/workspace")
-	var ws api.Workspace
-	if err := json.Unmarshal([]byte(body), &ws); err != nil {
-		t.Fatal(err, body)
-	}
-	if ws.Entry != "index.heron" || len(ws.Files) < 4 || ws.Files[0] != "index.heron" {
-		t.Errorf("workspace: %+v", ws)
-	}
-	post := func(path string, v any, out any) {
+	post := func(path string, v any, out any) int {
 		b, _ := json.Marshal(v)
 		res, err := http.Post(ts.URL+path, "application/json", strings.NewReader(string(b)))
 		if err != nil {
@@ -106,21 +88,7 @@ func TestBaseOps(t *testing.T) {
 		if err := json.NewDecoder(res.Body).Decode(out); err != nil {
 			t.Fatal(path, err)
 		}
-	}
-	var probs api.Problems
-	post("/api/v1/problems", api.TreeRequest{Overlays: map[string]string{}}, &probs)
-	if len(probs.Problems) != 0 {
-		t.Errorf("the sample has problems: %+v", probs.Problems)
-	}
-	broken := map[string]string{"services/store/tasks.heron": "store_svc.{\n  build: task do {\n    nope()\n  }\n}\n"}
-	post("/api/v1/problems", api.TreeRequest{Overlays: broken}, &probs)
-	if len(probs.Problems) == 0 || probs.Problems[0].File != "services/store/tasks.heron" || probs.Problems[0].Line != 3 {
-		t.Errorf("overlay problems: %+v", probs.Problems)
-	}
-	var out api.Outline
-	post("/api/v1/outline", api.OutlineRequest{File: "services/store/tasks.heron", Overlays: map[string]string{}}, &out)
-	if len(out.Nodes) < 3 || !out.Nodes[len(out.Nodes)-1].Runnable {
-		t.Errorf("outline: %+v", out.Nodes)
+		return res.StatusCode
 	}
 	src, _ := os.ReadFile("../../../examples/petstore/services/store/tasks.heron")
 	off := int64(strings.Index(string(src), "test: task"))
@@ -128,6 +96,15 @@ func TestBaseOps(t *testing.T) {
 	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: &off, Overlays: map[string]string{}}, &pv)
 	if pv.Path != "store_svc.test" || pv.Kind != "task" || !strings.Contains(pv.HTML, "test") {
 		t.Errorf("preview: %+v", pv)
+	}
+	edited := strings.Replace(string(src), "test: task", "check_all: task", 1)
+	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: &off, Overlays: map[string]string{"services/store/tasks.heron": edited}}, &pv)
+	if pv.Path != "store_svc.check_all" {
+		t.Errorf("preview of the unsaved text: %+v", pv)
+	}
+	var e map[string]string
+	if st := post("/api/v1/preview", api.PreviewRequest{File: "../outside.heron", Overlays: map[string]string{}}, &e); st != 400 || e["code"] != "server.NOT_IN_WORKSPACE" {
+		t.Errorf("a path out of the workspace: %d %v", st, e)
 	}
 }
 
@@ -221,40 +198,77 @@ func TestSpecBrowserCaching(t *testing.T) {
 	}
 }
 
-func TestLSPSocket(t *testing.T) {
-	ts, _ := petstore(t)
-	ctx := context.Background()
-	c, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(ts.URL, "http")+"/api/v1/lsp", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer c.CloseNow()
-	for i, msg := range []string{`{"jsonrpc":"2.0","id":1,"method":"initialize"}`, `{"jsonrpc":"2.0","method":"x","params":"é"}`} {
-		if err := c.Write(ctx, websocket.MessageText, []byte(msg)); err != nil {
-			t.Fatal(err)
-		}
-		_, got, err := c.Read(ctx)
-		if err != nil || string(got) != msg {
-			t.Errorf("%d: %q %v", i, got, err)
-		}
-	}
-}
-
 func TestGeneratedRoutesMatchTheHeron(t *testing.T) {
 	want := map[string]string{
-		"spec_server.preview":    "POST /api/v1/preview",
-		"spec_server.results":    "GET /api/v1/results",
-		"spec_server.get_record": "GET /api/v1/records/{id}",
-		"spec_server.lsp":        "GET /api/v1/lsp",
+		"spec_server.preview":      "POST /api/v1/preview",
+		"spec_server.agent_export": "GET /api/v1/agents",
 	}
 	for _, r := range api.Routes(nil) {
 		if p, ok := want[r.Op]; ok && p != r.Pattern() {
 			t.Errorf("%s: %s, want %s", r.Op, r.Pattern(), p)
+		}
+		if _, ok := want[r.Op]; !ok {
+			t.Errorf("an op the test doesn't know: %s", r.Op)
 		}
 		delete(want, r.Op)
 	}
 	if len(want) != 0 {
 		t.Errorf("ops missing: %v", want)
 	}
-	_ = filepath.Join
+}
+
+// syncBuffer is a buffer the command writes while the test reads it.
+type syncBuffer struct {
+	mu sync.Mutex
+	b  strings.Builder
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
+}
+
+// `heron serve` listens on --addr, port 0 picking a free one, prints the
+// address, and serves the entry point's tree; an unknown option or a
+// missing entry point exits 2, and an address it can't listen on 1.
+func TestServeCommand(t *testing.T) {
+	r := registry.New()
+	cli.Register(r)
+	docs.Register(r)
+	server.Register(r)
+	serve := r.Command("serve")
+	run := func(args ...string) (int, string) {
+		var out, errb syncBuffer
+		code := serve.Run(&registry.Env{Dir: "../../..", Stdout: &out, Stderr: &errb}, args)
+		return code, errb.String()
+	}
+	if code, _ := run("--nope"); code != 2 {
+		t.Errorf("an unknown option: %d", code)
+	}
+	if code, msg := run("examples/nowhere"); code != 2 || !strings.Contains(msg, "no entry point") {
+		t.Errorf("a missing entry point: %d %q", code, msg)
+	}
+	if code, _ := run("--addr", "256.0.0.1:1", "examples/petstore"); code != 1 {
+		t.Errorf("an address it can't listen on: %d", code)
+	}
+	var out, errb syncBuffer
+	go serve.Run(&registry.Env{Dir: "../../..", Stdout: &out, Stderr: &errb}, []string{"--addr", "127.0.0.1:0", "examples/petstore"})
+	var url string
+	for i := 0; i < 200 && url == ""; i++ {
+		url = strings.TrimSpace(out.String())
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !strings.HasPrefix(url, "http://127.0.0.1:") || !strings.HasSuffix(url, "/") || strings.HasSuffix(url, ":0/") {
+		t.Fatalf("the printed address: %q %s", url, errb.String())
+	}
+	if code, body := get(t, url+"docs/"); code != 200 || !strings.Contains(body, "/docs/_assets/docs.css") {
+		t.Errorf("the served tree: %d %.200q", code, body)
+	}
 }

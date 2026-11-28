@@ -23,18 +23,17 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 
 # The lanes, in the order --serial runs them. .github/workflows/ci.yml runs
 # each as a job; the lint lane checks that its matrix names them all.
-lanes=(lint web gotest golsp gorace treesitter tree e2e unit1 editor docs docslens docsspec)
+lanes=(lint web gotest golsp gorace treesitter tree e2e unit1 vscode docs docslens docsspec)
 
 # What each lane reads that another step builds; built once, in this order,
 # before any lane starts.
 #   web     the web workspace installed
-#   shell   the editor's frontend built into internal/tools/server/frontend
 #   docsweb the docs theme and islands built into internal/tools/docs/assets
-#   heron   bin: the heron binary (with the frontend when shell is built)
+#   heron   bin: the heron binary
 #   buf     buf on PATH, for the Go tests of the generated .proto files
 #   vale    Vale on PATH, and the tests that use it never skip
 needs_lint=""
-needs_web="web shell docsweb"
+needs_web="web docsweb"
 needs_gotest="vale web heron buf"
 needs_golsp="vale"
 needs_gorace=""
@@ -42,7 +41,7 @@ needs_treesitter=""
 needs_tree="web heron"
 needs_e2e="vale web heron"
 needs_unit1="web"
-needs_editor="web shell"
+needs_vscode="heron"
 needs_docs="web"
 needs_docslens="web"
 needs_docsspec="web"
@@ -111,10 +110,6 @@ need() {
     step "web: install the workspace"
     (cd web && pnpm install --frozen-lockfile --silent)
     ;;
-  shell)
-    step "web: build the shell, the editor and the components"
-    (cd web/shell && npx vite build --logLevel warn)
-    ;;
   docsweb)
     step "web: build the docs theme and islands into internal/tools/docs/assets"
     (cd web && pnpm --filter @heron/docs build >/dev/null)
@@ -153,10 +148,8 @@ lane_lint() {
     -syntax "$g/kinds_gen.go" -ast "$g/nodes_gen.go"
   diff -q "$g/kinds_gen.go" internal/core/syntax/kinds_gen.go
   diff -q "$g/nodes_gen.go" internal/core/ast/nodes_gen.go
-  go run ./internal/tools/server/apigen \
-    -go "$g/api_gen.go" -pkg api -ts "$g/api.gen.ts"
+  go run ./internal/tools/server/apigen -go "$g/api_gen.go" -pkg api
   diff -q "$g/api_gen.go" internal/tools/server/api/api_gen.go
-  diff -q "$g/api.gen.ts" web/shell/src/api.gen.ts
   go test -count=1 -run "TestGeneratedFilesAreCurrent|TestContrast" ./web/tokens/
 
   step "go vet"
@@ -192,9 +185,6 @@ lane_lint() {
 }
 
 lane_web() {
-  step "web: typecheck and test the shell, the editor and the components"
-  (cd web/shell && npx tsc -p . && npx vitest run --silent)
-
   step "web: the docs theme and islands type-check, and the embedded build is current"
   (cd web && pnpm --filter @heron/docs check)
   git diff --exit-code --stat -- internal/tools/docs/assets || { echo "internal/tools/docs/assets is stale: commit the build of web/docs"; return 1; }
@@ -301,9 +291,30 @@ lane_unit1() {
   scripts/e2e-project.sh >/dev/null
 }
 
-lane_editor() {
-  step "the editor's acceptance tests: Playwright against heron serve on the sample"
-  scripts/e2e-app.sh
+lane_vscode() {
+  local x=()
+  if [ -z "${DISPLAY:-}" ]; then
+    command -v xvfb-run >/dev/null || { echo "the VS Code tests need a display: install xvfb-run, or set DISPLAY"; return 1; }
+    x=(xvfb-run -a)
+  fi
+  cd editors/vscode
+  step "VS Code extension: install, pinned, from npm"
+  npm ci --silent --no-audit --no-fund
+
+  step "VS Code extension: typecheck and unit tests (the manifest, the grammars, the commands, the preview's policy)"
+  npx --no-install tsc -p . --noEmit
+  npm test --silent
+
+  step "VS Code extension end to end: a real VS Code (@vscode/test-electron) against heron lsp on the sample tree"
+  # VS Code logs a great deal; the suite's lines say what ran, the log the rest.
+  local st=0
+  HERON_BIN=$bin/heron "${x[@]}" npm run --silent test:e2e >"$tmp/vscode-e2e.log" 2>&1 || st=$?
+  grep -E '^(ok|FAIL) ' "$tmp/vscode-e2e.log" || true
+  if [ $st != 0 ]; then tail -40 "$tmp/vscode-e2e.log"; return 1; fi
+
+  step "VS Code extension: package heron.vsix"
+  npm run --silent package >/dev/null
+  test -s heron.vsix
 }
 
 # The docs end to end, in three lanes: the spec package's site, the
@@ -357,7 +368,7 @@ scripts/spec-setup.sh
 spec=$(go run ./internal/core/fixtures/specdir)
 echo "spec: $spec"
 # The needs of the lanes that run, in order.
-order="vale web shell docsweb heron buf"
+order="vale web docsweb heron buf"
 for n in $order; do
   for l in "${selected[@]}"; do
     v=needs_$l
@@ -388,7 +399,7 @@ else
   # many as there are CPUs by default), as the e2e lanes time their pages.
   max=${HERON_CI_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}
   queue=()
-  for l in docsspec gotest golsp e2e unit1 editor docs docslens web; do
+  for l in docsspec gotest golsp e2e unit1 vscode docs docslens web; do
     case " ${selected[*]} " in *" $l "*) queue+=("$l") ;; esac
   done
   for l in "${selected[@]}"; do

@@ -1,0 +1,7 @@
+/// An order someone places.
+Order: type {
+  /// Its id.
+  id: String
+  /// When it was placed.
+  placed: Strng
+}

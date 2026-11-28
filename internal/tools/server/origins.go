@@ -12,15 +12,6 @@ import (
 	"github.com/aiviarium/heron/internal/tools/server/route"
 )
 
-// originList is the --allow-origin flag, given once per origin.
-type originList []string
-
-func (o *originList) String() string { return strings.Join(*o, ",") }
-func (o *originList) Set(v string) error {
-	*o = append(*o, strings.TrimRight(v, "/"))
-	return nil
-}
-
 // loopback reports whether an address listens on the loopback interface
 // alone.
 func loopback(addr string) bool {
@@ -42,43 +33,20 @@ func sameOrigin(r *http.Request, origin string) bool {
 }
 
 // guardOrigins refuses API requests from pages of another origin than the
-// server's and the allowed ones, and answers the allowed ones' requests and
-// preflights with the CORS and private network access headers.
-func guardOrigins(next http.Handler, allowed []string) http.Handler {
-	ok := map[string]bool{}
-	for _, o := range allowed {
-		ok[o] = true
-	}
+// server's.
+func guardOrigins(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		if origin == "" || !strings.HasPrefix(r.URL.Path, "/api/") || sameOrigin(r, origin) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if !ok[strings.TrimRight(origin, "/")] {
-			route.WriteError(w, route.Coded(http.StatusForbidden, "server.ORIGIN_NOT_ALLOWED", "%s may not call this server", origin))
-			return
-		}
-		h := w.Header()
-		h.Set("Access-Control-Allow-Origin", origin)
-		h.Add("Vary", "Origin")
-		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
-			h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
-			h.Set("Access-Control-Allow-Headers", "Content-Type")
-			h.Set("Access-Control-Max-Age", "600")
-			if r.Header.Get("Access-Control-Request-Private-Network") == "true" {
-				h.Set("Access-Control-Allow-Private-Network", "true")
-			}
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
+		route.WriteError(w, route.Coded(http.StatusForbidden, "server.ORIGIN_NOT_ALLOWED", "%s may not call this server", origin))
 	})
 }
 
 // gzipped compresses the files a handler serves for a client that accepts
-// gzip: from the file's .gz sibling where the frontend has one, else on
-// the fly. HTML that changes per request and the API aren't its business.
+// gzip, on the fly. HTML that changes per request and the API aren't its business.
 func gzipped(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || r.Method != http.MethodGet {

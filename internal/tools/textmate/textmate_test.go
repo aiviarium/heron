@@ -35,23 +35,17 @@ func TestPublishedGrammarsAreCurrent(t *testing.T) {
 	}
 }
 
-// Every token kind of the editor's static grammar has a scope, and every
-// pattern compiles.
+// Every token kind's scope is used, and every pattern compiles.
 func TestScopesAndPatterns(t *testing.T) {
 	sc, _ := Scopes(root)
-	src, err := os.ReadFile(filepath.Join(root, "web/editor/src/monaco.ts"))
-	if err != nil {
-		t.Fatal(err)
+	// Every token kind has a scope, and every scope is one a grammar uses.
+	all := ""
+	for _, b := range built(t) {
+		all += string(b)
 	}
-	grammar := string(src)
-	grammar = grammar[strings.Index(grammar, "const grammar"):strings.Index(grammar, "function hex(")]
-	grammar = regexp.MustCompile(`(?m)^\s*keywords:.*$`).ReplaceAllString(grammar, "")
-	for _, m := range regexp.MustCompile(`(?:token: |, |\[)"([a-z][\w.]*)"`).FindAllStringSubmatch(grammar, -1) {
-		if m[1] == "@pop" || m[1] == "@keywords" || m[1] == "@default" {
-			continue
-		}
-		if _, ok := sc[m[1]]; !ok {
-			t.Errorf("the token kind %q has no scope", m[1])
+	for kind, scope := range sc {
+		if !strings.Contains(all, `"`+scope+`"`) {
+			t.Errorf("the token kind %q's scope %s is in no grammar", kind, scope)
 		}
 	}
 	for name, b := range built(t) {
@@ -103,7 +97,7 @@ func TestScopedSamples(t *testing.T) {
 		}
 		t.Errorf("no %s pattern of %s matches %q", scope, repo, sample)
 	}
-	find("prose", "markup.underline.link.heron", "[system.editor] underlines")
+	find("prose", "markup.underline.link.heron", "[system.editor_extension] underlines")
 	find("prose", "variable.other.insert.heron", "$kite.cli.sync.name")
 	find("structure", "keyword.control.heron", "import = [")
 	find("structure", "entity.name.type.heron", "Order: type")

@@ -64,15 +64,15 @@ layered_requirements: section {
   }
 
   proves(heron.cli.serve.exit_1) {
-    verify("scripts/e2e-app.sh", test = "first-run")
+    verify("internal/tools/server/server_test.go", test = "TestServeCommand")
   }
 
   proves(heron.cli.serve.exit_2) {
-    verify("scripts/e2e-app.sh", test = "first-run")
+    verify("internal/tools/server/server_test.go", test = "TestServeCommand")
   }
 
   proves(heron.cli.serve.serves_workspace) {
-    verify("scripts/e2e-app.sh", test = "first-run")
+    verify("internal/tools/server/server_test.go", test = "TestServeCommand")
   }
 
   proves(heron.language.core_format.conflicts.unordered_conflict_otherwise) {
@@ -103,24 +103,8 @@ layered_requirements: section {
     verify("internal/tools/docs/docs_test.go", test = "TestRendererRegistry")
   }
 
-  proves(heron.tools.frontend.editor.errors.lsp_disconnected) {
-    verify("web/shell/src/lsp.test.ts")
-  }
-
-  proves(heron.tools.frontend.editor.fix_a_diagnostic) {
-    verify("scripts/e2e-app.sh", test = "language-server")
-  }
-
-  proves(heron.tools.frontend.screens.editor_screen.sidebar.outline.outline_follows_otherwise) {
-    verify("scripts/e2e-app.sh", test = "first-run")
-  }
-
-  proves(heron.tools.frontend.screens.op_page.body.parameters.grouped_params_otherwise) {
+  proves(heron.tools.docs.screens.op_page.body.parameters.grouped_params_otherwise) {
     verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
-  }
-
-  proves(heron.tools.frontend.shell.slots_registered_otherwise) {
-    verify("web/shell/src/slots.test.ts")
   }
 
   proves(heron.tools.lsp.extensions.source_request_otherwise) {
@@ -147,11 +131,4 @@ layered_requirements: section {
     verify("internal/tools/prose/prose_test.go", test = "TestVocabularyActionsAndCaching")
   }
 
-  proves(heron.tools.server.ops.task_runs_otherwise) {
-    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
-  }
-
-  proves(heron.tools.server.serving.lsp_socket_otherwise) {
-    verify("internal/tools/server/lsp_test.go", test = "TestRealLanguageServerOnTheSocket")
-  }
 }

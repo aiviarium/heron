@@ -1,5 +1,5 @@
 {
-  "$comment": "Every string Heron's tools show that doesn't come from a spec. Labels are sentence case and short; buttons are verbs. Keys are <tool>.<group>.<name>; the docs renderer reads docs.*, its islands docs.island.*, and the app adds app.*.",
+  "$comment": "Every string Heron's tools show that doesn't come from a spec. Labels are sentence case and short; buttons are verbs. Keys are <tool>.<group>.<name>; the docs renderer reads docs.*, and its islands docs.island.*.",
   "docs": {
     "area": {
       "docs": "Docs",
@@ -400,79 +400,6 @@
       "constraint": "Constraints",
       "goal": "Goals",
       "story": "Stories"
-    }
-  },
-  "app": {
-    "search": "Search",
-    "save": "Save",
-    "format": "Format",
-    "preview": "Preview",
-    "theme": "Theme",
-    "close": "Close",
-    "files": "Files",
-    "generated": "Generated",
-    "outline": "Outline",
-    "problems": "Problems",
-    "results": "Results",
-    "output": "Output",
-    "run": "Run",
-    "retry": "Retry",
-    "open": "Open",
-    "fixes": "Fixes",
-    "no_problems": "No problems",
-    "no_results": "No results",
-    "no_nodes": "No nodes",
-    "no_matches": "No matches",
-    "no_file": "No file open",
-    "read_only": "Read only",
-    "unsaved": "Unsaved",
-    "commands": "Commands",
-    "palette": "Command palette",
-    "palette_input": "Search files and commands",
-    "loading": "Loading",
-    "line_col": "Ln {line}, Col {col}",
-    "errors": "{n} errors",
-    "warnings": "{n} warnings",
-    "error_one": "1 error",
-    "warning_one": "1 warning",
-    "lsp": {
-      "connecting": "Connecting",
-      "connected": "Language server",
-      "reconnecting": "Reconnecting: {reason}",
-      "failed": "Language server failed: {reason}",
-      "closed": "closed",
-      "unavailable": "unavailable"
-    },
-    "cmd": {
-      "open_file": "Open {file}",
-      "save": "Save file",
-      "format": "Format file",
-      "toggle_preview": "Toggle preview",
-      "toggle_theme": "Toggle theme",
-      "next_problem": "Go to next problem",
-      "run_task": "Run {task}",
-      "show_problems": "Show problems",
-      "reconnect": "Reconnect language server"
-    },
-    "status": {
-      "ok": "ok",
-      "failed": "failed",
-      "running": "running"
-    },
-    "source": {
-      "check": "type checker",
-      "lint": "lint",
-      "vale": "Vale",
-      "lsp": "language server",
-      "spec": "spec lints"
-    },
-    "key": {
-      "mod_mac": "⌘",
-      "mod": "Ctrl",
-      "shift_mac": "⇧",
-      "shift": "Shift",
-      "alt_mac": "⌥",
-      "alt": "Alt"
     }
   }
 }

@@ -30,7 +30,7 @@ func declaredIn(n *resolve.Node, file resolve.FileID) (int, int, bool) {
 	return 0, 0, false
 }
 
-// kindName names a node's kind for the preview and the outline.
+// kindName names a node's kind for the preview.
 func kindName(res *check.Result, n *resolve.Node) string {
 	c := res.Checker
 	if k := c.KindOf(n); k != nil {
@@ -43,43 +43,6 @@ func kindName(res *check.Result, n *resolve.Node) string {
 		return "type"
 	}
 	return ""
-}
-
-// outline lists the nodes a file declares, in reading order.
-func (a *Analysis) outline(file resolve.FileID) []api.OutlineNode {
-	out := []api.OutlineNode{}
-	var walk func(n *resolve.Node, depth int)
-	walk = func(n *resolve.Node, depth int) {
-		for _, c := range n.Children {
-			if c.Name == "" {
-				continue
-			}
-			s, e, ok := declaredIn(c, file)
-			if ok {
-				l, _ := a.Pos(string(file), s)
-				el, _ := a.Pos(string(file), e)
-				k := kindName(a.Res, c)
-				out = append(out, api.OutlineNode{Path: c.Path(), Name: c.Name, Kind: k, Depth: int64(depth),
-					Line: int64(l), EndLine: int64(el), Runnable: k == "task"})
-			}
-			// An example's fields are its values, not nodes to navigate.
-			if depth < 6 && kindName(a.Res, c) != "example" {
-				walk(c, depth+1)
-			}
-		}
-	}
-	walk(a.Res.Tree.Root, 0)
-	// Declarations come in tree order; the outline reads in file order.
-	sortByLine(out)
-	return out
-}
-
-func sortByLine(ns []api.OutlineNode) {
-	for i := 1; i < len(ns); i++ {
-		for j := i; j > 0 && ns[j].Line < ns[j-1].Line; j-- {
-			ns[j], ns[j-1] = ns[j-1], ns[j]
-		}
-	}
 }
 
 // nodeAt returns the innermost node with a kind declared at an offset.
@@ -103,7 +66,7 @@ func (a *Analysis) nodeAt(file resolve.FileID, off int) *resolve.Node {
 // cursor is on none. A failed render shows its error in place.
 func (a *Analysis) preview(r Renderer, file resolve.FileID, off int) (out *api.Preview) {
 	n := a.nodeAt(file, off)
-	out = &api.Preview{Results: api.NodeResults{Results: []api.NodeResult{}}}
+	out = &api.Preview{}
 	defer func() {
 		if p := recover(); p != nil {
 			msg := fmt.Sprint(p)
@@ -130,7 +93,6 @@ func (a *Analysis) preview(r Renderer, file resolve.FileID, off int) (out *api.P
 		return out
 	}
 	out.Path, out.Kind = n.Path(), kindName(a.Res, n)
-	out.Results.Path = out.Path
 	out.HTML = a.render(r, n)
 	return out
 }

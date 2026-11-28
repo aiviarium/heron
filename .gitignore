@@ -3,5 +3,3 @@ web/*/dist/
 web/samples/*/dist/
 .heron/
 /bin/
-internal/tools/server/frontend/dist/
-web/screenshots/

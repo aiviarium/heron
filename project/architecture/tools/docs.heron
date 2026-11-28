@@ -4,7 +4,7 @@ docs: component("internal/tools/docs", heron.system.docs_generator, lang = "go")
   | server, and `heron serve` serves the same pages live as the spec browser, so what
   | people read and what they edit never look different.
 
-  uses = [architecture.runtime.ast, architecture.runtime.gen, architecture.runtime.lens, architecture.runtime.project, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types, architecture.tools.frontend.strings, architecture.tools.frontend.tokens]
+  uses = [architecture.runtime.ast, architecture.runtime.gen, architecture.runtime.lens, architecture.runtime.project, architecture.runtime.registry, architecture.runtime.resolve, architecture.runtime.syntax, architecture.runtime.types, architecture.tools.web.strings, architecture.tools.web.tokens]
 
   pages: responsibility {{ Lay out the tree's nodes as pages, [site areas](#heron.tools.docs.site.site_area) and navigation, and render each node through its kind's renderer. }}
   reference: responsibility {{ The API reference: an op page per op and a type page per type, with examples in every form. }}

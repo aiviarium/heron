@@ -1,7 +1,7 @@
 // Package uistrings is the catalogue of every string Heron's tools show
 // that doesn't come from a spec: labels, headings, buttons and the words
-// the renderer joins requirements with. The docs renderer, the app and the
-// editors read the same strings.json, so the interface text is checked in
+// the renderer joins requirements with. The docs renderer and its islands
+// read the same strings.json, so the interface text is checked in
 // one place (the prose lints, the Vale style for interface text, and the
 // docs test that fails on visible text from anywhere else).
 package uistrings

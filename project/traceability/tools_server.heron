@@ -2,15 +2,15 @@ tools_server: section {
   | The tests that prove the requirements of the spec's [tools.server](#heron.tools.server).
 
   proves(heron.tools.server.serving.address) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/server_test.go", test = "TestServeCommand")
   }
 
-  proves(heron.tools.server.serving.spa_fallback) {
-    verify("internal/tools/server/server_test.go", test = "TestFrontendFallsBackToIndex")
+  proves(heron.tools.server.serving.root_redirect) {
+    verify("internal/tools/server/server_test.go", test = "TestRootRedirects")
   }
 
   proves(heron.tools.server.serving.unknown_op) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/server_test.go", test = "TestRootRedirects")
   }
 
   proves(heron.tools.server.serving.docs_caching) {
@@ -29,27 +29,11 @@ tools_server: section {
     verify("internal/tools/server/server_test.go", test = "TestSpecBrowser")
   }
 
-  proves(heron.tools.server.serving.lsp_socket) {
-    verify("internal/tools/server/lsp_test.go", test = "TestRealLanguageServerOnTheSocket")
-  }
-
-  proves(heron.tools.server.serving.one_session_per_socket) {
-    verify("internal/tools/server/lsp_test.go", test = "TestRealLanguageServerOnTheSocket")
-  }
-
   proves(heron.tools.server.ops.path_in_workspace) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/server_test.go", test = "TestPreview")
   }
 
   proves(heron.tools.server.ops.unsaved_texts) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
-  }
-
-  proves(heron.tools.server.ops.task_runs) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
-  }
-
-  proves(heron.tools.server.ops.run_results) {
-    verify("internal/tools/server/server_test.go", test = "TestBaseOps")
+    verify("internal/tools/server/server_test.go", test = "TestPreview")
   }
 }

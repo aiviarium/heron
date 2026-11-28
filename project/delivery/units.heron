@@ -4,8 +4,9 @@ units: section {
   | and the [repository layout](#architecture.runtime.layout) components.
   |
   | A **unit** is one of the four parts the binary is built in, each owning its Go packages
-  | under `internal/<unit>/`, its standard packages under `std/`, its frontend packages under
-  | `web/`, and the fixtures from its tabs.
+  | under `internal/<unit>/`, its standard packages under `std/`, its web packages under
+  | `web/`, and the fixtures from its tabs; unit 2 also owns the VS Code extension under
+  | `editors/vscode/`.
   |
   | The units are built in order, and each one only adds to those before it, registering
   | its parts through the registry of the first.
@@ -13,7 +14,7 @@ units: section {
   | | Unit                    | Holds                                                                                              | Commands                          | Spec |
   | | ----------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------- | ---- |
   | | 1. Language and runtime | parser, resolver, types, interpreter, lints, formatter, records, generation framework, the registry, the standard packages | `check`, `fmt`, `lint`, `run`, `generate` | [the language](#heron.language) |
-  | | 2. Development tools    | language server, editor grammar, prose linting with Vale, docs generator, server and frontend shells, spec browser, code editor and preview, the shared UI | `lsp`, `serve`, `generate docs` | [the tools](#heron.tools) |
+  | | 2. Development tools    | language server, editor grammar, prose linting with Vale, docs generator, server, spec browser, the VS Code extension with its live preview | `lsp`, `serve`, `generate docs` | [the tools](#heron.tools) |
   | | 3. DevOps and testing   | test planner, CI adapters, releases, test coordinator, workers, Incus driver, dashboard          | `test`, `worker`, `generate ci`   | not yet specified |
   | | 4. Agents               | prompt processing, harness adapters, agent environments, `delegate`, prompt workbench            | `generate agents`                 | not yet specified |
   |
@@ -28,8 +29,7 @@ units: section {
     |   and Agents don't import each other; they meet through data: records, the registry and
     |   the server API.
     | - **Seams are registrations.** A unit registers its commands, generation targets,
-    |   lints, record kinds, frontend panels, gutter providers and renderers through the
-    |   registry, so an earlier unit never knows which later units exist.
+    |   lints, record kinds and renderers through the registry, so an earlier unit never knows which later units exist.
   }
 
   build_order: section {
@@ -37,8 +37,8 @@ units: section {
     |    and the core lints; the interpreter, tasks and `heron run`, then the repository's
     |    `setup`; the prose view and the generation framework.
     | 2. **Development tools:** the tree-sitter grammar and `heron lsp`; prose linting
-    |    with Vale; the docs renderer and `heron generate docs`; the server and frontend
-    |    shells; the code editor with its live preview.
+    |    with Vale; the docs renderer and `heron generate docs`; the server and the spec
+    |    browser; the VS Code extension with its live preview.
     | 3. **DevOps and testing:** the planner and Incus workers on a local daemon, then
     |    the coordinator with several hosts; CI adapters and releases; the dashboard panel
     |    and gutter results.

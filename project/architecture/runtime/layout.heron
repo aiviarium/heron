@@ -25,17 +25,17 @@ layout: section {
     | std/                     // standard packages as Heron source, embedded; each owned by one unit
     | grammar/                 // grammar description and the tree-sitter grammar
     | web/                     // pnpm workspace
-    |   components/ shell/     // the shared UI and the frontend shell, owned by development tools
-    |   editor/ docs/          // code editor and preview, docs islands, editor extension
+    |   tokens/ strings/ docs/ // design tokens, string catalogue, docs theme and islands, owned by development tools
     |   dashboard/             // DevOps and testing panels
     |   workbench/             // agents panels
+    | editors/vscode/          // the VS Code extension, owned by development tools
     | project/                 // this project tree: components, proofs, status; imports the heron spec package
     | fixtures/                // examples from the design doc, checked in CI
     | ```
   }
 
   unit_folders: property {
-    must {{ put each [unit](#delivery.units)'s Go packages under `internal/<unit>/`, as `internal/core/` for [unit](#delivery.units) 1 and `internal/tools/` for [unit](#delivery.units) 2, and its frontend packages in their own folders of the `web/` workspace }}
+    must {{ put each [unit](#delivery.units)'s Go packages under `internal/<unit>/`, as `internal/core/` for [unit](#delivery.units) 1 and `internal/tools/` for [unit](#delivery.units) 2, its web packages in their own folders of the `web/` workspace, and an editor's extension under `editors/<editor>/` }}
   }
 
   packages_are_components: property {
@@ -58,7 +58,7 @@ layout: section {
   generated_beside_source: property {
     must {{ commit generated code next to what it's generated from, and fail CI when a regeneration differs }}
     | For example, `syntax/kinds_gen.go` and `ast/nodes_gen.go` from `grammar/heron.ungram`;
-    | `api_gen.go` and `web/shell/src/api.gen.ts` from `spec_server`.
+    | `api_gen.go` from `spec_server`.
     verify("scripts/ci.sh", test = "generated code is current")
   }
 }

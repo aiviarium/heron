@@ -27,7 +27,8 @@ include = [
   "./tools_docs_agents.heron",
   "./tools_server.heron",
   "./tools_server_api.heron",
-  "./tools_frontend.heron",
+  "./tools_docs_design.heron",
+  "./tools_vscode.heron",
   "./rpc_bindings.heron",
 ]
 

@@ -1,10 +1,9 @@
 // Command apigen reads the server's API, declared in Heron as `spec_server`,
 // through the same check every Heron tree goes through, and writes the Go
-// handlers and the TS client of its ops.
+// handlers of its ops.
 //
 //	go run ./internal/tools/server/apigen \
-//	    -go internal/tools/server/api/api_gen.go -pkg api \
-//	    -ts web/shell/src/api.gen.ts
+//	    -go internal/tools/server/api/api_gen.go -pkg api
 //
 // The API is the spec package's: its tools/server_api folder, checked in
 // the package's tree, which -base names ($HERON_SPECS_DIR's index.heron,
@@ -26,7 +25,6 @@ func main() {
 	root := flag.String("root", ".", "the repository root, whose spec package -base defaults to")
 	goOut := flag.String("go", "", "the Go file to write")
 	pkg := flag.String("pkg", "api", "the Go package name")
-	tsOut := flag.String("ts", "", "the TS file to write")
 	flag.Parse()
 	if *base == "" {
 		dir, err := fixtures.SpecDir(*root)
@@ -42,9 +40,6 @@ func main() {
 		if src, err = spec.Go(a, *pkg); err == nil {
 			err = write(*goOut, src)
 		}
-	}
-	if err == nil && *tsOut != "" {
-		err = write(*tsOut, spec.TS(a))
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apigen:", err)

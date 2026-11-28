@@ -1,7 +1,6 @@
 import { createDialogController, Dialog, DialogClose, DialogContent, DialogTitle } from "@ui-sdk/solid/dialog"
 import { createSignal, For, Show } from "solid-js"
 import { t } from "../data"
-import { ApiError, createClient } from "../../../shell/src/api.gen"
 
 interface Param {
   name: string
@@ -15,8 +14,8 @@ interface OpData {
   path: string
   params: Param[] | null
   examples?: Record<string, unknown>[]
-  /** The op's method on the generated client, when the page's own server publishes it. */
-  client?: string
+  /** Whether the page's own server publishes the op: Try it sends it there. */
+  served?: boolean
   stream?: boolean
   /** An RPC binding's call: Connect, or JSON-RPC over HTTP. */
   protocol?: "connect" | "jsonrpc"
@@ -39,7 +38,7 @@ export function TryIt(props: { root: HTMLElement }) {
   const op = JSON.parse(raw.textContent ?? "{}") as OpData
   const dialog = createDialogController()
   const [example, setExample] = createSignal(0)
-  const [server, setServer] = createSignal(op.server ?? localStorage.getItem(serverKey) ?? location.origin)
+  const [server, setServer] = createSignal(op.served ? location.origin : op.server ?? localStorage.getItem(serverKey) ?? location.origin)
   const [message, setMessage] = createSignal("")
   const [values, setValues] = createSignal<Record<string, string>>({})
   const [result, setResult] = createSignal<{ status: string; body: string } | undefined>()
@@ -59,35 +58,6 @@ export function TryIt(props: { root: HTMLElement }) {
     fill()
     dialog.open()
   })
-
-  // An op of the API the page's own server publishes goes through the
-  // client generated from that API, as the frontend's requests do.
-  const sendServed = async () => {
-    const client = createClient("") as unknown as Record<string, (...a: unknown[]) => unknown>
-    const args = params().map((p) => {
-      const v = values()[p.name] ?? ""
-      if (v === "") return undefined
-      try { return JSON.parse(v) } catch { return v }
-    })
-    setBusy(true)
-    try {
-      const out = client[op.client!](...args)
-      let body: unknown
-      if (op.stream) {
-        const events: unknown[] = []
-        for await (const ev of out as AsyncIterable<unknown>) {
-          events.push(ev)
-          if (events.length >= 50) break
-        }
-        body = events
-      } else body = await out
-      setResult({ status: "200", body: JSON.stringify(body, null, 2) })
-    } catch (err) {
-      setResult(err instanceof ApiError ? { status: String(err.status), body: JSON.stringify({ error: err.message }, null, 2) } : { status: t("try_failed"), body: String(err) })
-    } finally {
-      setBusy(false)
-    }
-  }
 
   // An RPC call: the request message as JSON, and each message of the
   // response as it arrives.
@@ -155,9 +125,8 @@ export function TryIt(props: { root: HTMLElement }) {
 
   const send = async (e: SubmitEvent) => {
     e.preventDefault()
-    if (op.client) return sendServed()
     if (op.protocol) return sendRPC()
-    localStorage.setItem(serverKey, server())
+    if (!op.served) localStorage.setItem(serverKey, server())
     let path = op.path
     const query = new URLSearchParams()
     const headers: Record<string, string> = {}
@@ -201,7 +170,7 @@ export function TryIt(props: { root: HTMLElement }) {
           </DialogClose>
         </div>
         <form class="sheet-body" onSubmit={send}>
-          <Show when={!op.client}>
+          <Show when={!op.served}>
             <div class="field">
               <label for="tryit-server">{t("try_server")}</label>
               <input id="tryit-server" value={server()} onInput={(e) => setServer(e.currentTarget.value)} spellcheck={false} />

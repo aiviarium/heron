@@ -1,8 +1,8 @@
 // Package lsp is Heron's language server as a library: a Session speaks
-// LSP's JSON-RPC over a Conn, so `heron lsp` serves one over stdio and
-// `heron serve` one per `/lsp` websocket. It builds on unit 1's check
-// session (per-node memoization, the loader's overlay), its lints and
-// prose providers, the formatter and the resolved tree.
+// LSP's JSON-RPC over a Conn, and `heron lsp` serves one over stdio. It
+// builds on unit 1's check session (per-node memoization, the loader's
+// overlay), its lints and prose providers, the formatter and the resolved
+// tree.
 package lsp
 
 import (

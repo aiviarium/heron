@@ -1,0 +1,7 @@
+import = ["std/doc@1", "std/types@1"]
+include = ["./model.heron", "./guide.heron.md"]
+
+/// The guide to the store.
+guide: section {
+  | Read [the order](#Order) before you place one.
+}

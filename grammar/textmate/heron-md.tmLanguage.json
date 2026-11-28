@@ -12,6 +12,7 @@
           "name": "markup.inline.raw.string.heron"
         }
       },
+      "contentName": "meta.embedded.block.heron",
       "end": "^\\s*(```+|~~~+)\\s*$",
       "endCaptures": {
         "0": {

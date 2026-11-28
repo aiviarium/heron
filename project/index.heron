@@ -8,7 +8,7 @@ import = [
   "std/docs@1",
 ]
 
-/// The Heron implementation: the `heron` binary, its standard packages and its frontend.
+/// The Heron implementation: the `heron` binary, its standard packages, the docs theme and the VS Code extension.
 @display("Heron implementation")
 heron_impl: implements(heron, at = "0.6.0") {
   version = "0.6.0+build1"
