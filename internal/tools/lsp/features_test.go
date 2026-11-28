@@ -477,9 +477,9 @@ func TestIconCompletionAndHover(t *testing.T) {
 }
 
 // In a rule's signature, completion offers the nodes of the kinds a rule's
-// references may name, in a command's the kinds in types.realized, and in
-// an op's first place types too; hover on a node names each reference
-// with what it means.
+// references may name, features among them, in a command's the kinds in
+// spec.touchable, and in an op's first place types too; hover on a node
+// names each reference with what it means, and the feature it stands in.
 func TestReferenceCompletionAndHover(t *testing.T) {
 	dir := t.TempDir()
 	src := `import = ["std/doc@1", "std/types@1"]
@@ -508,13 +508,23 @@ shop: api {
   @see(fast)
   refund(): op(R, late)
 }
+
+safety: feature<security> {{ What keeps refunds safe. }}
+
+refunds: feature(fast, customer) {
+  in_refunds: rule(desk, safety) {
+    must {{ refund to the card }}
+  }
+}
+
+customer: actor {{ Someone who paid. }}
 `
 	write(t, filepath.Join(dir, "index.heron"), src)
 	c := start(t, dir)
 	uri := lsptest.FileURI(filepath.Join(dir, "index.heron"))
 	c.Open(uri, src)
 	l := complete(t, c, uri, lsptest.At(src, "rule(d)", 0, 6), "")
-	if !l.has("desk") || !l.has("fast") || l.has("window") || l.has("late") {
+	if !l.has("desk") || !l.has("fast") || !l.has("safety") || l.has("window") || l.has("late") {
 		t.Errorf("in a rule's references: %v", l.labels())
 	}
 	l = complete(t, c, uri, lsptest.At(src, `"refund", l)`, 0, 11), "")
@@ -539,6 +549,19 @@ shop: api {
 	}
 	if !strings.Contains(h.Contents.Value, "references `late` (carries out), `fast` (see also)") {
 		t.Errorf("hover on an op:\n%s", h.Contents.Value)
+	}
+	// A rule in a feature names it, and the feature it joins.
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, "in_refunds:", 0, 1)), &h); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.Contents.Value, "in feature `refunds`") || !strings.Contains(h.Contents.Value, "references `desk` (subject), `safety` (joins)") {
+		t.Errorf("hover on a rule in a feature:\n%s", h.Contents.Value)
+	}
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, "refunds: feature", 0, 1)), &h); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.Contents.Value, "references `fast` (serves), `customer` (for)") {
+		t.Errorf("hover on a feature:\n%s", h.Contents.Value)
 	}
 }
 

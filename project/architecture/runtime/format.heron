@@ -27,7 +27,7 @@ format: component("internal/core/format", heron.system.formatter, lang = "go") {
   }
 
   literal_text_kept: property {
-    mustNot {{ change spacing within a line, the text of a string, a raw string or fenced code, or the relative indentation of a `{{ }}` body }}
+    must_not {{ change spacing within a line, the text of a string, a raw string or fenced code, or the relative indentation of a `{{ }}` body }}
     verify("internal/core/format/format_test.go", test = "TestLayout")
     verify("internal/core/format/format_test.go", test = "TestFixturesFormatToThemselves")
   }

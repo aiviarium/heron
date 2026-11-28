@@ -172,20 +172,16 @@ func (p *proseBuf) mdTag(t ast.Tag) string {
 		name = kind.Path()
 	}
 	inner := tagContent(t.N)
-	if name == "doc.ref" || name == "doc.link" {
-		key := "to"
-		if name == "doc.link" {
-			key = "target"
-		}
+	if name == "doc.ref" {
 		for _, a := range t.TagAttrs() {
-			if a.Ident() == nil || a.Ident().Text != key || a.StringLit().N == nil {
+			if a.Ident() == nil || a.Ident().Text != "to" || a.StringLit().N == nil {
 				continue
 			}
 			v, _ := resolve.StringValue(a.StringLit().N)
 			target := p.s.Checker.Refs[a.StringLit().N]
 			text := v
-			if name == "doc.link" {
-				text = p.sub(inner)
+			if inner := p.sub(inner); strings.TrimSpace(inner) != "" {
+				text = inner
 			} else if target != nil {
 				text = sentenceWords(p.s, target)
 			}

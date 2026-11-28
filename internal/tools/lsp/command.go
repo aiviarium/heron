@@ -16,7 +16,7 @@ func Register(r *registry.Registry) {
 	r.MustAddCommand(registry.Command{
 		Name:    "lsp",
 		Summary: "Serves the language server over stdio",
-		Usage:   "[--debounce duration]",
+		Usage:   "[--debounce duration] [--stdio]",
 		Run: func(env *registry.Env, args []string) int {
 			fs := flag.NewFlagSet("lsp", flag.ContinueOnError)
 			fs.SetOutput(env.Stderr)

@@ -96,7 +96,7 @@ func collect(t *resolve.Tree, c *types.Checker) *specFacts {
 		}
 		k := c.KindOf(n)
 		switch {
-		case types.IsStd(k, "doc", "doc.term") && n.Name != "":
+		case types.IsStd(k, "spec", "spec.term") && n.Name != "":
 			tm := &term{node: n, path: n.Path(), phrases: []string{strings.ToLower(strings.ReplaceAll(n.Name, "_", " "))}}
 			tm.aliases = aliases(n)
 			f.terms = append(f.terms, tm)
@@ -354,7 +354,7 @@ func (f *specFacts) region(i int, r *registry.ProseRegion) []registry.ProseFindi
 		switch {
 		case types.IsStd(k, "spec", "spec.must") && strength == "":
 			strength = "must"
-		case types.IsStd(k, "spec", "spec.mustNot") && strength == "":
+		case types.IsStd(k, "spec", "spec.must_not") && strength == "":
 			strength = "must not"
 		case types.IsStd(k, "spec", "spec.rule") && rule == nil:
 			rule = n

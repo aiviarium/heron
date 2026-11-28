@@ -264,7 +264,7 @@ shop: package(version = "1.0") {
     @status(409)
     out_of_stock: error("shop.OUT_OF_STOCK") {
       title = "{item} is out of stock"
-      item: field(String)
+      item: String
       | Reported as [orders.place] says.
     }
 
@@ -365,7 +365,7 @@ func TestAgentExportSplitsAndOrders(t *testing.T) {
 	if strings.Index(all, "## Contract") < strings.Index(all, "### rule orders.rule_39") {
 		t.Error("the contract comes before the last rule")
 	}
-	for _, want := range []string{"### error orders.out_of_stock: Out of stock\n\n- id `shop.OUT_OF_STOCK` · severity error · HTTP 409", "- field `item` String", "### guidance orders.hint\n\nWrite rules short.\n"} {
+	for _, want := range []string{"### error orders.out_of_stock: Out of stock\n\n- id `shop.OUT_OF_STOCK` · severity error · HTTP 409", "- member `item` String", "### guidance orders.hint\n\nWrite rules short.\n"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("the parts lack %q", want)
 		}

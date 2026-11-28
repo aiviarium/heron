@@ -32,7 +32,7 @@ type card struct {
 }
 
 func (s *Site) hasCard(n *resolve.Node) bool {
-	return own(n) && (s.kindPath(n) == "doc.term" || s.isTypeDecl(n))
+	return own(n) && (s.kindPath(n) == "spec.term" || s.isTypeDecl(n))
 }
 
 func (s *Site) card(n *resolve.Node) card {
@@ -40,7 +40,7 @@ func (s *Site) card(n *resolve.Node) card {
 	if k := s.Checker.KindOf(n); k != nil {
 		c.Kind = k.Name
 	}
-	if s.kindPath(n) == "doc.term" {
+	if s.kindPath(n) == "spec.term" {
 		c.Title = termHeading(s, n)
 		c.HTML = s.proseHTML(n)
 	} else {
@@ -88,9 +88,9 @@ func (s *Site) Search() []entry {
 			return
 		}
 		switch k := s.kindPath(n); {
-		case k == "doc.term":
+		case k == "spec.term":
 			add(n, termHeading(s, n))
-		case k == "core.task" || k == "spec.project" || k == "types.example":
+		case k == "core.task" || k == "spec.project" || k == "spec.example":
 			add(n, displayName(s, n))
 		case k != "" || s.pageOf[n] != nil || n.Parent != nil && s.isTypeDecl(n.Parent):
 			title := displayName(s, n)

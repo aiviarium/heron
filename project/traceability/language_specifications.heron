@@ -21,7 +21,7 @@ language_specifications: section {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
   }
 
-  proves(heron.language.specifications.context.flags_on_sections) {
+  proves(heron.language.specifications.context.flags_on_features) {
     verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
   }
 
@@ -186,5 +186,47 @@ language_specifications: section {
 
   proves(heron.language.specifications.quality_checks.unlinked_node_fix) {
     verify("internal/tools/prose/prose_test.go", test = "TestSpecLints")
+  }
+
+  proves(heron.language.specifications.context.feature_members) {
+    verify("internal/tools/docs/feature_test.go", test = "TestFeaturePages")
+    verify("internal/core/specmodel/features_test.go", test = "TestFeatures")
+  }
+
+  proves(heron.language.specifications.context.features_index) {
+    verify("internal/tools/docs/feature_test.go", test = "TestFeaturePages")
+  }
+
+  proves(heron.language.specifications.context.feature_page) {
+    verify("internal/tools/docs/feature_test.go", test = "TestFeaturePages")
+  }
+
+  proves(heron.language.specifications.requirements.where_links_feature, heron.language.specifications.requirements.errors.where_without_feature) {
+    verify("internal/core/specmodel/features_test.go", test = "TestFeatures")
+  }
+
+  proves(heron.language.specifications.contract.command_params, heron.language.specifications.contract.usage_derived) {
+    verify("internal/core/specmodel/features_test.go", test = "TestCommandUsage")
+    verify("cmd/heron/help_test.go", test = "TestHelpIsTheSpec")
+  }
+
+  proves(heron.language.specifications.contract.codes.status_required, heron.language.specifications.contract.errors.missing_status) {
+    verify("internal/core/specmodel/features_test.go", test = "TestErrorStatus")
+  }
+
+  proves(heron.language.specifications.contract.codes.grpc_derived, heron.language.specifications.contract.codes.jsonrpc_derived, heron.language.specifications.contract.codes.exit_derived) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestDerivedCodes")
+  }
+
+  proves(heron.language.specifications.contract.codes.redundant_override, heron.language.specifications.contract.errors.redundant_code) {
+    verify("internal/core/lint/lint_test.go", test = "TestRedundantCode")
+  }
+
+  proves(heron.language.specifications.contract.codes.status_text, heron.language.specifications.contract.codes.effective_codes_shown) {
+    verify("internal/tools/docs/feature_test.go", test = "TestFeaturePages")
+  }
+
+  proves(heron.language.specifications.traceability.proofs_name_requirements, heron.language.specifications.traceability.errors.unknown_requirement) {
+    verify("internal/core/check/project_test.go", test = "TestProjectStructure")
   }
 }

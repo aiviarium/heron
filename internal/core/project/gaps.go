@@ -35,6 +35,16 @@ func (p *Project) gaps() Gaps {
 		}
 	})
 	isPart := func(n *resolve.Node) bool { return n != nil && KindPath(c, n) == "spec.part" }
+	// The innermost feature an entry stands in, which the report groups
+	// it by.
+	inFeature := func(n *resolve.Node, path string) {
+		if f := Feature(c, n); f != nil {
+			if g.Features == nil {
+				g.Features = map[string]string{}
+			}
+			g.Features[path] = RelPath(p.Package, f)
+		}
+	}
 	p.Package.Tree.Walk(func(n *resolve.Node) {
 		switch KindPath(c, n) {
 		case "spec.rule":
@@ -43,6 +53,7 @@ func (p *Project) gaps() Gaps {
 			}
 			if !realized[n] {
 				g.Unrealized = append(g.Unrealized, RelPath(p.Package, n))
+				inFeature(n, RelPath(p.Package, n))
 			}
 		case "spec.usecase":
 			for _, ps := range n.Prose {
@@ -69,6 +80,7 @@ func (p *Project) gaps() Gaps {
 				for _, step := range uc.Steps {
 					if isPart(leads[step.Start]) && !realized[n.Child(step.Num)] && !realized[n] {
 						g.Unrealized = append(g.Unrealized, RelPath(p.Package, n)+"."+step.Num)
+						inFeature(n, RelPath(p.Package, n)+"."+step.Num)
 					}
 				}
 			}

@@ -364,13 +364,11 @@ func TestAuthoredPageChecks(t *testing.T) {
 	base := `import = ["std/doc@1", "std/docs@1"]
 
 cli: section {
-  sync: command("kite sync") {
-    dry_run: option("--dry-run", type = Bool, default = false)
-  }
+  sync(@option dry_run: Bool = false): command("kite sync") {{ Syncs. }}
 }
 
 page: guide {
-  | Run ${cli.sync.name}; --dry-run is ${cli.sync.dry_run.default} unless set. See [sync](#cli.sync).
+  | Run ${cli.sync.name}; --dry-run is ${cli.sync.dry_run} unless set. See [sync](#cli.sync).
 
   | ` + "```heron" + `
   | not: checked {
@@ -388,7 +386,7 @@ page: guide {
 		t.Fatal(messages(res))
 	}
 	for _, c := range []struct{ from, to, want string }{
-		{"${cli.sync.dry_run.default}", "${cli.sync.dry_run.defualt}", "unknown name cli.sync.dry_run.defualt"},
+		{"${cli.sync.dry_run}", "${cli.sync.dry_rn}", "unknown name cli.sync.dry_rn"},
 		{"${cli.sync.name}", "${cli.snyc.name}", "unknown name"},
 		{"(#cli.sync)", "(#cli.snyc)", "the link to #cli.snyc doesn't resolve"},
 	} {

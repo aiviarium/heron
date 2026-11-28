@@ -74,7 +74,7 @@ types: component("internal/core/types", heron.system.checker, lang = "go") {
   responsibility {{ Returns the error not-a-kind: A path in kind position that names something other than a kind. }}
   responsibility {{ Returns the error not-a-flag: A name in a flag list that isn't a flag. }}
   responsibility {{ Returns the error not-an-annotation: An annotation whose name isn't an annotation. }}
-  responsibility {{ Returns the error instead: An `instead` under a rule with no negative strength, `mustNot` or `shouldNot`. }}
+  responsibility {{ Returns the error instead: An `instead` under a rule with no negative strength, `must_not` or `should_not`. }}
 
   property() {
 

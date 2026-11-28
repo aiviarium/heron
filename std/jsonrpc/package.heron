@@ -44,6 +44,7 @@ jsonrpc: package(version = "1.0", requires = ["std/types@1"]) {
   /// The parameter whose value is the whole of params.
   params: annotation(on = [types.param])
 
-  /// The JSON-RPC error code an error is answered with.
+  /// The JSON-RPC error code an error is answered with, where the one
+  /// derived from its `@status` doesn't fit.
   code(code: Int): annotation(on = [types.type, spec.error])
 }

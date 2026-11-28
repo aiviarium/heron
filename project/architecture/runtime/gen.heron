@@ -60,7 +60,7 @@ gen: component("internal/core/gen", heron.system.generator, lang = "go") {
   }}
 
   paths_inside: property {
-    mustNot {{ write a file whose path is absolute, is `.` or leaves the project's folder through `..` }}
+    must_not {{ write a file whose path is absolute, is `.` or leaves the project's folder through `..` }}
     verify("internal/core/gen/gen_test.go", test = "TestPathsStayInside")
   }
 
@@ -70,7 +70,7 @@ gen: component("internal/core/gen", heron.system.generator, lang = "go") {
   }
 
   sections_kept: property {
-    mustNot {{ erase another owner's section of the managed block, or any line outside it }}
+    must_not {{ erase another owner's section of the managed block, or any line outside it }}
     verify("internal/core/gen/gen_test.go", test = "TestIgnoreBlockKeepsTheRest")
   }
 

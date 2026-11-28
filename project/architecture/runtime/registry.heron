@@ -106,7 +106,7 @@ registry: component("internal/core/registry", heron.system.command_line, lang = 
   }}
 
   no_stage_imports: property {
-    mustNot {{ import a stage or any package of a later [unit](#delivery.units); it imports only `diag` }}
+    must_not {{ import a stage or any package of a later [unit](#delivery.units); it imports only `diag` }}
     verify("internal/tools/docs/components_test.go", test = "TestSpecComponentUses")
   }
 

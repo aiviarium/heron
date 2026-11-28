@@ -79,6 +79,7 @@ g: grammar {
   p: production {{ x }}
 }
 
+@status(422)
 e: error("x") {
   title = "bad"
 }
@@ -106,6 +107,7 @@ r: rule(desk, self_service) {
   must {{ refund inside the [window], as [customer] asks; see [e] }}
 }
 
+@status(422)
 e: error("x") {
   title = "bad"
 }
@@ -154,7 +156,7 @@ p2: part {{ Works with [p1](#p1). }}
 c: command("x", window)
 `)
 	wantAll(t, res,
-		"reference: b is a rule, and a rule references only actor, part, goal, quality or assumption",
+		"reference: b is a rule, and a rule references only actor, part, goal, quality, assumption or feature",
 		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
 		"reference: window is a term, which is vocabulary: a command doesn't reference it; mention it in the prose",
 		"subject: rule two binds desk and customer; a rule references at most one actor or part, its subject",
@@ -191,10 +193,7 @@ payments: api(r) {
   wrong(): op(Refund, self_service)
 }
 
-c: command("refund", r) {
-  amount: argument("amount", r, type = Int)
-  quiet: option("--quiet", r, type = Bool)
-}
+c(amount: Int, @option quiet?: Bool): command("refund", r)
 
 s: screen(route = "/refunds", r) {
   list: region(refund.2) {}
@@ -220,7 +219,7 @@ ex_case: scenario(r) {
 	wantAll(t, res, "reference: self_service is a goal, and a op references only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition")
 	wantNone(t, res, "type:", "too-many-arguments", "Refund is a", "r is a rule", "refund.2", "unresolved", "missing-argument")
 	c := res.Checker
-	for path, want := range map[string]int{"payments.create": 2, "payments.ping": 1, "payments.named": 1, "payments": 1, "c": 1, "c.amount": 1, "c.quiet": 1, "s": 1, "s.list": 1, "bare": 1, "g": 1, "g.P": 1, "g.T": 1, "uc": 1, "ex_case": 1} {
+	for path, want := range map[string]int{"payments.create": 2, "payments.ping": 1, "payments.named": 1, "payments": 1, "c": 1, "s": 1, "s.list": 1, "bare": 1, "g": 1, "g.P": 1, "g.T": 1, "uc": 1, "ex_case": 1} {
 		if got := len(project.References(c, res.Tree.Find(path))); got != want {
 			t.Errorf("%s has %d references, want %d", path, got, want)
 		}
@@ -237,7 +236,7 @@ ex_case: scenario(r) {
 }
 
 // @touch writes hard references as an annotation, on any kind: it takes
-// what the kind's constructor takes, a type's the kinds in types.realized,
+// what the kind's constructor takes, a type's the kinds in spec.touchable,
 // and a reference written in both is listed twice. @see, the soft
 // reference, stands on any kind, names no term and points up as any
 // reference does.
@@ -294,6 +293,7 @@ sees_down: rule {
   must {{ u }}
 }
 
+@status(422)
 e: error("x") {
   title = "bad"
 }
@@ -308,7 +308,7 @@ payments: api {
 }
 `)
 	wantAll(t, res,
-		"reference: other is a rule, and a rule references only actor, part, goal, quality or assumption",
+		"reference: other is a rule, and a rule references only actor, part, goal, quality, assumption or feature",
 		"reference: desk is listed twice, in the constructor and in @touch; list it once",
 		"reference: r is listed twice, in the constructor and in @touch; list it once",
 		"reference: self_service is a goal, and @touch on a enum takes only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition",
@@ -360,7 +360,7 @@ t2: plain_rule(b) {
 `)
 	wantAll(t, res,
 		"reference: desk is a part, and a team_rule references only actor",
-		"reference: b is a rule, and a plain_rule references only actor, part, goal, quality or assumption")
+		"reference: b is a rule, and a plain_rule references only actor, part, goal, quality, assumption or feature")
 	// A kind that extends another takes its parameters and its body.
 	wantNone(t, res, "too-many-arguments", "accept:")
 }
@@ -403,7 +403,7 @@ unmeasured: scenario(q) {
 	wantAll(t, res,
 		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
 		"accept: rule accepts at most 1 trigger, when or if",
-		"missing-argument: constraint c needs a reason from outside the solution",
+		"missing-rationale: constraint c needs a rationale, its reason from outside the solution",
 		"type: desk is a part, not an actor",
 		"scenario: scenario both mixes outcome clauses and quality fields",
 		"scenario: scenario none has neither outcome clauses nor quality fields",
@@ -474,15 +474,16 @@ wrong: scenario(buy.7) {
 // appears in the title or the related message.
 func TestErrorPlaceholders(t *testing.T) {
 	res := checkSrc(t, head+`
+@status(422)
 e: error("x") {
   title = "a {b} and {c}"
-  b: field(String)
-  d: field(String)
+  b: String
+  d: String
 }
 `)
 	wantAll(t, res,
-		"placeholder: {c} in the title of e is no field of it; declare c: field(…)",
-		"placeholder: field d of e appears in neither its title nor its related message")
+		"placeholder: {c} in the title of e is no member of it; declare c with its type, as c: String",
+		"placeholder: member d of e appears in neither its title nor its related message")
 }
 
 // A story lists spec items; it states no behaviour of its own.

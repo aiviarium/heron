@@ -21,7 +21,7 @@ kite: package(version = "1.4.0") {
     |
     | Kite reads its settings from `kite.toml` in the folder it syncs. The
     | [sync command](#kite.cli.sync), ${kite.cli.sync.name}, does the work; its `--dry-run` option defaults to
-    | ${kite.cli.sync.dry_run.default}, so a first run changes nothing until you say so.
+    | ${kite.cli.sync.dry_run}, so a first run changes nothing until you say so.
 
     first_config: example {
       | ```text
@@ -70,7 +70,7 @@ kite: package(version = "1.4.0") {
     @lens(user)
     tips: concept {
       | Keep the folder small: Kite copies changed notes only, so a large folder syncs as
-      | fast as a small one. A [conflict] needs you, and [`dry_run`] previews a sync, as does
+      | fast as a small one. A [conflict] needs you, and [`cli.sync`] with `--dry-run` previews a sync, as does
       | the [store_line] step.
     }
   }
@@ -117,7 +117,7 @@ kite: package(version = "1.4.0") {
     }
 
     no_deletes: rule(kite.system.syncer) {
-      mustNot {{ delete a note from the store }}
+      must_not {{ delete a note from the store }}
       instead {{ move it to the store's `trash/` folder }}
       example {{ removing `ideas.md` locally moves it to `trash/ideas.md` }}
     }
@@ -125,22 +125,25 @@ kite: package(version = "1.4.0") {
     @lens(developer)
     | Spec writers: every rule here names the syncer, so the conformance report groups them.
 
+    @status(422)
     unreadable: error("unreadable") {
       title = "can't read {file}"
-      file: field(String)
+      file: String
       | A note Kite can't read, such as one without read permission.
     }
 
+    @status(422)
     unlistable: error("unreadable") {
       title = "can't list <{folder}>"
-      folder: field(String)
+      folder: String
       | A folder Kite can't list, so none of its notes sync.
     }
 
+    @status(422)
     @severity(warning)
     store_down: error("store-unreachable") {
       title = "the store at {address} doesn't answer"
-      address: field(String)
+      address: String
       | The store didn't answer within the timeout; Kite retries at the next interval.
     }
 
@@ -191,7 +194,7 @@ kite: package(version = "1.4.0") {
   @status(423)
   note_locked: error("store.NOTE_LOCKED") {
     title = "{id} is being written by another sync"
-    id: field(String)
+    id: String
     | Reported as [gone_notes] says.
   }
 
@@ -202,20 +205,18 @@ kite: package(version = "1.4.0") {
 
   @display("CLI")
   cli: section {
-    sync: command("kite sync") {
-      usage = ["kite sync [--dry-run] [folder]"]
-
+    sync(
+      /// Lists what a sync would copy without copying it.
+      @option
+      dry_run: Bool = false,
+      /// The folder to sync; `.` unless given.
+      folder?: String,
+    ): command("kite sync") {
       | Syncs a folder with its store, once.
-
-      folder: argument("folder", type = String, optional = true) {{ The folder to sync; `.` unless given. }}
-
-      dry_run: option("--dry-run", type = Bool, default = false) {
-        | Lists what a sync would copy without copying it.
-      }
 
       | Exits 0 when the sync finished.
 
-      @exit(1)
+      @status(422)
       exit_1: error("kite sync exit 1") {
         title = "a note couldn't be copied"
         | Reported as [cli.sync.exits_nonzero] says.

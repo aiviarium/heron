@@ -110,11 +110,7 @@ func renderDiagnostic(c *Ctx) error {
 	if k := s.Checker.KindOf(n); k != nil {
 		meta = append(meta, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
 	}
-	for _, pr := range []struct{ arg, key string }{{"status", "docs.label.status"}, {"exit", "docs.col.code"}} {
-		if t := annText(n, pr.arg); t != "" {
-			meta = append(meta, esc(pr.arg)+` <code>`+esc(t)+`</code>`)
-		}
-	}
+	meta = append(meta, s.codeFacts(n)...)
 	if r := fieldString(n, "related"); r != "" {
 		meta = append(meta, esc(label("docs.label.related_site"))+` <span class="diag-related">`+messageHTML(r)+`</span>`)
 	}

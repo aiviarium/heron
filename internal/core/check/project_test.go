@@ -40,8 +40,8 @@ proves(x) {
   verify("internal/c/c_test.go", test = "TestC")
 }
 
-later: status<planned>(x)
-built: status<untested>(x) {{ Built with the first cut. }}
+later: progress<planned>(x)
+built: progress<untested>(x) {{ Built with the first cut. }}
 
 first: release("1.0.0+build1", date = "2026-11-01") {{ The first release. }}
 `
@@ -70,7 +70,7 @@ const shopSpec = `import = ["std/doc@1"]
 shop: package(version = "2.1.3", sealed = true) {
   buyer: actor {{ Someone who buys. }}
 
-  checkout: section {
+  checkout: feature(buyer) {
     pay_once: rule(buyer) {
       must {{ pay for an order once }}
     }
@@ -115,9 +115,10 @@ func TestProjectMode(t *testing.T) {
 		"goal":    "g: goal {{ More. }}\n",
 		"term":    "word: term {{ A word. }}\n",
 		"actor":   "admin: actor {{ An admin. }}\n",
-		"error":   "d: error(\"E1\") {\n  title = \"bad\"\n}\n",
+		"error":   "@status(422)\nd: error(\"E1\") {\n  title = \"bad\"\n}\n",
 		"nested":  "notes: section {\n  r: rule {\n    must {{ x }}\n  }\n}\n",
 		"command": "c: command(\"shop\") {}\n",
+		"feature": "f: feature {{ More. }}\n",
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -128,7 +129,7 @@ func TestProjectMode(t *testing.T) {
 	}
 	ok := projectHead + `
 arch: section {
-  cart: component("internal/cart", shop.buyer) {
+  cart: component("internal/cart", shop.checkout) {
     responsibility {{ Holds the cart. }}
   }
 }
@@ -137,12 +138,16 @@ proves(shop.checkout.pay_once) {
   verify("internal/cart/pay_test.go", test = "TestPayOnce")
 }
 
-status<planned>(shop.checkout.receipt)
+progress<planned>(shop.checkout.receipt)
 `
 	res := checkFiles(t, map[string]string{"shop/index.heron": shopSpec, "app/index.heron": ok}, "app/index.heron")
 	if ds := diagStrings(res); len(ds) > 0 {
 		t.Errorf("project-side kinds: %v", ds)
 	}
+	// A component builds features and parts, never an actor or a section.
+	res = checkFiles(t, map[string]string{"shop/index.heron": shopSpec, "app/index.heron": projectHead + "notes: section {}\n\nc: component(\"internal/c\", shop.buyer, notes) {}\n"}, "app/index.heron")
+	wantDiagContaining(t, res, "reference: buyer is a actor, and a component references only feature or part")
+	wantDiagContaining(t, res, "reference: notes is a section, and a component references only feature or part")
 	// The same spec kinds are fine in a tree that implements nothing.
 	res = checkFiles(t, map[string]string{"index.heron": "import = [\"std/doc@1\"]\nr: rule {\n  must {{ x }}\n}\n"}, "index.heron")
 	if ds := diagStrings(res); len(ds) > 0 {
@@ -151,14 +156,16 @@ status<planned>(shop.checkout.receipt)
 }
 
 // implements stands once at the root and names an imported spec; proofs
-// and statuses name the spec's requirements.
+// and progresses name the spec's requirements, and one that names nothing
+// in the spec is reported.
 func TestProjectStructure(t *testing.T) {
 	cases := map[string]struct{ body, want string }{
-		"nested implements":  {"inner: section {\n  again: implements(shop, at = \"2.1.3\")\n}\n", "implements stands at the root"},
-		"second implements":  {"again: implements(shop, at = \"2.1.3\")\n", "this is a second implements"},
-		"own target":         {"mine: section {}\nproves(mine) {\n  verify(\"a_test.go\")\n}\n", "mine is the project's own"},
-		"not a requirement":  {"proves(shop.checkout) {\n  verify(\"a_test.go\")\n}\n", "checkout is no spec requirement"},
-		"proof without test": {"proves(shop.checkout.pay_once)\n", "a proof holds the verify"},
+		"nested implements":   {"inner: section {\n  again: implements(shop, at = \"2.1.3\")\n}\n", "implements stands at the root"},
+		"second implements":   {"again: implements(shop, at = \"2.1.3\")\n", "this is a second implements"},
+		"own target":          {"mine: section {}\nproves(mine) {\n  verify(\"a_test.go\")\n}\n", "mine is the project's own"},
+		"not a requirement":   {"proves(shop.checkout) {\n  verify(\"a_test.go\")\n}\n", "checkout is no spec requirement"},
+		"proof without test":  {"proves(shop.checkout.pay_once)\n", "a proof holds the verify"},
+		"no such requirement": {"proves(shop.checkout.gone) {\n  verify(\"a_test.go\")\n}\n", "unknown name shop.checkout.gone"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -190,7 +197,7 @@ proves(shop.checkout.pay_once) {
   verify("scripts/e2e.sh", test = "pay")
 }
 
-status<planned>(shop.checkout.refund)
+progress<planned>(shop.checkout.refund)
 `
 	res := checkFiles(t, map[string]string{"shop/index.heron": cur, "shop-old/index.heron": old, "app/index.heron": src}, "app/index.heron")
 	if ds := diagStrings(res); len(ds) > 0 {
@@ -292,9 +299,10 @@ shop: package(version = "1.0.0", sealed = true) {
     must {{ send a receipt }}
   }
 
+  @status(422)
   no_receipt: error("shop.NO_RECEIPT") {
     title = "no receipt for {order}"
-    order: field(String)
+    order: String
     | Reported as [receipt] says.
   }
 }

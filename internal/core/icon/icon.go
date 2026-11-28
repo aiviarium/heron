@@ -264,7 +264,7 @@ func markName(c *types.Checker, a resolve.Site) (string, bool) {
 		return "", false
 	}
 	if d := c.Refs[an.Path().N]; d != nil {
-		if p := d.Path(); p != "core.icon" && p != "schema.icon" {
+		if d.Path() != "core.icon" {
 			return "", false
 		}
 	} else if segs := resolve.PathSegs(an.Path().N); len(segs) != 1 || segs[0] != "icon" {

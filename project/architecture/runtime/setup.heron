@@ -62,7 +62,7 @@ setup: component("internal/core/setup", heron.system.interpreter, heron.system.c
   }
 
   pins_hold: property {
-    mustNot {{ move a pin of `heron.lock` that no longer matches what it pins, unless asked with `update`; it fails naming the pin instead }}
+    must_not {{ move a pin of `heron.lock` that no longer matches what it pins, unless asked with `update`; it fails naming the pin instead }}
     verify("scripts/e2e-setup.sh")
   }
 

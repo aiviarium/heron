@@ -1,5 +1,5 @@
 @display("VS Code extension")
-vscode: component("editors/vscode", heron.system.editor_extension, lang = "ts") {
+vscode: component("editors/vscode", heron.system.editor_extension, heron.tools.vscode, lang = "ts") {
   | The [VS Code extension](#heron.tools.vscode), in TypeScript, bundled by esbuild into
   | `dist/extension.js` for the desktop and `dist/web.js` for the browser and packaged by
   | `@vscode/vsce` as `heron.vsix`. Its language client is `vscode-languageclient` over

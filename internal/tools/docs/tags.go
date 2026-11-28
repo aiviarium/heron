@@ -40,12 +40,8 @@ func (s *Site) tagRenderer(kind string) tagFunc {
 	switch short {
 	case "note", "tip", "warning", "danger":
 		k := short
-		return func(body string, a map[string]string) (string, bool) {
-			kk := k
-			if v := a["kind"]; v != "" {
-				kk = strings.ToLower(v)
-			}
-			return `<aside class="callout callout-` + attr(kk) + `">` + s.themeIcon(kk) + `<div class="prose"><p>` + body + `</p></div></aside>`, true
+		return func(body string, _ map[string]string) (string, bool) {
+			return `<aside class="callout callout-` + attr(k) + `">` + s.themeIcon(k) + `<div class="prose"><p>` + body + `</p></div></aside>`, true
 		}
 	case "kbd":
 		return func(body string, _ map[string]string) (string, bool) { return `<kbd>` + body + `</kbd>`, false }

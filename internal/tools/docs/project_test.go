@@ -66,7 +66,7 @@ func TestProjectSite(t *testing.T) {
 		t.Errorf("releases page, newest first: %s", rel)
 	}
 	comp := pageHTML(t, s, "architecture.cart.html")
-	for _, want := range []string{`href="_spec.html#shop.parts.cart"`, "<code>parts.cart</code>", "<code>buyer</code>"} {
+	for _, want := range []string{`href="_spec.html#shop.parts.cart"`, "<code>parts.cart</code>", "<code>checkout</code>"} {
 		if !strings.Contains(comp, want) {
 			t.Errorf("component page lacks %q", want)
 		}
@@ -121,8 +121,8 @@ func TestConformancePractices(t *testing.T) {
 		}
 		return string(b)
 	}
-	spec := strings.Replace(read("../../../examples/shop-spec/index.heron"), "  /// The parts of the system", `  helper: actor(kind = ActorKind.AGENT) {{ An agent that builds the shop. }}
-  ledger: actor(kind = ActorKind.SYSTEM) {{ The books. }}
+	spec := strings.Replace(read("../../../examples/shop-spec/index.heron"), "  /// The parts of the system", `  helper: actor(role = ActorRole.AGENT) {{ An agent that builds the shop. }}
+  ledger: actor(role = ActorRole.SYSTEM) {{ The books. }}
 
   conduct: section {
     tidy_carts: rule(buyer) {

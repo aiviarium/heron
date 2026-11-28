@@ -68,9 +68,11 @@ func prelude(name string) []string {
 	return []string{PreludeName, SpecName}
 }
 
-// bootstrap are std/core and the two packages it's written with, which the
-// format describes itself with and which reach each other.
-var bootstrap = map[string]bool{PreludeName + "@1": true, "std/schema@1": true, "std/types@1": true}
+// bootstrap are the core, std/core and std/spec, and the packages they're
+// written with, std/schema, std/types and std/doc: the format describes
+// itself with them, and they reach each other, as std/types's ops take
+// std/spec's examples and reference its touchable kinds.
+var bootstrap = map[string]bool{PreludeName + "@1": true, SpecName + "@1": true, "std/schema@1": true, "std/types@1": true, "std/doc@1": true}
 
 // Resolve reads the tree of an entry point.
 func (r *Resolver) Resolve(entry FileID) *Tree {
@@ -713,10 +715,11 @@ func (b *builder) pkg(spec string, from *File, site Site) *Package {
 	}
 	for i, k := range b.r.stack {
 		if k == key {
-			// std/core is written with std/schema and std/types, which
-			// declare each other and see std/core: the format describing
-			// itself. Names resolve lazily, so that one cycle is finite;
-			// any other, among standard packages too, is an error.
+			// The core, std/core and std/spec, is written with std/schema,
+			// std/types and std/doc, which declare each other and see
+			// std/core: the format describing itself. Names resolve
+			// lazily, so those cycles are finite; any other, among
+			// standard packages too, is an error.
 			if p := b.r.inflight[key]; p != nil && bootstrap[key] && bootstrap[b.r.stack[len(b.r.stack)-1]] {
 				return p
 			}

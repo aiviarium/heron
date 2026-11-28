@@ -1,6 +1,6 @@
 // std/core: what every file sees without an import. The Core format tab
-// names `variadic` and `export` as the core flags and `@doc` and `@display`
-// as the core annotations; funcs, macros and tasks are the code kinds of the
+// names `variadic` and `export` as the core flags and `@doc`, `@display`,
+// `@icon` and `@throws` as the core annotations; funcs, macros and tasks are the code kinds of the
 // Core format and Scripting tabs, which use them without importing anything.
 // The primitive types, such as String and List, are built into the binary.
 import = ["std/schema@1", "std/types@1"]
@@ -13,6 +13,7 @@ core: package(version = "1.0") {
   export: flag
 
   /// Documentation, joined from `///` lines.
+  @highlight(token = "comment.doc")
   doc: annotation {
     accept(prose)
   }
@@ -21,9 +22,13 @@ core: package(version = "1.0") {
   display(name: String): annotation
 
   /// The icon the node shows in the docs, by the name of an icon a
-  /// package declares, such as std/docs's `book-open`. Std/schema's
-  /// `@icon` is the same for the packages that declare kinds.
+  /// package declares, such as std/docs's `book-open`. On a kind, the icon
+  /// every node of the kind shows unless it names its own.
   icon(name: String): annotation
+
+  /// The errors a node may raise: an op, every op of an api, a command, a
+  /// func or a task.
+  throws(errors<variadic>: Ref(Any)): annotation<repeatable>
 
   /// Lints that don't report on this node or anything inside it.
   lint(allow: List(String)): annotation

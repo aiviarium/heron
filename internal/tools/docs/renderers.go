@@ -21,7 +21,8 @@ var builtins map[string]RenderFunc
 func init() {
 	builtins = map[string]RenderFunc{
 		"doc.section":     renderSection,
-		"doc.term":        renderTerm,
+		"spec.feature":    renderFeature,
+		"spec.term":       renderTerm,
 		"spec.rule":       renderRule,
 		"spec.states":     renderStates,
 		"spec.constraint": renderRule,
@@ -193,7 +194,7 @@ func (c *Ctx) childrenOrLinks() error {
 				c.Heading(c.Level+1, Anchor(c.Node)+".rules", label("docs.heading.rules"), "")
 			}
 		}
-		if k := c.Site.kindPath(ch); ch.Name != "" && (k == "doc.section" || k == "" && ch.Shape == resolve.ShapeScoped) {
+		if k := c.Site.kindPath(ch); ch.Name != "" && (k == "doc.section" || k == "spec.feature" || k == "" && ch.Shape == resolve.ShapeScoped) {
 			headed = true
 		}
 		if err := c.Render(ch); err != nil {
@@ -337,7 +338,7 @@ func refText(n *resolve.Node) string {
 // refText is a reference as read on the current page: a term by its word,
 // anything else by its path below the page's node.
 func (c *Ctx) refText(n *resolve.Node) string {
-	if c.Site.kindPath(n) == "doc.term" {
+	if c.Site.kindPath(n) == "spec.term" {
 		return termName(c.Site, n)
 	}
 	if n.Name == "" {

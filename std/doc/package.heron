@@ -1,4 +1,4 @@
-// std/doc: sections, terms and the components documentation needs, from the
+// std/doc: sections and the components documentation needs, from the
 // Markup tab. Markdown's forms in prose become these nodes, so the tree is
 // the same whichever form is written.
 import = ["std/schema@1", "std/types@1"]
@@ -10,17 +10,12 @@ doc: package(version = "1.0") {
   /// Kinds that sit inside a sentence; valid only as tags.
   inline: category
 
-  /// A titled part; nesting sets the level. A heading in a prose file is one.
+  /// A titled part of a page, markup only; nesting sets the level. A
+  /// heading in a prose file is one.
   section: kind(in = [block], heading = true) {
     accept(prose)
     accept(category = block)
     accept(category = inline)
-  }
-
-  /// A word the glossary defines once.
-  @icon("book-a")
-  term(aliases?: List(String), context?: String): kind(in = [block], layer = Layer.SPECIFICATION) {
-    accept(prose)
   }
 
   /// A paragraph.
@@ -91,45 +86,39 @@ doc: package(version = "1.0") {
     accept(category = inline)
   }
 
-  /// A link to a node or a page.
-  link<overload>(uri: String): kind(in = [inline]) {
+  /// A link to a page, by its URI.
+  link(uri: String): kind(in = [inline]) {
     accept(prose)
   }
 
-  link<overload>(target: Ref(Any)): kind(in = [inline]) {
+  /// The element form of a link to a node: `<ref to="name"/>` is `[name]`,
+  /// with `code` it's ``[`name`]``, its path shown as code, and with text,
+  /// `<ref to="name">text</ref>`, it's `[text](#name)`.
+  ref(to: Ref(Any), code?: Bool): kind(in = [inline]) {
     accept(prose)
   }
-
-  /// The element form of a short link: `<ref to="name"/>` is `[name]`,
-  /// and with `code` it's ``[`name`]``, its path shown as code.
-  ref(to: Ref(Any), code?: Bool): kind(in = [inline])
 
   divider: kind(in = [block])
 
-  /// What a callout says.
-  NoteKind: enum {
-    NOTE: Self
-    TIP: Self
-    WARNING: Self
-    DANGER: Self
-  }
-
-  /// Callouts.
-  note(kind: NoteKind = NoteKind.NOTE): kind(in = [block]) {
+  /// A callout with something worth knowing.
+  note: kind(in = [block]) {
     accept(prose)
     accept(category = inline)
   }
 
+  /// A callout with advice that makes something easier.
   tip: kind(in = [block]) {
     accept(prose)
     accept(category = inline)
   }
 
+  /// A callout about something that can go wrong.
   warning: kind(in = [block]) {
     accept(prose)
     accept(category = inline)
   }
 
+  /// A callout about something that can't be undone or loses data.
   danger: kind(in = [block]) {
     accept(prose)
     accept(category = inline)
@@ -230,9 +219,4 @@ doc: package(version = "1.0") {
   /// it shows only in those, and explore shows everything. Each name is a
   /// lens the tree declares or std/docs ships.
   lens(names<variadic>: Ref(Any)): annotation
-
-  @highlight(token = "comment.doc")
-  doc: annotation {
-    accept(prose)
-  }
 }

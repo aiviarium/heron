@@ -46,7 +46,7 @@ func (s *Site) conformancePage(c *Ctx) error {
 		}
 		c.Heading(2, g.id, label("docs.conformance.gap_"+g.key), "")
 		c.W(`<p>`, esc(label("docs.conformance.gap_"+g.key+"_note")), `</p>`)
-		for _, grp := range project.GapGroups(g.items) {
+		for _, grp := range project.GapGroups(g.items, rep.Gaps.Features) {
 			c.W(`<details class="gap-group"><summary><code>`, esc(grp.Area), `</code> <span class="gap-count">`, strconv.Itoa(len(grp.Items)), `</span></summary><ul class="gap-list">`)
 			for _, it := range grp.Items {
 				inner := `<code>` + esc(strings.TrimPrefix(it, grp.Area+".")) + `</code>`
@@ -113,7 +113,7 @@ func addProjectRenderers() {
 	for k, f := range map[string]RenderFunc{
 		"project.implements": renderImplements,
 		"project.proves":     renderProves,
-		"project.status":     renderImplStatus,
+		"project.progress":   renderProgress,
 		"project.release":    renderRelease,
 	} {
 		builtins[k] = f
@@ -160,9 +160,9 @@ func renderProves(c *Ctx) error {
 	return nil
 }
 
-// renderImplStatus is a status: the requirements it covers and whether
+// renderProgress is a progress: the requirements it covers and whether
 // they are planned or untested.
-func renderImplStatus(c *Ctx) error {
+func renderProgress(c *Ctx) error {
 	n := c.Node
 	st := ""
 	for _, f := range kindFlags(n) {

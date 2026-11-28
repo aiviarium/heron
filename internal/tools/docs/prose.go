@@ -320,13 +320,10 @@ func (p *proseBuf) shortLink(l ast.ShortLink) string {
 }
 
 // refElement renders `<ref to="name"/>` as `[name]` does, with `code` as
-// “[`name`]“ does, and `<link target="name">text</link>` as a link to
-// the node with its text.
-func (p *proseBuf) refElement(t ast.Tag, kind string, inner []syntax.Elem) string {
+// “[`name`]“ does, and `<ref to="name">text</ref>` as a link to the node
+// with its text, as `[text](#name)` does.
+func (p *proseBuf) refElement(t ast.Tag, inner []syntax.Elem) string {
 	key := "to"
-	if kind == "doc.link" {
-		key = "target"
-	}
 	var lit *syntax.Node
 	code := false
 	for _, a := range t.TagAttrs() {
@@ -347,7 +344,7 @@ func (p *proseBuf) refElement(t ast.Tag, kind string, inner []syntax.Elem) strin
 	target := p.s.Checker.Refs[lit]
 	text := esc(name)
 	switch {
-	case kind == "doc.link":
+	case strings.TrimSpace(p.sub(inner)) != "":
 		text = p.sub(inner)
 	case code:
 		text = `<code>` + esc(name) + `</code>`
@@ -364,7 +361,7 @@ func (p *proseBuf) refElement(t ast.Tag, kind string, inner []syntax.Elem) strin
 // word, any other node by its display name with its first letter in lower
 // case, keeping a type's name and a name written in capitals.
 func sentenceWords(s *Site, n *resolve.Node) string {
-	if s.kindPath(n) == "doc.term" {
+	if s.kindPath(n) == "spec.term" {
 		return termName(s, n)
 	}
 	d := displayName(s, n)
@@ -527,10 +524,10 @@ func (p *proseBuf) tag(t ast.Tag) (string, bool) {
 		}
 		attrs[key] = val
 	}
-	if name == "doc.ref" || name == "doc.link" && attrs["target"] != "" {
-		// The element form of a short link, or a link to a node: the
-		// node its quoted attribute names, as `[name]` renders it.
-		return p.refElement(t, name, inner), false
+	if name == "doc.ref" {
+		// The element form of a link to a node: the node its quoted
+		// attribute names, as `[name]` or `[text](#name)` renders it.
+		return p.refElement(t, inner), false
 	}
 	body := p.sub(inner)
 	if r := p.s.tagRenderer(name); r != nil {
@@ -762,6 +759,15 @@ func (s *Site) factValue(segs []string, site resolve.Site) string {
 	for i, e := range argExprs(args) {
 		if i < len(names) && names[i] == name {
 			return s.factHTML(e, n.Decl)
+		}
+	}
+	// A parameter the node declares itself, as a command's option: its
+	// default.
+	for _, p := range s.Checker.Params(n) {
+		if p.Name == name && p.N != nil {
+			if d := (ast.Param{N: p.N}).Default(); d != nil {
+				return s.factHTML(d, n.Decl)
+			}
 		}
 	}
 	// The parameter's default, when the node passes none.

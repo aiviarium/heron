@@ -36,7 +36,7 @@ refunds: section {
   }
 
   never_twice: rule {
-    mustNot {{ refund a ticket twice }}
+    must_not {{ refund a ticket twice }}
     instead {{ answer with the first refund }}
   }
 

@@ -121,7 +121,7 @@ func renderActor(c *Ctx) error {
 
 func actorKind(n *resolve.Node) string {
 	args := kindArgs(n)
-	if e := namedArg(args, "kind"); e != nil {
+	if e := namedArg(args, "role"); e != nil {
 		return variantName(e)
 	}
 	if es := argExprs(args); len(es) > 0 {
@@ -330,24 +330,4 @@ func renderStepAlone(c *Ctx) error {
 	c.Prose(c.Node)
 	c.W(`</div>`)
 	return nil
-}
-
-// argRefList are the nodes a field set to a list of references names, as
-// a command's `errors = [window_expired]`.
-func (s *Site) argRefList(n *resolve.Node, field string) []*resolve.Node {
-	ch := n.Child(field)
-	if ch == nil || ch.Value == nil {
-		return nil
-	}
-	exprs := []ast.Expr{ch.Value}
-	if arr, ok := ch.Value.(ast.ArrayExpr); ok {
-		exprs = arr.Exprs()
-	}
-	var out []*resolve.Node
-	for _, x := range exprs {
-		if t := s.refTarget(x.Syntax(), ch.ValueSite); t != nil {
-			out = append(out, t)
-		}
-	}
-	return out
 }

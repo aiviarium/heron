@@ -111,7 +111,7 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
 
   @display("No I/O")
   no_io: property {
-    mustNot {{ import `os`, `os/exec`, `net`, `net/http`, `io/fs`, `io/ioutil`, `syscall` or `path/filepath` }}
+    must_not {{ import `os`, `os/exec`, `net`, `net/http`, `io/fs`, `io/ioutil`, `syscall` or `path/filepath` }}
     verify("scripts/ci.sh", test = "syntax and eval do no I/O")
   }
 
@@ -121,7 +121,7 @@ eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
   }
 
   faults_not_caught: property {
-    mustNot {{ let `attempt(…)` catch a fault in code, such as an unknown name or a wrong operand; it catches only [thrown errors](#heron.language.scripting.code.thrown_error) }}
+    must_not {{ let `attempt(…)` catch a fault in code, such as an unknown name or a wrong operand; it catches only [thrown errors](#heron.language.scripting.code.thrown_error) }}
     verify("internal/core/eval/eval_test.go", test = "TestCodeErrors")
   }
 
@@ -161,7 +161,7 @@ eval_host: component("internal/core/eval/host", heron.system.interpreter, lang =
   }}
 
   no_shell: property {
-    mustNot {{ start a process through a shell }}
+    must_not {{ start a process through a shell }}
     verify("internal/core/eval/host/host_test.go", test = "TestRunPassesArgumentsWithoutAShell")
   }
 

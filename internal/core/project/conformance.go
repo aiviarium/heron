@@ -38,6 +38,10 @@ type Report struct {
 type Gaps struct {
 	Unrealized   []string `json:"unrealized"`
 	UncitedTests []string `json:"uncited_tests"`
+	// Features maps an entry to the innermost feature it stands in, by
+	// path, which the report groups it by; an entry in no feature isn't
+	// listed.
+	Features map[string]string `json:"features,omitempty"`
 }
 
 // Row is one requirement of the report.
@@ -243,7 +247,7 @@ func (r *Report) Markdown() []byte {
 			continue
 		}
 		fmt.Fprintf(&b, "\n## %s\n\n%s\n\n", g.title, g.about)
-		for _, grp := range GapGroups(g.items) {
+		for _, grp := range GapGroups(g.items, r.Gaps.Features) {
 			fmt.Fprintf(&b, "<details><summary>%s (%d)</summary>\n\n", grp.Area, len(grp.Items))
 			for _, it := range grp.Items {
 				fmt.Fprintf(&b, "- `%s`\n", it)
@@ -303,15 +307,17 @@ func orDash(s string) string {
 	return s
 }
 
-// GapGroup is the entries of a gap in one area of the spec.
+// GapGroup is the entries of a gap in one feature of the spec, or in one
+// area, for entries in no feature.
 type GapGroup struct {
 	Area  string
 	Items []string
 }
 
-// GapGroups groups a gap's entries by their area, the first two names of
-// their path, in the order the areas first appear.
-func GapGroups(items []string) []GapGroup {
+// GapGroups groups a gap's entries by the innermost feature each stands
+// in, as features maps them, and an entry in no feature by its area, the
+// first two names of its path, in the order the groups first appear.
+func GapGroups(items []string, features map[string]string) []GapGroup {
 	var out []GapGroup
 	at := map[string]int{}
 	for _, it := range items {
@@ -319,6 +325,9 @@ func GapGroups(items []string) []GapGroup {
 		area := segs[0]
 		if len(segs) == 3 {
 			area = segs[0] + "." + segs[1]
+		}
+		if f := features[it]; f != "" {
+			area = f
 		}
 		i, ok := at[area]
 		if !ok {

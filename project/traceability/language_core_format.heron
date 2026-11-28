@@ -90,6 +90,10 @@ language_core_format: section {
     verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
   }
 
+  proves(heron.language.core_format.nodes.annotations.core_annotations_win) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestAmbiguousCode")
+  }
+
   proves(heron.language.core_format.nodes.annotations.annotations_resolve) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }

@@ -574,12 +574,15 @@ func (m *Model) buildSparrow(api *resolve.Node) {
 		}
 		for i := range meth.Errors {
 			e := &meth.Errors[i]
-			if e.Sparrow != "" {
-				if e.SparrowSigilAt.N != nil && !f.both[e.Node] {
+			switch {
+			case e.SparrowSigilAt.N != nil && e.SparrowExplicit:
+				if !f.both[e.Node] {
 					f.both[e.Node] = true
-					m.errorf(e.SparrowSigilAt, "sparrow", "%s has a core code, @sparrow.code(%s), and a sigil of its own: give it one or the other", e.Node.Name, e.Sparrow)
+					m.errorf(e.SparrowSigilAt, "sparrow", "%s has a core code, @sparrow.status(%s), and a sigil of its own: give it one or the other", e.Node.Name, e.Sparrow)
 				}
-			} else {
+			case e.SparrowSigilAt.N != nil || e.Sparrow == "":
+				// A sigil of its own: its @sigil, or a type with no code.
+				e.Sparrow = ""
 				e.SparrowSigil = f.errorSigil(m, e)
 			}
 			if !e.IsNode {

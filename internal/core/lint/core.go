@@ -25,6 +25,7 @@ func Register(r *registry.Registry) {
 		{Name: "example-params", Summary: "an op example that leaves out a required parameter", Run: wrap(exampleParams)},
 		{Name: "repeated-import", Summary: "an import that an enclosing scope already makes", Run: wrap(repeatedImport)},
 		{Name: "rpc-code", Summary: "an error an RPC method throws without a code for its binding, or a JSON-RPC code in the reserved range", Run: wrap(rpcCodes)},
+		{Name: "redundant-code", Summary: "an override of an error's code that sets the code its @status derives", Run: wrap(redundantCodes)},
 		{Name: "sparrow-id", Summary: "a Sparrow TypeId or method id left to the order it's reached in, while others of its facet are written", Run: wrap(sparrowIDs)},
 	} {
 		r.MustAddLint(l)
@@ -41,6 +42,93 @@ func rpcCodes(in *Input) {
 			in.Report(f.Node, f.Site, diag.Warning, f.Message)
 		}
 	}
+}
+
+// redundantCodes reports an override annotation of an error's code,
+// @proto.status, @sparrow.status, @jsonrpc.code or @exit, that sets the
+// code its @status derives, with a fix that removes it.
+func redundantCodes(in *Input) {
+	c := in.Checker
+	eachNode(in, func(n *resolve.Node) {
+		status := ""
+		type override struct {
+			site      resolve.Site
+			name, set string
+		}
+		var os []override
+		for _, s := range n.Annotations {
+			if s.N == nil || s.N.Kind != syntax.Annotation {
+				continue
+			}
+			a := ast.Annotation{N: s.N}
+			d := c.Refs[a.Path().N]
+			if d == nil || d.Parent == nil || a.Args().N == nil {
+				continue
+			}
+			es := a.Args().Args()
+			if len(es) == 0 {
+				continue
+			}
+			var e ast.Expr
+			switch x := es[0].(type) {
+			case ast.PositionalArg:
+				e = x.Expr()
+			case ast.NamedArg:
+				e = x.Expr()
+			}
+			if e == nil {
+				continue
+			}
+			v := strings.TrimSpace(e.Syntax().Text())
+			if i := strings.LastIndexByte(v, '.'); i >= 0 {
+				v = v[i+1:] // a variant written Code.NOT_FOUND
+			}
+			switch pkg := d.Parent.Name; {
+			case d.Name == "status" && (pkg == "spec" || pkg == "core"):
+				status = v
+			case d.Name == "status" && (pkg == "proto" || pkg == "sparrow"), d.Name == "code" && pkg == "jsonrpc", d.Name == "exit" && pkg == "spec":
+				os = append(os, override{site: s, name: "@" + pkg + "." + d.Name, set: v})
+			}
+		}
+		if status == "" {
+			return
+		}
+		for _, o := range os {
+			var derived string
+			switch o.name {
+			case "@proto.status":
+				derived = rpc.GRPCCode(status)
+			case "@sparrow.status":
+				derived = rpc.SparrowCodeName(status)
+			case "@jsonrpc.code":
+				if d, ok := rpc.JSONRPCCode(status); ok {
+					derived = fmt.Sprint(d)
+				}
+			case "@spec.exit":
+				o.name = "@exit"
+				if d, ok := rpc.ExitCode(status); ok {
+					derived = fmt.Sprint(d)
+				}
+			}
+			if derived == "" || derived != o.set {
+				continue
+			}
+			s, e := o.site.Span()
+			src := o.site.File.Src
+			end := e
+			for end < len(src) && (src[end] == ' ' || src[end] == '\t') {
+				end++
+			}
+			if end < len(src) && src[end] == '\n' {
+				end++
+				for end < len(src) && (src[end] == ' ' || src[end] == '\t') {
+					end++
+				}
+			}
+			fix := diag.Fix{Title: "Remove " + o.name, Edits: []diag.Edit{{File: string(o.site.File.ID), Start: s, End: end}}}
+			in.ReportFix(n, o.site.File, s, e, diag.Warning, fmt.Sprintf("%s sets %s, the code %s's @status derives; leave it out", o.name, o.set, n.Name), []diag.Fix{fix})
+		}
+	})
 }
 
 // sparrowIDs reports the TypeIds and method ids of a Sparrow facet left to
@@ -255,7 +343,7 @@ func exampleParams(in *Input) {
 	c := in.Checker
 	eachNode(in, func(n *resolve.Node) {
 		k := c.KindOf(n)
-		if k == nil || !types.IsStd(k, "types", "types.example") {
+		if k == nil || !types.IsStd(k, "spec", "spec.example") {
 			return
 		}
 		if len(n.Children) == 0 {

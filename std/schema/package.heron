@@ -108,11 +108,6 @@ schema: package(version = "1.0") {
   /// Overrides the default token class of a kind, flag or annotation.
   highlight(token: String): annotation(on = [kind, flag, annotation, language])
 
-  /// The icon a node shows in the docs, by the name of an `icon` a
-  /// package declares, such as std/docs's `book-open`. On a kind, the icon
-  /// every node of the kind shows unless it names its own.
-  icon(name: String): annotation
-
   /// Above a language: how inserted values are made safe. `@insert<raw>`
   /// above a node opts out.
   insert(mode?: Insert): annotation

@@ -9,12 +9,12 @@ shop: package(version = "2.1.2", sealed = true) {
 
   /// The parts of the system the requirements are about.
   parts: section {
-    cart: section {{ Holds what the buyer is about to order. }}
+    cart: part {{ Holds what the buyer is about to order. }}
 
-    payments: section {{ Takes the buyer's money for an order. }}
+    payments: part {{ Takes the buyer's money for an order. }}
   }
 
-  checkout: section {
+  checkout: feature(buyer) {
     | Paying for an order and what the buyer gets back.
 
     pay_once: rule {

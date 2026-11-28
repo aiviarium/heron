@@ -15,12 +15,12 @@ func TestElementsCheck(t *testing.T) {
 	_, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/docs@1"]
 
 people: section {
-  desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
+  desk: actor(role = ActorRole.SYSTEM) {{ The console. }}
 }
 
 ok: section {
   | <rule id="late" refs="desk"><must>refuse it</must></rule>
-  | <toc depth="2" /> <toc depth={1 + 1} /> <ref to="desk"/> <note kind="TIP">A tip.</note>
+  | <toc depth="2" /> <toc depth={1 + 1} /> <ref to="desk"/> <ref to="desk">the desk</ref> <tip>A tip.</tip>
 }
 
 bad: section {
@@ -90,7 +90,7 @@ func TestElementVariadicAttribute(t *testing.T) {
 	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/project@1"]
 
 people: section {
-  desk: actor(kind = ActorKind.SYSTEM) {{ The console. }}
+  desk: actor(role = ActorRole.SYSTEM) {{ The console. }}
 }
 
 ok: section {

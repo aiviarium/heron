@@ -10,10 +10,10 @@ How a change moves from spec to code: ready, building, done.
 2. **Building.** Each Go or TS package is one `component` under
    [the architecture](#architecture), whose path is the package's folder and which names the
    system parts it implements. A requirement the code doesn't meet yet is listed as
-   `status<planned>` in [the status](#status).
+   `progress<planned>` in [the status](#status).
 3. **Done.** The change links the test that proves each requirement it builds, as a
    `proves(…)` in [the traceability](#traceability), and takes the requirement off the status list.
-   A requirement that's built and still owed a test is `status<untested>`.
+   A requirement that's built and still owed a test is `progress<untested>`.
 
 After every change the tree stays green: `heron check`, `heron lint` and
 `heron fmt --check` pass on the project tree, `heron generate conformance` reports no

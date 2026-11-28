@@ -51,8 +51,8 @@ sparrow: package(version = "1.0", requires = ["std/types@1"]) {
   /// A record's, enum's or union's TypeId in its facet, 64 and up.
   id(n: Int): annotation(on = [types.type, types.enum, types.union])
 
-  /// The sigil of an enum value, or of an error without a core code: its
-  /// id in the facet, 64 and up.
+  /// The sigil of an enum value, or of an error answered with a sigil of
+  /// its own rather than a core code: its id in the facet, 64 and up.
   sigil(n: Int): annotation(on = [types.variant, types.type, spec.error])
 
   /// A record encoded as a map from tag to value, absent fields left out,
@@ -65,7 +65,7 @@ sparrow: package(version = "1.0", requires = ["std/types@1"]) {
   /// Ids that the facet once defined and never defines again, by space.
   retired(types?: List(Int), services?: List(Int), methods?: List(Int), sigils?: List(Int)): annotation(on = [types.api])
 
-  /// The core status code an error is answered with; an error without one
-  /// is answered with a sigil of its own.
-  code(code: Code): annotation(on = [types.type, spec.error])
+  /// The core status code an error is answered with, where the one derived
+  /// from its `@status` doesn't fit.
+  status(code: Code): annotation(on = [types.type, spec.error])
 }

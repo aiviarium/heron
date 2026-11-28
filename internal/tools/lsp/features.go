@@ -96,6 +96,9 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	if p := n.Path(); p != "" {
 		facts = append(facts, "`"+p+"`")
 	}
+	if f := project.Feature(r.res.Checker, n); f != nil {
+		facts = append(facts, "in feature `"+f.Path()+"`")
+	}
 	if site, _, _ := declSpan(n); site.File != nil {
 		facts = append(facts, s.displayID(site.File.ID))
 	}
@@ -122,9 +125,14 @@ func referenceWords(c *types.Checker, n *resolve.Node) string {
 			meaning = "carries out"
 		case kp == "spec.actor", kp == "spec.persona", kp == "spec.part":
 			meaning = "subject"
-			if k := project.KindPath(c, n); k == "spec.goal" || k == "spec.constraint" {
+			switch project.KindPath(c, n) {
+			case "spec.goal", "spec.constraint":
 				meaning = "asked by"
+			case "spec.feature":
+				meaning = "for"
 			}
+		case kp == "spec.feature":
+			meaning = "joins"
 		case kp == "spec.goal", kp == "spec.quality":
 			meaning = "serves"
 			if project.KindPath(c, n) == "spec.scenario" {
@@ -472,7 +480,7 @@ func (s *Session) documentSymbols(params json.RawMessage) (any, error) {
 				kind = symFunction
 			case ch.Shape == resolve.ShapeValue:
 				kind = symProperty
-			case ch.Shape == resolve.ShapeHeading || detail == "section":
+			case ch.Shape == resolve.ShapeHeading || detail == "section" || detail == "feature":
 				kind = symNamespace
 			}
 			if ns < st || ne > e {

@@ -68,11 +68,13 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		subjects(c, n, ds)
 		ruleLinks(c, t, n, ds)
 		triggers(c, n, ds)
+		whereFeature(c, t, n, ds)
 		revision(n, ds)
 	case Is(c, n, "spec.constraint"):
-		if e, _ := argSite(n, "reason"); e == nil || strings.TrimSpace(strings.Trim(e.Syntax().Text(), `"`)) == "" {
-			errAt(ds, n.Decl, "missing-argument", "constraint %s needs a reason from outside the solution", n.Name)
+		if r := childrenOf(c, n, "spec.rationale"); len(r) == 0 || strings.TrimSpace(project.ProseText(r[0])) == "" {
+			errAt(ds, n.Decl, "missing-rationale", "constraint %s needs a rationale, its reason from outside the solution", n.Name)
 		}
+		whereFeature(c, t, n, ds)
 		revision(n, ds)
 	case Is(c, n, "spec.persona"):
 		for _, r := range refsOf(c, n, "plays") {
@@ -93,10 +95,13 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		revision(n, ds)
 	case Is(c, n, "spec.error"):
 		placeholders(c, n, ds)
+		if project.AnnotationArg(n, "status") == nil {
+			errAt(ds, n.Decl, "status", "error %s has no @status; every error has one, which the codes of its other surfaces derive from", n.Name)
+		}
 		revision(n, ds)
 	case Is(c, n, "project.story"):
 		for _, ch := range n.Children {
-			if Is(c, ch, "spec.given", "spec.when", "spec.then", "spec.must", "spec.should", "spec.may", "spec.mustNot", "spec.shouldNot") {
+			if Is(c, ch, "spec.given", "spec.when", "spec.then", "spec.must", "spec.should", "spec.may", "spec.must_not", "spec.should_not") {
 				errAt(ds, ch.Decl, "story", "story %s holds a %s; a story lists the spec items it adds or changes, which state the behaviour", n.Name, KindName(c, ch))
 			}
 		}
@@ -120,13 +125,13 @@ func nodeRefs(c *types.Checker, n *resolve.Node) []Ref {
 	return out
 }
 
-// realizedNames is how a message names the kinds in types.realized.
+// realizedNames is how a message names the kinds in spec.touchable.
 const realizedNames = "a rule, a constraint, a use case or its step, a part, a lifecycle or a transition"
 
 // references checks a node's hard references, in its constructor and its
 // @touch: each names a kind its kind's `references` lists, or a kind that
 // extends one, and on a kind with no list, as a type, a kind in
-// types.realized. A term is vocabulary, which prose mentions and no
+// spec.touchable. A term is vocabulary, which prose mentions and no
 // reference names, and no reference is listed twice.
 func references(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	k := c.KindOf(n)
@@ -158,7 +163,7 @@ func references(c *types.Checker, n *resolve.Node, ds *diag.List) {
 			continue
 		}
 		seen[r.Target] = true
-		if Is(c, r.Target, "doc.term") {
+		if Is(c, r.Target, "spec.term") {
 			errAt(ds, r.Site, "reference", "%s is a term, which is vocabulary: a %s doesn't reference it; mention it in the prose", r.Target.Name, what)
 			continue
 		}
@@ -171,7 +176,7 @@ func references(c *types.Checker, n *resolve.Node, ds *diag.List) {
 		}
 		var names []string
 		for _, a := range allowed {
-			if c.IsCategory(a) && types.IsStd(a, "types", "types.realized") {
+			if c.IsCategory(a) && types.IsStd(a, "spec", "spec.touchable") {
 				names = append(names, realizedNames)
 				continue
 			}
@@ -201,14 +206,14 @@ func allows(c *types.Checker, allowed []*resolve.Node, n *resolve.Node) bool {
 }
 
 // realized reports whether a node's kind, or a kind it extends, is in
-// types.realized, or the node is a step of a use case.
+// spec.touchable, or the node is a step of a use case.
 func realized(c *types.Checker, n *resolve.Node) bool {
 	if StepTarget(n) {
 		return n.Parent != nil && Is(c, n.Parent, "spec.usecase")
 	}
 	for k, i := c.KindOf(n), 0; k != nil && i < 8; k, i = c.Extends(k), i+1 {
 		for _, cat := range c.Categories(k) {
-			if types.IsStd(cat, "types", "types.realized") {
+			if types.IsStd(cat, "spec", "spec.touchable") {
 				return true
 			}
 		}
@@ -269,7 +274,7 @@ func ruleLinks(c *types.Checker, t *resolve.Tree, n *resolve.Node, ds *diag.List
 // prose mentions, which @see doesn't name.
 func seeTargets(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	for _, a := range project.AnnotationArgs(n, "see") {
-		if t := project.RefTarget(c, a.Expr.Syntax(), a.Site); t != nil && Is(c, t, "doc.term") {
+		if t := project.RefTarget(c, a.Expr.Syntax(), a.Site); t != nil && Is(c, t, "spec.term") {
 			errAt(ds, a.Site, "reference", "%s is a term, which is vocabulary: @see doesn't reference it; mention it in the prose", t.Name)
 		}
 	}
@@ -348,9 +353,25 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	}
 }
 
+// whereFeature checks that a requirement's `where` links an optional
+// feature, the one it applies with.
+func whereFeature(c *types.Checker, t *resolve.Tree, n *resolve.Node, ds *diag.List) {
+	for _, w := range childrenOf(c, n, "spec.where") {
+		ok := false
+		for _, r := range OwnRefs(c, t, w) {
+			if r.Target != nil && Is(c, r.Target, "spec.feature") && project.FeatureOptional(r.Target) {
+				ok = true
+			}
+		}
+		if !ok {
+			errAt(ds, w.Decl, "where", "where in %s links no optional feature; it names the optional feature the requirement applies with, and a state is written with while", n.Name)
+		}
+	}
+}
+
 func placeholders(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	fields := map[string]*resolve.Node{}
-	for _, ch := range childrenOf(c, n, "spec.field") {
+	for _, ch := range project.ErrorMembers(c, n) {
 		fields[ch.Name] = ch
 	}
 	used := map[string]bool{}
@@ -366,13 +387,13 @@ func placeholders(c *types.Checker, n *resolve.Node, ds *diag.List) {
 			if fields[p] == nil {
 				start, _ := ch.Value.Syntax().Span()
 				ds.Errorf(string(ch.ValueSite.File.ID), start+m[0], start+m[1], "placeholder",
-					"{%s} in the title of %s is no field of it; declare %s: field(…)", p, n.Name, p)
+					"{%s} in the title of %s is no member of it; declare %s with its type, as %s: String", p, n.Name, p, p)
 			}
 		}
 	}
 	for name, f := range fields {
 		if !used[name] {
-			warnAt(ds, f.Decl, "placeholder", "field %s of %s appears in neither its title nor its related message", name, n.Name)
+			warnAt(ds, f.Decl, "placeholder", "member %s of %s appears in neither its title nor its related message", name, n.Name)
 		}
 	}
 }

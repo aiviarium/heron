@@ -47,7 +47,7 @@ let limit = Duration(days = 30)
 overview: section {
   | See the [refund](#Refund) and $limit.
   |
-  | <note kind="tip">Tags are kinds in scope.</note>
+  | <tip>Tags are kinds in scope.</tip>
 }
 
 late: rule {
@@ -71,8 +71,8 @@ func TestErrors(t *testing.T) {
 		{"import = [\"std/types@1\"]\nR: type {\n  n: Int = \"x\"\n}\n", "expected Int, got a string"},
 		{"import = [\"std/doc@1\"]\nx: section<lage>\n", "unknown flag lage"},
 		{"import = [\"std/doc@1\"]\nx: sektion\n", "unknown kind or type sektion; did you mean section?"},
-		{"import = [\"std/doc@1\"]\nx: note(knd = \"tip\")\n", "kind note takes no argument knd; did you mean kind?"},
-		{"import = [\"std/doc@1\"]\nx: note(kind = \"hint\")\n", `"hint" is not a value of NoteKind`},
+		{"import = [\"std/doc@1\"]\nx: actor(rol = PERSON)\n", "kind actor takes no argument rol; did you mean role?"},
+		{"import = [\"std/doc@1\"]\nx: actor(role = \"robot\")\n", `"robot" is not a value of ActorRole`},
 		{"import = [\"std/doc@1\"]\nx: abbr\n", "kind abbr needs the argument title"},
 		{"import = [\"std/doc@1\"]\n@displey(\"X\")\nx: section\n", "unknown annotation @displey"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | A [link](#nowhere).\n}\n", "the link to #nowhere doesn't resolve"},
@@ -86,7 +86,7 @@ func TestErrors(t *testing.T) {
 		{"import = [\"std/doc@1\"]\nx: section {\n  | See [the issue](https://example.com/issues/$nope).\n}\n", "unknown name nope"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | <toc depth={true} />\n}\n", "expected Int"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | <toc depth={\"two\"} />\n}\n", "expected Int, got a string"},
-		{"import = [\"std/doc@1\"]\nx: section {\n  | <note knd=\"tip\">x</note>\n}\n", "<note> takes no attribute knd; did you mean kind?"},
+		{"import = [\"std/doc@1\"]\nx: section {\n  | <code lnag=\"go\">x</code>\n}\n", "<code> takes no attribute lnag; did you mean lang?"},
 	}
 	for _, c := range cases {
 		got := check(t, c.src)
@@ -131,14 +131,14 @@ func TestBodyAccepts(t *testing.T) {
 		{"import = [\"std/doc@1\"]\nx: section do {\n  log(\"x\")\n}\n", "section takes no do block"},
 		{"import = [\"std/doc@1\"]\nx: list {\n  note {{ x }}\n}\n", "list doesn't accept note; it accepts item"},
 		{"import = [\"std/doc@1\"]\nx: figure {\n  caption {{ a }}\n  caption {{ b }}\n}\n", "figure accepts at most 1 caption"},
-		{"r: rule {\n  must {{ a }}\n  mustNot {{ b }}\n}\n", "rule accepts at most 1 strength node"},
+		{"r: rule {\n  must {{ a }}\n  must_not {{ b }}\n}\n", "rule accepts at most 1 strength node"},
 		{"r: rule {\n  must {{ a }}\n  when {{ b }}\n  when {{ c }}\n}\n", "rule accepts at most 1 when"},
-		{"r: rule {\n  mustNot {{ a }}\n  if {{ b }}\n  if {{ c }}\n}\n", "rule accepts at most 1 if"},
+		{"r: rule {\n  must_not {{ a }}\n  if {{ b }}\n  if {{ c }}\n}\n", "rule accepts at most 1 if"},
 		{"r: rule {\n  must {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, and must is positive"},
-		{"r: rule {\n  when {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, mustNot or shouldNot"},
+		{"r: rule {\n  when {{ a }}\n  instead {{ b }}\n}\n", "instead stands only under a negative strength, must_not or should_not"},
 	}
 	// Examples repeat, and instead under a negative strength is fine.
-	if got := check(t, "r: rule {\n  shouldNot {{ a }}\n  instead {{ b }}\n  example {{ c }}\n  example {{ d }}\n}\n"); len(got) > 0 {
+	if got := check(t, "r: rule {\n  should_not {{ a }}\n  instead {{ b }}\n  example {{ c }}\n  example {{ d }}\n}\n"); len(got) > 0 {
 		t.Errorf("a valid rule: %v", got)
 	}
 	for _, c := range cases {
@@ -155,19 +155,21 @@ func TestBodyAccepts(t *testing.T) {
 
 // A call takes the first <overload> whose parameters accept its arguments.
 func TestOverloads(t *testing.T) {
-	base := "import = [\"std/doc@1\"]\noverview: section\n"
+	base := "import = [\"std/schema@1\", \"std/doc@1\"]\noverview: section\n" +
+		"badge<overload>(label: String): kind(in = [doc.block])\n" +
+		"badge<overload>(target: Ref(Any)): kind(in = [doc.block])\n"
 	for _, src := range []string{
-		"a: link(\"https://example.com\")\n",
-		"a: link(uri = \"https://example.com\")\n",
-		"a: link(target = overview)\n",
-		"a: link(overview)\n",
-		"s: section {\n  link(overview)\n  link(\"https://example.com\")\n}\n",
+		"a: badge(\"beta\")\n",
+		"a: badge(label = \"beta\")\n",
+		"a: badge(target = overview)\n",
+		"a: badge(overview)\n",
+		"s: section {\n  badge(overview)\n  badge(\"beta\")\n}\n",
 	} {
 		if got := check(t, base+src); len(got) > 0 {
 			t.Errorf("%q: unexpected %v", src, got)
 		}
 	}
-	got := check(t, base+"a: link(href = \"x\")\n")
+	got := check(t, base+"a: badge(href = \"x\")\n")
 	if len(got) == 0 || !strings.Contains(strings.Join(got, "\n"), "takes no argument href") {
 		t.Errorf("no overload fits: got %v", got)
 	}
@@ -271,7 +273,7 @@ func TestSpecKinds(t *testing.T) {
 		"d: decision<accepted> {\n  choice =| x\n}\n":                                                     "unknown kind or type decision",
 		"q: constraint(reason = \"x\") {\n  must {{ a }}\n  should {{ b }}\n}\n":                          "constraint accepts at most 1 strength node",
 		"c: scenario {\n  when {{ a }}\n  when {{ b }}\n}\n":                                              "scenario accepts at most 1 when",
-		"a: actor(kind = ActorKind.ROBOT) {{ x }}\n":                                                      "ActorKind has no member ROBOT",
+		"a: actor(role = ActorRole.ROBOT) {{ x }}\n":                                                      "ActorRole has no member ROBOT",
 		"s: persona(plays = nobody) {\n  goals =| w\n}\n":                                                 "unknown name nobody",
 		"p: project(path = \".\") {\n  depends_on = [nobody]\n}\n":                                        "unknown name nobody",
 		"p: project(path = \".\") {\n  owner = \"x\"\n}\n":                                                "p (a project) has no field owner",

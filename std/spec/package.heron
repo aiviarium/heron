@@ -1,8 +1,8 @@
 // std/spec: the kinds a specification is written in, in its three layers:
 // the intent (why a product exists and for whom), the specification (what
-// must hold of it from outside) and the contract (the exact surface a
-// consumer relies on), with the references between them, projects,
-// lifecycles and planning. It's part of the core: every tree sees it without an
+// must hold of it from outside, feature by feature, in its terms) and the
+// contract (the exact surface a consumer relies on), with the references
+// between them, projects, lifecycles and planning. It's part of the core: every tree sees it without an
 // import, as it sees std/core, apart from the packages it's written with.
 // The kinds of other packages join its annotations' open sets through the
 // categories below, so it never names a package that isn't core.
@@ -67,16 +67,10 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     changelog?: String
   }
 
-  // --- Context ---
-
-  security: flag(on = [section])
-  privacy: flag(on = [section])
-  operations: flag(on = [section])
-
   // --- Intent ---
 
-  /// What kind of party an actor is.
-  ActorKind: enum {
+  /// The role an actor plays: what kind of party it is.
+  ActorRole: enum {
     /// A person using the system.
     PERSON: Self
     /// Another program, called by or calling the system.
@@ -95,7 +89,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// A role that crosses the system's boundary.
   @icon("user")
-  actor(kind: ActorKind = ActorKind.PERSON): kind(in = [block], layer = Layer.INTENT) {
+  actor(role: ActorRole = ActorRole.PERSON): kind(in = [block], layer = Layer.INTENT) {
     accept(prose)
   }
 
@@ -126,13 +120,44 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   // --- Specification ---
 
+  /// Kinds of other packages that a contract surface's hard references may
+  /// name, as this package's rule, constraint, use case, part, lifecycle
+  /// and transition. A kind with no `references` of its own takes them with
+  /// `@touch`, as a type does.
+  touchable: category
+
+  /// A capability of the product, as its users see it: the goals and
+  /// qualities it serves and the actors it's for as its references, its
+  /// intent in prose, then what it leaves out and its rules, use cases,
+  /// scenarios, lifecycles, terms and guidance. Features nest. An
+  /// `optional` feature is one a product may leave out; a rule's `where`
+  /// links one.
+  @icon("puzzle")
+  feature(refs<variadic>?: Ref(Any), optional?: Bool): kind(in = [block], layer = Layer.SPECIFICATION, references = [goal, quality, actor]) {
+    accept(prose)
+    accept(category = block)
+  }
+
+  /// A feature that cuts across others, flagged so reviews and deciders
+  /// find it and load it on its own.
+  security: flag(on = [feature])
+  privacy: flag(on = [feature])
+  operations: flag(on = [feature])
+
+  /// A word of the domain the glossary defines once.
+  @icon("book-a")
+  term(aliases?: List(String), context?: String): kind(in = [block], layer = Layer.SPECIFICATION) {
+    accept(prose)
+  }
+
   /// One behaviour in one strength node, and when it applies. A leaf: its
   /// references name what it states a fact about, at most one actor or
   /// part whose behaviour it states (without one, the system), the goals
-  /// and qualities it serves and the assumptions it relies on. It never
+  /// and qualities it serves, the assumptions it relies on and the
+  /// features it belongs to beyond the one it stands in. It never
   /// references another rule; the terms it uses are linked in its prose.
   @icon("scale")
-  rule(refs<variadic>?: Ref(Any)): kind(in = [block, types.realized], layer = Layer.SPECIFICATION, references = [actor, part, goal, quality, assumption]) {
+  rule(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [actor, part, goal, quality, assumption, feature]) {
     accept(prose)
     accept(category = strength, max = 1)
     accept(kind = where, max = 1)
@@ -146,10 +171,11 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(kind = example)
   }
 
-  /// A limit on the solution with a reason from outside it; its references
-  /// name the goals and qualities it serves, the assumptions it relies on
-  /// and the actors or personas who asked for it.
-  constraint(refs<variadic>?: Ref(Any), reason?: String): kind(in = [block, types.realized], layer = Layer.SPECIFICATION, references = [goal, quality, assumption, actor, persona]) {
+  /// A limit on the solution with a reason from outside it, its
+  /// `rationale`; its references name the goals and qualities it serves,
+  /// the assumptions it relies on and the actors or personas who asked for
+  /// it.
+  constraint(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [goal, quality, assumption, actor, persona]) {
     accept(prose)
     accept(category = strength, max = 1)
     accept(kind = where, max = 1)
@@ -163,7 +189,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// A party inside the boundary that rules bind, named by its role as
   /// seen from outside. No architecture.
-  part: kind(in = [block, types.realized], layer = Layer.SPECIFICATION) {
+  part: kind(in = [block, touchable], layer = Layer.SPECIFICATION) {
     accept(prose)
     accept(category = block)
   }
@@ -186,11 +212,11 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  mustNot: kind(in = [strength]) {
+  must_not: kind(in = [strength]) {
     accept(prose)
   }
 
-  shouldNot: kind(in = [strength]) {
+  should_not: kind(in = [strength]) {
     accept(prose)
   }
 
@@ -204,7 +230,8 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// An optional feature.
+  /// The optional feature the requirement applies with, linked in its
+  /// prose.
   where: kind(in = [condition]) {
     accept(prose)
   }
@@ -262,7 +289,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// `2a.`. Its references after the actor name the goals and qualities it
   /// serves and the assumptions it relies on.
   @icon("route")
-  usecase(actor: Ref(actor), refs<variadic>?: Ref(Any), level?: UseCaseLevel, success?: String, minimal?: String): kind(in = [block, types.realized], layer = Layer.SPECIFICATION, references = [goal, quality, assumption]) {
+  usecase(actor: Ref(actor), refs<variadic>?: Ref(Any), level?: UseCaseLevel, success?: String, minimal?: String): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [goal, quality, assumption]) {
     accept(prose)
   }
 
@@ -270,7 +297,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// The lifecycle of an enum field.
   @icon("workflow")
-  states(field: Ref(Any)): kind(in = [block, types.realized], layer = Layer.SPECIFICATION) {
+  states(field: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION) {
     initial?: Any
     terminal?: List(Any)
     accept(prose)
@@ -279,7 +306,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// One allowed change of a lifecycle.
   @icon("arrow-right-left")
-  transition(from: Any, to: Any): kind(in = [types.realized], layer = Layer.SPECIFICATION) {
+  transition(from: Any, to: Any): kind(in = [touchable], layer = Layer.SPECIFICATION) {
     accept(prose)
     accept(kind = where, max = 1)
     accept(kind = while)
@@ -298,7 +325,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// Hard references written as an annotation, beside or instead of the
   /// constructor's: on any node, they mean what the constructor's would,
   /// and coverage and gaps count them. A kind with no `references` of its
-  /// own takes the kinds in `types.realized`, as a type does. A reference
+  /// own takes the kinds in `touchable`, as a type does. A reference
   /// is never in both the constructor and `@touch`.
   touch(targets<variadic>: Ref(Any)): annotation
 
@@ -322,81 +349,77 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// One problem the product reports, with one identity on every surface:
-  /// its id and its `title` with a `{name}` for each field. Its projections
-  /// are annotations, one per surface: `@status` on an API, `@exit` on a
-  /// command line, `@severity` as a diagnostic (an error when left out).
-  /// Its prose links the rule, or `Fails.` extension, that says when it's
-  /// reported. An error never names who reports it: the raiser names it, as
-  /// an op's `@throws` or a command holding it, or the linked rule's
-  /// subject does.
+  /// its id and its `title` with a `{name}` for each of its members, the
+  /// values it carries as data, typed as a record's are. Its `@status` is
+  /// its one required projection; every surface's code derives from it,
+  /// and an override annotation, as `@exit`, sets one where the derived
+  /// code doesn't fit. `@severity` says how serious it is as a diagnostic
+  /// (an error when left out). Its prose links the rule, or `Fails.`
+  /// extension, that says when it's reported. An error never names who
+  /// reports it: the raiser names it, with `@throws` or by holding it, or
+  /// the linked rule's subject does.
   @icon("circle-alert")
   error(id: String): kind(in = [block], layer = Layer.CONTRACT) {
-    /// The message, with `{name}` for each field filled in where it happens.
+    /// The message, with `{name}` for each member filled in where it
+    /// happens.
     title: String
     /// The message reported at the related site.
     related?: String
     accept(prose)
-    accept(kind = field)
+    accept(kind = types.member, infer = true)
     accept(kind = example)
   }
 
-  /// The HTTP status code an error is returned with, its projection on an
-  /// API: on a spec error, or on a type that implements Error.
-  status(code: Int): annotation(on = [error, types.type])
+  /// The HTTP status an error is answered with, and its text, the error's
+  /// id when left out: the one projection every error has, which the codes
+  /// of the other surfaces derive from. On a spec error, or on a type that
+  /// implements Error.
+  status(code: Int, text?: String): annotation(on = [error, types.type])
 
-  /// The exit code an error ends a command-line run with.
+  /// The exit status an error ends a command-line run with, where the one
+  /// derived from its `@status` doesn't fit.
   exit(code: Int): annotation(on = [error])
 
   /// How serious an error is as a diagnostic; an error when left out.
   severity(level: Severity): annotation(on = [error])
 
-  /// A value an error carries, as data and in its message.
-  field(type: Any): kind(layer = Layer.CONTRACT) {
-    accept(prose)
-  }
-
   /// A concrete case with exact inputs and outputs; its reference names the
   /// outcome scenario it pins down. As a rule's child, a key or boundary
-  /// case of the rule.
-  example(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [scenario]) {
+  /// case of the rule; inside an op, it sets the op's parameters as fields
+  /// and states the outcome as `returns` or `throws`, or is only text, as
+  /// in `example {{ … }}`.
+  example(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [scenario], fields_from = types.op) {
     accept(prose)
+    accept(binding = returns, max = 1)
+    accept(binding = throws, max = 1)
   }
 
-  /// A command of a command-line tool, an entry of its surface: usage
-  /// lines, arguments and options as its inputs, the errors it exits with,
-  /// examples and subcommands. Its references after its name are the
-  /// rules and use case steps it carries out.
+  /// A command of a command-line tool, an entry of its surface, declared
+  /// as an op is: its parameters are its inputs, each a positional
+  /// argument unless `@option` makes it an option, optional with `?` or a
+  /// default and repeated with `<variadic>`. Its body holds the errors it
+  /// exits with, which `@throws` may name instead, its examples and its
+  /// subcommands. Its references after its name are the rules and use
+  /// case steps it carries out.
   @icon("terminal")
-  command(name: String, refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [types.realized]) {
-    /// One line per form, as `heron check [--json] [path…]`.
-    usage?: List(String)
-    /// The errors it reports, each with its `@exit`.
-    errors?: List(Ref(error))
+  command(name: String, refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [touchable]) {
     accept(prose)
-    accept(kind = argument)
-    accept(kind = option)
     accept(kind = example)
     accept(kind = command)
     accept(kind = error)
     accept(category = block)
   }
 
-  /// A positional argument of a command; its references after its name
-  /// are the rules it carries out.
-  argument(name: String, refs<variadic>?: Ref(Any), type?: Any, optional?: Bool, variadic?: Bool): kind(layer = Layer.CONTRACT, references = [types.realized]) {
-    accept(prose)
-  }
-
-  /// A named option of a command, as `--json` or `-o`; its references
-  /// after its name are the rules it carries out.
-  option(name: String, refs<variadic>?: Ref(Any), type?: Any, default?: Any, short?: String, env?: String): kind(layer = Layer.CONTRACT, references = [types.realized]) {
-    accept(prose)
-  }
+  /// Makes a command's parameter an option, as `--dry-run` for `dry_run`:
+  /// `short` is its one-letter form, as `-n`, `env` the environment
+  /// variable it's read from when it isn't given, and `value` the word its
+  /// usage shows for its value, as `file`.
+  option(short?: String, env?: String, value?: String): annotation(on = [types.param])
 
   /// A view of an app or a site and its regions. `route` is where it's
   /// served; its references after the route are the rules and use case
   /// steps it carries out.
-  screen(route?: String, refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [types.realized]) {
+  screen(route?: String, refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [touchable]) {
     accept(prose)
     accept(kind = region)
     accept(category = block)
@@ -404,7 +427,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// One region of a screen and what it holds, nested as the layout nests;
   /// its references are the rules it carries out.
-  region(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [types.realized]) {
+  region(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [touchable]) {
     accept(prose)
     accept(kind = region)
     accept(category = block)

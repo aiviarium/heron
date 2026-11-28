@@ -248,7 +248,8 @@ func (e *agentExport) assign() {
 			if !e.container(ch) {
 				continue
 			}
-			if depth < e.depth {
+			if depth < e.depth || e.s.kindPath(ch) == "spec.feature" {
+				// A feature has a file of its own at any depth.
 				e.owns[ch] = true
 			}
 			walk(ch, depth+1)
@@ -386,7 +387,7 @@ func (e *agentExport) separate(ch, parent *resolve.Node) bool {
 	}
 	switch e.s.kindPath(ch) {
 	case "spec.rule", "spec.constraint", "spec.quality", "spec.guidance", "spec.open", "spec.goal", "spec.nongoal",
-		"spec.assumption", "doc.term", "spec.scenario", "spec.usecase", "types.op", "types.api", "spec.command",
+		"spec.assumption", "spec.term", "spec.scenario", "spec.usecase", "types.op", "types.api", "spec.command",
 		"spec.part", "spec.actor", "spec.persona", "spec.states", "grammar.grammar":
 		return true
 	case "spec.error":
@@ -774,7 +775,7 @@ func (e *agentExport) nodeText(n *resolve.Node) string {
 	switch {
 	case strengthHolder(k):
 		body(e.requirement(n))
-	case k == "doc.term":
+	case k == "spec.term":
 		body(e.term(n))
 	case k == "spec.usecase":
 		body(e.usecase(n))
@@ -829,7 +830,7 @@ func (e *agentExport) links(ns []*resolve.Node) string {
 // refWords is how a linked node reads: a term by its word, anything else
 // by its id.
 func (e *agentExport) refWords(n *resolve.Node) string {
-	if e.s.kindPath(n) == "doc.term" {
+	if e.s.kindPath(n) == "spec.term" {
 		return termName(e.s, n)
 	}
 	return stableID(n)
@@ -931,7 +932,7 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 	for _, l := range []struct {
 		words string
 		ts    []*resolve.Node
-	}{{"serves", project.Served(s.Checker, n)}, {"relies on", project.ReliedOn(s.Checker, n)}, {"asked by", project.AskedBy(s.Checker, n)}} {
+	}{{"serves", project.Served(s.Checker, n)}, {"relies on", project.ReliedOn(s.Checker, n)}, {"asked by", project.AskedBy(s.Checker, n)}, {"joins", project.ReferenceTargets(s.Checker, n, "spec.feature")}} {
 		if len(l.ts) > 0 {
 			refs = append(refs, l.words+" "+e.links(l.ts))
 		}
@@ -1095,61 +1096,74 @@ func (e *agentExport) stepLinks(p specmodel.Parsed, start, end int) (by *resolve
 			by = t
 		case k == "spec.usecase":
 			includes = append(includes, t)
-		case k == "spec.rule" || k == "spec.constraint" || k == "doc.term":
+		case k == "spec.rule" || k == "spec.constraint" || k == "spec.term":
 			uses = append(uses, t)
 		}
 	}
 	return
 }
 
-// command writes a command's usage, arguments, options and exits.
+// command writes a command's usage line, arguments, options and exits.
 func (e *agentExport) command(n *resolve.Node) string {
 	s := e.s
 	var out []string
-	if u := n.Child("usage"); u != nil && u.Value != nil {
-		var ls []string
-		for _, x := range arrayItems(u.Value) {
-			if v, ok := resolve.StringValue(x.Syntax()); ok {
-				ls = append(ls, v)
-			}
-		}
-		if len(ls) > 0 {
-			out = append(out, "Usage:\n\n```sh\n"+strings.Join(ls, "\n")+"\n```")
-		}
+	if u := specmodel.CommandUsage(s.Checker, n); u != "" {
+		out = append(out, "Usage:\n\n```sh\n"+u+"\n```")
 	}
 	if p := s.proseMD(n); p != "" {
 		out = append(out, p)
 	}
 	var ls []string
-	for _, a := range s.childrenOfKind(n, "spec.argument") {
-		an, _ := argString(kindArgs(a), 0, "name")
-		shown := "<" + an + ">"
-		if boolArg(a, "variadic") {
+	ps := specmodel.CommandParams(s.Checker, n)
+	doc := func(p specmodel.CommandParam) string {
+		if d := p.Param.Doc(); d.N != nil {
+			return e.docLine(d.N, p.Site)
+		}
+		return ""
+	}
+	for _, a := range ps {
+		if a.Option {
+			continue
+		}
+		shown := "<" + a.Display + ">"
+		if a.Variadic {
 			shown += "…"
 		}
-		if boolArg(a, "optional") {
+		if a.Optional {
 			shown = "[" + shown + "]"
 		}
 		l := "argument `" + shown + "`"
-		if t := e.argText(a, "type", 1); t != "" {
-			l += " " + t
+		if a.Type != "" {
+			l += " " + a.Type
 		}
-		ls = append(ls, withDoc(l, s.proseMD(a)))
+		ls = append(ls, withDoc(l, doc(a)))
 	}
-	for _, o := range s.childrenOfKind(n, "spec.option") {
-		on, _ := argString(kindArgs(o), 0, "name")
-		l := "option `" + on + "`"
-		if t := e.argText(o, "type", 1); t != "" {
-			l += " " + t
+	for _, o := range ps {
+		if !o.Option {
+			continue
 		}
-		if d := e.argText(o, "default", 2); d != "" {
+		l := "option `" + o.Flag + "`"
+		if o.Short != "" {
+			l = "option `" + o.Short + "`, `" + o.Flag + "`"
+		}
+		if o.Type != "" {
+			l += " " + o.Type
+		}
+		if o.Default != "" {
+			d := o.Default
+			if v, ok := resolve.StringValue(o.Param.Default().Syntax()); ok {
+				d = v
+			}
 			l += ", default `" + d + "`"
 		}
-		ls = append(ls, withDoc(l, s.proseMD(o)))
+		if o.Env != "" {
+			l += ", env `" + o.Env + "`"
+		}
+		ls = append(ls, withDoc(l, doc(o)))
 	}
-	errs := append(s.childrenOfKind(n, "spec.error"), s.argRefList(n, "errors")...)
+	errs := append(s.childrenOfKind(n, "spec.error"), s.annRefs(n, "throws")...)
 	for _, x := range errs {
-		code := annText(x, "exit")
+		code, _ := exitCode(x)
 		title := ""
 		if t := x.Child("title"); t != nil && t.Value != nil {
 			title, _ = resolve.StringValue(t.Value.Syntax())
@@ -1183,25 +1197,6 @@ func withDoc(l, doc string) string {
 	return l + ":\n\n" + strings.Join(ls, "\n")
 }
 
-// argText is a kind argument as written, a string without its quotes.
-func (e *agentExport) argText(n *resolve.Node, name string, index int) string {
-	args := kindArgs(n)
-	x := namedArg(args, name)
-	if x == nil {
-		es := argExprs(args)
-		if index < len(es) {
-			x = es[index]
-		}
-	}
-	if x == nil {
-		return ""
-	}
-	if v, ok := resolve.StringValue(x.Syntax()); ok {
-		return v
-	}
-	return strings.TrimSpace(x.Syntax().Text())
-}
-
 // errorNode writes an error node with its projections and fields.
 func (e *agentExport) errorNode(n *resolve.Node) string {
 	s := e.s
@@ -1209,21 +1204,12 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 	id, _ := argString(args, 0, "id")
 	f := []string{"id `" + id + "`"}
 	f = append(f, "severity "+diagnosticSeverity(n))
-	if x := annText(n, "status"); x != "" {
-		f = append(f, "HTTP "+x)
-	}
-	if x := annText(n, "exit"); x != "" {
-		f = append(f, "exit "+x)
-	}
-	g, j, sp := e.rpcCodes(n)
-	if g != "" {
-		f = append(f, "gRPC "+g)
-	}
-	if j != "" {
-		f = append(f, "JSON-RPC "+j)
-	}
-	if sp != "" {
-		f = append(f, "Sparrow "+sp)
+	for _, c := range s.errorCodes(n) {
+		x := c.Surface + " " + c.Code
+		if c.Surface != "HTTP" {
+			x += " (" + codeMark(c) + ")"
+		}
+		f = append(f, x)
 	}
 	if by := s.reportedBy(n); by != nil {
 		f = append(f, "reported by "+s.mdLink(by, stableID(by)))
@@ -1233,52 +1219,14 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 		v, _ := resolve.StringValue(t.Value.Syntax())
 		ls = append(ls, "title: "+v)
 	}
-	for _, ch := range n.Children {
-		if s.kindPath(ch) == "spec.field" {
-			ls = append(ls, "field `"+ch.Name+"` "+e.argText(ch, "type", 0))
-		}
+	for _, ch := range project.ErrorMembers(s.Checker, n) {
+		ls = append(ls, "member `"+ch.Name+"` "+memberType(ch))
 	}
 	out := lines(ls...)
 	if p := s.proseMD(n); p != "" {
 		out += "\n\n" + p
 	}
 	return out
-}
-
-// rpcCodes are the gRPC, JSON-RPC and Sparrow codes an error has on the
-// tree's bindings, where an op answers it.
-func (e *agentExport) rpcCodes(n *resolve.Node) (grpc, jsonrpc, sparrow string) {
-	m := e.s.rpc()
-	for _, svc := range m.Services {
-		for _, meth := range svc.Methods {
-			for _, x := range meth.Errors {
-				if x.Node == n && x.GRPC != "" && grpc == "" {
-					grpc = x.GRPC
-				}
-			}
-		}
-	}
-	for _, api := range m.JSONAPIs {
-		for _, meth := range api.Methods {
-			for _, x := range meth.Errors {
-				if x.Node == n && x.JSONRPC != "" && jsonrpc == "" {
-					jsonrpc = x.JSONRPC
-				}
-			}
-		}
-	}
-	for _, f := range m.Facets {
-		for _, svc := range f.Services {
-			for _, meth := range svc.Methods {
-				for i := range meth.Errors {
-					if x := &meth.Errors[i]; x.Node == n && sparrow == "" {
-						sparrow = sparrowCode(x)
-					}
-				}
-			}
-		}
-	}
-	return
 }
 
 // sparrowCode is an error's Sparrow status: its core code, as not_found
@@ -1658,7 +1606,7 @@ func (e *agentExport) linkedTerms(n, unit *resolve.Node) (out []*resolve.Node) {
 			}
 			site.N.Walk(func(y *syntax.Node) bool {
 				if y.Kind == syntax.Path {
-					if t := e.s.Checker.Refs[y]; t != nil && e.s.kindPath(t) == "doc.term" && own(t) && t != x {
+					if t := e.s.Checker.Refs[y]; t != nil && e.s.kindPath(t) == "spec.term" && own(t) && t != x {
 						out = append(out, t)
 					}
 					return false
@@ -1717,16 +1665,19 @@ func (e *agentExport) index(files []AgentFile) []byte {
 	b.WriteString(`
 ## How to read these files
 
-- Each file holds one area of the tree: a section, a folder, a command or an api, named by its id, as ` + "`language.apis.grpc.md`" + `. A file over the size budget of ` + strconv.Itoa(e.budget) + ` tokens is split into parts, ` + "`<id>.2.md`" + ` and on, each linking the next.
+- Each file holds one area of the tree: a feature, a section, a folder, a command or an api, named by its id, as ` + "`language.apis.grpc.md`" + `. A file over the size budget of ` + strconv.Itoa(e.budget) + ` tokens is split into parts, ` + "`<id>.2.md`" + ` and on, each linking the next.
 - A file opens with its title, its id and its context. Then come its parts, in this order: Sections (the context of each section it holds, or a link to the section's own file), Intent (goals, actors, qualities: why), Specification (rules, terms, use cases, scenarios: what the product guarantees), Contract (errors, commands, ops, types, grammars and examples: the exact surface), Notes (guidance and open questions), and Terms used here (the words it links that other files define). Within a part, nodes are in the order the tree writes them.
 - Every node has a heading of its kind and its full id, as ` + "`### rule language.apis.grpc.numbering.unique_numbers`" + `. An id is the node's path in the tree, dots between its scopes; it's stable, so search for it to find the node.
-- A requirement opens with its strength: must, mustNot, should, shouldNot or may, as RFC 2119 means them. Its conditions read in the order where, while, when, if; ` + "`then`" + ` says what follows, and ` + "`instead`" + ` what to do in its place. Its last line links who it binds (by), what it's about (targets) and the goals it serves.
+- A requirement opens with its strength: must, must_not, should, should_not or may, as RFC 2119 means them. Its conditions read in the order where, while, when, if; ` + "`then`" + ` says what follows, and ` + "`instead`" + ` what to do in its place. Its last line links who it binds (by), the goals it serves (serves), the assumptions it relies on (relies on), who asked for it (asked by) and the features it joins beyond its own (joins).
 - A link leads to a file and to the id of the node, as ` + "`[x](file.md#id)`" + `. A name followed by an id in code isn't in these files.
 - Lists marked (derived), such as related and illustrated by, are worked out from references written on other nodes, never written on this one.
 - Sizes are approximate tokens: a file's bytes over four.
 `)
 	b.WriteString("\n## Areas\n\nThe top areas of the tree. Each area's file ends with the map of the files below it, so any file is two or three links from here.\n\n")
 	b.WriteString(fileMap(topFiles(files)))
+	if fl := e.featureMap(top, ""); fl != "" {
+		b.WriteString("\n## Features\n\nThe tree by feature: each capability, nested as they nest, with the number of its requirements, those it holds and those that reference it.\n\n" + fl)
+	}
 	return []byte(e.resolveLinks(b.String()))
 }
 
@@ -1879,7 +1830,7 @@ func (e *agentExport) writePack(n *resolve.Node) AgentFile {
 	out := map[*resolve.Node]bool{}
 	for _, it := range u.items {
 		for _, t := range e.outLinks(it.node) {
-			if !e.inPack(t) && own(t) && t.Name != "" && e.s.kindPath(t) != "doc.term" {
+			if !e.inPack(t) && own(t) && t.Name != "" && e.s.kindPath(t) != "spec.term" {
 				out[t] = true
 			}
 		}
@@ -1982,4 +1933,30 @@ func clipLine(t string, n int) string {
 		t = strings.TrimRight(t, " ,;:")
 	}
 	return t + "…"
+}
+
+// featureMap writes one line per feature below n, nested as they nest:
+// its link, its title and the number of its requirements.
+func (e *agentExport) featureMap(n *resolve.Node, indent string) string {
+	s := e.s
+	var b strings.Builder
+	var walk func(n *resolve.Node)
+	walk = func(n *resolve.Node) {
+		for _, ch := range n.Children {
+			if !own(ch) || s.hidden(ch) {
+				continue
+			}
+			if s.kindPath(ch) != "spec.feature" {
+				walk(ch)
+				continue
+			}
+			l := indent + "- " + s.mdLink(ch, displayName(s, ch)) + ": " + strconv.Itoa(len(s.featureRequirements(ch))) + " requirements"
+			if project.FeatureOptional(ch) {
+				l += ", optional"
+			}
+			b.WriteString(l + "\n" + e.featureMap(ch, indent+"  "))
+		}
+	}
+	walk(n)
+	return b.String()
 }

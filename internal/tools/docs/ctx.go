@@ -164,7 +164,7 @@ func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
 		case s.isIntent(ch):
 			// Goals and the other intent nodes open the page.
 			g = 0
-		case k == "doc.term":
+		case k == "spec.term":
 			g = 1
 		case k == "spec.rule" || k == "spec.quality" || k == "spec.guidance" || s.summarized(ch):
 			g = 2
@@ -326,7 +326,7 @@ func (s *Site) link(n *resolve.Node, inner, class string) string {
 		cls += " " + class
 	}
 	switch {
-	case s.kindPath(n) == "doc.term":
+	case s.kindPath(n) == "spec.term":
 		cls += " ref-term"
 	case s.isTypeDecl(n):
 		cls += " ref-type"

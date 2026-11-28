@@ -115,7 +115,7 @@ func (c *Checker) value(e ast.Expr, want ty, sc *resolve.Scope, file *resolve.Fi
 			segs := resolve.PathSegs(e.Path().N)
 			if len(segs) == 1 && c.Variant(d, segs[0]) != nil {
 				// A bare name where an enum is expected is its variant,
-				// as in accept(prose) or note(kind = tip).
+				// as in accept(prose) or actor(role = AGENT).
 				return
 			}
 		case ast.StringLit:
@@ -163,7 +163,7 @@ func (c *Checker) value(e ast.Expr, want ty, sc *resolve.Scope, file *resolve.Fi
 	if resolve.IsBuiltin(d) {
 		if c.strict && c.namesNode(e, sc, file) && d.Name != "Any" {
 			// While overloads are tried, a path to a node is a reference,
-			// not a scalar, so link(target) picks the Ref signature.
+			// not a scalar, so badge(overview) picks a Ref signature.
 			mismatch()
 			return
 		}
@@ -584,6 +584,12 @@ func (c *Checker) factPath(p *syntax.Node, sc *resolve.Scope, file *resolve.File
 		if _, ok := c.Field(n, segs[bestAt]); ok {
 			return
 		}
+		// A parameter the node declares itself, with a default to show.
+		for _, pr := range c.Params(n) {
+			if pr.Name == segs[bestAt] && pr.N != nil && (ast.Param{N: pr.N}).Default() != nil {
+				return
+			}
+		}
 	}
 	c.errorf(file, p, "unresolved", "unknown name %s%s", strings.Join(segs[:bestAt+1], "."), c.closestField(n, segs[bestAt]))
 }
@@ -662,7 +668,7 @@ func (c *Checker) tag(t ast.Tag, sc *resolve.Scope, file *resolve.File) {
 	if !c.IsKind(d) {
 		return // the tag-kind lint reports it
 	}
-	if c.kindArgBool(d, "heading") || IsStd(d, "doc", "doc.term") {
+	if c.kindArgBool(d, "heading") || IsStd(d, "spec", "spec.term") {
 		// A section, a step or a term is a node: it needs an id.
 		c.errorf(file, t.Path().N, "unnamed", "<%s> declares a node and needs an id", strings.Join(segs, "."))
 	}

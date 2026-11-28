@@ -1,3 +1,3 @@
 // What the Schemas tab's excerpts assume. The std/types excerpt is shown
-// without its imports, and the std/doc one without NoteKind.
+// without its imports.
 import = ["std/schema@1", "std/types@1", "std/doc@1"]

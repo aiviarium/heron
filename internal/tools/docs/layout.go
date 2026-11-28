@@ -30,6 +30,8 @@ func (s *Site) PageFragment(p *Page) (*Fragment, error) {
 		err = s.glossary(c)
 	case "diagnostics":
 		err = s.diagnosticsPage(c)
+	case "features":
+		err = s.featuresPage(c)
 	case "conformance":
 		err = s.conformancePage(c)
 	case "releases":

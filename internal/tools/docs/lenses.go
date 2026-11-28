@@ -83,7 +83,7 @@ func (s *Site) placed(n *resolve.Node) bool {
 // node below it.
 func (s *Site) isContainer(n *resolve.Node) bool {
 	k := s.kindPath(n)
-	return k == "doc.section" || k == "" && n.Shape == resolve.ShapeScoped
+	return k == "doc.section" || k == "spec.feature" || k == "" && n.Shape == resolve.ShapeScoped
 }
 
 // ownProseShown reports whether a node's own text shows in the lens.

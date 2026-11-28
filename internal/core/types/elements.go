@@ -59,7 +59,7 @@ func (c *Checker) element(n *resolve.Node) {
 		return
 	}
 	c.Refs[p] = k
-	if n.Name == "" && (c.kindArgBool(k, "heading") || IsStd(k, "doc", "doc.term")) {
+	if n.Name == "" && (c.kindArgBool(k, "heading") || IsStd(k, "spec", "spec.term")) {
 		c.errorf(file, p, "unnamed", "<%s> declares a node and needs an id", strings.Join(segs, "."))
 	}
 	if c.acceptsMode(k, "code") && !c.acceptsMode(k, "prose") {

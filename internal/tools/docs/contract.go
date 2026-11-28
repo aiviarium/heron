@@ -6,7 +6,21 @@ import (
 
 	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
+	"github.com/aiviarium/heron/internal/core/rpc"
+	"github.com/aiviarium/heron/internal/core/specmodel"
 )
+
+// exitCode is the exit status an error ends a run with: its @exit, or the
+// one its @status derives; explicit says which.
+func exitCode(e *resolve.Node) (code string, explicit bool) {
+	if x := annText(e, "exit"); x != "" {
+		return x, true
+	}
+	if d, ok := rpc.ExitCode(annText(e, "status")); ok {
+		return fmt.Sprint(d), false
+	}
+	return "", false
+}
 
 // The renderers of the contract kinds: component pages with their contract
 // and dependency links, command pages laid out as a CLI reference, and
@@ -22,8 +36,6 @@ func addContractRenderers() {
 		"project.property":       renderProperty,
 		"project.responsibility": renderStepAlone,
 		"project.exports":        renderSurface,
-		"spec.argument":          renderStepAlone,
-		"spec.option":            renderStepAlone,
 		"spec.screen":            renderScreen,
 		"spec.error":             renderDiagnostic,
 		"spec.region":            renderRegion,
@@ -322,41 +334,58 @@ func renderCommand(c *Ctx) error {
 	s := c.Site
 	c.W(`<section class="node command" id="`, attr(Anchor(n)), `">`)
 	c.title("")
-	if u := n.Child("usage"); u != nil && u.Value != nil {
-		var lines []string
-		for _, e := range arrayItems(u.Value) {
-			if v, ok := resolve.StringValue(e.Syntax()); ok {
-				lines = append(lines, v)
-			}
-		}
-		if len(lines) > 0 {
-			c.W(s.codeFrame("sh", label("docs.label.usage"), esc(strings.Join(lines, "\n")), strings.Join(lines, "\n")))
-		}
+	if u := specmodel.CommandUsage(s.Checker, n); u != "" {
+		c.W(s.codeFrame("sh", label("docs.label.usage"), esc(u), u))
 	}
 	c.Prose(n)
-	if as := s.childrenOfKind(n, "spec.argument"); len(as) > 0 {
+	var args, opts []specmodel.CommandParam
+	for _, p := range specmodel.CommandParams(s.Checker, n) {
+		if p.Option {
+			opts = append(opts, p)
+		} else {
+			args = append(args, p)
+		}
+	}
+	doc := func(p specmodel.CommandParam) string {
+		if d := p.Param.Doc(); d.N != nil {
+			return s.renderText([]resolve.Site{{File: p.Site.File, N: d.N, Scope: p.Site.Scope}})
+		}
+		return ""
+	}
+	typeOf := func(p specmodel.CommandParam) string {
+		if t := p.Param.Type(); t != nil {
+			return `<code>` + s.typeHTML(t, p.Site) + `</code>`
+		}
+		return ""
+	}
+	defOf := func(p specmodel.CommandParam) string {
+		if d := p.Param.Default(); d != nil {
+			return `<code>` + s.exprHTML(d, p.Site) + `</code>`
+		}
+		return ""
+	}
+	if len(args) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".arguments", label("docs.heading.arguments"), "")
-		small := len(as) < 3
+		small := len(args) < 3
 		if small {
 			c.W(`<ul class="lines">`)
 		} else {
 			c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.name")), `</th><th>`, esc(label("docs.col.type")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
 		}
-		for _, a := range as {
-			args := kindArgs(a)
-			an, _ := argString(args, 0, "name")
-			shown := "<" + an + ">"
-			if boolArg(a, "variadic") {
+		for _, a := range args {
+			shown := "<" + a.Display + ">"
+			if a.Variadic {
 				shown += "…"
 			}
-			if boolArg(a, "optional") {
+			if a.Optional {
 				shown = "[" + shown + "]"
 			}
+			id := Anchor(n) + "." + a.Name
 			if small {
-				c.W(`<li id="`, attr(Anchor(a)), `"><p class="line-head"><code>`, esc(shown), `</code> `, c.argTypeHTML(a, "type", 1), `</p>`, lineDoc(s.proseHTML(a)), `</li>`)
+				c.W(`<li id="`, attr(id), `"><p class="line-head"><code>`, esc(shown), `</code> `, typeOf(a), `</p>`, lineDoc(doc(a)), `</li>`)
 				continue
 			}
-			c.W(`<tr id="`, attr(Anchor(a)), `"><td><code>`, esc(shown), `</code></td><td>`, c.argTypeHTML(a, "type", 1), `</td><td>`, s.proseHTML(a), `</td></tr>`)
+			c.W(`<tr id="`, attr(id), `"><td><code>`, esc(shown), `</code></td><td>`, typeOf(a), `</td><td>`, doc(a), `</td></tr>`)
 		}
 		if small {
 			c.W(`</ul>`)
@@ -364,38 +393,36 @@ func renderCommand(c *Ctx) error {
 			c.W(`</tbody></table></div>`)
 		}
 	}
-	if os := s.childrenOfKind(n, "spec.option"); len(os) > 0 {
+	if len(opts) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".options", label("docs.heading.options"), "")
-		small := len(os) < 3
+		small := len(opts) < 3
 		if small {
 			c.W(`<ul class="lines">`)
 		} else {
 			c.W(`<div class="table-wrap"><table class="opts"><thead><tr><th>`, esc(label("docs.col.option")), `</th><th>`, esc(label("docs.col.type")), `</th><th>`, esc(label("docs.col.default")), `</th><th>`, esc(label("docs.col.description")), `</th></tr></thead><tbody>`)
 		}
-		for _, o := range os {
-			args := kindArgs(o)
-			on, _ := argString(args, 0, "name")
-			shown := `<code>` + esc(on) + `</code>`
-			if sh, ok := argString(args, -1, "short"); ok {
-				shown = `<code>` + esc(sh) + `</code><span class="sep">, </span>` + shown
+		for _, o := range opts {
+			shown := `<code>` + esc(o.Flag) + `</code>`
+			if o.Short != "" {
+				shown = `<code>` + esc(o.Short) + `</code><span class="sep">, </span>` + shown
 			}
-			doc := s.proseHTML(o)
-			env, hasEnv := argString(args, -1, "env")
+			d := doc(o)
+			id := Anchor(n) + "." + o.Name
 			if small {
-				head := shown + ` ` + c.argTypeHTML(o, "type", 1)
-				if d := c.argTypeHTML(o, "default", 2); d != "" {
-					head += `<span class="sep">, </span>` + esc(label("docs.label.default")) + ` ` + d
+				head := shown + ` ` + typeOf(o)
+				if v := defOf(o); v != "" {
+					head += `<span class="sep">, </span>` + esc(label("docs.label.default")) + ` ` + v
 				}
-				if hasEnv {
-					head += `<span class="sep">, </span>` + esc(label("docs.label.env")) + ` <code>` + esc(env) + `</code>`
+				if o.Env != "" {
+					head += `<span class="sep">, </span>` + esc(label("docs.label.env")) + ` <code>` + esc(o.Env) + `</code>`
 				}
-				c.W(`<li id="`, attr(Anchor(o)), `"><p class="line-head">`, head, `</p>`, lineDoc(doc), `</li>`)
+				c.W(`<li id="`, attr(id), `"><p class="line-head">`, head, `</p>`, lineDoc(d), `</li>`)
 				continue
 			}
-			if hasEnv {
-				doc += `<div class="mark">` + esc(label("docs.label.env")) + ` <code>` + esc(env) + `</code></div>`
+			if o.Env != "" {
+				d += `<div class="mark">` + esc(label("docs.label.env")) + ` <code>` + esc(o.Env) + `</code></div>`
 			}
-			c.W(`<tr id="`, attr(Anchor(o)), `"><td>`, shown, `</td><td>`, c.argTypeHTML(o, "type", 1), `</td><td>`, c.argTypeHTML(o, "default", 2), `</td><td>`, doc, `</td></tr>`)
+			c.W(`<tr id="`, attr(id), `"><td>`, shown, `</td><td>`, typeOf(o), `</td><td>`, defOf(o), `</td><td>`, d, `</td></tr>`)
 		}
 		if small {
 			c.W(`</ul>`)
@@ -404,13 +431,12 @@ func renderCommand(c *Ctx) error {
 		}
 	}
 	errs := s.childrenOfKind(n, "spec.error")
-	errs = append(errs, s.argRefList(n, "errors")...)
+	errs = append(errs, s.annRefs(n, "throws")...)
 	if len(errs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".exit", label("docs.heading.exit_codes"), "")
 		c.W(`<ul class="lines">`)
 		for _, e := range errs {
-			code := ""
-			code = annText(e, "exit")
+			code, _ := exitCode(e)
 			title := ""
 			if t := e.Child("title"); t != nil && t.Value != nil {
 				title, _ = resolve.StringValue(t.Value.Syntax())
@@ -456,7 +482,7 @@ func renderCommand(c *Ctx) error {
 			c.W(`</ul>`)
 		}
 	}
-	if err := c.otherChildren(n, "spec.argument", "spec.option", "spec.error", "spec.command", "spec.example"); err != nil {
+	if err := c.otherChildren(n, "spec.error", "spec.command", "spec.example"); err != nil {
 		return err
 	}
 	c.W(`</section>`)
@@ -470,26 +496,6 @@ func contains(xs []string, x string) bool {
 		}
 	}
 	return false
-}
-
-// argTypeHTML is a kind argument's expression as code, or "".
-func (c *Ctx) argTypeHTML(n *resolve.Node, name string, index int) string {
-	args := kindArgs(n)
-	e := namedArg(args, name)
-	if e == nil {
-		if es := argExprs(args); index < len(es) {
-			e = es[index]
-		}
-	}
-	if e == nil {
-		return ""
-	}
-	return `<code>` + c.Site.exprHTML(e, n.Decl) + `</code>`
-}
-
-func boolArg(n *resolve.Node, name string) bool {
-	e := namedArg(kindArgs(n), name)
-	return e != nil && strings.TrimSpace(e.Syntax().Text()) == "true"
 }
 
 // --- grammars ---

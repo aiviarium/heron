@@ -5,6 +5,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/aiviarium/heron/internal/core/lint"
 	"github.com/aiviarium/heron/internal/core/records"
@@ -29,7 +30,7 @@ func Main(r *registry.Registry, args []string, env *registry.Env) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		if len(args) > 1 {
 			if c := r.Command(args[1]); c != nil {
-				fmt.Fprintf(env.Stdout, "usage: heron %s %s\n\n%s\n", c.Name, c.Usage, c.Summary)
+				fmt.Fprintf(env.Stdout, "usage: %s\n\n%s\n", strings.TrimSpace("heron "+c.Name+" "+c.Usage), c.Summary)
 				return 0
 			}
 		}

@@ -94,17 +94,15 @@ Instruction: type {
   meters: Int(bits = 32)
 }
 
+// Its codes on gRPC, JSON-RPC and Sparrow derive from its status.
 @status(404)
-@proto.code(NOT_FOUND)
-@jsonrpc.code(-32004)
-@sparrow.code(not_found)
 ParcelNotFound: type(Error) {
   message: String = "No parcel has this id."
   id: String = ""
 }
 
 @status(422)
-@proto.code(INVALID_ARGUMENT)
+@proto.status(INVALID_ARGUMENT)
 @jsonrpc.code(-32010)
 // Sparrow answers it with a sigil of its own rather than invalid_argument,
 // so a client tells it from any other bad input.
@@ -116,9 +114,7 @@ InvalidAddress: type(Error) {
 }
 
 @status(503)
-@proto.code(UNAVAILABLE)
 @jsonrpc.code(-32011)
-@sparrow.code(unavailable)
 RouteUnavailable: type(Error) {
   message: String = "No route can be planned right now; retry shortly."
 }

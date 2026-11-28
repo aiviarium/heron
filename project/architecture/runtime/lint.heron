@@ -60,7 +60,7 @@ lint: component("internal/core/lint", heron.system.linter, lang = "go") {
   }
 
   fixes_stay_in_text: property {
-    mustNot {{ report a finding outside its region's text, or keep a fix whose range is out of the text or touches a [masked span](#heron.language.markup.prose_view.masked_span) }}
+    must_not {{ report a finding outside its region's text, or keep a fix whose range is out of the text or touches a [masked span](#heron.language.markup.prose_view.masked_span) }}
     verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
   }
 
@@ -125,11 +125,11 @@ prose_view: component("internal/core/lint/prose", heron.system.prose_linter, lan
   }}
 
   verbatim_is_not_prose: property {
-    mustNot {{ project the text of a node whose kind takes `Verbatim` text, such as a grammar's production or token, while still projecting its `///` docs }}
+    must_not {{ project the text of a node whose kind takes `Verbatim` text, such as a grammar's production or token, while still projecting its `///` docs }}
   }
 
   own_files_only: property {
-    mustNot {{ project the prose of an imported package's files }}
+    must_not {{ project the prose of an imported package's files }}
     verify("internal/core/lint/prose_test.go", test = "TestProseProvider")
   }
 
@@ -160,7 +160,7 @@ prose_words: component("internal/core/lint/prose/words", heron.system.prose_lint
   }}
 
   never_in_code: property {
-    mustNot {{ flag a word inside code, an insert, a link or a tag's [attributes](#heron.language.markup.tags.tag_attribute) }}
+    must_not {{ flag a word inside code, an insert, a link or a tag's [attributes](#heron.language.markup.tags.tag_attribute) }}
     verify("scripts/e2e-prose.sh")
   }
 }

@@ -68,6 +68,7 @@ proto: package(version = "1.0", requires = ["std/types@1"]) {
   /// A parameter that travels as gRPC metadata, by its own name or this one.
   metadata(name?: String): annotation(on = [types.param])
 
-  /// The gRPC status code an error is answered with.
-  code(code: Code): annotation(on = [types.type, spec.error])
+  /// The gRPC status code an error is answered with, where the one derived
+  /// from its `@status` doesn't fit.
+  status(code: Code): annotation(on = [types.type, spec.error])
 }

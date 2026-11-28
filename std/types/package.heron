@@ -1,6 +1,6 @@
 // std/types: records, enums, unions, interfaces, apis and the types the
 // Data and APIs tabs build on.
-import = ["std/schema@1"]
+import = ["std/schema@1", "std/spec@1"]
 
 types: package(version = "1.0") {
   /// A record. Each member is `name<flags>?: Type = default`; its
@@ -39,16 +39,10 @@ types: package(version = "1.0") {
     accept(kind = func)
   }
 
-  /// Kinds of other packages that a contract surface's hard references may
-  /// name, as std/spec's rule, constraint, use case, part, lifecycle and
-  /// transition. A kind with no `references` of its own takes them with
-  /// `@touch`, as a type does.
-  realized: category
-
   /// A group of operations; its references name the rules, use cases and
   /// parts it carries out.
   @icon("server")
-  api(refs<variadic>?: Ref(Any)): kind(layer = Layer.CONTRACT, references = [realized]) {
+  api(refs<variadic>?: Ref(Any)): kind(layer = Layer.CONTRACT, references = [spec.touchable]) {
     accept(prose)
     accept(kind = op)
   }
@@ -58,21 +52,10 @@ types: package(version = "1.0") {
   /// out, told from the result type by kind. An op that references a
   /// transition performs it.
   @icon("zap")
-  op(returns?: Any, refs<variadic>?: Ref(Any)): kind(layer = Layer.CONTRACT, references = [realized]) {
+  op(returns?: Any, refs<variadic>?: Ref(Any)): kind(layer = Layer.CONTRACT, references = [spec.touchable]) {
     accept(prose)
-    accept(kind = example)
+    accept(kind = spec.example)
   }
-
-  // An example sets its op's parameters as fields and states the outcome,
-  // or is only text, as in example {{ … }}.
-  example: kind(fields_from = op, modes = [structure]) {
-    accept(prose)
-    accept(binding = returns, max = 1)
-    accept(binding = throws, max = 1)
-  }
-
-  /// The errors an op, or every op of an api, may throw.
-  throws(errors<variadic>: Ref(Any)): annotation<repeatable>(on = [op, api, func])
 
   /// The interface every error implements; only such a type can be thrown.
   Error: interface {

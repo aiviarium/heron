@@ -31,7 +31,7 @@ ordering: section {
 
   delivered_stays: rule() {
     if {{ the order is already [DELIVERED](#OrderStatus.DELIVERED) }}
-    mustNot {{ cancel it }}
+    must_not {{ cancel it }}
     instead {{ reject it with `OrderNotCancellable` }}
   }
 }

@@ -124,8 +124,8 @@ func (c *Checker) own(n *resolve.Node) {
 }
 
 // insteadStrength reports std/spec's `instead` outside a negative strength:
-// the Specifications tab says it stands only under `mustNot` or
-// `shouldNot`, as the outcome a decider expects.
+// the Specifications tab says it stands only under `must_not` or
+// `should_not`, as the outcome a decider expects.
 func (c *Checker) insteadStrength(n *resolve.Node) {
 	var instead, positive *resolve.Node
 	for _, ch := range n.Children {
@@ -136,7 +136,7 @@ func (c *Checker) insteadStrength(n *resolve.Node) {
 			if instead == nil {
 				instead = ch
 			}
-		case IsStd(k, "spec", "spec.mustNot"), IsStd(k, "spec", "spec.shouldNot"):
+		case IsStd(k, "spec", "spec.must_not"), IsStd(k, "spec", "spec.should_not"):
 			return
 		case IsStd(k, "spec", "spec.must"), IsStd(k, "spec", "spec.should"), IsStd(k, "spec", "spec.may"):
 			positive = k
@@ -149,7 +149,7 @@ func (c *Checker) insteadStrength(n *resolve.Node) {
 		c.errorf(instead.Decl.File, pathNode(instead.Decl.N), "instead", "instead stands only under a negative strength, and %s is positive", positive.Name)
 		return
 	}
-	c.errorf(instead.Decl.File, pathNode(instead.Decl.N), "instead", "instead stands only under a negative strength, mustNot or shouldNot")
+	c.errorf(instead.Decl.File, pathNode(instead.Decl.N), "instead", "instead stands only under a negative strength, must_not or should_not")
 }
 
 // bodyContent checks a body against what its kind accepts: prose, code,
@@ -876,6 +876,12 @@ func (c *Checker) annotation(s resolve.Site) {
 		return
 	}
 	d := c.lookupPath(s.Scope, s.File, off(s.N), segs, c.IsAnnotation)
+	core := false
+	if len(segs) == 1 {
+		if x := c.coreAnnotation(s.Scope, s.File, off(s.N), segs[0]); x != nil {
+			d, core = x, true
+		}
+	}
 	if d == nil {
 		c.errorf(s.File, a.Path().N, "unresolved", "unknown annotation @%s%s", strings.Join(segs, "."), c.closestWhere(s.Scope, segs[0], c.IsAnnotation))
 		c.argExprs(a.Args(), s.Scope, s.File)
@@ -885,7 +891,7 @@ func (c *Checker) annotation(s resolve.Site) {
 		c.errorf(s.File, a.Path().N, "not-an-annotation", "%s is not an annotation", strings.Join(segs, "."))
 		return
 	}
-	if len(segs) == 1 {
+	if len(segs) == 1 && !core {
 		if forms := c.ambiguousAnnotation(s.Scope, segs[0]); len(forms) > 1 {
 			c.errorf(s.File, a.Path().N, "ambiguous", "@%s is declared by more than one imported package: write %s", segs[0], strings.Join(forms, " or "))
 		}
@@ -897,8 +903,38 @@ func (c *Checker) annotation(s resolve.Site) {
 	c.args(a.Args(), c.Params(d), "@"+d.Name, s.Scope, s.File, len(a.Flags().Idents()) == 0)
 }
 
+// coreAnnotation is the annotation of the core, std/core or std/spec,
+// that an unqualified name means wherever the core is in scope: the core
+// is always there, so a package's annotation of the same name, as
+// std/proto's `status`, is written qualified, as `@proto.status`. A name
+// the tree declares itself shadows the core.
+func (c *Checker) coreAnnotation(sc *resolve.Scope, file *resolve.File, at int, name string) *resolve.Node {
+	if sc == nil {
+		return nil
+	}
+	var out *resolve.Node
+	sc.Each(name, file, at, func(b resolve.Binding) bool {
+		if b.Local != nil {
+			return false
+		}
+		n := b.Node
+		if n == nil || !c.IsAnnotation(n) || n.Decl.File == nil {
+			return true
+		}
+		if id := n.Decl.File.ID; id == stdFile("core") || id == stdFile("spec") {
+			out = n
+			return false
+		}
+		if !n.Decl.File.ID.IsStd() {
+			return false // the tree's own declaration shadows the core
+		}
+		return true
+	})
+	return out
+}
+
 // ambiguousAnnotation returns each package-qualified form of an
-// unqualified annotation name, as @proto.code and @jsonrpc.code, when the
+// unqualified annotation name, as @proto.status and @sparrow.status, when the
 // innermost scope that binds it as an annotation does so through more than
 // one imported package. A name the tree declares itself shadows imports.
 func (c *Checker) ambiguousAnnotation(sc *resolve.Scope, name string) []string {

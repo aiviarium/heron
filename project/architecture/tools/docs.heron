@@ -1,4 +1,4 @@
-docs: component("internal/tools/docs", heron.system.docs_generator, lang = "go") {
+docs: component("internal/tools/docs", heron.system.docs_generator, heron.tools.docs, lang = "go") {
   | Renders a checked tree as a documentation site, as pages and as fragments for the live
   | preview. `heron generate docs` writes the site as plain files that work without a
   | server, and `heron serve` serves the same pages live as the spec browser, so what
@@ -66,7 +66,7 @@ docs: component("internal/tools/docs", heron.system.docs_generator, lang = "go")
 
   requirement_status: property {
     must {{ list every requirement of the implemented spec on the conformance page as proven, planned, untested or missing, and the requirements on people and agents that no proof or status names as practices of their own, not counted }}
-    | The status comes from the project's proofs and statuses; `scripts/ci.sh` fails while
+    | The status comes from the project's proofs and progresses; `scripts/ci.sh` fails while
     | any requirement is missing.
     verify("internal/tools/docs/project_test.go", test = "TestConformancePractices")
   }

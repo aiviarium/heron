@@ -1,5 +1,5 @@
 @display("Standard packages")
-std: component("std", heron.system.checker, lang = "go") {
+std: component("std", heron.system.checker, heron.language.std, lang = "go") {
   | Embeds the standard packages, which are Heron source, into the binary. They're read and
   | checked like any other package; the embedded copy is the fallback a newer copy from a
   | registry would replace. Their surface is specified with the language, under

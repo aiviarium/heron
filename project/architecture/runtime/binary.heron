@@ -41,7 +41,7 @@ binary: component("cmd/heron", heron.system.command_line, lang = "go") {
   }}
 
   only_wiring: property {
-    mustNot {{ hold a command, a flag or any logic beyond installing registrations and calling `cli.Main` }}
+    must_not {{ hold a command, a flag or any logic beyond installing registrations and calling `cli.Main` }}
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
@@ -65,7 +65,7 @@ binary: component("cmd/heron", heron.system.command_line, lang = "go") {
   }
 
   no_forward_imports: property {
-    mustNot {{ let a package of [unit](#delivery.units) 1, or a test of one, import a package of a later [unit](#delivery.units) }}
+    must_not {{ let a package of [unit](#delivery.units) 1, or a test of one, import a package of a later [unit](#delivery.units) }}
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }
 
@@ -76,7 +76,7 @@ binary: component("cmd/heron", heron.system.command_line, lang = "go") {
   }
 
   units_import_backwards: property {
-    mustNot {{ import a later [unit](#delivery.units), or let DevOps and testing and Agents import each other }}
+    must_not {{ import a later [unit](#delivery.units), or let DevOps and testing and Agents import each other }}
     | They meet through data instead: records, the registry and the server API.
     verify("scripts/ci.sh", test = "unit 1 alone: a binary built with -tags unit1 checks spec/ and runs unit 1's end-to-end scripts")
   }

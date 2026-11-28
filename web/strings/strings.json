@@ -12,7 +12,8 @@
       "errors": "Errors",
       "conformance": "Conformance",
       "releases": "Releases",
-      "spec": "Specification"
+      "spec": "Specification",
+      "features": "Features"
     },
     "nav": {
       "types": "Types",
@@ -246,7 +247,14 @@
       "type_id": "TypeId",
       "sigil": "Sigil",
       "core_code": "Core code",
-      "retired": "Retired"
+      "retired": "Retired",
+      "code_derived": "derived",
+      "code_explicit": "explicit",
+      "optional": "Optional",
+      "requirements": "Requirements",
+      "covered": "Covered",
+      "not_covered": "Not covered by a scenario, an example or a proof",
+      "for_actors": "For"
     },
     "lang": {
       "curl": "cURL",

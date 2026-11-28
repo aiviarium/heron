@@ -6,7 +6,7 @@ import = ["std/schema@1", "std/types@1", "std/doc@1"]
 grammar: package(version = "1.0", requires = ["std/doc@1"]) {
   /// A language's grammar: its productions and tokens; `source` names the
   /// file, a path, the grammar is kept equal to.
-  grammar(refs<variadic>?: Ref(Any), notation?: String, source?: String): kind(in = [block], layer = Layer.CONTRACT, references = [types.realized]) {
+  grammar(refs<variadic>?: Ref(Any), notation?: String, source?: String): kind(in = [block], layer = Layer.CONTRACT, references = [spec.touchable]) {
     /// The production a whole input is read as.
     start?: Ref(production)
     accept(prose)
@@ -18,12 +18,12 @@ grammar: package(version = "1.0", requires = ["std/doc@1"]) {
   /// A nonterminal and its expression: names of other productions and
   /// tokens, quoted literals and the operators. Its `///` docs say what it
   /// reads.
-  production(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [types.realized]) {
+  production(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [spec.touchable]) {
     accept(text = Verbatim)
   }
 
   /// A terminal, by its pattern or literal.
-  token(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [types.realized]) {
+  token(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.CONTRACT, references = [spec.touchable]) {
     accept(text = Verbatim)
   }
 }

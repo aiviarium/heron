@@ -71,7 +71,7 @@ func splitName(name string) []string {
 	return words
 }
 
-// kindWords is a kind's name as words, such as "must not" for mustNot.
+// kindWords is a kind's name as words, such as "must not" for must_not.
 func kindWords(name string) string {
 	return strings.ToLower(strings.Join(splitName(name), " "))
 }
@@ -116,7 +116,7 @@ func displayName(s *Site, n *resolve.Node) string {
 // group's) whose name's last segment is name.
 func annotation(s *Site, n *resolve.Node, name string) *ast.Annotation {
 	for _, a := range annotations(n) {
-		if annName(a) == name {
+		if project.AnnotationNamed(resolve.PathSegs(a.Path().N), name) {
 			a := a
 			return &a
 		}
@@ -137,7 +137,7 @@ func annotations(n *resolve.Node) []ast.Annotation {
 func annotationsNamed(n *resolve.Node, name string) []ast.Annotation {
 	var out []ast.Annotation
 	for _, a := range annotations(n) {
-		if annName(a) == name {
+		if project.AnnotationNamed(resolve.PathSegs(a.Path().N), name) {
 			out = append(out, a)
 		}
 	}

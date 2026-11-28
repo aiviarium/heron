@@ -35,7 +35,7 @@ lint: package(version = "1.0", requires = ["std/types@1"]) {
     Synonym: Self
     /// One word defined by two terms, so it's used in two senses.
     TwoSenses: Self
-    /// A `must` or `mustNot` whose prose says "should" or "may".
+    /// A `must` or `must_not` whose prose says "should" or "may".
     MustSaysShould: Self
     /// A vague word, such as "fast" or "appropriate", in a rule that has
     /// no metric.

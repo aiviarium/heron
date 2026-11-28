@@ -6,7 +6,7 @@ trust: goal(people.writer, measure = "Nine trees in ten check clean on the first
 
 people: section {
   writer: actor {{ Someone who writes Heron. }}
-  ci: actor(kind = ActorKind.SYSTEM) {{ The build server. }}
+  ci: actor(role = ActorRole.SYSTEM) {{ The build server. }}
 
   maya: persona(plays = people.writer) {
     goals =| Ship a spec her team trusts.
@@ -34,10 +34,11 @@ editing: section {
       [people.writer] fixes them. Back to 1.
   }}
 
+  @status(422)
   @exit(2)
   unreadable: error("unreadable") {
     title = "can't read {path}"
-    path: field(String)
+    path: String
     | Reported as [editing.check_tree.2a] says.
   }
 
@@ -70,7 +71,7 @@ runtime: section {
     }}
 
     no_io: property {
-      mustNot {{ import `os` or any other package that does I/O }}
+      must_not {{ import `os` or any other package that does I/O }}
     }
   }
 
@@ -80,12 +81,15 @@ runtime: section {
 }
 
 cli: section {
-  check: command("heron check") {
+  @throws(editing.unreadable)
+  check(
+    /// Print diagnostics as JSON lines.
+    @option
+    json: Bool = false,
+    /// An entry point or folder.
+    path<variadic>?: String,
+  ): command("heron check") {
     | Checks a tree.
-    usage = ["heron check [--json] [path…]"]
-    errors = [editing.unreadable]
-    argument("path", type = String, optional = true, variadic = true) {{ An entry point or folder. }}
-    option("--json", type = Bool, default = false) {{ Print diagnostics as JSON lines. }}
     example {{
       ```sh
       heron check spec

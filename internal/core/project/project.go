@@ -1,6 +1,6 @@
 // Package project reads the implementation side of a detached spec: a tree
 // whose root `implements` a spec package (std/project), the proofs and
-// statuses it gives the spec's requirements, its releases and its version.
+// progress it gives the spec's requirements, its releases and its version.
 // It checks project mode, where the spec kinds belong to the spec alone,
 // and the implementation version scheme, and computes the conformance
 // report.
@@ -20,7 +20,7 @@ import (
 const (
 	KindImplements = "project.implements"
 	KindProves     = "project.proves"
-	KindStatus     = "project.status"
+	KindProgress   = "project.progress"
 	KindRelease    = "project.release"
 	KindVerify     = "project.verify"
 )
@@ -38,6 +38,7 @@ var SpecKinds = map[string]string{
 	"spec.rule":          "rule",
 	"spec.constraint":    "constraint",
 	"spec.part":          "part",
+	"spec.feature":       "feature",
 	"spec.scenario":      "scenario",
 	"spec.usecase":       "use case",
 	"spec.states":        "lifecycle",
@@ -49,11 +50,11 @@ var SpecKinds = map[string]string{
 	"grammar.grammar":    "grammar",
 	"grammar.production": "production",
 	"grammar.token":      "token",
-	"doc.term":           "term",
+	"spec.term":          "term",
 	"types.api":          "api",
 }
 
-// RequirementKinds are the spec kinds a proof or a status may name: the
+// RequirementKinds are the spec kinds a proof or a progress may name: the
 // requirements of the specification and the contract layers. Intent is
 // validated, never proven.
 var RequirementKinds = map[string]bool{
@@ -85,9 +86,9 @@ type Project struct {
 	// Since is the path of an earlier spec version, as written, and Docs
 	// the base URL of the spec's rendered site.
 	Since, Docs string
-	// The tree's own proofs, statuses and releases, in tree order.
+	// The tree's own proofs, progresses and releases, in tree order.
 	Proofs   []*resolve.Node
-	Statuses []*resolve.Node
+	Progress []*resolve.Node
 	Releases []*resolve.Node
 }
 
@@ -130,8 +131,8 @@ func Find(t *resolve.Tree, c *types.Checker) *Project {
 		switch KindPath(c, x) {
 		case KindProves:
 			p.Proofs = append(p.Proofs, x)
-		case KindStatus:
-			p.Statuses = append(p.Statuses, x)
+		case KindProgress:
+			p.Progress = append(p.Progress, x)
 		case KindRelease:
 			p.Releases = append(p.Releases, x)
 		}
@@ -162,7 +163,7 @@ func (p *Project) SpecName() string {
 
 // Check reports what project mode and the version scheme rule out in a
 // tree: a spec kind declared in a project, an `implements` not at the
-// root or not naming a spec, a proof or status naming no spec requirement,
+// root or not naming a spec, a proof or progress naming no spec requirement,
 // and versions that don't follow the scheme or the implemented spec.
 func Check(t *resolve.Tree, c *types.Checker) diag.List {
 	var ds diag.List
@@ -203,18 +204,24 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 		errAt(&ds, n.Decl, "project-mode", "%s is a %s, which is spec content: this tree implements %s, so the spec's kinds belong in the spec package, and the project only refers to them", name, what, p.SpecName())
 		return false
 	})
-	for _, n := range append(append([]*resolve.Node(nil), p.Proofs...), p.Statuses...) {
+	for _, n := range append(append([]*resolve.Node(nil), p.Proofs...), p.Progress...) {
 		for _, e := range ArgExprs(KindArgs(n)) {
 			target := RefTarget(c, e.Syntax(), n.Decl)
 			if target == nil {
-				continue // the checker reports an unresolved name
+				// The checker reports an unresolved first name; past a
+				// name that resolves, as `shop.gone`, the path is the
+				// spec's, and naming nothing there is this check's.
+				if txt := strings.TrimSpace(e.Syntax().Text()); strings.Contains(txt, ".") {
+					errAt(&ds, siteOf(n, e), "unresolved", "unknown name %s: a proof or progress names a requirement of the spec", txt)
+				}
+				continue
 			}
 			if PackageOf(target) == nil {
-				errAt(&ds, siteOf(n, e), "project", "%s is the project's own; a proof or status names a requirement of the spec", target.Path())
+				errAt(&ds, siteOf(n, e), "project", "%s is the project's own; a proof or progress names a requirement of the spec", target.Path())
 				continue
 			}
 			if !RequirementKinds[KindPath(c, target)] {
-				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or status names a rule, a constraint, a scenario, a use case or its step, a transition or an error", target.Path())
+				errAt(&ds, siteOf(n, e), "project", "%s is no spec requirement: a proof or progress names a rule, a constraint, a scenario, a use case or its step, a transition or an error", target.Path())
 			}
 		}
 	}
@@ -239,13 +246,13 @@ type Requirement struct {
 	Proofs []*resolve.Node
 	// Status is "proven", "planned", "untested" or "missing", or
 	// "practice" for a requirement on a person or an agent that no proof
-	// or status names: a practice, not an obligation of the code.
+	// or progress names: a practice, not an obligation of the code.
 	Status string
 }
 
 // Requirements lists the spec's requirements in tree order with their
 // standing in the project: proven by a test, planned, untested, or missing
-// when no proof names it and no status covers it.
+// when no proof names it and no progress covers it.
 func (p *Project) Requirements() []*Requirement {
 	if p.Package == nil || p.Package.Tree == nil {
 		return nil
@@ -258,7 +265,7 @@ func (p *Project) Requirements() []*Requirement {
 		byNode[n] = r
 		out = append(out, r)
 	}
-	for _, s := range p.Statuses {
+	for _, s := range p.Progress {
 		st := ""
 		for _, f := range KindFlags(s) {
 			if f == "planned" || f == "untested" {
@@ -313,11 +320,11 @@ func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
 	case "spec.persona":
 		return true
 	case "spec.actor":
-		kind := NamedArg(KindArgs(by), "kind")
-		if kind == nil {
+		role := NamedArg(KindArgs(by), "role")
+		if role == nil {
 			return true
 		}
-		k := strings.TrimSpace(kind.Syntax().Text())
+		k := strings.TrimSpace(role.Syntax().Text())
 		return strings.HasSuffix(k, "PERSON") || strings.HasSuffix(k, "AGENT")
 	}
 	return false
@@ -624,11 +631,22 @@ func Annotations(n *resolve.Node, name string) []resolve.Site {
 		if an.Path().N == nil {
 			continue
 		}
-		if segs := resolve.PathSegs(an.Path().N); len(segs) > 0 && segs[len(segs)-1] == name {
+		if AnnotationNamed(resolve.PathSegs(an.Path().N), name) {
 			out = append(out, a)
 		}
 	}
 	return out
+}
+
+// AnnotationNamed reports whether an annotation's path names name: as
+// written unqualified, or qualified by a core package, as `@spec.status`.
+// A path qualified by any other package, as `@proto.status`, names that
+// package's own annotation.
+func AnnotationNamed(segs []string, name string) bool {
+	if len(segs) == 0 || segs[len(segs)-1] != name {
+		return false
+	}
+	return len(segs) == 1 || len(segs) == 2 && (segs[0] == "spec" || segs[0] == "core")
 }
 
 // HasAnnotation reports whether a node carries an annotation named name.
@@ -756,4 +774,68 @@ func ErrorRaiser(c *types.Checker, n *resolve.Node) *resolve.Node {
 		}
 	}
 	return nil
+}
+
+// ProseText is a node's own prose as written, its lines joined.
+func ProseText(n *resolve.Node) string {
+	var b strings.Builder
+	for _, ps := range n.Prose {
+		if ps.N != nil {
+			b.WriteString(ps.N.Text())
+		}
+	}
+	return b.String()
+}
+
+// ErrorMembers are the members of an error, the values it carries as data
+// and in its message, in the order written.
+func ErrorMembers(c *types.Checker, n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	for _, ch := range n.Children {
+		if ch.Name == "" || ch.Decl.N == nil || ch.Decl.N.Kind != syntax.Declare && ch.Decl.N.Kind != syntax.Value {
+			continue
+		}
+		if k := KindPath(c, ch); k == "" || k == "types.member" {
+			out = append(out, ch)
+		}
+	}
+	return out
+}
+
+// FeatureOptional reports whether a feature is optional, one a product may
+// leave out.
+func FeatureOptional(n *resolve.Node) bool {
+	if e := NamedArg(KindArgs(n), "optional"); e != nil {
+		return strings.TrimSpace(e.Syntax().Text()) == "true"
+	}
+	return false
+}
+
+// Feature is the feature a node stands in, the nearest one above it, or
+// nil.
+func Feature(c *types.Checker, n *resolve.Node) *resolve.Node {
+	for a := n.Parent; a != nil; a = a.Parent {
+		if KindPath(c, a) == "spec.feature" {
+			return a
+		}
+	}
+	return nil
+}
+
+// Features are the features a node belongs to: the one it stands in and
+// those its constructor or @touch references, in that order.
+func Features(c *types.Checker, n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	seen := map[*resolve.Node]bool{}
+	if f := Feature(c, n); f != nil {
+		out = append(out, f)
+		seen[f] = true
+	}
+	for _, a := range HardReferences(c, n) {
+		if t := RefTarget(c, a.Expr.Syntax(), a.Site); t != nil && !seen[t] && KindPath(c, t) == "spec.feature" {
+			seen[t] = true
+			out = append(out, t)
+		}
+	}
+	return out
 }

@@ -10,14 +10,14 @@ import (
 )
 
 var (
-	strengthKinds = map[string]bool{"spec.must": true, "spec.should": true, "spec.may": true, "spec.mustNot": true, "spec.shouldNot": true}
+	strengthKinds = map[string]bool{"spec.must": true, "spec.should": true, "spec.may": true, "spec.must_not": true, "spec.should_not": true}
 	// Conditions that open the sentence, in the order std/spec declares
 	// them; unless closes it.
 	leadConditions = []string{"spec.where", "spec.while", "spec.when", "spec.if"}
 )
 
 // ruleStrength returns the kind name of a rule's or quality's strength
-// node, such as "mustNot", or "".
+// node, such as "must_not", or "".
 func (s *Site) ruleStrength(n *resolve.Node) string {
 	switch s.kindPath(n) {
 	case "spec.rule", "spec.quality":
@@ -132,7 +132,7 @@ func subjectWords(s *Site, n *resolve.Node) string {
 	if a := annotation(s, n, "display"); a != nil {
 		return displayName(s, n)
 	}
-	if s.kindPath(n) == "doc.term" {
+	if s.kindPath(n) == "spec.term" {
 		return termName(s, n)
 	}
 	return kindWords(n.Name)

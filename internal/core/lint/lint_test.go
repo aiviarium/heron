@@ -77,9 +77,9 @@ x: section {
 
 func TestFlagPlacement(t *testing.T) {
 	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/doc@1"]
-x: section<security>
-y: term<security>
-`}), "flag-placement: <security> doesn't attach to term; it attaches to section")
+x: feature<security>
+y: section<security>
+`}), "flag-placement: <security> doesn't attach to section; it attaches to feature")
 }
 
 func TestFlagOnAnnotation(t *testing.T) {
@@ -117,13 +117,16 @@ a: api {
 }
 
 func TestTagKind(t *testing.T) {
-	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/types@1"]
+	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/schema@1", "std/doc@1", "std/types@1"]
+listing: kind(modes = [structure]) {
+  accept(prose)
+}
 x: section {
-  | A <NoteKind>tip</NoteKind> and an <example>x</example>.
+  | A <ActorRole>tip</ActorRole> and a <listing>x</listing>.
 }
 `}),
-		"tag-kind: <NoteKind> names NoteKind, which isn't a kind",
-		"tag-kind: <example> is a kind that stands only in structure",
+		"tag-kind: <ActorRole> names ActorRole, which isn't a kind",
+		"tag-kind: <listing> is a kind that stands only in structure",
 	)
 }
 
@@ -170,4 +173,61 @@ func TestStdLintsClean(t *testing.T) {
 			t.Errorf("std/%s: %s: %s", e.Name(), d.Code, d.Message)
 		}
 	}
+}
+
+// An override of an error's code that sets the code its @status derives
+// is reported, with a fix that removes the annotation; one that differs
+// is kept.
+func TestRedundantCode(t *testing.T) {
+	dir := t.TempDir()
+	src := `import = ["std/types@1", "std/proto@1", "std/jsonrpc@1"]
+@status(404)
+@proto.status(NOT_FOUND)
+@jsonrpc.code(-32004)
+Gone: type(Error) { message: String }
+
+@status(422)
+@proto.status(INVALID_ARGUMENT)
+@jsonrpc.code(-32602)
+Odd: type(Error) { message: String }
+
+@status(400)
+@exit(2)
+usage: error("x exit 2") {
+  title = "a usage error"
+}
+
+@status(500)
+@exit(3)
+crash: error("x exit 3") {
+  title = "a crash"
+}
+`
+	p := filepath.Join(dir, "index.heron")
+	os.WriteFile(p, []byte(src), 0o644)
+	r := registry.New()
+	Register(r)
+	id, _ := resolve.Canonical(p)
+	res := check.NewSession().Check(id)
+	if res.Diags.HasErrors() {
+		t.Fatalf("%v", res.Diags)
+	}
+	var got []string
+	for _, d := range Run(r, res) {
+		got = append(got, d.Code+": "+d.Message)
+		if len(d.Fixes) != 1 || len(d.Fixes[0].Edits) != 1 || d.Fixes[0].Edits[0].New != "" {
+			t.Errorf("%s: fixes %+v", d.Message, d.Fixes)
+			continue
+		}
+		e := d.Fixes[0].Edits[0]
+		fixed := src[:e.Start] + src[e.End:]
+		if strings.Contains(fixed, src[d.Start:d.End]) {
+			t.Errorf("the fix leaves %s", src[d.Start:d.End])
+		}
+	}
+	wantOnly(t, got,
+		"redundant-code: @proto.status sets NOT_FOUND, the code Gone's @status derives; leave it out",
+		"redundant-code: @jsonrpc.code sets -32004, the code Gone's @status derives; leave it out",
+		"redundant-code: @exit sets 2, the code usage's @status derives; leave it out",
+	)
 }

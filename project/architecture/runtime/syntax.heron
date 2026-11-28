@@ -61,7 +61,7 @@ syntax: component("internal/core/syntax", heron.system.parser, lang = "go") {
 
   @display("No I/O")
   no_io: property {
-    mustNot {{ import `os`, `os/exec`, `net`, `net/http`, `io/fs`, `io/ioutil`, `syscall` or `path/filepath` }}
+    must_not {{ import `os`, `os/exec`, `net`, `net/http`, `io/fs`, `io/ioutil`, `syscall` or `path/filepath` }}
     verify("scripts/ci.sh", test = "syntax and eval do no I/O")
   }
 
@@ -76,7 +76,7 @@ syntax: component("internal/core/syntax", heron.system.parser, lang = "go") {
   }
 
   never_panics: property {
-    mustNot {{ panic or loop on any input; nesting deeper than 256 levels is a [too deep](#heron.language.grammar.recovery.errors.too_deep) error }}
+    must_not {{ panic or loop on any input; nesting deeper than 256 levels is a [too deep](#heron.language.grammar.recovery.errors.too_deep) error }}
     verify("internal/core/syntax/grammar_test.go", test = "TestRecoveryDepth")
   }
 

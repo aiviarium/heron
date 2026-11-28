@@ -5,7 +5,7 @@
 | `untested` when they are built and no test proves them. A requirement that no proof in
 | [the traceability](#traceability) names and no status here covers is missing.
 
-language_core_format_planned: status<planned>(
+language_core_format_planned: progress<planned>(
   heron.language.core_format.files.unreachable_file,
   heron.language.core_format.files.errors.unreachable_file,
   heron.language.core_format.prose_layer.all_prose_input,
@@ -13,7 +13,7 @@ language_core_format_planned: status<planned>(
   | Not built yet. The 3 requirements of [language.core_format](#heron.language.core_format).
 }
 
-language_core_format_untested: status<untested>(
+language_core_format_untested: progress<untested>(
   heron.language.core_format.nodes.locals.locals_never_change,
   heron.language.core_format.amends.flag_as_boolean,
   heron.language.core_format.amends.lists_change_by_calls,
@@ -21,20 +21,20 @@ language_core_format_untested: status<untested>(
   | Built, with no test proving it yet. The 3 requirements of [language.core_format](#heron.language.core_format).
 }
 
-language_grammar_untested: status<untested>(
+language_grammar_untested: progress<untested>(
   heron.language.grammar.recovery.checking_goes_on,
 ) {
   | Built, with no test proving it yet. The 1 requirement of [language.grammar](#heron.language.grammar).
 }
 
-language_schemas_untested: status<untested>(
+language_schemas_untested: progress<untested>(
   heron.language.schemas.kinds.refs.ref_kind_documents,
   heron.language.schemas.accept.verbatim_text,
 ) {
   | Built, with no test proving it yet. The 2 requirements of [language.schemas](#heron.language.schemas).
 }
 
-language_schemas_planned: status<planned>(
+language_schemas_planned: progress<planned>(
   heron.language.schemas.modes.wrong_mode,
   heron.language.schemas.modes.errors.wrong_mode_name,
   heron.language.schemas.flags.flag_groups,
@@ -47,7 +47,7 @@ language_schemas_planned: status<planned>(
   | Not built yet. The 7 requirements of [language.schemas](#heron.language.schemas).
 }
 
-language_markup_planned: status<planned>(
+language_markup_planned: progress<planned>(
   heron.language.markup.text.strike,
   heron.language.markup.links.link_shows_kind,
   heron.language.markup.links.empty_link_text,
@@ -65,7 +65,7 @@ language_markup_planned: status<planned>(
   | Not built yet. The 13 requirements of [language.markup](#heron.language.markup).
 }
 
-language_markup_untested: status<untested>(
+language_markup_untested: progress<untested>(
   heron.language.markup.prose_view.verbatim_docs,
   heron.language.markup.prose_view.region_context,
   heron.language.markup.prose_view.no_titles,
@@ -73,7 +73,7 @@ language_markup_untested: status<untested>(
   | Built, with no test proving it yet. The 3 requirements of [language.markup](#heron.language.markup).
 }
 
-language_data_planned: status<planned>(
+language_data_planned: progress<planned>(
   heron.language.data.values.required_members,
   heron.language.data.values.absent_read,
   heron.language.data.values.defaults_present,
@@ -99,7 +99,7 @@ language_data_planned: status<planned>(
   | Not built yet. The 21 requirements of [language.data](#heron.language.data).
 }
 
-language_apis_planned: status<planned>(
+language_apis_planned: progress<planned>(
   heron.language.apis.apis_and_ops.ops_as_methods,
   heron.language.apis.params.default_binding,
   heron.language.apis.params.no_guessed_location,
@@ -137,7 +137,7 @@ language_apis_planned: status<planned>(
   | `heron` builds the facets but carries no Sparrow call yet.
 }
 
-language_specifications_planned: status<planned>(
+language_specifications_planned: progress<planned>(
   heron.language.specifications.projects.undeclared_dependency,
   heron.language.specifications.projects.version_from_changelog,
   heron.language.specifications.projects.unversioned_change,
@@ -167,7 +167,7 @@ language_specifications_planned: status<planned>(
   | Not built yet. The 35 requirements of [language.specifications](#heron.language.specifications).
 }
 
-language_scripting_planned: status<planned>(
+language_scripting_planned: progress<planned>(
   heron.language.scripting.tasks.ordering.task_refs_checked,
   heron.language.scripting.tasks.confirming.command_flag,
   heron.language.scripting.tasks.failing.stage_undo,
@@ -179,7 +179,7 @@ language_scripting_planned: status<planned>(
   | Not built yet. The 7 requirements of [language.scripting](#heron.language.scripting).
 }
 
-language_std_planned: status<planned>(
+language_std_planned: progress<planned>(
   heron.language.std.schema.language_env,
   heron.language.std.types.unit_members_dropped,
   heron.language.std.newer_copy_wins,
@@ -187,7 +187,7 @@ language_std_planned: status<planned>(
   | Not built yet. The 3 requirements of [language.std](#heron.language.std).
 }
 
-tools_docs_planned: status<planned>(
+tools_docs_planned: progress<planned>(
   heron.tools.docs.renderers.heron_template_renderers,
   heron.tools.docs.extending.release_notes,
   heron.tools.docs.diagrams.package_graph,
@@ -197,7 +197,7 @@ tools_docs_planned: status<planned>(
   | Not built yet. The 5 requirements of [tools.docs](#heron.tools.docs).
 }
 
-tools_writing_planned: status<planned>(
+tools_writing_planned: progress<planned>(
   heron.tools.docs.writing.catalogue_wording.interface_style,
 ) {
   | Not built yet. The 1 requirement of [writing in the interface](#heron.tools.docs.writing).
@@ -205,7 +205,7 @@ tools_writing_planned: status<planned>(
 
 // Diagnostics the checker reports, with no test that asserts their message
 // yet.
-diagnostics_untested: status<untested>(
+diagnostics_untested: progress<untested>(
   heron.language.core_format.nodes.errors.not_a_kind,
   heron.language.core_format.nodes.errors.too_many_arguments,
   heron.language.core_format.nodes.errors.not_an_annotation,
@@ -214,7 +214,7 @@ diagnostics_untested: status<untested>(
   | Built, with no test that asserts the message yet: the checker reports all four.
 }
 
-lenses_planned: status<planned>(
+lenses_planned: progress<planned>(
   heron.language.markup.authored_pages.links.file_links_checked,
   heron.language.markup.lens_marks.only_lens_on_prose,
 ) {
@@ -222,7 +222,7 @@ lenses_planned: status<planned>(
   | annotation other than `@lens` on a run, wait for the prose lints' next round.
 }
 
-lenses_untested: status<untested>(
+lenses_untested: progress<untested>(
   heron.tools.docs.lenses.navigation.nav_by_area,
   heron.tools.docs.rendering.rules_flow,
   heron.tools.docs.rendering.one_indent,
@@ -235,7 +235,7 @@ lenses_untested: status<untested>(
   | lens, with no test that measures the rendered pages yet.
 }
 
-layered_planned: status<planned>(
+layered_planned: progress<planned>(
   heron.language.specifications.layers.extends_inherits,
   heron.language.specifications.layers.extends_rendered,
   heron.language.specifications.intent.actor_view,
@@ -249,7 +249,7 @@ layered_planned: status<planned>(
   | Not built yet: the kinds that extend a core kind take only its layer and coverage so far, and stories aren't yet accepted from their items' proofs.
 }
 
-layered_untested: status<untested>(
+layered_untested: progress<untested>(
   heron.language.specifications.layers.links_on_lower_node,
   heron.language.specifications.usecases.step_uses,
   heron.language.specifications.usecases.usecase_actor_checked,
@@ -262,14 +262,14 @@ layered_untested: status<untested>(
   | Built, with no test proving it yet.
 }
 
-tools_server_untested: status<untested>(
+tools_server_untested: progress<untested>(
   heron.tools.server.ops.client_state,
 ) {
   | Built, with no test proving it yet: the server keeps no client's state, which a test can only
   | show by the ops it lacks.
 }
 
-tools_vscode_untested: status<untested>(
+tools_vscode_untested: progress<untested>(
   heron.tools.vscode.languages.web_highlighting,
   heron.tools.vscode.preview.preview_error_in_place,
 ) {

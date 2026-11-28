@@ -24,7 +24,7 @@ area: section {
       must {{ hold }}
     }
 
-    | <note kind="warning">Mind it.</note>
+    | <warning>Mind it.</warning>
   }
 }
 

@@ -38,6 +38,11 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 	layer := specmodel.None
 	var owner *resolve.Node
 	for _, n := range chain {
+		if specmodel.Is(f.c, n, "spec.feature") {
+			// A feature's text is its intent and context, as a section's
+			// is, not a requirement's.
+			break
+		}
 		if l := specmodel.LayerOf(f.c, n); l != specmodel.None {
 			layer, owner = l, n
 			break
@@ -105,12 +110,12 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 				start = end[1]
 			}
 		}
-	case "spec.must", "spec.should", "spec.may", "spec.mustNot", "spec.shouldNot":
+	case "spec.must", "spec.should", "spec.may", "spec.must_not", "spec.should_not":
 		lower := strings.ToLower(r.Text)
 		if i := strings.Index(lower, "and/or"); i >= 0 {
 			add(i, i+len("and/or"), "CompoundRule", `this rule joins two behaviours with "and/or"; split it into two rules`)
 		}
-		if k := kindOf(first); (k == "spec.mustNot" || k == "spec.shouldNot") && owner != nil && specmodel.Is(f.c, owner, "spec.rule") {
+		if k := kindOf(first); (k == "spec.must_not" || k == "spec.should_not") && owner != nil && specmodel.Is(f.c, owner, "spec.rule") {
 			cond := false
 			for _, ch := range owner.Children {
 				switch kindOf(ch) {
@@ -139,10 +144,32 @@ func reportGaps(li *lint.Input) {
 	t, c := li.Tree, li.Checker
 	is := func(n *resolve.Node, kinds ...string) bool { return specmodel.Is(c, n, kinds...) }
 	refs := func(n *resolve.Node, name string) []*resolve.Node { return project.AnnotationRefs(c, n, name) }
-	// The goals a section declares, for the requirements below it.
+	// The goals and qualities a requirement serves through its features,
+	// the one it stands in and those it references, or else the goals the
+	// nearest section or feature above it declares.
+	featureGoals := func(f *resolve.Node) []*resolve.Node {
+		var gs []*resolve.Node
+		for _, x := range project.HardTargets(c, f) {
+			if is(x, "spec.goal", "spec.quality") {
+				gs = append(gs, x)
+			}
+		}
+		return gs
+	}
 	areaGoals := func(n *resolve.Node) []*resolve.Node {
+		var gs []*resolve.Node
+		for _, f := range project.Features(c, n) {
+			gs = append(gs, featureGoals(f)...)
+		}
+		if len(gs) > 0 {
+			return gs
+		}
 		for a := n.Parent; a != nil; a = a.Parent {
-			var gs []*resolve.Node
+			if is(a, "spec.feature") {
+				if gs := featureGoals(a); len(gs) > 0 {
+					return gs
+				}
+			}
 			for _, ch := range a.Children {
 				if is(ch, "spec.goal") {
 					gs = append(gs, ch)

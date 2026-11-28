@@ -15,7 +15,7 @@ language_specifications_layers: section {
     verify("internal/tools/docs/grammar_test.go", test = "TestDiagnosticsRender")
   }
 
-  proves(heron.language.specifications.contract.errors.field_unused) {
+  proves(heron.language.specifications.contract.errors.member_unused) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestErrorPlaceholders")
   }
 

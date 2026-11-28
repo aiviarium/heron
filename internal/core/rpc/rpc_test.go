@@ -362,11 +362,11 @@ x: api {
 Bare: type(Error) { message: String }
 
 @jsonrpc.code(-32500)
-@proto.code(INTERNAL)
+@proto.status(INTERNAL)
 Reserved: type(Error) { message: String }
 
 @jsonrpc.code(-32050)
-@proto.code(INTERNAL)
+@proto.status(INTERNAL)
 Server: type(Error) { message: String }
 `})
 	if res.Diags.HasErrors() {
@@ -378,8 +378,8 @@ Server: type(Error) { message: String }
 	}
 	all := strings.Join(got, "\n")
 	for _, want := range []string{
-		"Bare is thrown by a, a gRPC method, and has no @code: it's answered as UNKNOWN",
-		"Bare is thrown by a, a JSON-RPC method, and has no @code",
+		"Bare is thrown by a, a gRPC method, and has neither @status nor @proto.status: it's answered as UNKNOWN",
+		"Bare is thrown by a, a JSON-RPC method, and has neither @status nor @code",
 		"-32500 is in JSON-RPC's reserved range",
 	} {
 		if !strings.Contains(all, want) {
@@ -391,15 +391,78 @@ Server: type(Error) { message: String }
 	}
 }
 
-// An unqualified annotation two imported packages declare is ambiguous.
+// An unqualified annotation two imported packages declare is ambiguous,
+// but one the core declares is the core's: `@status` is always the
+// error's HTTP status, and std/proto's is written @proto.status.
 func TestAmbiguousCode(t *testing.T) {
-	_, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/jsonrpc@1\"]\n@code(NOT_FOUND)\nE: type(Error) { message: String }\n"})
-	if got := diags(res); !strings.Contains(got, "@code is declared by more than one imported package: write @jsonrpc.code or @proto.code") {
+	_, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/sparrow@1\"]\n@reserved(2)\nE: type(Error) { message: String }\n"})
+	if got := diags(res); !strings.Contains(got, "@reserved is declared by more than one imported package: write @proto.reserved or @sparrow.reserved") {
 		t.Errorf("got %q", got)
 	}
-	_, res = build(t, map[string]string{"index.heron": head + "@code(NOT_FOUND)\nE: type(Error) { message: String }\n"})
+	_, res = build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/sparrow@1\"]\n@status(404)\n@proto.status(INVALID_ARGUMENT)\nE: type(Error) { message: String }\n"})
+	if res.Diags.HasErrors() {
+		t.Errorf("the core's @status beside @proto.status: %s", diags(res))
+	}
+	_, res = build(t, map[string]string{"index.heron": head + "@proto.status(NOT_FOUND)\nE: type(Error) { message: String }\n"})
 	if res.Diags.HasErrors() {
 		t.Errorf("one package: %s", diags(res))
+	}
+}
+
+// The codes an error's @status derives on each surface, by the tables of
+// the Specifications tab, and the override of a surface in their place.
+func TestDerivedCodes(t *testing.T) {
+	for _, c := range []struct {
+		status, grpc, sparrow string
+		jsonrpc, exit         int
+	}{
+		{"400", "INVALID_ARGUMENT", "invalid_argument", -32000, 2},
+		{"401", "UNAUTHENTICATED", "unauthenticated", -32001, 1},
+		{"403", "PERMISSION_DENIED", "permission_denied", -32003, 1},
+		{"404", "NOT_FOUND", "not_found", -32004, 1},
+		{"409", "ALREADY_EXISTS", "already_exists", -32009, 1},
+		{"422", "FAILED_PRECONDITION", "failed_precondition", -32022, 1},
+		{"429", "RESOURCE_EXHAUSTED", "resource_exhausted", -32029, 1},
+		{"499", "CANCELLED", "cancelled", -32099, 1},
+		{"500", "INTERNAL", "internal", -32603, 1},
+		{"501", "UNIMPLEMENTED", "unimplemented", -32601, 1},
+		{"502", "INTERNAL", "internal", -32603, 1},
+		{"503", "UNAVAILABLE", "unavailable", -32603, 1},
+		{"504", "DEADLINE_EXCEEDED", "deadline_exceeded", -32603, 1},
+		{"302", "UNKNOWN", "unknown", -32603, 1},
+	} {
+		if g := rpc.GRPCCode(c.status); g != c.grpc {
+			t.Errorf("%s: gRPC %s, want %s", c.status, g, c.grpc)
+		}
+		if g := rpc.SparrowCodeName(c.status); g != c.sparrow {
+			t.Errorf("%s: Sparrow %s, want %s", c.status, g, c.sparrow)
+		}
+		if g, _ := rpc.JSONRPCCode(c.status); g != c.jsonrpc {
+			t.Errorf("%s: JSON-RPC %d, want %d", c.status, g, c.jsonrpc)
+		}
+		if g, _ := rpc.ExitCode(c.status); g != c.exit {
+			t.Errorf("%s: exit %d, want %d", c.status, g, c.exit)
+		}
+	}
+	if rpc.GRPCCode("") != "" {
+		t.Error("no status derives no code")
+	}
+	m, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/jsonrpc@1\"]\n@proto(\"a.v1\")\nx: api {\n  @jsonrpc\n  @throws(Gone, Odd)\n  a(): op(String)\n}\n@status(404)\nGone: type(Error) { message: String }\n@status(422)\n@proto.status(INVALID_ARGUMENT)\n@jsonrpc.code(-32602)\nOdd: type(Error) { message: String }\n"})
+	if res.Diags.HasErrors() {
+		t.Fatal(diags(res))
+	}
+	var errs []rpc.Error
+	if mm := m.Method(res.Tree.Find("x.a")); mm != nil {
+		errs = mm.Errors
+	}
+	if len(errs) != 2 {
+		t.Fatalf("errors %v", errs)
+	}
+	if e := errs[0]; e.GRPC != "NOT_FOUND" || e.GRPCExplicit || e.JSONRPC != "-32004" || e.JSONRPCExplicit {
+		t.Errorf("derived: %+v", e)
+	}
+	if e := errs[1]; e.GRPC != "INVALID_ARGUMENT" || !e.GRPCExplicit || e.JSONRPC != "-32602" || !e.JSONRPCExplicit {
+		t.Errorf("explicit: %+v", e)
 	}
 }
 

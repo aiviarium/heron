@@ -506,7 +506,7 @@ func TestShortLinksRender(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	h := f["kite.more.tips.html"]
 	mustHave(t, "tips", h, `A <a class="ref ref-term" href="kite.sync.html#kite.sync.conflict" data-card="kite.sync.conflict">conflict</a> needs you`,
-		`<a class="ref" href="kite.cli.sync.html#kite.cli.sync.dry_run"`, `><code>dry_run</code></a> previews`, `>store line</a> step`)
+		`<a class="ref" href="kite.cli.sync.html"`, `><code>cli.sync</code></a> with <code>--dry-run</code> previews`, `>store line</a> step`)
 }
 
 // Kind elements: a named element is a node with its page or anchor, its

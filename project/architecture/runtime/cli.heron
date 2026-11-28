@@ -1,5 +1,5 @@
 @display("CLI")
-cli: component("internal/core/cli", heron.system.command_line, lang = "go") {
+cli: component("internal/core/cli", heron.system.command_line, heron.cli, lang = "go") {
   | Dispatches the binary's subcommands and registers [unit](#delivery.units) 1's commands, core lints,
   | record kinds and setup funcs. Each command's arguments, options and exit codes are in
   | [the command reference](#heron.cli); this component holds what they share.
@@ -9,7 +9,9 @@ cli: component("internal/core/cli", heron.system.command_line, lang = "go") {
   dispatches: responsibility {{
     Looks the first argument up among the registered commands and runs it with the rest;
     prints the usage to standard error for no argument or an unknown command, and a
-    command's usage line and summary for `heron help <command>`.
+    command's usage line and summary for `heron help <command>`. Each command's usage
+    line is the one the spec derives from the command's declaration, as
+    `cmd/heron/help_test.go` checks for every registered command.
   }}
 
   registers_unit_one: responsibility {{
@@ -85,5 +87,6 @@ cli: component("internal/core/cli", heron.system.command_line, lang = "go") {
   verify("internal/core/gen/gen_test.go", test = "TestRunWritesTargetsAndTheBlock") {{ [heron generate](#heron.cli.generate) writes the targets and the ignore block. }}
   verify("scripts/e2e-docs.sh") {{ [heron generate](#heron.cli.generate) `docs`. }}
   verify("internal/core/cli/cli_test.go", test = "TestSampleCommand") {{ [heron help](#heron.cli.help) and a sample command. }}
+  verify("cmd/heron/help_test.go", test = "TestHelpIsTheSpec") {{ [heron help](#heron.cli.help) prints each command's usage as the spec derives it. }}
   verify("internal/core/cli/cli_test.go", test = "TestVersionCommand") {{ [heron version](#heron.cli.version) and `heron --version`. }}
 }

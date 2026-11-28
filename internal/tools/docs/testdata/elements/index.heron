@@ -5,7 +5,7 @@ import = ["std/doc@1", "std/docs@1"]
 include = ["./guide.heron.md"]
 
 people: section {
-  desk: actor(kind = ActorKind.SYSTEM) {{ The support console. }}
+  desk: actor(role = ActorRole.SYSTEM) {{ The support console. }}
 }
 
 refunds: section {

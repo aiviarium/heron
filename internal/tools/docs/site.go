@@ -159,6 +159,10 @@ type Site struct {
 	kindPaths map[*resolve.Node]string
 	// throwers maps an error to the first op or api whose @throws names it.
 	throwers map[*resolve.Node]*resolve.Node
+	// commandThrows are the errors a command's @throws names.
+	commandThrows map[*resolve.Node]bool
+	// proven are the requirements a proof of the tree names.
+	proven map[*resolve.Node]bool
 }
 
 // New prepares a site for a checked tree.
@@ -244,7 +248,7 @@ func (s *Site) classify() {
 			return
 		}
 		switch k := s.kindPath(n); {
-		case k == "doc.term":
+		case k == "spec.term":
 			s.terms = append(s.terms, n)
 		case k == "spec.error":
 			s.diagnostics = append(s.diagnostics, n)
@@ -302,9 +306,10 @@ func (s *Site) isError(n *resolve.Node) bool {
 }
 
 // pageKinds are the kinds whose nodes get pages of their own at any depth:
-// a component, a command, a use case and a screen are each read on their
-// own.
+// a feature, a component, a command, a use case and a screen are each read
+// on their own.
 var pageKinds = map[string]bool{
+	"spec.feature":      true,
 	"project.component": true,
 	"spec.command":      true,
 	"spec.usecase":      true,
@@ -559,6 +564,11 @@ func (s *Site) buildPages() {
 				s.anchorOf[t] = p
 			}
 		}
+	}
+	if s.hasFeatures() {
+		p := &Page{File: "_features.html", Title: label("docs.page.features"), Layout: "features", Area: docs}
+		s.Pages = append(s.Pages, p)
+		docs.Pages = append(docs.Pages, p)
 	}
 	if len(s.diagnostics) > 0 {
 		p := &Page{File: "_diagnostics.html", Title: label("docs.page.errors"), Layout: "diagnostics", Area: docs}

@@ -576,21 +576,21 @@ func (c *Ctx) rpcErrors(op *resolve.Node, errs []rpc.Error, b string, first bool
 			if code == "" {
 				code = "UNKNOWN"
 			}
-			c.W(`<code class="status err">`, esc(code), `</code>`)
+			c.W(`<code class="status err">`, esc(code), `</code>`, codeMarkHTML(e.GRPC, e.GRPCExplicit))
 		case bindConnect:
 			code := e.GRPC
 			if code == "" {
 				code = "UNKNOWN"
 			}
-			c.W(`<code class="status err">`, esc(rpc.ConnectCode(code)), `</code> <code class="status-code">`, strconv.Itoa(rpc.ConnectStatus(code)), `</code>`)
+			c.W(`<code class="status err">`, esc(rpc.ConnectCode(code)), `</code> <code class="status-code">`, strconv.Itoa(rpc.ConnectStatus(code)), `</code>`, codeMarkHTML(e.GRPC, e.GRPCExplicit))
 		case bindJSONRPC:
 			if e.JSONRPC != "" {
-				c.W(`<code class="status err">`, esc(e.JSONRPC), `</code>`)
+				c.W(`<code class="status err">`, esc(e.JSONRPC), `</code>`, codeMarkHTML(e.JSONRPC, e.JSONRPCExplicit))
 			}
 		case bindSparrow:
 			if e.Sparrow != "" {
 				n, _ := rpc.SparrowCode(e.Sparrow)
-				c.W(`<code class="status err" title="`, attr(label("docs.label.core_code")), `">`, esc(e.Sparrow), `</code> <code class="status-code">`, strconv.FormatUint(n, 10), `</code>`)
+				c.W(`<code class="status err" title="`, attr(label("docs.label.core_code")), `">`, esc(e.Sparrow), `</code> <code class="status-code">`, strconv.FormatUint(n, 10), `</code>`, codeMarkHTML(e.Sparrow, e.SparrowExplicit))
 			} else if e.SparrowSigil != nil {
 				c.W(`<code class="status err" title="`, attr(label("docs.label.sigil")), `">`, esc(e.SparrowSigil.Name), `</code> <code class="status-code">`, strconv.FormatUint(e.SparrowSigil.ID, 10), `</code>`)
 			}

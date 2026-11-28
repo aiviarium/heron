@@ -191,15 +191,25 @@ type EnumValue struct {
 
 // Error is an error an op throws, with its projections.
 type Error struct {
-	Node    *resolve.Node
-	IsNode  bool   // an error node of std/spec rather than a type
-	ID      string // an error node's id
-	Status  string // HTTP
-	GRPC    string // the gRPC code's name, as NOT_FOUND; "" without @code
-	JSONRPC string // the JSON-RPC code, as -32004; "" without @code
-	Sparrow string // the Sparrow core code's name, as not_found; "" without @code
-	// SparrowSigil is the sigil of its own an error without a core code is
-	// answered with by a Sparrow method; SparrowSigilAt is its @sigil.
+	Node   *resolve.Node
+	IsNode bool   // an error node of std/spec rather than a type
+	ID     string // an error node's id
+	Status string // HTTP, as 404; "" without @status
+	// StatusText is the text shown beside the status: @status's text, or
+	// an error node's id.
+	StatusText string
+	// The effective codes on each binding: the one @status derives, or the
+	// one an override sets, which the *Explicit fields mark. "" when
+	// neither gives one.
+	GRPC            string // the gRPC code's name, as NOT_FOUND
+	JSONRPC         string // the JSON-RPC code, as -32004
+	Sparrow         string // the Sparrow core code's name, as not_found
+	GRPCExplicit    bool
+	JSONRPCExplicit bool
+	SparrowExplicit bool
+	// SparrowSigil is the sigil of its own an error with @sigil, or a type
+	// without a core code, is answered with by a Sparrow method;
+	// SparrowSigilAt is its @sigil.
 	SparrowSigil   *SparrowSigil
 	SparrowSigilAt resolve.Site
 	Message        string // the error's message, or an error node's title
@@ -735,7 +745,7 @@ func (m *Model) buildService(api *resolve.Node) {
 		for i := range meth.Errors {
 			e := &meth.Errors[i]
 			if e.GRPC == "" && Own(e.Node) {
-				m.warnf(e.Node, errSite(e), "%s is thrown by %s, a gRPC method, and has no @code: it's answered as UNKNOWN", e.Node.Name, meth.Op.Name)
+				m.warnf(e.Node, errSite(e), "%s is thrown by %s, a gRPC method, and has neither @status nor @proto.status: it's answered as UNKNOWN", e.Node.Name, meth.Op.Name)
 			}
 		}
 	}
@@ -1311,26 +1321,34 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 		}
 		e := Error{Node: t, Throws: at, FromAPI: fromAPI}
 		as := m.r.annsOf(t)
+		if a := find(as, "spec", "status"); a != nil {
+			e.Status = strings.TrimSpace(exprString(arg(a.a, 0, "code")))
+			if x := arg(a.a, 1, "text"); x != nil {
+				e.StatusText, _ = resolve.StringValue(x.Syntax())
+			}
+		}
 		if project.KindPath(c, t) == "spec.error" {
 			e.IsNode = true
 			e.ID, _ = project.ArgString(project.KindArgs(t), 0, "id")
-			e.Status = project.AnnotationText(t, "status")
-			for _, ch := range t.Children {
-				switch {
-				case ch.Name == "title" && ch.Value != nil:
-					e.Message, _ = resolve.StringValue(ch.Value.Syntax())
-				case project.KindPath(c, ch) == "spec.field":
-					ty := ""
-					if es := project.ArgExprs(project.KindArgs(ch)); len(es) > 0 {
-						ty = strings.TrimSpace(es[0].Syntax().Text())
+			if e.StatusText == "" {
+				e.StatusText = e.ID
+			}
+			if ch := t.Child("title"); ch != nil && ch.Value != nil {
+				e.Message, _ = resolve.StringValue(ch.Value.Syntax())
+			}
+			for _, ch := range project.ErrorMembers(c, t) {
+				ty := ""
+				if ch.Decl.N != nil {
+					switch ch.Decl.N.Kind {
+					case syntax.Declare:
+						ty = strings.TrimSpace(ast.Declare{N: ch.Decl.N}.Type().Syntax().Text())
+					case syntax.Value:
+						ty = strings.TrimSpace(ast.Value{N: ch.Decl.N}.Type().Syntax().Text())
 					}
-					e.Fields = append(e.Fields, ErrorField{Name: ch.Name, Type: ty})
 				}
+				e.Fields = append(e.Fields, ErrorField{Name: ch.Name, Type: ty})
 			}
 		} else {
-			if a := find(as, "spec", "status"); a != nil {
-				e.Status = strings.TrimSpace(exprString(arg(a.a, 0, "code")))
-			}
 			for _, mem := range m.r.members(t, nil) {
 				if mem.name == "message" {
 					if mem.node.Decl.N != nil && mem.node.Decl.N.Kind == syntax.Value {
@@ -1345,18 +1363,24 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 			}
 		}
 		for _, a := range as {
-			if a.name != "code" {
-				continue
-			}
-			switch a.pkg {
-			case "proto":
-				e.GRPC = variantName(arg(a.a, 0, "code"))
-			case "jsonrpc":
-				e.JSONRPC = strings.TrimSpace(exprString(arg(a.a, 0, "code")))
+			switch {
+			case a.name == "status" && a.pkg == "proto":
+				e.GRPC, e.GRPCExplicit = variantName(arg(a.a, 0, "code")), true
+			case a.name == "code" && a.pkg == "jsonrpc":
+				e.JSONRPC, e.JSONRPCExplicit = strings.TrimSpace(exprString(arg(a.a, 0, "code"))), true
 				e.JSONCodes = a.site
-			case "sparrow":
-				e.Sparrow = variantName(arg(a.a, 0, "code"))
+			case a.name == "status" && a.pkg == "sparrow":
+				e.Sparrow, e.SparrowExplicit = variantName(arg(a.a, 0, "code")), true
 			}
+		}
+		if e.GRPC == "" {
+			e.GRPC = GRPCCode(e.Status)
+		}
+		if e.Sparrow == "" {
+			e.Sparrow = SparrowCodeName(e.Status)
+		}
+		if d, ok := JSONRPCCode(e.Status); ok && e.JSONRPC == "" {
+			e.JSONRPC = strconv.Itoa(d)
 		}
 		if a := find(as, "sparrow", "sigil"); a != nil && a.pkg == "sparrow" {
 			e.SparrowSigilAt = a.site
@@ -1473,7 +1497,7 @@ func (m *Model) buildJSON(api *resolve.Node) {
 		for i := range jm.Errors {
 			e := &jm.Errors[i]
 			if e.JSONRPC == "" && Own(e.Node) && !jm.Notification {
-				m.warnf(e.Node, errSite(e), "%s is thrown by %s, a JSON-RPC method, and has no @code", e.Node.Name, op.Name)
+				m.warnf(e.Node, errSite(e), "%s is thrown by %s, a JSON-RPC method, and has neither @status nor @code", e.Node.Name, op.Name)
 			}
 		}
 		m.jsonOps[op] = jm

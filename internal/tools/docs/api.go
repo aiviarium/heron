@@ -176,7 +176,7 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 	}
 	// Examples.
 	for _, ch := range op.Children {
-		if s.kindPath(ch) != "types.example" {
+		if s.kindPath(ch) != "spec.example" {
 			continue
 		}
 		ex := opExample{node: ch, values: map[string]any{}}
@@ -889,14 +889,8 @@ func (c *Ctx) httpBody(o *opInfo) {
 				c.W(`<p class="err-title">`, messageHTML(title), `</p>`)
 			}
 			var fs []string
-			for _, f := range e.typ.Children {
-				if s.kindPath(f) == "spec.field" {
-					t := ""
-					if es := argExprs(kindArgs(f)); len(es) > 0 {
-						t = strings.TrimSpace(es[0].Syntax().Text())
-					}
-					fs = append(fs, `<code>`+esc(f.Name)+`</code> <code class="t">`+esc(t)+`</code>`)
-				}
+			for _, f := range project.ErrorMembers(s.Checker, e.typ) {
+				fs = append(fs, `<code>`+esc(f.Name)+`</code> <code class="t">`+esc(memberType(f))+`</code>`)
 			}
 			if len(fs) > 0 {
 				c.W(`<p class="err-fields"><span class="label">`, esc(label("docs.label.fields")), `</span> `, strings.Join(fs, ", "), `</p>`)

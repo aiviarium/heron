@@ -21,7 +21,7 @@ architecture: section {
   | How the store is built: one component per Go package.
 
   /// The cart a buyer fills before checking out.
-  cart: component("internal/cart", shop.parts.cart, shop.buyer, lang = "go") {
+  cart: component("internal/cart", shop.parts.cart, shop.checkout, lang = "go") {
     responsibility {{ Holds the items of a buyer's cart until checkout. }}
   }
 
@@ -48,7 +48,7 @@ proofs: section {
     verify("internal/cart/checkout_test.go", test = "TestPayEmptiesCart")
   }
 
-  refunds_later: status<planned>(shop.checkout.refund_window) {{ Refunds come with the provider's refund API. }}
+  refunds_later: progress<planned>(shop.checkout.refund_window) {{ Refunds come with the provider's refund API. }}
 }
 
 history: section {

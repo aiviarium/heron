@@ -33,9 +33,9 @@ project: package(version = "1.1", requires = ["std/doc@1"]) {
 
   /// A unit of the implementation's code with one contract, such as a Go
   /// or TS package, at a path from the repository root. Its references
-  /// name the spec's parts, actors or sections it builds. Architecture,
-  /// never a spec kind.
-  component(path: String, refs<variadic>?: Ref(Any), lang?: String): kind(in = [block], references = [spec.part, spec.actor, doc.section]) {
+  /// name the spec's features and parts it builds. Architecture, never a
+  /// spec kind.
+  component(path: String, refs<variadic>?: Ref(Any), lang?: String): kind(in = [block], references = [spec.feature, spec.part]) {
     /// The components it may import; any other import breaks the contract.
     uses?: List(Ref(component))
     accept(prose)
@@ -86,15 +86,15 @@ project: package(version = "1.1", requires = ["std/doc@1"]) {
   /// Where spec requirements stand in this project while no test proves
   /// them: `<planned>` when they aren't built yet, `<untested>` when they
   /// are built and no test proves them yet. A requirement no proof names
-  /// and no status covers is missing.
-  status(requirements<variadic>: Ref(Any)): kind(in = [block]) {
+  /// and no progress covers is missing.
+  progress(requirements<variadic>: Ref(Any)): kind(in = [block]) {
     accept(prose)
   }
 
   /// Not built yet; on a story, an increment or a milestone, not started.
-  planned: flag(on = [status, story, increment, milestone], group = "implementation_status")
+  planned: flag(on = [progress, story, increment, milestone], group = "implementation_status")
   /// Built, with no test proving it yet.
-  untested: flag(on = [status], group = "implementation_status")
+  untested: flag(on = [progress], group = "implementation_status")
 
   /// A release of the project at a version of its scheme, recorded by the
   /// git tag `v<version>`, as `v2.1.3+build4`.

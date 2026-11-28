@@ -175,7 +175,7 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 		if l := LayerOf(c, n); l != None {
 			order = append(order, n)
 			for _, r := range OwnRefs(c, t, n) {
-				if r.Target != n && LayerOf(c, r.Target) != None && !Is(c, r.Target, "doc.term") {
+				if r.Target != n && LayerOf(c, r.Target) != None && !Is(c, r.Target, "spec.term", "spec.feature") {
 					graph[n] = append(graph[n], r)
 				}
 				tl := LayerOf(c, r.Target)

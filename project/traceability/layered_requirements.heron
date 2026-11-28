@@ -33,6 +33,11 @@ layered_requirements: section {
 
   proves(heron.cli.help.prints_usage) {
     verify("internal/core/cli/cli_test.go")
+    verify("cmd/heron/help_test.go", test = "TestHelpIsTheSpec")
+  }
+
+  proves(heron.cli.release.exit_1, heron.cli.release.exit_2) {
+    verify("internal/core/project/release/release_test.go", test = "TestReleaseCommand")
   }
 
   proves(heron.cli.lint.exit_1) {

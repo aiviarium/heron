@@ -23,7 +23,7 @@ refunds: section {
   }
 
   never: rule(desk) {
-    mustNot {{ never refund twice }}
+    must_not {{ never refund twice }}
   }
 
   odd: rule(desk) {
@@ -58,6 +58,7 @@ quiet: section {
   speedy: quality {{ Feels quick. }}
 }
 
+@status(422)
 orphan: error("orphan") {
   title = "bad"
 }
@@ -110,8 +111,23 @@ r: rule(desk) {
   must {{ refund }}
 }
 
-c: constraint(reason = "The card network says so.") {
+c: constraint {
   must {{ refund to the card }}
+  rationale {{ The card network says so. }}
+}
+
+intent: section {
+  refunds_served: goal {{ Customers get their money back. }}
+}
+
+refunds: feature(intent.refunds_served) {
+  in_feature: rule(desk) {
+    must {{ refund in time }}
+  }
+}
+
+joins: rule(desk, refunds) {
+  must {{ refund in the currency paid }}
 }
 `)
 	got, _ := lintDir(t, dir, lint.NewProseCache())
@@ -121,8 +137,15 @@ c: constraint(reason = "The card network says so.") {
 			un = append(un, f.text)
 		}
 	}
+	// The feature's goal motivates the rules it holds and those that
+	// reference it.
 	if len(un) != 1 || !strings.Contains(un[0], "r: rule") {
 		t.Errorf("unmotivated: %q", un)
+	}
+	for _, f := range got {
+		if f.code == "Spec.UnservedGoal" {
+			t.Errorf("a feature's goal is served by its rules: %s", f.text)
+		}
 	}
 }
 
