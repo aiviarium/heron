@@ -4,7 +4,7 @@
   "description": "Heron for VS Code: the language server, highlighting and a live docs preview.",
   "version": "0.1.0",
   "publisher": "aiviarium",
-  "license": "UNLICENSED",
+  "license": "(MIT OR Apache-2.0)",
   "private": true,
   "repository": {
     "type": "git",
@@ -139,7 +139,7 @@
     "typecheck": "tsc -p . --noEmit",
     "test": "node build.mjs --tests && node --test out/unit/*.test.cjs",
     "test:e2e": "node build.mjs --tests && node out/e2e/run.js",
-    "package": "node build.mjs && vsce package --no-dependencies --skip-license --out heron.vsix"
+    "package": "node build.mjs && vsce package --no-dependencies --out heron.vsix"
   },
   "dependencies": {
     "vscode-languageclient": "9.0.1"

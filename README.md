@@ -191,3 +191,7 @@ package's own site with every lens its docs block builds, the user lens at
 [`/project/`](https://aiviarium.github.io/heron/project/). `scripts/pages.sh <dir>`
 builds the same site locally. The repository's **Settings > Pages > Source**
 must be set to **GitHub Actions** for the deployment to run.
+
+## License
+
+Dual-licensed under MIT (`LICENSE-MIT`) or Apache-2.0 (`LICENSE-APACHE`), at your option.
