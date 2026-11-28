@@ -100,7 +100,8 @@ func (s *Site) Search() []entry {
 			add(n, title)
 		}
 	})
-	return out
+	out = append(out, s.flatSearch()...)
+	return append(out, s.schemaSearch()...)
 }
 
 // dataJS writes the search index and the hover cards.

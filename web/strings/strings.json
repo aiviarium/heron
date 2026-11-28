@@ -3,7 +3,7 @@
   "docs": {
     "area": {
       "docs": "Docs",
-      "reference": "API reference",
+      "reference": "Reference",
       "glossary": "Glossary"
     },
     "page": {
@@ -13,7 +13,8 @@
       "conformance": "Conformance",
       "releases": "Releases",
       "spec": "Specification",
-      "features": "Features"
+      "features": "Features",
+      "schema": "Schema"
     },
     "nav": {
       "types": "Types",
@@ -24,7 +25,10 @@
       "howtos": "How-to guides",
       "concepts": "Concepts",
       "reference": "Reference",
-      "topics": "Topics"
+      "topics": "Topics",
+      "part_api": "API",
+      "part_schema": "Schema",
+      "part_cli": "CLI"
     },
     "action": {
       "copy": "Copy",
@@ -412,6 +416,63 @@
       "constraint": "Constraints",
       "goal": "Goals",
       "story": "Stories"
+    },
+    "schema": {
+      "tree": "What goes inside what",
+      "file": "A file",
+      "kinds": "Kinds",
+      "annotations": "Annotations",
+      "flags": "Flags",
+      "categories": "Categories",
+      "layer": "Layer",
+      "belongs_to": "Belongs to",
+      "goes_inside": "Goes inside",
+      "holds": "Holds",
+      "references": "References",
+      "any_accepting": "any kind that accepts {category}",
+      "any_node": "any node",
+      "other": "other",
+      "prose": "prose",
+      "code": "code",
+      "verbatim": "verbatim text",
+      "at_most": "at most {n}",
+      "default": "default",
+      "no_group": "no group",
+      "col_kind": "Kind",
+      "col_annotation": "Annotation",
+      "col_flag": "Flag",
+      "col_category": "Category",
+      "col_group": "Group",
+      "col_on": "On",
+      "col_members": "Kinds",
+      "attaches_to": "Attaches to",
+      "repeatable": "Repeatable",
+      "yes": "Yes",
+      "no": "No",
+      "parameters": "Parameters",
+      "fields": "Fields",
+      "signatures": "Signatures",
+      "example": "Example",
+      "checked_by": "Checked by",
+      "used_in": "Used in",
+      "nodes_count": "{count} nodes of the tree",
+      "nodes_one": "1 node of the tree",
+      "nodes_none": "No node of the tree",
+      "linked_from": "Linked from",
+      "forms": "Written as",
+      "tab_heron": ".heron",
+      "tab_md": ".heron.md",
+      "tab_rendered": "Rendered",
+      "example_tabs": "Example forms",
+      "and": "and"
+    },
+    "views": {
+      "label": "Field views",
+      "fields": "Fields",
+      "flat": "Flat",
+      "example": "Example",
+      "path": "Path",
+      "value": "Value"
     }
   }
 }

@@ -364,8 +364,8 @@ t2: plain_rule(b) {
 
 // A rule references no term; a constraint needs its reason; a persona
 // plays an actor; a scenario has one form, an outcome scenario references
-// one rule or path, a quality scenario has a measure, references nothing
-// and links the quality it measures in its prose; at most one trigger.
+// one rule or path, a quality scenario has a measure and references the
+// quality it measures; at most one trigger.
 func TestShapes(t *testing.T) {
 	res := checkSrc(t, head+`
 r: rule(window) {
@@ -393,12 +393,11 @@ lost: scenario {
 
 q: quality {{ Quick. }}
 
-unmeasured: scenario {
-  | Measures [q].
+unmeasured: scenario(q) {
   stimulus =| a
 }
 
-pointed: scenario(r) {
+pointed: scenario(q, r) {
   stimulus =| a
   measure =| fast
 }
@@ -408,13 +407,7 @@ unlinked: scenario {
   measure =| fast
 }
 
-linked: scenario {
-  stimulus =| a
-  measure =| as fast as [q] asks
-}
-
-measured: scenario {
-  | Measures [q].
+measured: scenario(q) {
   stimulus =| a
   measure =| fast
 }
@@ -428,9 +421,9 @@ measured: scenario {
 		"scenario: scenario none has neither outcome clauses nor quality fields",
 		"scenario: scenario lost references no rule or path of a use case",
 		"scenario: scenario unmeasured has no measure",
-		"scenario: scenario pointed references a rule or a use case; a quality scenario links the quality it measures in its prose",
-		"scenario: scenario unlinked links no quality it measures in its prose")
-	wantNone(t, res, "scenario linked", "scenario measured")
+		"scenario: scenario pointed references something other than the quality it measures",
+		"scenario: scenario unlinked references no quality it measures")
+	wantNone(t, res, "scenario measured")
 }
 
 // A use case's body is its main path and its extensions; steps open with

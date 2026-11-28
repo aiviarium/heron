@@ -4,6 +4,7 @@
   "description": "Heron for VS Code: the language server, highlighting and a live docs preview.",
   "version": "0.1.0",
   "publisher": "aiviarium",
+  "icon": "images/icon.png",
   "license": "(MIT OR Apache-2.0)",
   "private": true,
   "repository": {

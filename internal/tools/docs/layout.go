@@ -44,6 +44,12 @@ func (s *Site) PageFragment(p *Page) (*Fragment, error) {
 		err = s.changelog(c)
 	case "landing":
 		err = s.landing(c)
+	case "schema":
+		err = s.schemaLanding(c)
+	case "kind":
+		err = s.kindPage(c)
+	case "annotation":
+		err = s.annotationPage(c)
 	default:
 		err = c.render()
 	}
@@ -191,6 +197,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	// The canvas takes the theme's scheme before the stylesheet arrives.
 	b.WriteString(`<meta name="color-scheme" content="dark light">`)
 	b.WriteString(`<title>` + esc(title) + `</title>`)
+	b.WriteString(s.favicon())
 	b.WriteString(canvasStyle())
 	b.WriteString(themeScript)
 	b.WriteString(`<link rel="stylesheet" href="` + a + `docs.css?v=` + assetVersion("docs.css") + `">`)
@@ -228,7 +235,7 @@ func (s *Site) document(p *Page, f *Fragment) string {
 	} else if p.Area != nil && p != s.Home && len(s.Areas) > 1 && p.Layout != "glossary" && p.Area.Key != "docs" {
 		b.WriteString(`<nav class="crumbs" aria-label="` + attr(label("docs.label.breadcrumb")) + `"><ol><li>` + esc(p.Area.Title) + `</li></ol></nav>`)
 	}
-	b.WriteString(`<h1 class="page-title">` + s.nodeIcon(p.Node, "icon title-icon") + esc(p.Title) + s.kindTag(p.Node) + `</h1>`)
+	b.WriteString(`<h1 class="page-title">` + s.nodeIcon(p.Node, "icon title-icon") + strings.Replace(p.icon, `class="icon"`, `class="icon title-icon"`, 1) + esc(p.Title) + s.kindTag(p.Node) + `</h1>`)
 	b.WriteString(s.slotHTML(nil, "before", ""))
 	b.WriteString(f.HTML)
 	b.WriteString(s.slotHTML(nil, "after", ""))
@@ -268,11 +275,8 @@ func (s *Site) document(p *Page, f *Fragment) string {
 func (s *Site) topbar(b *strings.Builder, p *Page) {
 	b.WriteString(`<header class="topbar"><div class="topbar-in">`)
 	b.WriteString(`<button type="button" class="icon-btn nav-toggle" aria-label="` + attr(label("docs.action.menu")) + `" aria-expanded="false" data-island="nav">` + iconMenu + `</button>`)
-	mark := logoMark
-	if s.Theme != nil && s.Theme.Logo != "" {
-		mark = `<img class="mark" src="` + attr(s.Opts.Assets+s.Theme.Logo) + `" width="18" height="18" alt="">`
-	}
-	b.WriteString(`<a class="logo" href="` + attr(s.href(s.Home.File)) + `">` + mark + `<span>` + esc(s.title()) + `</span></a>`)
+	mark, cls := s.logoMark()
+	b.WriteString(`<a class="` + cls + `" href="` + attr(s.href(s.Home.File)) + `">` + mark + `<span>` + esc(s.title()) + `</span></a>`)
 	if len(s.Areas) > 1 {
 		b.WriteString(`<nav class="tabs" aria-label="` + attr(label("docs.label.sections")) + `">`)
 		for _, a := range s.Areas {
@@ -378,7 +382,7 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			b.WriteString(`>` + esc(q.Method) + `</span>`)
 		}
 		if q.Layout != "op" {
-			b.WriteString(s.nodeIcon(q.Node, "icon"))
+			b.WriteString(s.nodeIcon(q.Node, "icon") + q.icon)
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
 		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {
@@ -413,7 +417,28 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 		}
 		b.WriteString(`</ul>`)
 	}
+	part := ""
 	for _, g := range a.Groups {
+		if g.Part != "" && g.Part != part {
+			// A part of the area, as the Reference's API, Schema and CLI.
+			part = g.Part
+			b.WriteString(`<div class="nav-part">` + esc(part) + `</div>`)
+		}
+		if g.Fold {
+			// A group that opens, closed unless the page is one of its own.
+			open := ""
+			for _, q := range g.Pages {
+				if q == p {
+					open = " open"
+				}
+			}
+			b.WriteString(`<div class="nav-group"><details class="nav-types nav-fold" data-key="fold:` + attr(g.Title) + `"` + open + `><summary>` + esc(g.Title) + `<span class="count">` + fmt.Sprint(len(g.Pages)) + `</span></summary><ul class="nav">`)
+			for _, q := range g.Pages {
+				item(q, 0)
+			}
+			b.WriteString(`</ul></details></div>`)
+			continue
+		}
 		b.WriteString(`<div class="nav-group">`)
 		switch {
 		case g.Head != nil:
@@ -550,7 +575,6 @@ const (
 	iconSearch = `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`
 	iconTheme  = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg>`
 	iconMenu   = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`
-	logoMark   = `<svg class="mark" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 3.5v13M15 3.5v13M5 10h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>`
 )
 
 // outline is a page's outline: its headings and, under the heading of a

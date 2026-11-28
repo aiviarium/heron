@@ -320,7 +320,12 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	case !outcome && !quality:
 		problem = "has neither outcome clauses nor quality fields"
 	case outcome:
-		ill := nodeRefs(c, n)
+		var ill []Ref
+		for _, r := range nodeRefs(c, n) {
+			if r.Target == nil || !Is(c, r.Target, "spec.quality") {
+				ill = append(ill, r)
+			}
+		}
 		switch {
 		case len(ill) == 0:
 			problem = "references no rule or path of a use case"
@@ -330,10 +335,10 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	case quality:
 		if m := n.Child("measure"); m == nil || m.Value == nil {
 			problem = "has no measure"
-		} else if len(nodeRefs(c, n)) > 0 {
-			problem = "references a rule or a use case; a quality scenario links the quality it measures in its prose"
-		} else if len(project.Measures(c, n)) == 0 {
-			problem = "links no quality it measures in its prose"
+		} else if len(project.ReferenceTargets(c, n, "spec.quality")) == 0 {
+			problem = "references no quality it measures"
+		} else if len(project.ReferenceTargets(c, n, "spec.quality")) < len(nodeRefs(c, n)) {
+			problem = "references something other than the quality it measures"
 		}
 	}
 	if problem != "" {

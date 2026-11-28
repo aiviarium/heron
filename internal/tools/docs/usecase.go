@@ -263,12 +263,6 @@ func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 		for _, t := range project.SeeAlso(s.Checker, n) {
 			add(t, "see_also", n)
 		}
-		// A quality scenario links the quality it measures in its prose.
-		if s.kindPath(n) == "spec.scenario" {
-			for _, t := range project.Measures(s.Checker, n) {
-				add(t, "measures", n)
-			}
-		}
 	})
 	return s.back
 }
@@ -294,7 +288,7 @@ func (s *Site) backlinkGroups(n *resolve.Node) []backlinkGroup {
 		return nil
 	}
 	by := map[string][]*resolve.Node{}
-	for _, key := range []string{"hard", "reported_as", "measures"} {
+	for _, key := range []string{"hard", "reported_as"} {
 		for _, x := range m[key] {
 			k := s.Checker.KindOf(x)
 			if k == nil {

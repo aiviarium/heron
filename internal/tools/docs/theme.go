@@ -19,8 +19,13 @@ type ThemeManifest struct {
 	Tokens string `json:"tokens,omitempty"`
 	// Fonts are the font files the theme ships, declared as @font-face.
 	Fonts []ThemeFont `json:"fonts,omitempty"`
-	// Logo replaces the mark in the top bar.
-	Logo string `json:"logo,omitempty"`
+	// Logo replaces the mark in the top bar; LogoLight, if set, is its
+	// version for the light theme.
+	Logo      string `json:"logo,omitempty"`
+	LogoLight string `json:"logoLight,omitempty"`
+	// Wordmark says the logo holds the site's name, as a lockup does, so
+	// the top bar keeps the title for screen readers alone.
+	Wordmark bool `json:"wordmark,omitempty"`
 	// CSS are stylesheets, in order. Their url()s resolve against the
 	// package's folder.
 	CSS []string `json:"css,omitempty"`
@@ -46,9 +51,13 @@ type Theme struct {
 	Name    string
 	Version string
 	CSS     []byte
-	// Logo is the logo's path under the assets prefix, or "".
-	Logo  string
-	Files []Asset
+	// Logo is the logo's path under the assets prefix, or "", and
+	// LogoLight its version for the light theme; Wordmark says the logo
+	// holds the site's name.
+	Logo      string
+	LogoLight string
+	Wordmark  bool
+	Files     []Asset
 }
 
 // LoadTheme finds a theme package and reads it. spec is "npm:<name>@<major>",
@@ -133,6 +142,15 @@ func LoadTheme(spec, dir string) (*Theme, error) {
 		}
 		th.Files = append(th.Files, Asset{Path: "theme/" + p, Content: b, Type: mimeOf(p)})
 		th.Logo = "theme/" + p
+		th.Wordmark = m.Wordmark
+	}
+	if m.LogoLight != "" && m.Logo != "" {
+		p, b, err := file(m.LogoLight)
+		if err != nil {
+			return nil, err
+		}
+		th.Files = append(th.Files, Asset{Path: "theme/" + p, Content: b, Type: mimeOf(p)})
+		th.LogoLight = "theme/" + p
 	}
 	th.Files = append([]Asset{{Path: "theme/theme.css", Content: th.CSS, Type: mimeOf("theme.css")}}, th.Files...)
 	return th, nil

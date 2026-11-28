@@ -259,10 +259,10 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// An outcome scenario, one case of the one rule or path of a use case it
   /// references, in given, when and then; or a quality scenario, with
-  /// stimulus, environment, response and measure, linking the quality it
-  /// measures in its prose.
+  /// stimulus, environment, response and measure, referencing the quality
+  /// it measures.
   @icon("list-checks")
-  scenario(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION, references = [rule, usecase]) {
+  scenario(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION, references = [rule, usecase, quality]) {
     stimulus?: Prose
     environment?: Prose
     response?: Prose

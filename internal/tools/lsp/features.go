@@ -138,6 +138,9 @@ func referenceWords(c *types.Checker, n *resolve.Node) string {
 			meaning = "joins"
 		case kp == "spec.goal", kp == "spec.quality":
 			meaning = "serves"
+			if project.KindPath(c, n) == "spec.scenario" {
+				meaning = "measures"
+			}
 		case kp == "spec.assumption":
 			meaning = "relies on"
 		case kp == "spec.scenario":
@@ -150,12 +153,6 @@ func referenceWords(c *types.Checker, n *resolve.Node) string {
 			w += " (" + meaning + ")"
 		}
 		out = append(out, w)
-	}
-	// A quality scenario links the quality it measures in its prose.
-	if project.KindPath(c, n) == "spec.scenario" {
-		for _, t := range project.Measures(c, n) {
-			out = append(out, "`"+t.Path()+"` (measures)")
-		}
 	}
 	for _, t := range project.SeeAlso(c, n) {
 		out = append(out, "`"+t.Path()+"` (see also)")

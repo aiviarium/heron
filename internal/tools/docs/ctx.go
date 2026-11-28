@@ -24,6 +24,9 @@ type Ctx struct {
 	Tag *TagCall
 
 	anchorSuffix string
+	// nest opens a field whose type has fields of its own in place, as a
+	// type page's Fields tab does.
+	nest bool
 	// binding is the binding whose part of the page is being written,
 	// and bindingHidden whether that part starts hidden.
 	binding       string

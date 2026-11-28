@@ -234,9 +234,7 @@ func reportGaps(li *lint.Input) {
 	motivated := map[*resolve.Node]bool{}
 	for _, r := range append(append([]*resolve.Node(nil), reqs...), scenarios...) {
 		s := project.Served(c, r)
-		if is(r, "spec.scenario") {
-			s = project.Measures(c, r)
-		} else if len(s) == 0 {
+		if len(s) == 0 && !is(r, "spec.scenario") {
 			s = areaGoals(r)
 		}
 		for _, g := range s {
@@ -308,7 +306,7 @@ func reportGaps(li *lint.Input) {
 	for _, q := range qualities {
 		measured := project.NamedArg(project.KindArgs(q), "measure") != nil
 		for _, sc := range scenarios {
-			for _, g := range project.Measures(c, sc) {
+			for _, g := range project.ReferenceTargets(c, sc, "spec.quality") {
 				measured = measured || g == q
 			}
 		}

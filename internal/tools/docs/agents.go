@@ -142,7 +142,7 @@ func Agents(t *resolve.Tree, c *types.Checker, opts AgentOptions) ([]AgentFile, 
 	}
 	s.mdHref = e.placeholder
 	e.assign()
-	out := e.write()
+	out := e.withSchema(e.write())
 	if opts.Pack != "" {
 		n := e.find(opts.Pack)
 		if n == nil {
@@ -978,7 +978,7 @@ func (e *agentExport) scenario(n *resolve.Node) string {
 	if t := project.Described(s.Checker, n); t != nil {
 		ls = append(ls, "illustrates "+s.mdLink(t, stableID(t)))
 	}
-	if ts := project.Measures(s.Checker, n); len(ts) > 0 {
+	if ts := project.ReferenceTargets(s.Checker, n, "spec.quality"); len(ts) > 0 {
 		ls = append(ls, "measures "+e.links(ts))
 	}
 	out := lines(ls...)

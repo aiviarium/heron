@@ -273,13 +273,18 @@ func TestDeveloperLens(t *testing.T) {
 	if strings.Index(ex, `id="kite.sync.conflict"`) > strings.Index(ex, `id="kite.sync.copies_changed"`) {
 		t.Error("explore doesn't keep the tree's order")
 	}
-	mustHave(t, "dev home", f["dev/index.html"], `<h2 class="home-group-title"><a href="kite.cli.html">CLI</a></h2>`, `<a href="kite.cli.sync.html"><span class="home-link-title">kite sync</span><span class="home-link-text">Syncs a folder with its store, once.</span>`)
+	// The commands are in the Reference area; the section that holds them
+	// stays a topic of the docs, linking them.
+	mustHave(t, "dev home", f["dev/index.html"], `<a href="kite.cli.html"><span class="home-link-title">`)
+	mustHave(t, "dev cli", f["dev/kite.cli.html"], `<a href="kite.cli.sync.html"><span class="home-link-title">`, `kite sync</span><span class="home-link-text">Syncs a folder with its store, once.</span>`)
+	cmdNav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["dev/kite.cli.sync.html"])
+	mustHave(t, "dev command nav", cmdNav, `<a href="kite.cli.sync.html" aria-current="page">`)
 	// A section whose only prose and pages are for users has no page here.
 	if _, ok := f["dev/kite.more.html"]; ok {
 		t.Error("an empty section has a page in the developer lens")
 	}
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
-	mustHave(t, "dev nav", nav, `<a class="label" href="kite.cli.html">CLI</a>`)
+	mustHave(t, "dev nav", nav, `href="kite.cli.html"`)
 	mustNotHave(t, "dev nav", nav, "copies_changed", "Unreadable")
 }
 

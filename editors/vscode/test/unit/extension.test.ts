@@ -97,3 +97,13 @@ test("the preview's policy: nothing by default, style and script by nonce, no ne
   assert.doesNotMatch(page, /<\/style><script>x\(\)/, "the stylesheet can't close its element");
   assert.match(page, /closest\("a"\)\) e\.preventDefault\(\)/, "links are inert");
 });
+
+test("icon: Heron's icon, a 128 px PNG the manifest names and the package keeps", () => {
+  assert.equal(manifest.icon, "images/icon.png");
+  const png = readFileSync(join(root, manifest.icon));
+  assert.equal(png.subarray(1, 4).toString(), "PNG");
+  assert.equal(png.readUInt32BE(16), 128, "width");
+  assert.equal(png.readUInt32BE(20), 128, "height");
+  const ignore = readFileSync(join(root, ".vscodeignore"), "utf8").split("\n");
+  assert.ok(ignore.includes("!images/icon.png"), "the .vsix keeps the icon");
+});

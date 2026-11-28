@@ -1,0 +1,99 @@
+// A package of interface elements that declares kinds of its own, and
+// types with nested fields, for the schema reference's tests.
+import = ["std/schema@1", "std/doc@1", "std/types@1", "std/docs@1"]
+
+ui: package(version = "1.0") {
+  /// What a panel holds.
+  control: category
+
+  /// A screen made of controls.
+  @icon("layout-grid")
+  panel(title: String): kind(in = [block], layer = Layer.CONTRACT) {
+    accept(prose)
+    accept(category = control)
+    accept(kind = footer, max = 1)
+  }
+
+  /// A button a person presses.
+  button(label?: String): kind(in = [control]) {
+    accept(prose)
+  }
+
+  /// A field a person types into.
+  input(name: String): kind(in = [control]) {
+    /// What the field shows before anything is typed.
+    placeholder?: String
+    accept(prose)
+  }
+
+  /// The bottom of a panel.
+  footer: kind {
+    accept(prose)
+  }
+
+  /// How a button is drawn.
+  primary: flag(on = [button], group = "variant")
+  secondary: flag(on = [button], group = "variant")
+
+  /// Hides a control from screen readers.
+  hidden: flag(on = [control])
+
+  /// The keyboard shortcut of a control.
+  shortcut(keys: String): annotation(on = [control])
+}
+
+checker: part {{ Reads the elements and reports what breaks them. }}
+
+rules: section {
+  | The rules on the elements.
+
+  one_footer: rule(checker) {
+    if {{ a [panel](#ui.panel) holds a second [footer](#ui.footer) }}
+    must {{ report it as an error at the second }}
+  }
+
+  one_shortcut: rule(checker) {
+    if {{ a control carries a [shortcut](#ui.shortcut) another control of its panel carries }}
+    must {{ report it as an error at the second }}
+  }
+
+  errors: section {
+    second_footer: error(422, id = "footer") {
+      title = "panel {name} holds a second footer"
+      name: String
+      | Reported as [rules.one_footer] says.
+    }
+  }
+
+  login: ui.panel("Log in") {
+    | Signing in.
+
+    go: ui.button {{ Sign in. }}
+  }
+}
+
+/// A server's settings.
+Server: type {
+  host: String
+  /// The TLS settings.
+  tls: Tls
+  mode: Mode = Mode.STRICT
+  ports?: List(Port)
+}
+
+/// The certificate a server presents.
+Tls: type {
+  cert: String
+  key?: String
+}
+
+/// A port a server listens on.
+Port: type {
+  number: Int
+}
+
+/// How strictly a server checks.
+Mode: enum {
+  STRICT: Self
+  LAX: Self
+}

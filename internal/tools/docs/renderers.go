@@ -144,7 +144,10 @@ func (c *Ctx) referenceKinds(n *resolve.Node) {
 	var parts []string
 	for _, k := range ks {
 		h := `<code>` + esc(k.Name) + `</code>`
-		if own(k) && s.URL(k) != "" {
+		switch {
+		case s.schemaURL(k) != "":
+			h = `<a class="ref" href="` + attr(s.schemaURL(k)) + `">` + h + `</a>`
+		case own(k) && s.URL(k) != "":
 			h = s.linkHTML(k, h, "")
 		}
 		if s.Checker.IsCategory(k) {

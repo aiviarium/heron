@@ -3,6 +3,7 @@
 // before any of this runs.
 import "./theme.css"
 import "./rpc.css"
+import "./schema.css"
 import { render } from "@solidjs/web"
 import { t } from "./data"
 import { Cards } from "./islands/cards"
@@ -136,10 +137,25 @@ function views() {
       for (const p of $$("[data-pane]", v)) p.hidden = p.dataset.pane !== tab.dataset.view
     })
   }
-  // A union's variants.
+  // A union's variants, a kind's example, a type's views: the tab that
+  // holds the anchor in the address is selected as the page opens and
+  // when the anchor changes.
   for (const u of $$("[data-island=tabs]")) {
     const panels = $$(":scope > [role=tabpanel]", u)
+    const tabs = $$("[role=tab]", u.querySelector(".seg")!)
     tablist(u.querySelector(".seg")!, (_, i) => panels.forEach((p, j) => (p.hidden = i !== j)))
+    const follow = () => {
+      const id = decodeURIComponent(location.hash.slice(1))
+      const target = id ? document.getElementById(id) : null
+      const i = target ? panels.findIndex((p) => p !== target && p.contains(target)) : -1
+      if (i >= 0 && panels[i].hidden) {
+        tabs[i]?.click()
+        target!.scrollIntoView({ block: "start" })
+      }
+    }
+    follow()
+    addEventListener("hashchange", follow)
+    teardown.push(() => removeEventListener("hashchange", follow))
   }
   // An op's examples: language tabs and the example picker.
   for (const ex of $$("[data-island=examples]")) {

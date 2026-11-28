@@ -51,8 +51,7 @@ refunds: section {
 
   quick: quality(measure = "Answers within two seconds.") {{ Refunds feel quick. }}
 
-  fast_answers: scenario {
-    | Measures [quick](#refunds.quick).
+  fast_answers: scenario(refunds.quick) {
     stimulus =| a refund is requested
     environment =| production
     response =| the request is answered
@@ -146,8 +145,8 @@ Note: type {
 	}
 	s := site(t, filepath.Join(dir, "index.heron"))
 	for path, want := range map[string]string{
-		"team_rule": `<dt>References</dt><dd><code>motivation</code> <span class="kind">category</span><span class="sep">, </span><a class="ref" href="index.html#audience"><code>audience</code></a> <span class="kind">category</span></dd>`,
-		"Note":      `<span class="tk-type">Ref</span><span class="tk-punct">(</span><a class="ref code-ref" href="index.html#audience"><span class="tk-name">audience</span></a><span class="tk-punct">)</span>`,
+		"team_rule": `<dt>References</dt><dd><a class="ref" href="_schema.html#spec.motivation"><code>motivation</code></a> <span class="kind">category</span><span class="sep">, </span><a class="ref" href="_schema.html#audience"><code>audience</code></a> <span class="kind">category</span></dd>`,
+		"Note":      `<span class="tk-type">Ref</span><span class="tk-punct">(</span><a class="ref code-ref" href="_schema.html#audience"><span class="tk-name">audience</span></a><span class="tk-punct">)</span>`,
 	} {
 		f, err := s.RenderNode(s.Tree.Find(path))
 		if err != nil {

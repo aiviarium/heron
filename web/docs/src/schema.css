@@ -1,0 +1,84 @@
+/* The schema reference and the type page's views: the Reference area's
+   parts in the navigation, a kind's summary, the containment tree, the
+   view tabs and the brand marks of the top bar. Tokens and components of
+   theme.css only. */
+
+/* The Reference area's parts: API, Schema and CLI. */
+.nav-part { margin: var(--h-space-6) 0 var(--h-space-2); padding: 0 var(--h-space-2); font-size: var(--h-font-size-label); font-weight: var(--h-font-weight-semibold); letter-spacing: var(--h-font-tracking-label); text-transform: uppercase; color: var(--h-text-faint); }
+.sidebar-in > .nav-part:first-child, .nav-areas + .nav-part { margin-top: 0; }
+.nav-fold > summary { font-weight: var(--h-font-weight-medium); }
+.nav-group:has(> .nav-fold) { margin-top: 0; }
+
+/* A kind's page: its forms, then its summary as a two-column block. */
+.kind-forms { flex-direction: column; gap: var(--h-space-1); }
+.kind-forms dt { min-width: 64px; font: 12px var(--h-font-mono); color: var(--h-text-faint); }
+.kind-forms dd code { font-size: var(--h-font-size-code); }
+.kind-summary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0; max-width: var(--h-page, 760px); border: 1px solid var(--h-border); border-radius: var(--h-radius-card); overflow: hidden; }
+.kind-summary .fact { display: contents; }
+.kind-summary dt, .kind-summary dd { padding: 6px var(--h-space-3); border-bottom: 1px solid var(--h-border-faint); }
+.kind-summary .fact:last-child dt, .kind-summary .fact:last-child dd { border-bottom: 0; }
+.kind-summary dt { background: var(--h-bg-soft); color: var(--h-text-secondary); font-weight: var(--h-font-weight-medium); }
+.kind-summary dd { line-height: 1.75; }
+.hold-group { display: block; }
+.hold-group > a:first-child code { color: var(--h-text-secondary); }
+.any-node { color: var(--h-text-faint); }
+.lead-line { color: var(--h-text-secondary); max-width: var(--h-size-measure); }
+.rule-codes { margin: calc(-1 * var(--h-space-2)) 0 var(--h-space-4); display: flex; gap: var(--h-space-1); flex-wrap: wrap; }
+.code-id { font-size: 11px; color: var(--h-text-secondary); border: 1px solid var(--h-border); border-radius: var(--h-radius-mark); padding: 0 4px; }
+.used-count { color: var(--h-text-secondary); font-size: var(--h-font-size-ui); }
+.line-doc { color: var(--h-text-secondary); font-size: var(--h-font-size-ui); }
+.schema-table td:first-child { white-space: nowrap; }
+.schema-table .icon, .tree-kind .icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: var(--h-space-1); color: var(--h-text-faint); }
+
+/* The containment tree: nested lists that open in place. */
+.schema-tree { margin: 0 0 var(--h-space-8); padding: var(--h-space-3) var(--h-space-4); border: 1px solid var(--h-border); border-radius: var(--h-radius-card); font-size: var(--h-font-size-ui); }
+.schema-tree .tree-file { margin: 0 0 var(--h-space-1); color: var(--h-text-faint); font-size: var(--h-font-size-label); font-weight: var(--h-font-weight-semibold); letter-spacing: var(--h-font-tracking-label); text-transform: uppercase; }
+.schema-tree ul { list-style: none; margin: 0; padding: 0 0 0 var(--h-space-4); border-left: 1px solid var(--h-border-faint); }
+.schema-tree > ul { padding-left: 0; border-left: 0; }
+.schema-tree li { line-height: var(--h-size-row); }
+.schema-tree summary { cursor: pointer; list-style: none; position: relative; padding-left: 14px; border-radius: var(--h-radius-mark); }
+.schema-tree summary::-webkit-details-marker { display: none; }
+.schema-tree summary::before { content: ""; position: absolute; left: 2px; top: 11px; width: 5px; height: 5px; border-right: 1.3px solid var(--h-text-faint); border-bottom: 1.3px solid var(--h-text-faint); transform: rotate(-45deg); transition: transform var(--h-motion-base) var(--h-motion-ease); }
+.schema-tree details[open] > summary::before { transform: rotate(45deg); top: 9px; }
+.schema-tree summary:hover { background: var(--h-bg-soft); }
+.schema-tree li > .tree-kind, .schema-tree li > .tree-cat { padding-left: 14px; }
+.tree-cat a { color: var(--h-text-secondary); font-size: var(--h-font-size-label); font-weight: var(--h-font-weight-semibold); letter-spacing: var(--h-font-tracking-label); text-transform: uppercase; text-decoration: none; }
+.tree-cat a:hover { color: var(--h-accent); }
+
+/* Tabs over a part of the page: a kind's example, a type's fields. */
+.view-tabs { margin: 0 0 var(--h-space-5); }
+.view-tabs > .seg { margin-bottom: var(--h-space-2); background: var(--h-bg-soft); }
+.view-tabs > [role="tabpanel"]:focus-visible { outline-offset: 4px; }
+.view-tabs > [role="tabpanel"] > :last-child { margin-bottom: 0; }
+.kind-rendered { padding: var(--h-space-4) var(--h-space-5); border: 1px solid var(--h-border); border-radius: var(--h-radius-card); }
+.kind-rendered > :first-child { margin-top: 0; }
+.type-example { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--h-space-3); align-items: start; }
+.type-example > .code { margin: 0; }
+.nested-fields { margin-top: var(--h-space-1); }
+.nested-fields > summary { cursor: pointer; color: var(--h-text-faint); font-size: 12px; width: max-content; }
+.nested-fields > summary:hover { color: var(--h-text); }
+.nested-fields > .schema { margin: var(--h-space-2) 0 0; min-width: 280px; }
+.flat-path { text-decoration: none; }
+.flat-path:hover code { color: var(--h-accent); }
+table.flat tr:target td { background: var(--h-bg-soft); }
+
+@media (max-width: 820px) {
+  .type-example { grid-template-columns: minmax(0, 1fr); }
+  .kind-summary { grid-template-columns: minmax(0, 1fr); }
+  .kind-summary dt { border-bottom: 0; padding-bottom: 0; background: none; color: var(--h-text-faint); font-size: var(--h-font-size-label); }
+  .kind-forms dd { overflow-x: auto; }
+  .schema-table td:first-child { white-space: normal; }
+}
+
+/* The top bar's mark: Heron's icon, its version for light backgrounds in
+   the light theme; a theme's logo the same way. */
+.logo .mark-light { display: none; }
+[data-theme="light"] .logo .mark-dark { display: none; }
+[data-theme="light"] .logo .mark-light { display: inline-block; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .logo .mark-dark { display: none; }
+  :root:not([data-theme="dark"]) .logo .mark-light { display: inline-block; }
+}
+.logo img.mark { width: 20px; height: 20px; }
+.logo.wordmark img.mark { width: auto; height: 22px; }
+.logo.wordmark > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

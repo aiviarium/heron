@@ -2,6 +2,7 @@
 !package.json
 !README.md
 !LICENSE
+!images/icon.png
 !language-configuration.json
 !dist/extension.js
 !dist/web.js

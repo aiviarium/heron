@@ -5,7 +5,6 @@ import (
 
 	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
-	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
 )
 
@@ -119,39 +118,6 @@ func AskedBy(c *types.Checker, n *resolve.Node) []*resolve.Node {
 // Served are the goals and qualities a node's references name.
 func Served(c *types.Checker, n *resolve.Node) []*resolve.Node {
 	return ReferenceTargets(c, n, "spec.goal", "spec.quality")
-}
-
-// Measures are the qualities a quality scenario's prose links, in its text
-// or its stimulus, environment, response and measure: the qualities it
-// measures. A scenario references only the rule or use case it
-// illustrates, so a quality scenario names its quality in its prose.
-func Measures(c *types.Checker, n *resolve.Node) []*resolve.Node {
-	var out []*resolve.Node
-	seen := map[*resolve.Node]bool{}
-	links := ProseLinks(c, n)
-	for _, f := range []string{"stimulus", "environment", "response", "measure"} {
-		ch := n.Child(f)
-		if ch == nil || ch.Value == nil {
-			continue
-		}
-		site := ch.ValueSite
-		ch.Value.Syntax().Walk(func(y *syntax.Node) bool {
-			if y.Kind == syntax.Path {
-				if t := RefTarget(c, y, site); t != nil {
-					links = append(links, t)
-				}
-				return false
-			}
-			return true
-		})
-	}
-	for _, t := range links {
-		if !seen[t] && isKind(c, t, "spec.quality") {
-			seen[t] = true
-			out = append(out, t)
-		}
-	}
-	return out
 }
 
 // ReliedOn are the assumptions a node's references name.

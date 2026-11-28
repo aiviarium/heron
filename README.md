@@ -1,4 +1,7 @@
-# Heron
+<h1><a href="https://github.com/aiviarium/heron"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aiviarium/.github/main/brand/lockups/lockup-heron-text.svg">
+  <img src="https://raw.githubusercontent.com/aiviarium/.github/main/brand/lockups/lockup-heron-text-light.svg" alt="Heron" height="56">
+</picture></a></h1>
 
 [![CI](https://github.com/aiviarium/heron/actions/workflows/ci.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/ci.yml)
 [![Pages](https://github.com/aiviarium/heron/actions/workflows/pages.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/pages.yml)
