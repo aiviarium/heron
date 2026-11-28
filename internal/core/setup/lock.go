@@ -257,7 +257,7 @@ func sources(ctx context.Context, m *eval.Machine) ([]source, error) {
 			return
 		}
 		k := m.Types.KindOf(n)
-		if k == nil || !types.IsStd(k, "spec", "spec.project") {
+		if k == nil || !types.IsStd(k, "impl", "impl.project") {
 			return
 		}
 		c := n.Child("source")

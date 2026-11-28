@@ -342,7 +342,7 @@ func (s *Site) link(n *resolve.Node, inner, class string) string {
 		return `<span class="` + cls + `"` + card + `>` + inner + `</span>`
 	}
 	tip := ""
-	if t := s.lensTag(n); t != "" && s.specURL(n) == "" {
+	if t := s.lensTag(n); t != "" {
 		// The other lens is named in the tooltip alone: the link reads as
 		// its words.
 		tip = ` title="` + attr(label("docs.label.opens_in", "lens", t)) + `"`

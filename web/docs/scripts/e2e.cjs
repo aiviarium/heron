@@ -251,13 +251,13 @@ const url = (f) => "file://" + path.join(dir, f)
       }
     }
     // One content width, centred between the navigation and the right
-    // column: the same width and x on a prose page, an op page and the
-    // conformance page, whatever each holds.
+    // column: the same width and x on a prose page, an op page and a type
+    // page, whatever each holds.
     const byLayout = {}
     for (const f of pages) {
       const src = fs.readFileSync(path.join(dir, f), "utf8")
       const lay = (src.match(/<body data-layout="([a-z]+)"/) || [])[1]
-      if (lay && !byLayout[lay] && /<nav class="sidebar"/.test(src) && ["section", "home", "op", "type", "conformance", "api"].includes(lay)) byLayout[lay] = f
+      if (lay && !byLayout[lay] && /<nav class="sidebar"/.test(src) && ["section", "home", "op", "type", "api"].includes(lay)) byLayout[lay] = f
     }
     const sample = Object.values(byLayout)
     if (sample.length > 1) {
@@ -650,32 +650,6 @@ const url = (f) => "file://" + path.join(dir, f)
       await page.keyboard.press("Escape")
     }
   }
-  // Status badges show their status's colour, as text and a 1 px outline,
-  // never as a fill: the badge's own neutral colour doesn't win over it.
-  let badges = 0
-  for (const f of pages) {
-    if (!fs.readFileSync(path.join(dir, f), "utf8").includes('class="badge status-')) continue
-    await ready(f)
-    const found = await page.$$eval('.badge[class*="status-"]', (els) =>
-      els.map((b) => {
-        const st = [...b.classList].find((c) => c.startsWith("status-"))
-        const probe = document.createElement("span")
-        probe.className = st
-        b.parentElement.append(probe)
-        const want = getComputedStyle(probe).color
-        probe.remove()
-        const s = getComputedStyle(b)
-        if (s.color !== want) return `${st} is ${s.color}, not its status colour ${want}`
-        if (s.borderTopWidth !== "1px" || s.borderTopColor !== want) return `${st}'s outline is ${s.borderTopWidth} ${s.borderTopColor}, not 1px ${want}`
-        if (s.backgroundColor !== "rgba(0, 0, 0, 0)") return `${st} is filled with ${s.backgroundColor}`
-        return ""
-      }),
-    )
-    badges += found.length
-    for (const m of new Set(found.filter(Boolean))) fail.push(`${f}: status badge: ${m}`)
-  }
-  if (!badges) console.log("(no status badges on this site)")
-
   for (const [k, v] of [["cards", "cardDone"], ["diagram", "diagramDone"], ["Try it", "tryDone"]]) {
     if (!globalThis[v]) console.log(`(no ${k} on this site)`)
   }

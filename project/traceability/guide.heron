@@ -1,7 +1,0 @@
-guide: section {
-  | The tests that prove the requirements of the spec's [guide](#heron.guide).
-
-  proves(heron.guide.changing.tree_stays_green) {
-    verify("scripts/ci.sh")
-  }
-}

@@ -252,8 +252,8 @@ func TestProse(t *testing.T) {
 		// verbatim_text: a `{{ }}` body of a kind that takes Verbatim text
 		// has no tags, inserts, links or code spans, by the `:` slot's or
 		// the callee's name; another kind's body has them.
-		{"s: tech.surface {{\n  load(): Promise<Result> $x [a](#b) `c\n  <T>x</T> \\}} }}", "File(Declare(Path NamedType(Path) ProseBlock))", nil},
-		{"surface(title = \"a.ts\") {{ <Result> ${x} }}", "File(Invoke(Path Args(NamedArg(StringLit)) ProseBlock))", nil},
+		{"s: tech.production {{\n  load(): Promise<Result> $x [a](#b) `c\n  <T>x</T> \\}} }}", "File(Declare(Path NamedType(Path) ProseBlock))", nil},
+		{"code(title = \"a.ts\") {{ <Result> ${x} }}", "File(Invoke(Path Args(NamedArg(StringLit)) ProseBlock))", nil},
 		{"production {{ \"<\" Path TagAttr* \">\" }}", "File(TextNode(Path ProseBlock))", nil},
 		{"e: code(lang = \"ts\") {{ Map<K> }}", "File(Declare(Path NamedType(Path Args(NamedArg(StringLit))) ProseBlock))", nil},
 		{"n: note {{ <b>x</b> }}", "File(Declare(Path NamedType(Path) ProseBlock(Tag(Path TagClose(Path)))))", nil},

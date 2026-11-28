@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/lens"
-	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/specmodel"
@@ -57,7 +56,7 @@ type Page struct {
 	File  string        // file name, such as "orders.ordering.html"
 	Title string
 	// Layout is "home", "section", "api", "op", "type", "glossary",
-	// "diagnostics", "conformance", "releases" or "spec"; a docs block's
+	// or "diagnostics"; a docs block's
 	// layout(…) sets "api", "changelog" or
 	// "landing" on sections.
 	Layout string
@@ -140,13 +139,6 @@ type Site struct {
 	icons        *icon.Set
 	anchors      map[string]*resolve.Node
 	implementors map[*resolve.Node][]*resolve.Node
-	// project is the tree's implements, when it implements a spec.
-	project *project.Project
-	// specSite is the spec's own site, which links to spec nodes go to
-	// when the project names it with `docs`.
-	specSite *Site
-	// specLenses are the spec's own lenses, when it builds more than one.
-	specLenses *Lenses
 	// rpcModel is the tree's RPC projection, built on first use.
 	rpcModel *rpc.Model
 	// jsonCase is the case of names in JSON an api's @keys sets, while
@@ -170,8 +162,6 @@ type Site struct {
 	throwers map[*resolve.Node]*resolve.Node
 	// commandThrows are the errors a command's @throws names.
 	commandThrows map[*resolve.Node]bool
-	// proven are the requirements a proof of the tree names.
-	proven map[*resolve.Node]bool
 	// schema is the schema reference, when the tree imports std/schema.
 	schema *schemaRef
 }
@@ -199,7 +189,6 @@ func New(t *resolve.Tree, c *types.Checker, opts Options) *Site {
 	if s.Config.Theme != "" {
 		s.Theme, s.ThemeErr = LoadTheme(s.Config.Theme, s.Config.ThemeDir)
 	}
-	s.project = project.Find(t, c)
 	s.classify()
 	// The apis by the count of their ops, the highest first, as declared
 	// among equals: a site's main API leads its reference.
@@ -300,14 +289,12 @@ func (s *Site) inReference(n *resolve.Node) bool {
 }
 
 // pageKinds are the kinds whose nodes get pages of their own at any depth:
-// a feature, a component, a command, a use case and a screen are each read
-// on their own.
+// a feature, a command, a use case and a screen are each read on their own.
 var pageKinds = map[string]bool{
-	"spec.feature":      true,
-	"project.component": true,
-	"spec.command":      true,
-	"spec.usecase":      true,
-	"spec.screen":       true,
+	"spec.feature": true,
+	"spec.command": true,
+	"spec.usecase": true,
+	"spec.screen":  true,
 }
 
 // isPageNode reports whether a node gets a page of its own.
@@ -339,7 +326,7 @@ func (s *Site) hasDocs(n *resolve.Node) bool {
 	}
 	for _, c := range n.Children {
 		switch k := s.kindPath(c); {
-		case strings.HasPrefix(k, "spec.") && k != "spec.project", strings.HasPrefix(k, "doc."), strings.HasPrefix(k, "grammar."):
+		case strings.HasPrefix(k, "spec."), strings.HasPrefix(k, "doc."), strings.HasPrefix(k, "grammar."):
 			return true
 		}
 	}
@@ -577,14 +564,6 @@ func (s *Site) buildPages() {
 		}
 	}
 
-	if s.project != nil {
-		// A project's own pages: how it conforms to the spec it implements.
-		p := &Page{File: "_conformance.html", Title: label("docs.page.conformance"), Layout: "conformance", Area: docs}
-		s.Pages = append(s.Pages, p)
-		docs.Pages = append(docs.Pages, p)
-		s.specPages(docs)
-	}
-
 	// Every other node is shown on the page of its nearest ancestor that
 	// has one.
 	s.Tree.Walk(func(n *resolve.Node) {
@@ -662,12 +641,9 @@ func (s *Site) title() string {
 		return s.Opts.Title
 	}
 	for _, c := range s.Tree.Root.Children {
-		if own(c) && s.kindPath(c) == "spec.project" {
+		if own(c) && c.Name != "" && s.kindPath(c) == "impl.project" {
 			return displayName(s, c)
 		}
-	}
-	if s.project != nil {
-		return displayName(s, s.project.Node)
 	}
 	if pk := s.homeNode(); pk != s.Tree.Root {
 		return displayName(s, pk)
@@ -715,9 +691,6 @@ func Anchor(n *resolve.Node) string { return n.Path() }
 // URL returns the link to a node: its page, and its anchor on that page.
 func (s *Site) URL(n *resolve.Node) string {
 	if u := s.schemaURL(n); u != "" {
-		return u
-	}
-	if u := s.specURL(n); u != "" {
 		return u
 	}
 	if !s.kept(n) || s.anchorOf[n] == nil {

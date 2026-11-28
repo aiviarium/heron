@@ -16,6 +16,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/diag"
 	"github.com/aiviarium/heron/internal/core/eval"
 	"github.com/aiviarium/heron/internal/core/eval/host"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/records"
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
@@ -188,13 +189,33 @@ func runOrder(ctx context.Context, m *eval.Machine, c *types.Checker, order []*r
 }
 
 // findTask finds a task by its path from the root, or else inside the
-// tree's repository node, so `heron run setup` runs `repository.setup`.
+// tree's root project, std/impl's project at ".", so `heron run setup`
+// runs that project's setup task.
 func findTask(res *check.Result, p string) *resolve.Node {
 	if n := res.Tree.Find(p); n != nil {
 		return n
 	}
-	if r := res.Tree.Find("repository"); r != nil && types.IsStd(res.Checker.TypeOf(r), "repo", "repo.Repository") {
-		return res.Tree.Find("repository." + p)
+	for _, r := range res.Tree.Root.Children {
+		k := res.Checker.KindOf(r)
+		if k == nil || !types.IsStd(k, "impl", "impl.project") {
+			continue
+		}
+		e := project.KindArg(res.Checker, r, "path")
+		if e == nil {
+			continue
+		}
+		if path, ok := resolve.StringValue(e.Syntax()); !ok || path != "." {
+			continue
+		}
+		n := r
+		for _, seg := range strings.Split(p, ".") {
+			if n = n.Child(seg); n == nil {
+				break
+			}
+		}
+		if n != nil {
+			return n
+		}
 	}
 	return nil
 }

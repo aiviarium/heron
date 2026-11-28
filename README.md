@@ -11,9 +11,7 @@ implements in its three lenses (for users at the root,
 [/dev/](https://aiviarium.github.io/heron/dev/) for spec writers and
 [/explore/](https://aiviarium.github.io/heron/explore/) for the whole tree), its
 agent export for agents at [/agents/](https://aiviarium.github.io/heron/agents/INDEX.md)
-(with [/llms.txt](https://aiviarium.github.io/heron/llms.txt)), and the
-project site (architecture, conformance, releases) at
-[/project/](https://aiviarium.github.io/heron/project/).
+(with [/llms.txt](https://aiviarium.github.io/heron/llms.txt)).
 
 The implementation of Heron: the `heron` binary, its standard packages, the
 docs theme and the VS Code extension. What Heron does is specified apart from this repository, in
@@ -106,7 +104,7 @@ changing, as [Getting the spec](#getting-the-spec) says.
 | Repository | Holds | Versioned by |
 | --- | --- | --- |
 | `aiviarium/heron-specs` | The spec: the sealed package `heron/` (the language, the product, the command line, the tools' behaviour), authored in Heron. It never refers to code. | its package version and its `vX.Y.Z` tags |
-| `aiviarium/heron` (this one) | The code, and the project tree around the spec: architecture components, the proofs that link each spec requirement to its tests, status, the delivery plan, releases, and these docs. | its project version, which starts with the spec version |
+| `aiviarium/heron` (this one) | The code: the `heron` binary, the standard packages, the docs theme and the VS Code extension. | its product version, which starts with the spec version |
 
 This repository imports the spec as a package and never writes spec
 content: the package is sealed, so nothing here can amend, scope or set
@@ -114,12 +112,25 @@ into its nodes, and a change to what the system does is made in
 heron-specs first. The fixtures the parser, formatter and checker are
 tested against are the spec's `example` nodes.
 
+### Build only what the spec states
+
+A change starts from behaviour the spec states, at the version heron.lock
+pins. An implementer builds what the spec states and decides no design:
+syntax, the surface of a standard package, a behaviour or the scope. When
+building needs a behaviour the spec doesn't state, that's a finding for the
+spec's authors, as the spec's guide says, and the change waits for a spec
+version that states it.
+
+After every change the tree stays green: `heron check`, `heron lint` and
+`heron fmt --check` pass on the repository's tree, and `scripts/ci.sh`
+passes.
+
 ## Getting the spec
 
 The root `index.heron` imports the package by its git address,
 
 ```heron
-import = ["std/repo@1", "git+https://github.com/aiviarium/heron-specs//heron@v0"]
+import = ["std/impl@1", "git+https://github.com/aiviarium/heron-specs//heron@v0"]
 ```
 
 and `heron.lock` pins it at a commit. No version of the spec is released
@@ -151,11 +162,7 @@ The product version is the spec version: this build implements the Heron
 spec 0.6.0, so Heron is 0.6.0. The implementation's own builds of one spec
 version follow a `+`, as build metadata, so they never claim a different
 spec: `0.6.0+build1`, `0.6.0+build2`, and so on, the counter starting again
-when the spec version changes. Where a release needs an ordered
-implementation patch, the project's `versioning` can use the 4-part scheme
-`SM.Sm.Sp.IP` instead, as `0.6.0.1`, with build metadata still after `+`.
-The project tree's `implements(heron, at = "0.6.0")` names the spec version
-and `version` the project version; releases are tagged `v<version>`.
+when the spec version changes.
 
 ## Checking it
 
@@ -165,7 +172,7 @@ HERON_SPECS_DIR=../heron-specs/heron scripts/ci.sh
 scripts/ci.sh --list                            # its lanes; scripts/ci.sh docs e2e runs those alone
 scripts/play.sh                                 # heron serve on a copy of examples/petstore, and how to open it in VS Code
 scripts/spec-docs.sh                            # the spec package as its docs site
-scripts/pages.sh /tmp/site                      # the published site: spec at /, agents/, project at project/
+scripts/pages.sh /tmp/site                      # the published site: the spec at /, agents/
 ```
 
 `scripts/ci.sh` is the check, and it passes from a fresh clone. GitHub
@@ -175,8 +182,7 @@ Actions runs the same script on every push and pull request to `main`
 `spec = install` takes the lock-based `heron run setup` path instead. The
 script sets up the spec package first, then runs gofmt, vet, the
 generated-code checks, the Go, web, tree-sitter and VS Code extension tests, the fixtures, the
-checks and lints of the repository's tree and the examples, conformance
-(every spec requirement proven, planned or untested; none missing) and the
+checks and lints of the repository's tree and the examples, and the
 end-to-end scripts. It runs them as lanes, all at once, each one's output in
 a log shown if it fails, and ends with a table of where the time went;
 `--serial` runs them one after another. On GitHub each lane is a job of its
@@ -189,9 +195,8 @@ and `docs/STATUS.md` where it stands.
 package's own site with every lens its docs block builds, the user lens at
 [aiviarium.github.io/heron](https://aiviarium.github.io/heron/) and the others under
 [`/dev/`](https://aiviarium.github.io/heron/dev/) and
-[`/explore/`](https://aiviarium.github.io/heron/explore/), where the project tree's
-`implements { docs = ... }` links spec nodes to; and the project site under
-[`/project/`](https://aiviarium.github.io/heron/project/). `scripts/pages.sh <dir>`
+[`/explore/`](https://aiviarium.github.io/heron/explore/), with its agent export under
+[`/agents/`](https://aiviarium.github.io/heron/agents/INDEX.md). `scripts/pages.sh <dir>`
 builds the same site locally. The repository's **Settings > Pages > Source**
 must be set to **GitHub Actions** for the deployment to run.
 

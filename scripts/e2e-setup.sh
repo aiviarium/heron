@@ -104,11 +104,11 @@ v110=$(git -C "$specs" rev-parse 'v1.1.0^{commit}')
 impl="$tmp/impl"
 mkdir -p "$impl"
 cat >"$impl/index.heron" <<EOF
-import = ["std/repo@1", "git+file://$specs//heron@v1"]
+import = ["std/impl@1", "git+file://$specs//heron@v1"]
 
 cart_limit: Int = max_widgets
 
-repository {
+project(".") {
   setup(update: Bool = false): task do {
     install_packages(update = update)
   }

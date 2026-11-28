@@ -192,11 +192,12 @@ func TestRunIsRecorded(t *testing.T) {
 }
 
 // A path that names no task from the root is looked up inside the tree's
-// repository, and a task two others need runs once, before both.
-func TestRunFindsRepositoryTasksAndRunsNeedsOnce(t *testing.T) {
-	dir := repo(t, map[string]string{"index.heron": `import = ["std/repo@1"]
+// root project, std/impl's project at ".", and a task two others need runs
+// once, before both.
+func TestRunFindsRootProjectTasksAndRunsNeedsOnce(t *testing.T) {
+	dir := repo(t, map[string]string{"index.heron": `import = ["std/impl@1"]
 
-repository {
+project(".") {
   base: task do {
     log("base")
   }
@@ -224,9 +225,21 @@ repository {
 	if errs != "base\nleft\nright\n" {
 		t.Errorf("order: %q", errs)
 	}
-	code, out, _ = runHeron(t, dir, "", false, "--json", "repository.left")
+	code, out, _ = runHeron(t, dir, "", false, "--json", "left")
 	if code != 0 || out != "null\n" {
 		t.Errorf("a task without a result under --json: %d %q", code, out)
+	}
+	// A project at another path is no root project.
+	dir = repo(t, map[string]string{"index.heron": `import = ["std/impl@1"]
+
+svc: project("services/svc") {
+  setup: task do {
+    log("svc")
+  }
+}
+`})
+	if code, _, errs := runHeron(t, dir, "", false, "setup"); code != 2 || !strings.Contains(errs, "no task setup") {
+		t.Errorf("a task of a project at another path: %d %q", code, errs)
 	}
 }
 

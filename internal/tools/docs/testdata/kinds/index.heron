@@ -1,6 +1,6 @@
-// The kinds of std/spec's layers, std/grammar and std/project, each once,
-// for the renderer tests.
-import = ["std/doc@1", "std/types@1", "std/grammar@1", "std/project@1"]
+// The kinds of std/spec's layers and std/grammar, each once, for the
+// renderer tests.
+import = ["std/doc@1", "std/types@1", "std/grammar@1"]
 
 trust: goal(people.writer, measure = "Nine trees in ten check clean on the first CI run.") {{ Authors ship a spec their team trusts. }}
 
@@ -49,36 +49,6 @@ editing: section {
     given {{ the language server running }}
     when {{ the writer saves the file }}
     then {{ the error is underlined }}
-  }
-}
-
-see_errors: story<planned>(trust, adds = [guarantees.parse_all]) {
-  done {{ The team has tried it. }}
-}
-
-unit_one: increment<delivered>(see_errors) {
-  | First cut.
-}
-
-runtime: section {
-  syntax: component(path = "internal/core/syntax", lang = "go") {
-    | The lossless parser.
-    uses = []
-
-    lossless: responsibility {{ Parse every byte into a tree that prints back exactly. }}
-
-    /// Parse reads one file.
-    exports(title = "parse.go") {{
-      func Parse(src []byte) *Node
-    }}
-
-    no_io: property {
-      must_not {{ import `os` or any other package that does I/O }}
-    }
-  }
-
-  resolve: component(path = "internal/core/resolve", lang = "go") {
-    uses = [runtime.syntax]
   }
 }
 

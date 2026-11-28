@@ -122,7 +122,7 @@ func (c *Ctx) schemaKindsList(p *schemaPkg) {
 }
 
 // annotationSignature is an annotation as it's written: its name after
-// `@` and its parameters, as `@rev(n: Int)`.
+// `@` and its parameters, as `@exit(code: Int)`.
 func (s *Site) annotationSignature(a *resolve.Node) string {
 	return s.writtenName(a) + strings.TrimPrefix(signatureOf(a), a.Name)
 }

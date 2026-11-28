@@ -1,59 +1,39 @@
 package project
 
 import (
-	"io/fs"
-	"os"
-	"path/filepath"
-	"regexp"
-	"sort"
-	"strings"
-
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/types"
 	"github.com/aiviarium/heron/internal/core/usecase"
 )
 
-var testFunc = regexp.MustCompile(`(?m)^func (Test[A-Za-z0-9_]*)\(`)
-
-// gaps are the conformance report's lists of what the links leave open.
-func (p *Project) gaps() Gaps {
-	var g Gaps
-	if p.Package == nil || p.Package.Tree == nil {
-		return g
-	}
-	c := p.Checker
+// Unrealized is the gap report's list of the behaviour no contract entry
+// implements and no error's prose links, among the tree's own rules whose
+// subject is a part or the system and the use case steps a part takes, by
+// path, in tree order. It's for reading and fails nothing.
+func Unrealized(t *resolve.Tree, c *types.Checker) []string {
 	realized := map[*resolve.Node]bool{}
-	p.Package.Tree.Walk(func(n *resolve.Node) {
-		for _, t := range Carried(c, n) {
-			realized[t] = true
+	t.Walk(func(n *resolve.Node) {
+		for _, x := range Carried(c, n) {
+			realized[x] = true
 		}
 		// An error's prose links the rules that say when it's reported.
 		if KindPath(c, n) == "types.error" {
-			for _, t := range ErrorRules(c, n) {
-				realized[t] = true
+			for _, x := range ErrorRules(c, n) {
+				realized[x] = true
 			}
 		}
 	})
 	isPart := func(n *resolve.Node) bool { return n != nil && KindPath(c, n) == "spec.part" }
-	// The innermost feature an entry stands in, which the report groups
-	// it by.
-	inFeature := func(n *resolve.Node, path string) {
-		if f := Feature(c, n); f != nil {
-			if g.Features == nil {
-				g.Features = map[string]string{}
-			}
-			g.Features[path] = RelPath(p.Package, f)
-		}
-	}
-	p.Package.Tree.Walk(func(n *resolve.Node) {
+	var out []string
+	Own(t, func(n *resolve.Node) bool {
 		switch KindPath(c, n) {
 		case "spec.rule":
 			if s := Subject(c, n); s != nil && !isPart(s) {
-				return
+				return true
 			}
 			if !realized[n] {
-				g.Unrealized = append(g.Unrealized, RelPath(p.Package, n))
-				inFeature(n, RelPath(p.Package, n))
+				out = append(out, n.Path())
 			}
 		case "spec.usecase":
 			for _, ps := range n.Prose {
@@ -79,61 +59,12 @@ func (p *Project) gaps() Gaps {
 				uc := usecase.Parse(ps.File.Src[st:en], st)
 				for _, step := range uc.Steps {
 					if isPart(leads[step.Start]) && !realized[n.Child(step.Num)] && !realized[n] {
-						g.Unrealized = append(g.Unrealized, RelPath(p.Package, n)+"."+step.Num)
-						inFeature(n, RelPath(p.Package, n)+"."+step.Num)
+						out = append(out, n.Path()+"."+step.Num)
 					}
 				}
 			}
 		}
+		return true
 	})
-	// Tests of the project's Go code that no verify names.
-	cited := map[string]bool{}
-	for _, pr := range p.Proofs {
-		for _, v := range childrenOfKind(c, pr, KindVerify) {
-			path, _ := ArgString(KindArgs(v), 0, "path")
-			test, _ := ArgString(KindArgs(v), 1, "test")
-			cited[path+"\x00"+test] = true
-		}
-	}
-	if p.Node != nil && p.Node.Decl.File != nil && filepath.IsAbs(string(p.Node.Decl.File.ID)) {
-		root := p.repoRoot()
-		filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				switch d.Name() {
-				case "node_modules", ".heron", ".git", "vendor", "testdata":
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if !strings.HasSuffix(path, "_test.go") {
-				return nil
-			}
-			b, err := os.ReadFile(path)
-			if err != nil {
-				return nil
-			}
-			rel, _ := filepath.Rel(root, path)
-			rel = filepath.ToSlash(rel)
-			for _, m := range testFunc.FindAllStringSubmatch(string(b), -1) {
-				if !cited[rel+"\x00"+m[1]] {
-					g.UncitedTests = append(g.UncitedTests, rel+" "+m[1])
-				}
-			}
-			return nil
-		})
-	}
-	sort.Strings(g.UncitedTests)
-	return g
-}
-
-// repoRoot is the folder the project's verify paths are relative to: the
-// folder of the tree's entry point.
-func (p *Project) repoRoot() string {
-	if p.Tree != nil && p.Tree.Entry != nil {
-		return filepath.Dir(string(p.Tree.Entry.ID))
-	}
-	return filepath.Dir(string(p.Node.Decl.File.ID))
+	return out
 }

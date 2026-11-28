@@ -82,23 +82,25 @@ s: section {
 }
 
 // A variadic parameter's attribute gives its arguments in order, before
-// the named ones: `delivers="ok"` is `increment(ok)` and
-// `delivers={[ok, ok.a]}` is `increment(ok, ok.a)`. An `@name` attribute
+// the named ones: `refs="ok.g"` is `feature(ok.g)` and
+// `refs={[ok.g, ok.h]}` is `feature(ok.g, ok.h)`. An `@name` attribute
 // is the annotation, as `@display="Three"` is `@display("Three")`, and
 // `refs="desk"` reaches desk as a link would.
 func TestElementVariadicAttribute(t *testing.T) {
-	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/project@1"]
+	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1"]
 
 people: section {
   desk: actor<system> {{ The console. }}
 }
 
 ok: section {
-  a: term {{ A word. }}
+  g: goal {{ A goal. }}
 
-  | <increment id="one" delivers="ok">The first slice.</increment>
+  h: goal {{ Another goal. }}
+
+  | <feature id="one" refs="ok.g">The first capability.</feature>
   |
-  | <increment id="two" delivers={[ok, ok.a]}>The second slice.</increment>
+  | <feature id="two" refs={[ok.g, ok.h]}>The second capability.</feature>
   |
   | <rule id="three" refs="desk" @display="Three"><must>refuse it</must></rule>
 }
@@ -106,7 +108,7 @@ ok: section {
 	if len(ds) != 0 {
 		t.Fatalf("diagnostics: %v", ds)
 	}
-	for name, want := range map[string]string{"one": "x(ok)", "two": "x(ok, ok.a)", "three": "x(people.desk)"} {
+	for name, want := range map[string]string{"one": "x(ok.g)", "two": "x(ok.g, ok.h)", "three": "x(people.desk)"} {
 		var got string
 		for _, n := range c.Tree.Root.Child("ok").Children {
 			if n.Name == name {

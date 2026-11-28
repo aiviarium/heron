@@ -234,30 +234,14 @@ lane_treesitter() {
 lane_tree() {
   local heron=$bin/heron
   step "the trees and examples are formatted"
-  "$heron" fmt --check index.heron project fixtures std examples internal/tools/server/api web/samples/docs-site
+  "$heron" fmt --check index.heron fixtures std examples internal/tools/server/api web/samples/docs-site
 
-  step "the repository's tree (the spec package and the project tree) and examples/ check and lint clean"
+  step "the repository's tree (the spec package and the root project) and examples/ check and lint clean"
   "$heron" check . examples/petstore examples/parcels web/samples/docs-site
   "$heron" lint . examples/petstore examples/parcels web/samples/docs-site
 
   step "the spec package checks on its own, as it's released"
   "$heron" check "$spec"
-
-  step "conformance: every requirement of the spec is proven, planned or untested, and the project's docs build"
-  if grep -rqs --include='*.heron' -E '^[a-z_]+: implements\(' project; then
-    "$heron" generate conformance >/dev/null
-    head -3 .heron/conformance/conformance.md | tail -1
-    missing=$(node -e 'console.log(require(process.argv[1]).counts.missing)' "$PWD/.heron/conformance/conformance.json")
-    if [ "$missing" != 0 ]; then
-      grep '| missing |' .heron/conformance/conformance.md
-      echo "conformance: $missing requirements have no proof and no status"; return 1
-    fi
-    rm -rf .heron/docs
-    "$heron" generate docs >/dev/null
-    test -f .heron/docs/_conformance.html
-  else
-    echo "the project tree declares no implements yet: nothing to report"
-  fi
 }
 
 lane_e2e() {
@@ -270,9 +254,6 @@ lane_e2e() {
   step "end to end: heron run"
   scripts/e2e-tasks.sh
 
-  step "end to end: a sealed spec and the project that implements it: sealed and project-mode errors, conformance, versions"
-  scripts/e2e-project.sh
-
   step "language server end to end: heron lsp over stdio, Vale and the spec-aware lints"
   scripts/e2e-lsp.sh
 }
@@ -282,13 +263,12 @@ lane_unit1() {
   local heron1=$tmp/heron1
   go build -tags unit1 -o "$heron1" ./cmd/heron
   if "$heron1" lsp </dev/null >/dev/null 2>&1; then echo "the unit-1 binary has unit 2's lsp"; return 1; fi
-  "$heron1" fmt --check index.heron project fixtures std examples
+  "$heron1" fmt --check index.heron fixtures std examples
   "$heron1" check . examples/petstore examples/parcels
   "$heron1" lint . examples/petstore examples/parcels
   export HERON_TAGS=unit1
   scripts/e2e-setup.sh >/dev/null
   scripts/e2e-tasks.sh >/dev/null
-  scripts/e2e-project.sh >/dev/null
 }
 
 lane_vscode() {

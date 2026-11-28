@@ -8,8 +8,8 @@ import (
 )
 
 // A feature references the goals, qualities and actors it's for; a rule
-// joins a feature it references; a `where` links an optional feature, and
-// a feature's prose linking its own rules is no cycle.
+// joins a feature it references; features nest; and a feature's prose
+// linking its own rules is no cycle.
 func TestFeatures(t *testing.T) {
 	res := checkSrc(t, head+`
 shop: goal {{ Shop. }}
@@ -30,20 +30,9 @@ refunds: feature(shop, fast, customer) {
     must {{ reject it }}
   }
 
-  gifts: feature(optional = true) {
+  gifts: feature {
     gift_limit: rule {
-      where {{ [refunds.gifts] }}
       must {{ refund at most the payment }}
-    }
-
-    stateful: rule {
-      where {{ a payment is captured }}
-      must {{ refund it }}
-    }
-
-    required_link: rule {
-      where {{ [refunds] }}
-      must {{ refund it }}
     }
   }
 }
@@ -51,18 +40,16 @@ refunds: feature(shop, fast, customer) {
 bad_ref: feature(desk) {{ A feature for a part. }}
 `)
 	wantAll(t, res,
-		"where: where in stateful links no optional feature",
-		"where: where in required_link links no optional feature",
 		"reference: desk is a part, and a feature references only goal, quality, actor or assumption")
-	wantNone(t, res, "where in gift_limit", "cycle:", "late is a rule", "security is a feature")
+	wantNone(t, res, "cycle:", "late is a rule", "security is a feature")
 	c := res.Checker
 	late := res.Tree.Find("refunds.late")
 	fs := project.Features(c, late)
 	if len(fs) != 2 || fs[0].Name != "refunds" || fs[1].Name != "security" {
 		t.Errorf("late belongs to %v, want refunds and security", fs)
 	}
-	if !project.FeatureOptional(res.Tree.Find("refunds.gifts")) || project.FeatureOptional(res.Tree.Find("refunds")) {
-		t.Error("gifts is optional and refunds isn't")
+	if fs := project.Features(c, res.Tree.Find("refunds.gifts.gift_limit")); len(fs) != 1 || fs[0].Name != "gifts" {
+		t.Errorf("gift_limit belongs to %v, want the nested gifts", fs)
 	}
 	if got := specmodel.KindLayer(c, c.KindOf(res.Tree.Find("refunds"))); got != specmodel.Specification {
 		t.Errorf("a feature's layer is %d", got)

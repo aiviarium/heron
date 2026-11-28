@@ -9,19 +9,13 @@ import (
 // icons the tree's packages declare. Each page carries the icons it shows
 // and data.js the ones search shows, and no other.
 
-// The theme's own icons: one per callout and per conformance status, the
-// same on every site, by the names std/docs's set gives them.
+// The theme's own icons: one per callout, the same on every site, by the
+// names std/docs's set gives them.
 var themeIcons = map[string]string{
-	"note":      "info",
-	"tip":       "lightbulb",
-	"warning":   "triangle-alert",
-	"danger":    "octagon-alert",
-	"proven":    "circle-check",
-	"planned":   "circle-dashed",
-	"untested":  "circle-help",
-	"missing":   "circle-x",
-	"practice":  "users",
-	"delivered": "circle-check",
+	"note":    "info",
+	"tip":     "lightbulb",
+	"warning": "triangle-alert",
+	"danger":  "octagon-alert",
 }
 
 func (s *Site) iconSet() *icon.Set {

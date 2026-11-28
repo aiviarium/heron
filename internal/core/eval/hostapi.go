@@ -9,7 +9,7 @@ import (
 )
 
 // What Go implementations of funcs reach the running machine through, such
-// as the setup funcs of std/repo, which read the tree they run in.
+// as the setup funcs of std/impl, which read the tree they run in.
 
 type machineKey struct{}
 

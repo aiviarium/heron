@@ -1,7 +1,0 @@
-// Unit 2, the development tools: its increments and what done means for it.
-include = [
-  "./increments.heron",
-  "./done.heron",
-]
-
-| [Unit](#delivery.units) 2, the development tools: its increments, in the order they were built, and what done means for it.

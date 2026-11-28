@@ -37,17 +37,17 @@ func (p *procs) Run(_ context.Context, c eval.Command) (eval.Exit, error) {
 	return eval.Exit{}, nil
 }
 
-const src = `import = ["std/repo@1"]
+const src = `import = ["std/impl@1"]
 
-repository {
+repo: project(".") {
   toolchain = { node = "22", pnpm = "9" }
 
   check_tools(install: Bool = false): task(List(Tool)) do {
-    return ensure_toolchain(repository.toolchain, install = install)
+    return ensure_toolchain(repo.toolchain, install = install)
   }
 
   safe: task(String) do {
-    let r = attempt(ensure_toolchain(repository.toolchain))
+    let r = attempt(ensure_toolchain(repo.toolchain))
     return r.error.message
   }
 }
@@ -72,16 +72,16 @@ func machine(t *testing.T, p *procs) (*eval.Machine, *resolve.Tree) {
 func TestToolchain(t *testing.T) {
 	p := &procs{versions: map[string]string{"node": "22.23.5", "pnpm": "10.28.0"}}
 	m, tree := machine(t, p)
-	_, err := m.Call(context.Background(), tree.Find("repository.check_tools"), eval.Args{})
+	_, err := m.Call(context.Background(), tree.Find("repo.check_tools"), eval.Args{})
 	if err == nil || !strings.Contains(err.Error(), "wants pnpm 9, but found 10.28.0") {
 		t.Fatalf("mismatch without install: %v", err)
 	}
-	v, err := m.Call(context.Background(), tree.Find("repository.safe"), eval.Args{})
+	v, err := m.Call(context.Background(), tree.Find("repo.safe"), eval.Args{})
 	if err != nil || !strings.Contains(eval.Str(v), "--install_toolchain") {
 		t.Errorf("attempt didn't catch the SetupError: %v %v", v, err)
 	}
 	p.ran = nil
-	v, err = m.Call(context.Background(), tree.Find("repository.check_tools"), eval.Args{Named: map[string]eval.Value{"install": true}})
+	v, err = m.Call(context.Background(), tree.Find("repo.check_tools"), eval.Args{Named: map[string]eval.Value{"install": true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestToolchain(t *testing.T) {
 		t.Errorf("pnpm: %v", pn)
 	}
 	delete(p.versions, "node")
-	_, err = m.Call(context.Background(), tree.Find("repository.check_tools"), eval.Args{Named: map[string]eval.Value{"install": true}})
+	_, err = m.Call(context.Background(), tree.Find("repo.check_tools"), eval.Args{Named: map[string]eval.Value{"install": true}})
 	if err == nil || !strings.Contains(err.Error(), "heron can't install node") {
 		t.Errorf("node: %v", err)
 	}
@@ -152,12 +152,12 @@ func TestLockRoundTrip(t *testing.T) {
 	}
 }
 
-// TestGenerateRunsEveryTarget: repo.generate writes every target's files,
+// TestGenerateRunsEveryTarget: impl.generate writes every target's files,
 // as `heron generate` without targets does, and both sections of the
 // managed ignore block, and a second call writes nothing.
 func TestGenerateRunsEveryTarget(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "index.heron"), []byte("import = [\"std/repo@1\"]\n\nrepository {\n  gen: task(List(String)) do {\n    return generate()\n  }\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "index.heron"), []byte("import = [\"std/impl@1\"]\n\nrepo: project(\".\") {\n  gen: task(List(String)) do {\n    return generate()\n  }\n}\n"), 0o644)
 	id, _ := resolve.Canonical(filepath.Join(dir, "index.heron"))
 	res := check.NewSession().Check(id)
 	if res.Diags.HasErrors() {
@@ -170,7 +170,7 @@ func TestGenerateRunsEveryTarget(t *testing.T) {
 	}})
 	m := eval.New(res.Tree, res.Checker, r, eval.Caps{})
 	m.Dir = dir
-	v, err := m.Call(context.Background(), res.Tree.Find("repository.gen"), eval.Args{})
+	v, err := m.Call(context.Background(), res.Tree.Find("repo.gen"), eval.Args{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestGenerateRunsEveryTarget(t *testing.T) {
 			t.Errorf(".gitignore has no %q: %s", w, b)
 		}
 	}
-	v, err = m.Call(context.Background(), res.Tree.Find("repository.gen"), eval.Args{})
+	v, err = m.Call(context.Background(), res.Tree.Find("repo.gen"), eval.Args{})
 	if err != nil || eval.Str(v) != "[]" {
 		t.Errorf("a second run wrote %s, %v", eval.Str(v), err)
 	}

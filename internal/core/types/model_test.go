@@ -215,10 +215,10 @@ Tagged: union<tagged>(Card)
 	}
 }
 
-// A flag whose `on` names an annotation resolves only on it, and a status
+// A flag whose `on` names an annotation resolves only on it, and a kind's
 // flag only on the kinds it attaches to: elsewhere each is unknown.
 func TestFlagsOnAnnotationsAndStatus(t *testing.T) {
-	got := messages(t, map[string]string{"index.heron": `import = ["std/schema@1", "std/doc@1", "std/project@1"]
+	got := messages(t, map[string]string{"index.heron": `import = ["std/schema@1", "std/doc@1", "std/impl@1"]
 
 @insert<raw>
 x: section
@@ -226,14 +226,14 @@ x: section
 quiet: flag
 y: feature<security>
 z: section<security>
-r: rule<delivered> {
+r: rule<external> {
   must {{ x }}
 }
 `})
 	wantMessages(t, got,
 		"unresolved: unknown flag raw for highlight; <raw> attaches to insert",
 		"unresolved: unknown flag security for section; <security> attaches to feature",
-		"unresolved: unknown flag delivered for rule; <delivered> attaches to story, increment, milestone",
+		"unresolved: unknown flag external for rule; <external> attaches to project",
 	)
 }
 

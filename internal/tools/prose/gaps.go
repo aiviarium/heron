@@ -87,7 +87,7 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 	}
 	// Conditions: no "not the case that" and no double negation.
 	switch kindOf(first) {
-	case "spec.while", "spec.where", "spec.when", "spec.if":
+	case "spec.while", "spec.when", "spec.if":
 		if i := strings.Index(strings.ToLower(r.Text), "not the case that"); i >= 0 && !coreprose.Masked(r, i, i+17) && !quoted(r.Text, i, i+17) {
 			add(i, i+len("not the case that"), "NegatedCondition", fmt.Sprintf("%q negates the condition; say the state the rule applies in, or write the exception as a rule of its own", r.Text[i:i+len("not the case that")]))
 		} else {
@@ -119,7 +119,7 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 			cond := false
 			for _, ch := range owner.Children {
 				switch kindOf(ch) {
-				case "spec.while", "spec.where", "spec.when", "spec.if", "spec.instead":
+				case "spec.while", "spec.when", "spec.if", "spec.instead":
 					cond = true
 				}
 			}

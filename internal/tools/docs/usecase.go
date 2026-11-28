@@ -61,7 +61,7 @@ func renderUsecase(c *Ctx) error {
 	n := c.Node
 	s := c.Site
 	c.W(`<section class="node usecase" id="`, attr(Anchor(n)), `">`)
-	c.title(statusBadge(n))
+	c.title("")
 	var rows [][2]string
 	actors := specmodel.UseCaseActors(s.Checker, n)
 	if len(actors) > 0 {
@@ -125,7 +125,6 @@ func renderUsecase(c *Ctx) error {
 			}
 		}
 	}
-	c.W(c.verifyList(n))
 	c.W(c.derivedLists(n))
 	c.W(`</section>`)
 	return nil
@@ -277,7 +276,7 @@ type backlinkGroup struct {
 
 // backlinkOrder is the order the derived lists of the core kinds come in;
 // a custom kind's come after, by name.
-var backlinkOrder = []string{"op", "api", "command", "argument", "option", "screen", "region", "grammar", "production", "token", "type", "enum", "union", "interface", "error", "component", "scenario", "example", "usecase", "rule", "goal", "story"}
+var backlinkOrder = []string{"op", "api", "command", "argument", "option", "screen", "region", "grammar", "production", "token", "type", "enum", "union", "interface", "error", "scenario", "example", "usecase", "rule", "goal"}
 
 // backlinkGroups are a node's derived lists: the nodes that reference it,
 // grouped by their kind, the errors whose prose links it among them, then

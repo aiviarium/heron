@@ -4,44 +4,27 @@ import (
 	"github.com/aiviarium/heron/internal/core/project"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
 )
 
-// The renderers of the intent kinds and of std/project's delivery: goals,
-// actors and personas, parts, scenarios, stories, increments, milestones
-// and done criteria.
+// The renderers of the intent kinds: goals, actors and personas, parts and
+// scenarios.
 
 func addIntentRenderers() {
 	for k, f := range map[string]RenderFunc{
-		"spec.actor":        renderActor,
-		"spec.persona":      renderPersona,
-		"spec.goal":         renderGoal,
-		"spec.quality":      renderGoal,
-		"spec.nongoal":      renderNote,
-		"spec.assumption":   renderNote,
-		"spec.part":         renderPart,
-		"spec.scenario":     renderScenario,
-		"spec.usecase":      renderUsecase,
-		"spec.given":        renderStepAlone,
-		"project.story":     renderStory,
-		"project.increment": renderIncrement,
-		"project.milestone": renderIncrement,
-		"project.done":      renderDone,
+		"spec.actor":      renderActor,
+		"spec.persona":    renderPersona,
+		"spec.goal":       renderGoal,
+		"spec.quality":    renderGoal,
+		"spec.nongoal":    renderNote,
+		"spec.assumption": renderNote,
+		"spec.part":       renderPart,
+		"spec.scenario":   renderScenario,
+		"spec.usecase":    renderUsecase,
+		"spec.given":      renderStepAlone,
 	} {
 		builtins[k] = f
 	}
-}
-
-// statusBadge is the status flag of a piece of work, as "started", or "".
-func statusBadge(n *resolve.Node) string {
-	for _, f := range kindFlags(n) {
-		switch f {
-		case "planned", "started", "delivered", "deferred":
-			return ` <span class="status status-` + attr(f) + `">` + esc(kindWords(f)) + `</span>`
-		}
-	}
-	return ""
 }
 
 // argRef is the node a kind argument refers to, by position or name.
@@ -54,25 +37,6 @@ func (s *Site) argRef(n *resolve.Node, index int, name string) *resolve.Node {
 		return s.refTarget(es[index].Syntax(), n.Decl)
 	}
 	return nil
-}
-
-// argRefs are the nodes a list argument refers to.
-func (s *Site) argRefs(n *resolve.Node, name string) []*resolve.Node {
-	e := namedArg(kindArgs(n), name)
-	if e == nil {
-		return nil
-	}
-	exprs := []ast.Expr{e}
-	if arr, ok := e.(ast.ArrayExpr); ok {
-		exprs = arr.Exprs()
-	}
-	var out []*resolve.Node
-	for _, x := range exprs {
-		if t := s.refTarget(x.Syntax(), n.Decl); t != nil {
-			out = append(out, t)
-		}
-	}
-	return out
 }
 
 // fieldInline is a prose field of a node as inline HTML, or "".
@@ -140,68 +104,6 @@ func renderPersona(c *Ctx) error {
 	return nil
 }
 
-// renderWork is the view of an increment or a milestone: its heading
-// with its status, its facts, its prose and its children.
-func renderWork(c *Ctx, class string, facts [][2]string) error {
-	n := c.Node
-	c.W(`<section class="node `, class, `" id="`, attr(Anchor(n)), `">`)
-	c.title(statusBadge(n))
-	if c.isPage() {
-		if b := statusBadge(n); b != "" {
-			c.W(`<div class="page-status">`, b, `</div>`)
-		}
-	}
-	c.factList(facts)
-	c.Prose(n)
-	if err := c.childrenOrLinks(); err != nil {
-		return err
-	}
-	c.W(`</section>`)
-	return nil
-}
-
-func renderIncrement(c *Ctx) error {
-	n := c.Node
-	key := "docs.label.delivers"
-	if c.Site.kindPath(n) == "project.milestone" {
-		key = "docs.label.reached_by"
-	}
-	var ts []*resolve.Node
-	for _, e := range argExprs(kindArgs(n)) {
-		if t := c.Site.refTarget(e.Syntax(), n.Decl); t != nil {
-			ts = append(ts, t)
-		}
-	}
-	return renderWork(c, "increment", [][2]string{{label(key), c.refLinks(ts)}})
-}
-
-// articled is "a writer" or "an agent", from the catalogue.
-func articled(key, name, words string) string {
-	if words != "" && strings.ContainsRune("aeiou", rune(words[0])) {
-		return label(key+"_an", name, "\x00")
-	}
-	return label(key+"_a", name, "\x00")
-}
-
-func renderStory(c *Ctx) error {
-	n := c.Node
-	s := c.Site
-	c.W(`<article class="card-block story" id="`, attr(Anchor(n)), `">`)
-	c.W(`<div class="card-head"><a class="anchor card-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`, statusBadge(n), `</div>`)
-	serves := project.Served(s.Checker, n)
-	c.factList([][2]string{
-		{label("docs.label.serves"), c.refLinks(serves)},
-		{label("docs.label.adds"), c.refLinks(s.argRefs(n, "adds"))},
-		{label("docs.label.changes"), c.refLinks(s.argRefs(n, "changes"))},
-	})
-	c.Prose(n)
-	if err := c.childrenOrLinks(); err != nil {
-		return err
-	}
-	c.W(`</article>`)
-	return nil
-}
-
 // gwtLine is one line of a scenario: its keyword and its text.
 func gwtLine(key, h string) string {
 	return `<p class="gwt"><span class="gwt-key">` + esc(label(key)) + `</span> ` + h + `</p>`
@@ -241,7 +143,6 @@ func renderScenario(c *Ctx) error {
 	}
 	rows = append(rows, [2]string{label("docs.label.measures"), c.refLinks(project.ReferenceTargets(s.Checker, n, "spec.quality"))})
 	c.factList(rows)
-	c.W(c.verifyList(n))
 	c.W(c.derivedLists(n))
 	c.W(`</div>`)
 	return nil
@@ -304,16 +205,6 @@ func renderPart(c *Ctx) error {
 	return renderActor(c)
 }
 
-func renderDone(c *Ctx) error {
-	n := c.Node
-	c.W(`<aside class="callout callout-done" id="`, attr(Anchor(n)), `"><div class="label">`, esc(label("docs.label.done")), `</div>`)
-	c.Prose(n)
-	c.W(`</aside>`)
-	return nil
-}
-
-// renderStepAlone shows a flow's part outside the use case that numbers
-// it: its prose only.
 func renderStepAlone(c *Ctx) error {
 	c.W(`<div class="node-anon" id="`, attr(Anchor(c.Node)), `">`)
 	c.Prose(c.Node)

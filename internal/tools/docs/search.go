@@ -90,7 +90,7 @@ func (s *Site) Search() []entry {
 		switch k := s.kindPath(n); {
 		case k == "spec.term":
 			add(n, termHeading(s, n))
-		case k == "core.task" || k == "spec.project" || k == "spec.example":
+		case k == "core.task" || k == "impl.project" || k == "spec.example":
 			add(n, displayName(s, n))
 		case k != "" || s.pageOf[n] != nil || n.Parent != nil && s.isTypeDecl(n.Parent):
 			title := displayName(s, n)

@@ -11,16 +11,14 @@ import (
 
 	"github.com/aiviarium/heron/internal/core/cli"
 	"github.com/aiviarium/heron/internal/core/gen"
-	"github.com/aiviarium/heron/internal/core/project/release"
 	"github.com/aiviarium/heron/internal/core/registry"
 )
 
 // units holds each installed unit's registrations, in unit order. Unit 1 is
 // always present; later units append theirs in init.
 var units = []func(*registry.Registry){
-	cli.Register,     // 1. language and runtime
-	gen.Register,     //    generation targets and `heron generate`
-	release.Register, //    `heron release`, for projects that implement a spec
+	cli.Register, // 1. language and runtime
+	gen.Register, //    generation targets and `heron generate`
 }
 
 func main() {

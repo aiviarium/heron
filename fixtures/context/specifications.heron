@@ -1,7 +1,6 @@
 // What the Specifications tab's excerpts assume: the payments model, and
-// the projects and spec its project and planning examples name.
+// the spec its planning and std/impl examples name.
 include = [
   "./payments.heron",
-  "./examples/language.specifications.projects.specifications_projects.heron",
   "./examples/language.specifications.requirements.specifications_example.heron",
 ]

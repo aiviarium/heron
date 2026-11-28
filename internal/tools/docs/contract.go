@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/rpc"
 	"github.com/aiviarium/heron/internal/core/specmodel"
@@ -22,23 +21,19 @@ func (s *Site) exitCode(e *resolve.Node) (code string, explicit bool) {
 	return "", false
 }
 
-// The renderers of the contract kinds: component pages with their contract
-// and dependency links, command pages laid out as a CLI reference, and
-// grammars as EBNF blocks whose names link production to production.
+// The renderers of the contract kinds: command pages laid out as a CLI
+// reference, and grammars as EBNF blocks whose names link production to
+// production.
 
 func addContractRenderers() {
 	for k, f := range map[string]RenderFunc{
-		"project.component":      renderComponent,
-		"spec.command":           renderCommand,
-		"grammar.grammar":        renderGrammar,
-		"grammar.production":     renderGrammarPart,
-		"grammar.token":          renderGrammarPart,
-		"project.property":       renderProperty,
-		"project.responsibility": renderStepAlone,
-		"project.exports":        renderSurface,
-		"spec.screen":            renderScreen,
-		"types.error":            renderError,
-		"spec.region":            renderRegion,
+		"spec.command":       renderCommand,
+		"grammar.grammar":    renderGrammar,
+		"grammar.production": renderGrammarPart,
+		"grammar.token":      renderGrammarPart,
+		"spec.screen":        renderScreen,
+		"types.error":        renderError,
+		"spec.region":        renderRegion,
 	} {
 		builtins[k] = f
 	}
@@ -90,166 +85,12 @@ func dedentBlock(t string) string {
 	return strings.Join(lines, "\n")
 }
 
-// arrayItems are the items of an array expression.
-func arrayItems(e ast.Expr) []ast.Expr {
-	if arr, ok := e.(ast.ArrayExpr); ok {
-		return arr.Exprs()
-	}
-	return nil
-}
-
-// --- components ---
-
-// components are the tree's component nodes, and usedBy maps each to the
-// components whose uses name it.
-func (s *Site) usedBy(n *resolve.Node) []*resolve.Node {
-	var out []*resolve.Node
-	s.Tree.Walk(func(x *resolve.Node) {
-		if !own(x) || s.kindPath(x) != "project.component" {
-			return
-		}
-		for _, u := range s.componentUses(x) {
-			if u == n {
-				out = append(out, x)
-			}
-		}
-	})
-	return out
-}
-
-// componentUses are the components a component's uses field names.
-func (s *Site) componentUses(n *resolve.Node) []*resolve.Node {
-	u := n.Child("uses")
-	if u == nil || u.Value == nil {
-		return nil
-	}
-	var out []*resolve.Node
-	for _, e := range arrayItems(u.Value) {
-		if t := s.refTarget(e.Syntax(), u.ValueSite); t != nil {
-			out = append(out, t)
-		}
-	}
-	return out
-}
-
-func renderComponent(c *Ctx) error {
-	n := c.Node
-	s := c.Site
-	path, _ := argString(kindArgs(n), 0, "path")
-	lang, _ := argString(kindArgs(n), 1, "lang")
-	c.W(`<section class="node component" id="`, attr(Anchor(n)), `">`)
-	c.title(` <code class="path">` + esc(path) + `</code>` + statusBadge(n))
-	var facts [][2]string
-	if c.isPage() && path != "" {
-		facts = append(facts, [2]string{label("docs.label.path"), `<code class="path">` + esc(path) + `</code>`})
-	}
-	if lang != "" {
-		facts = append(facts, [2]string{label("docs.label.language"), `<code>` + esc(lang) + `</code>`})
-	}
-	facts = append(facts,
-		[2]string{label("docs.project.realizes"), c.specLinks(s.realizes(n))},
-		[2]string{label("docs.label.uses"), c.codeLinks(s.componentUses(n))},
-		[2]string{label("docs.heading.used_by"), c.codeLinks(s.usedBy(n))},
-	)
-	c.factList(facts)
-	c.Prose(n)
-	if rs := s.childrenOfKind(n, "project.responsibility"); len(rs) > 0 {
-		c.Heading(c.Level+1, Anchor(n)+".responsibilities", label("docs.heading.responsibilities"), "")
-		c.W(`<ul class="responsibilities">`)
-		for _, r := range rs {
-			c.W(`<li id="`, attr(Anchor(r)), `">`)
-			if r.Name != "" {
-				c.W(`<a class="anchor resp-name" href="#`, attr(Anchor(r)), `">`, esc(displayName(s, r)), `</a> `)
-			}
-			c.W(s.inlineHTML(r), `</li>`)
-		}
-		c.W(`</ul>`)
-	}
-	if ss := s.childrenOfKind(n, "project.exports"); len(ss) > 0 {
-		c.Heading(c.Level+1, Anchor(n)+".surface", label("docs.heading.surface"), "")
-		for _, sf := range ss {
-			c.renderSurfaceOf(sf, lang)
-		}
-	}
-	if is := s.childrenOfKind(n, "project.property"); len(is) > 0 {
-		c.Heading(c.Level+1, Anchor(n)+".properties", label("docs.heading.properties"), "")
-		for _, i := range is {
-			if err := c.Render(i); err != nil {
-				return err
-			}
-		}
-	}
-	if v := c.verifyList(n); v != "" {
-		c.Heading(c.Level+1, Anchor(n)+".tests", label("docs.heading.tests"), "")
-		c.W(v)
-	}
-	if groups := s.implementedBy(n); len(groups) > 0 {
-		c.Heading(c.Level+1, Anchor(n)+".implements", label("docs.heading.implements"), "")
-		c.W(`<ul class="implements">`)
-		for _, g := range groups {
-			count := label("docs.label.rule_one")
-			if g.rules != 1 {
-				count = label("docs.label.rule_count", "count", fmt.Sprint(g.rules))
-			}
-			name := esc(displayName(s, g.section))
-			// The parent's name tells apart sections of one name, such as
-			// the Lines of prose and of strings.
-			if p := g.section.Parent; p != nil && p.Parent != nil && p.Name != "" {
-				name = esc(displayName(s, p)) + ` › ` + name
-			}
-			c.W(`<li>`, s.linkHTML(g.section, name, ""), ` <span class="count">`, esc(count), `</span></li>`)
-		}
-		c.W(`</ul>`)
-	}
-	if err := c.otherChildren(n, "project."); err != nil {
-		return err
-	}
-	c.W(`</section>`)
-	return nil
-}
-
-// ruleGroup is a section and how many of its rules a component implements.
-type ruleGroup struct {
-	section *resolve.Node
-	rules   int
-}
-
-// implementedBy groups the rules outside a component whose subject is it
-// by the node each rule sits in, in tree order.
-func (s *Site) implementedBy(n *resolve.Node) []ruleGroup {
-	var out []ruleGroup
-	at := map[*resolve.Node]int{}
-	s.Tree.Walk(func(x *resolve.Node) {
-		if !own(x) || x.Parent == nil || s.kindPath(x) != "spec.rule" || s.ruleBy(x) != n || inside(x, n) {
-			return
-		}
-		i, ok := at[x.Parent]
-		if !ok {
-			i = len(out)
-			at[x.Parent] = i
-			out = append(out, ruleGroup{section: x.Parent})
-		}
-		out[i].rules++
-	})
-	return out
-}
-
-// inside reports whether x is n or a node below it.
-func inside(x, n *resolve.Node) bool {
-	for ; x != nil; x = x.Parent {
-		if x == n {
-			return true
-		}
-	}
-	return false
-}
-
 // otherChildren renders the children not of the package a renderer lays
 // out itself, such as rules and sections inside a component.
 func (c *Ctx) otherChildren(n *resolve.Node, prefix string, skip ...string) error {
 	for _, ch := range n.Children {
 		k := c.Site.kindPath(ch)
-		if strings.HasPrefix(k, prefix) || k == "project.verify" || k == "" || !c.Site.shown(ch) || contains(skip, k) {
+		if strings.HasPrefix(k, prefix) || k == "" || !c.Site.shown(ch) || contains(skip, k) {
 			continue
 		}
 		if ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue {
@@ -265,65 +106,6 @@ func (c *Ctx) otherChildren(n *resolve.Node, prefix string, skip ...string) erro
 			return err
 		}
 	}
-	return nil
-}
-
-// codeLinks writes links to nodes by their names in mono.
-func (c *Ctx) codeLinks(ns []*resolve.Node) string {
-	var parts []string
-	for _, n := range ns {
-		parts = append(parts, c.Site.linkHTML(n, `<code>`+esc(n.Name)+`</code>`, ""))
-	}
-	return strings.Join(parts, `<span class="sep">, </span>`)
-}
-
-func renderSurface(c *Ctx) error {
-	lang := ""
-	if p := c.Node.Parent; p != nil {
-		lang, _ = argString(kindArgs(p), 1, "lang")
-	}
-	c.renderSurfaceOf(c.Node, lang)
-	return nil
-}
-
-func (c *Ctx) renderSurfaceOf(n *resolve.Node, lang string) {
-	if l, ok := argString(kindArgs(n), 0, "lang"); ok {
-		lang = l
-	}
-	title, _ := argString(kindArgs(n), 1, "title")
-	c.W(`<div class="surface" id="`, attr(Anchor(n)), `">`)
-	for _, d := range n.Docs {
-		c.W(c.Site.renderText([]resolve.Site{d}))
-	}
-	c.W(c.Site.codeBlock(lang, title, verbatim(n)))
-	c.W(`</div>`)
-}
-
-func renderProperty(c *Ctx) error {
-	n := c.Node
-	s := c.Site
-	c.W(`<div class="rule property" id="`, attr(Anchor(n)), `">`)
-	for _, ch := range n.Children {
-		k := s.kindPath(ch)
-		if !strengthKinds[k] {
-			continue
-		}
-		subj := esc(label("docs.rule.subject"))
-		if p := n.Parent; p != nil && s.kindPath(p) == "project.component" {
-			subj = `<code>` + esc(p.Name) + `</code>`
-		}
-		out := capitalise(subj) + ` <strong class="strength">` + esc(kindWords(strings.TrimPrefix(k, "spec."))) + `</strong> ` + s.inlineHTML(ch)
-		if !strings.HasSuffix(stripTags(out), ".") {
-			out += "."
-		}
-		if n.Name != "" {
-			out = s.gutterLink(n, "#"+Anchor(n)) + out
-		}
-		c.W(`<p class="sentence">`, out, `</p>`)
-	}
-	c.Prose(n)
-	c.W(c.verifyList(n))
-	c.W(`</div>`)
 	return nil
 }
 
@@ -446,10 +228,6 @@ func renderCommand(c *Ctx) error {
 		for _, e := range exs {
 			c.W(`<div class="example" id="`, attr(Anchor(e)), `">`, s.proseHTML(e), `</div>`)
 		}
-	}
-	if v := c.verifyList(n); v != "" {
-		c.Heading(c.Level+1, Anchor(n)+".tests", label("docs.heading.tests"), "")
-		c.W(v)
 	}
 	subs := s.childrenOfKind(n, "spec.command")
 	if len(subs) > 0 {

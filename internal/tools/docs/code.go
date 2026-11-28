@@ -114,7 +114,9 @@ func (s *Site) highlight(b *strings.Builder, n *syntax.Node, site resolve.Site, 
 			switch ch := ch.(type) {
 			case *syntax.Node:
 				if ch.Kind == syntax.Path && site.N != nil {
-					if target := s.Checker.Refs[ch]; target != nil && own(target) && s.URL(target) != "" {
+					// A field set on a node, as a project's toolchain, has
+					// no anchor of its own to link to.
+					if target := s.Checker.Refs[ch]; target != nil && own(target) && target.Shape != resolve.ShapeSet && s.URL(target) != "" {
 						cls := tokenClass(ch.Children[0].(interface{ ElemKind() syntax.Kind }), prev, ch)
 						b.WriteString(s.linkHTML(target, `<span class="`+cls+`">`+esc(ch.Text())+`</span>`, "code-ref"))
 						continue

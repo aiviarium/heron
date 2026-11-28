@@ -64,32 +64,22 @@ func (s *Site) featureRequirements(f *resolve.Node) []*resolve.Node {
 }
 
 // covered reports whether a requirement is covered: an outcome scenario or
-// an example names it, it holds an example, or a proof of the tree names it.
+// an example names it, or it holds an example.
 func (s *Site) covered(r *resolve.Node) bool {
 	if len(s.childrenOfKind(r, "spec.example")) > 0 {
 		return true
 	}
 	for _, x := range s.specLinks()[r]["hard"] {
 		switch s.kindPath(x) {
-		case "spec.scenario", "spec.example", "project.proves":
+		case "spec.scenario", "spec.example":
 			return true
 		}
 	}
-	if s.proven == nil {
-		s.proven = map[*resolve.Node]bool{}
-		s.Tree.Walk(func(n *resolve.Node) {
-			if s.kindPath(n) == "project.proves" {
-				for _, t := range project.RefsOf(s.Checker, n) {
-					s.proven[t] = true
-				}
-			}
-		})
-	}
-	return s.proven[r]
+	return false
 }
 
 // featureFacts are a feature's goals, qualities, actors and assumptions as
-// links, its optional mark and its flags.
+// links and its flags.
 func (s *Site) featureFacts(f *resolve.Node) []string {
 	var out []string
 	var goals, actors, assumptions []string
@@ -112,9 +102,6 @@ func (s *Site) featureFacts(f *resolve.Node) []string {
 	}
 	if len(assumptions) > 0 {
 		out = append(out, esc(label("docs.label.relies"))+` `+strings.Join(assumptions, ", "))
-	}
-	if project.FeatureOptional(f) {
-		out = append(out, `<span class="mark">`+esc(label("docs.label.optional"))+`</span>`)
 	}
 	for _, fl := range project.KindFlags(f) {
 		out = append(out, `<span class="mark">`+esc(fl)+`</span>`)

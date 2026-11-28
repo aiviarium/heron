@@ -17,7 +17,6 @@ import (
 	"github.com/aiviarium/heron/internal/core/diag"
 	"github.com/aiviarium/heron/internal/core/icon"
 	"github.com/aiviarium/heron/internal/core/lens"
-	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/rpc"
 	"github.com/aiviarium/heron/internal/core/specmodel"
@@ -108,12 +107,9 @@ func (s *Session) checkTree(t *resolve.Tree) *Result {
 		s.memo[k] = v
 	}
 	// Requirements written as elements in nodes the memo served read their
-	// attributes before conformance and the docs do; a package's were read
+	// attributes before the docs do; a package's were read
 	// when it was built.
 	c.ElementArgs(t)
-	// Project mode and the implementation version scheme, over the whole
-	// tree: a tree that implements a spec leaves the spec's kinds to it.
-	res.Diags = append(res.Diags, project.Check(t, c)...)
 	// The spec layers and the shapes of std/spec's kinds.
 	res.Diags = append(res.Diags, specmodel.Check(t, c)...)
 	// The RPC bindings: gRPC services and JSON-RPC methods (std/proto,

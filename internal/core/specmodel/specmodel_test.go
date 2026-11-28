@@ -124,15 +124,13 @@ notes: section {
 
 // References name the kinds their kind's references list allows, a term
 // gets its own message, a rule binds at most one subject and links no
-// rule, the reference graph has no cycles and a revision is a whole number
-// from 1.
+// rule, and the reference graph has no cycles.
 func TestReferences(t *testing.T) {
 	res := checkSrc(t, head+`
 a: rule(desk, b, window) {
   must {{ x }}
 }
 
-@rev(0)
 b: rule {
   must {{ y }}
 }
@@ -160,8 +158,7 @@ c: command("x", window)
 		"subject: rule two binds desk and customer; a rule references at most one actor or part, its subject",
 		"rule-link: rule linking links the rule b",
 		"reference: desk is a part, and a goal references only actor or persona",
-		"cycle: p1 references itself through p1 → p2 → p1",
-		"type: a revision is a whole number from 1, not 0")
+		"cycle: p1 references itself through p1 → p2 → p1")
 	wantNone(t, res, "rule-link: rule a")
 }
 
@@ -498,17 +495,6 @@ e: error(422, id = "x") {
 	wantAll(t, res,
 		"placeholder: {c} in the title of e is no member of it; declare c with its type, as c: String",
 		"placeholder: member d of e appears in neither its title nor its related message")
-}
-
-// A story lists spec items; it states no behaviour of its own.
-func TestStoryStatesNoBehaviour(t *testing.T) {
-	res := checkSrc(t, `import = ["std/doc@1", "std/project@1"]
-
-s: story {
-  given {{ a cart }}
-}
-`)
-	wantAll(t, res, "story: story s holds a given; a story lists the spec items it adds or changes")
 }
 
 // A use case's actors are the actors it references: the first its primary

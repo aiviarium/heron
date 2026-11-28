@@ -1,13 +1,13 @@
 // The Example tab's pet store, as far as unit 1 reaches: the stages, the
 // checks pipeline, scenarios, resources, agents and the changelog belong to
-// units 3 and 4, so their files and the includes of them are left out, and
-// `repository` comes from std/repo until std/ci provides it.
+// units 3 and 4, so their files and the includes of them are left out. The
+// repository is the root project, petstore, in projects.heron.
 import = [
   "std/doc@1",
   "std/types@1",
   "std/process@1",
   "std/json@1",
-  "std/repo@1",
+  "std/impl@1",
   "std/docs@1",
   "std/lint@1",
 ]
@@ -30,14 +30,14 @@ lint {
   }
 }
 
-repository {
+petstore {
   toolchain = { node = "22", pnpm = "10" }
 
   /// Checks the toolchain, or installs it when asked, then pins and installs
   /// the packages and sources, installs the workspace and writes the
   /// generated files.
   setup(install_toolchain: Bool = false, update: Bool = false): task do {
-    ensure_toolchain(repository.toolchain, install = install_toolchain)
+    ensure_toolchain(toolchain, install = install_toolchain)
     install_packages(update = update)
     run("pnpm", args = ["install"])
     generate()

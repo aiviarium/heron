@@ -28,7 +28,7 @@ func init() {
 		"spec.states":     renderStates,
 		"spec.guidance":   renderLabelled("docs.label.guidance"),
 		"spec.open":       renderOpen,
-		"spec.project":    renderProject,
+		"impl.project":    renderProject,
 		"types.api":       renderAPI,
 		"types.op":        renderOp,
 		"types.type":      renderType,
@@ -40,7 +40,6 @@ func init() {
 	}
 	addIntentRenderers()
 	addContractRenderers()
-	addProjectRenderers()
 	addAuthoredRenderers()
 }
 
@@ -400,7 +399,7 @@ func renderProject(c *Ctx) error {
 	n := c.Node
 	c.W(`<section class="node project" id="`, attr(Anchor(n)), `">`)
 	extra := ""
-	if p := projectDir(c.Site.Tree, n); p != "" {
+	if p := projectDir(n); p != "" {
 		extra = ` <code class="path">` + esc(p) + `</code>`
 	}
 	c.title(extra)
@@ -417,20 +416,15 @@ func renderProject(c *Ctx) error {
 	return nil
 }
 
-// projectDir is a project's path relative to the tree's entry point, or ""
-// for a project at the tree's root or above it, whose path says nothing a
-// reader needs, such as "." or "..".
-func projectDir(t *resolve.Tree, n *resolve.Node) string {
+// projectDir is a project's path from the repository's root, or "" for the
+// root project, whose "." says nothing a reader needs, and for a path
+// outside the repository.
+func projectDir(n *resolve.Node) string {
 	p := resolve.KindArg(n, "path")
 	if p == "" {
 		return ""
 	}
 	rel := filepath.ToSlash(filepath.Clean(p))
-	if n.Decl.File != nil && t != nil && t.Entry != nil && !n.Decl.File.ID.IsStd() {
-		if r, err := filepath.Rel(t.Entry.ID.Dir(), filepath.Join(n.Decl.File.ID.Dir(), p)); err == nil {
-			rel = filepath.ToSlash(r)
-		}
-	}
 	if rel == "." || rel == ".." || strings.HasPrefix(rel, "../") {
 		return ""
 	}

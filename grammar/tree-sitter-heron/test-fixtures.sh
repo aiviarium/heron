@@ -2,7 +2,7 @@
 # Parses the Go parser's fixtures with the tree-sitter grammar: every Heron
 # example of the spec package of mode "heron" (extracted to a temporary
 # folder), the fixtures' context files, the spec package itself and the
-# repository's own Heron trees (std/, examples/, project/) must parse without an
+# repository's own Heron trees (std/, examples/) must parse without an
 # ERROR or MISSING node. A prose file (.heron.md, mode heron-md) is Markdown
 # to editors, and a sketch (heron-sketch) elides parts on purpose, so both
 # are left out, as the "other" blocks are.
@@ -22,7 +22,7 @@ files=()
 while IFS= read -r f; do files+=("$fx/$f"); done < <(
   node -e 'for (const e of require(process.argv[1])) if (e.mode === "heron") console.log(e.out)' "$fx/manifest.json")
 while IFS= read -r f; do files+=("$f"); done < <(
-  find "$root/fixtures/context" "$root/std" "$spec" "$root/examples" "$root/project" "$root/index.heron" \
+  find "$root/fixtures/context" "$root/std" "$spec" "$root/examples" "$root/index.heron" \
     -type f -name '*.heron' -not -path '*/node_modules/*' -not -path '*/.heron/*' | sort)
 
 # One run parses them all; with --quiet it prints a line for each file with

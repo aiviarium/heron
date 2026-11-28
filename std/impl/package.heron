@@ -1,0 +1,74 @@
+// std/impl: the implementation of a spec as projects, the units of code a
+// repository holds and the spec nodes each one implements; the project at
+// "." is the repository itself, whose `setup` task `heron run setup` runs.
+// The spec never names it: references go from here into the spec, for
+// other systems to hook into. Go backs the funcs: they read the tree they run in, heron.lock and the tools
+// on PATH.
+import = ["std/schema@1", "std/types@1", "std/doc@1"]
+
+impl: package(version = "1.0", requires = ["std/types@1", "std/doc@1"]) {
+  /// One unit of the implementation, at a path from the repository root;
+  /// the project at "." is the repository itself.
+  project(path: String): kind(in = [block]) {
+    /// The spec nodes the project implements.
+    implements?: List(Ref(Any))
+    /// Narrows a subtree to part of the project, by file pattern.
+    paths?: Map(String, String)
+    depends_on?: List(Ref(project))
+    /// The projects this one groups.
+    members?: List(Ref(project))
+    /// Where an external project's code comes from.
+    source?: Source
+    /// The tools the project builds with and their versions, as
+    /// `{ node = "22", pnpm = "10" }`; a version matches by its leading
+    /// numbers, so "22" takes any 22.x.
+    toolchain?: Map(String, String)
+    accept(kind = task)
+  }
+
+  /// Code the implementation uses but doesn't own, pinned with a source.
+  external: flag(on = [project])
+
+  /// A checked-out source: the url, the ref as written and the commit it
+  /// resolved to.
+  Source: type {
+    url: String
+    ref?: String
+    commit?: String
+  }
+
+  /// Returns a source for a git repository at a ref.
+  git(url: String, ref?: String): func(Source)
+
+  /// A setup step that couldn't finish.
+  SetupError: error(500) {
+    title = "{message}"
+    message: String
+  }
+
+  /// A tool of the toolchain as setup found it.
+  Tool: type {
+    name: String
+    wants: String
+    found?: String
+    installed: Bool
+  }
+
+  /// Checks that each tool is on PATH at its version; with `install`, a
+  /// missing or mismatched tool is installed where heron knows how.
+  @throws(SetupError)
+  ensure_toolchain(tools: Map(String, String), install: Bool = false): func(List(Tool))
+
+  /// Pins the packages the tree imports, the sources its projects name and
+  /// the tools of the setup steps installed units register, such as Vale,
+  /// in heron.lock, checks the packages against their pins, and checks out
+  /// each source at its project's path. With `update`, pins that no longer
+  /// match are moved instead of failing.
+  @throws(SetupError)
+  install_packages(update: Bool = false): func(Map(String, Any))
+
+  /// Writes the generated files: every generation target's, as `heron generate`
+  /// without targets writes them, and setup's section of the managed ignore block.
+  /// Returns the paths it wrote.
+  generate(): func(List(String))
+}

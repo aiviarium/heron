@@ -298,12 +298,12 @@ func (p *parser) proseBlock() {
 }
 
 // verbatimKinds are the standard kinds that take their text as Verbatim:
-// std/project's exports, std/grammar's production and token, and std/doc's code and math.
+// std/grammar's production and token, and std/doc's code and math.
 // The parser knows no kinds, so it knows them by name: a `{{ }}` body of a
 // node whose `:` slot or callee names one, by its last segment, is read
 // as text, with no inserts, links, tags, code spans or fences in it. The
 // tree-sitter grammar reads the same names the same way.
-var verbatimKinds = map[string]bool{"exports": true, "surface": true, "production": true, "token": true, "code": true, "math": true}
+var verbatimKinds = map[string]bool{"production": true, "token": true, "code": true, "math": true}
 
 // lastSegment is the last name of a dotted path.
 func lastSegment(path string) string {

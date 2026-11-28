@@ -8,13 +8,13 @@
 #   scripts/e2e-docs.sh [--screenshots] [SITE...]   those sites (all by default)
 #   scripts/e2e-docs.sh --except SITE...            every site but those
 #
-# The sites: petstore parcels spec lenses shop sample. Their checks run at
+# The sites: petstore parcels spec lenses sample. Their checks run at
 # once, HERON_E2E_JOBS at a time (half as many as there are CPUs by default),
 # each one's output shown whole.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
-all=(petstore parcels spec lenses shop sample)
+all=(petstore parcels spec lenses sample)
 shots=0
 except=0
 sites=()
@@ -85,16 +85,6 @@ if want lenses; then
   test -f "$tmp/lenses/.heron/docs/dev/kite.store_api.get_note.html"
   test -f "$tmp/lenses/.heron/docs/explore/data.js"
   checks+=("e2e.cjs $tmp/lenses/.heron/docs")
-fi
-
-# A project that implements a sealed spec: its conformance and status
-# pages, with status badges.
-if want shop; then
-  cp -r examples/shop-spec examples/shop-spec-2.1.2 examples/shop "$tmp/"
-  rm -rf "$tmp/shop/.heron"
-  (cd "$tmp/shop" && "$tmp/heron" generate docs >/dev/null)
-  grep -q 'class="badge status-missing"' "$tmp/shop/.heron/docs/_conformance.html"
-  checks+=("e2e.cjs $tmp/shop/.heron/docs")
 fi
 
 # The sample site: a theme package from node_modules, the landing and

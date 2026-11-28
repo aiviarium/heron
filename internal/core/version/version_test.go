@@ -7,20 +7,19 @@ import (
 	"testing"
 )
 
-// TestVersionMatchesProject: the product version is the project tree's
-// version, and the spec version the one its implements names.
-func TestVersionMatchesProject(t *testing.T) {
-	src, err := os.ReadFile("../../../project/index.heron")
+// TestVersionMatchesSpec: the spec version is the version of the spec
+// package heron.lock pins, and the product version starts with it.
+func TestVersionMatchesSpec(t *testing.T) {
+	src, err := os.ReadFile("../../../heron.lock")
 	if err != nil {
 		t.Fatal(err)
 	}
-	v := regexp.MustCompile(`(?m)^\s*version = "([^"]+)"`).FindStringSubmatch(string(src))
-	at := regexp.MustCompile(`implements\(heron, at = "([^"]+)"\)`).FindStringSubmatch(string(src))
-	if v == nil || at == nil {
-		t.Fatal("project/index.heron names no version or no spec version")
+	m := regexp.MustCompile(`"github.com/aiviarium/heron-specs/heron" = \{ version = "([^"]+)"`).FindStringSubmatch(string(src))
+	if m == nil {
+		t.Fatal("heron.lock pins no heron-specs version")
 	}
-	if Version != v[1] || Spec() != at[1] {
-		t.Errorf("Version %q and Spec %q; the project says %q at %q", Version, Spec(), v[1], at[1])
+	if Spec() != m[1] || !strings.HasPrefix(Version, m[1]+"+") {
+		t.Errorf("Version %q and Spec %q; heron.lock pins the spec at %q", Version, Spec(), m[1])
 	}
 }
 

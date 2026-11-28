@@ -1,4 +1,4 @@
-// Package setup backs std/repo: the toolchain check, the packages and
+// Package setup backs std/impl: the toolchain check, the packages and
 // sources pinned in heron.lock, and the generated files `heron run setup`
 // writes. Its funcs run inside eval and reach the tree, the project's root
 // and processes through the machine that calls them, so a fake process
@@ -48,8 +48,7 @@ func DefaultInstallers() map[string]Installer {
 	return map[string]Installer{"pnpm": npm("pnpm"), "yarn": npm("yarn")}
 }
 
-// Register installs the Go side of std/repo's funcs and of std/spec's
-// git(…).
+// Register installs the Go side of std/impl's funcs, git(…) among them.
 func Register(r *registry.Registry, o Options) {
 	if o.Ignore == nil {
 		o.Ignore = gen.IgnoreSection{Owner: gen.OwnerSetup}
@@ -57,12 +56,12 @@ func Register(r *registry.Registry, o Options) {
 	if o.Installers == nil {
 		o.Installers = DefaultInstallers()
 	}
-	r.MustAddFunc(registry.Func{Name: "spec.git", Summary: "a git source at a ref", Call: gitSource})
-	r.MustAddFunc(registry.Func{Name: "repo.ensure_toolchain", Summary: "checks or installs the toolchain",
+	r.MustAddFunc(registry.Func{Name: "impl.git", Summary: "a git source at a ref", Call: gitSource})
+	r.MustAddFunc(registry.Func{Name: "impl.ensure_toolchain", Summary: "checks or installs the toolchain",
 		Call: func(ctx context.Context, c *registry.FuncCall) (any, error) { return ensureToolchain(ctx, c, o) }})
-	r.MustAddFunc(registry.Func{Name: "repo.install_packages", Summary: "pins and installs packages and sources",
+	r.MustAddFunc(registry.Func{Name: "impl.install_packages", Summary: "pins and installs packages and sources",
 		Call: func(ctx context.Context, c *registry.FuncCall) (any, error) { return installPackages(ctx, c, r) }})
-	r.MustAddFunc(registry.Func{Name: "repo.generate", Summary: "writes the generated files",
+	r.MustAddFunc(registry.Func{Name: "impl.generate", Summary: "writes the generated files",
 		Call: func(ctx context.Context, c *registry.FuncCall) (any, error) { return generate(ctx, r, o) }})
 }
 

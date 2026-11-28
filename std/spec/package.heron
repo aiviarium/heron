@@ -2,75 +2,17 @@
 // the intent (why a product exists and for whom), the specification (what
 // must hold of it from outside, feature by feature, in its terms) and the
 // contract (the exact surface a consumer relies on), with the references
-// between them, projects, lifecycles and planning. It's part of the core: every tree sees it without an
-// import, as it sees std/core, apart from the packages it's written with.
-// The kinds of other packages join its annotations' open sets through the
-// categories below, so it never names a package that isn't core.
+// between them, lifecycles and planning (`open`). It's part of the core:
+// every tree sees it without an import, as it sees std/core, apart from the
+// packages it's written with. The kinds of other packages join its
+// categories, so it never names a package that isn't core.
 import = ["std/schema@1", "std/types@1", "std/doc@1"]
 
 spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
-  // --- Projects ---
-
-  /// One unit of the system, such as a service, a library or an app.
-  project(path: String): kind {
-    /// The spec subtrees the project implements.
-    implements?: List(Ref(Any))
-    /// Narrows a subtree to part of the project, by file pattern.
-    paths?: Map(String, String)
-    depends_on?: List(Ref(project))
-    /// Who answers for the project; reviews route by it.
-    owners?: List(String)
-    /// The projects this one groups.
-    members?: List(Ref(project))
-    /// Where an external project's code comes from.
-    source?: Source
-    versioning?: Versioning
-    releases?: Releases
-    accept(kind = task)
-  }
-
-  /// Code the system uses but doesn't own, pinned with a source.
-  external: flag(on = [project])
-
-  /// Puts every member of a group on the group's one version.
-  shared: flag
-
-  /// A checked-out source: the url, the ref as written and the commit it
-  /// resolved to.
-  Source: type {
-    url: String
-    ref?: String
-    commit?: String
-  }
-
-  /// Returns a source for a git repository at a ref.
-  git(url: String, ref?: String): func(Source)
-
-  /// How a project's versions are formed.
-  Versioning: type {
-    scheme?: String
-    bumps?: Bumps
-  }
-
-  /// What raises a version.
-  Bumps: interface
-
-  /// Versions that follow the spec: what each kind of spec change bumps.
-  FromSpec: type(Bumps) {
-    breaking?: String
-    added?: String
-    clarified?: String
-  }
-
-  /// Where a project's releases are recorded.
-  Releases: type {
-    changelog?: String
-  }
-
   // --- Intent ---
 
   /// Why a requirement exists: the goals and qualities it serves. A
-  /// feature, a rule, a use case and a story reference it.
+  /// feature, a rule and a use case reference it.
   motivation: category
 
   /// What a product is for, in the words of the people it's for, with an
@@ -131,11 +73,9 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// qualities it serves, the actors it's for and the assumptions it
   /// relies on as its references, its intent in prose, then what it leaves
   /// out and its rules, use cases, scenarios, lifecycles, terms and
-  /// guidance. Features nest. An
-  /// `optional` feature is one a product may leave out; a rule's `where`
-  /// links one.
+  /// guidance. Features nest.
   @icon("puzzle")
-  feature(refs<variadic>?: Ref(Any), optional?: Bool): kind(in = [block], layer = Layer.SPECIFICATION, references = [motivation, actor, assumption]) {
+  feature(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.SPECIFICATION, references = [motivation, actor, assumption]) {
     accept(prose)
     accept(category = block)
   }
@@ -162,7 +102,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   rule(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [motivation, actor, part, assumption, feature]) {
     accept(prose)
     accept(category = strength, max = 1)
-    accept(kind = where, max = 1)
     accept(kind = while)
     accept(kind = when, max = 1)
     accept(kind = spec.if, max = 1)
@@ -213,12 +152,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// A state.
   while: kind(in = [condition]) {
-    accept(prose)
-  }
-
-  /// The optional feature the requirement applies with, linked in its
-  /// prose.
-  where: kind(in = [condition]) {
     accept(prose)
   }
 
@@ -307,7 +240,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   @icon("arrow-right-left")
   transition(from: Any, to: Any): kind(in = [touchable], layer = Layer.SPECIFICATION) {
     accept(prose)
-    accept(kind = where, max = 1)
     accept(kind = while)
     accept(kind = when, max = 1)
     accept(kind = spec.if, max = 1)
@@ -317,9 +249,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   // --- Annotations ---
-
-  /// Kinds of other packages that `@rev` stands on, as std/project's proof.
-  revised: category
 
   /// Hard references written as an annotation, beside or instead of the
   /// constructor's: on any node, they mean what the constructor's would,
@@ -332,10 +261,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   /// its prose can't link. Rare; coverage and gaps don't count them, and
   /// the docs show them as "See also".
   see(targets<variadic>: Ref(Any)): annotation
-
-  /// The revision of a requirement or contract entry, a whole number from
-  /// 1, raised when its meaning changes; on a proof, the revision it proves.
-  rev(n: Int): annotation(on = [rule, scenario, usecase, types.error, command, screen, revised])
 
   // --- Contract ---
 

@@ -123,7 +123,7 @@ kite: package(version = "1.4.0") {
     }
 
     @lens(developer)
-    | Spec writers: every rule here names the syncer, so the conformance report groups them.
+    | Spec writers: every rule here names the syncer, whose behaviour it states.
 
     unreadable: error(422) {
       title = "can't read {file}"

@@ -22,17 +22,17 @@ shop: package(version = "1.0.0", sealed = true) {
 }
 `
 
-const sharedApp = `import = ["std/doc@1", "std/project@1", "../shop/"]
+const sharedApp = `import = ["std/doc@1", "../shop/"]
 
-app: implements(shop, at = "1.0.0") {
-  version = "1.0.0+build1"
+app: section {
+  | Builds on [the shop](#shop).
 }
 `
 
 // A package's nodes don't change after it's built, so two checks of trees
 // that share it run at once without a race (run with -race), and each
-// reads a requirement written as an element with its arguments: a rule by
-// a person is a practice in both.
+// reads a requirement written as an element with its arguments: the rule's
+// subject is the actor its refs name in both.
 func TestConcurrentChecksSharePackage(t *testing.T) {
 	dir := t.TempDir()
 	for name, src := range map[string]string{"shop/index.heron": sharedSpec, "app/index.heron": sharedApp, "app2/index.heron": sharedApp} {
@@ -69,17 +69,20 @@ func TestConcurrentChecksSharePackage(t *testing.T) {
 				got[i] = res.Diags[0].Message
 				return
 			}
-			for _, r := range project.Find(res.Tree, res.Checker).Conformance().Rows {
-				if r.Path == "checkout.tidy" {
-					got[i] = r.Status
+			pkg := trees[i].Imports[len(trees[i].Imports)-1].Tree
+			pkg.Walk(func(n *resolve.Node) {
+				if n.Name == "tidy" {
+					if by := project.Subject(res.Checker, n); by != nil {
+						got[i] = by.Name
+					}
 				}
-			}
+			})
 		}()
 	}
 	wg.Wait()
 	for i, g := range got {
-		if g != "practice" {
-			t.Errorf("check %d: the element rule by a person is %q, want practice", i, g)
+		if g != "buyer" {
+			t.Errorf("check %d: the element rule's subject is %q, want buyer", i, g)
 		}
 	}
 }

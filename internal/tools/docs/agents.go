@@ -920,7 +920,7 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 	}
 	for _, ch := range n.Children {
 		k := s.kindPath(ch)
-		if ch.Name != "" || k == "" || strengthKinds[k] || strings.HasPrefix(k, "spec.") || k == "project.verify" {
+		if ch.Name != "" || k == "" || strengthKinds[k] || strings.HasPrefix(k, "spec.") {
 			continue
 		}
 		ls = append(ls, kindWords(s.Checker.KindOf(ch).Name)+": "+s.inlineMD(ch))
@@ -1947,9 +1947,6 @@ func (e *agentExport) featureMap(n *resolve.Node, indent string) string {
 				continue
 			}
 			l := indent + "- " + s.mdLink(ch, displayName(s, ch)) + ": " + strconv.Itoa(len(s.featureRequirements(ch))) + " requirements"
-			if project.FeatureOptional(ch) {
-				l += ", optional"
-			}
 			b.WriteString(l + "\n" + e.featureMap(ch, indent+"  "))
 		}
 	}

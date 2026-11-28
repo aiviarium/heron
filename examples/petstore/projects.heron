@@ -1,35 +1,18 @@
-/// The whole product. Its version is the product version.
+/// The whole product: the repository, the root project.
 petstore: project(path = ".") {
   members = [store_spec, store_svc, shared_types]
-
-  versioning.{
-    scheme = "%major%.%minor%.%patch%[-%pre%.%pre_n%]"
-  }
-
-  releases.{
-    changelog = "changelog.heron"
-  }
 }
 
-/// The store spec, versioned by how its rules change.
-store_spec: project(path = "specs/store") {
-  owners = ["@petstore/store"]
-
-  versioning.{
-    bumps = FromSpec(breaking = "major", added = "minor", clarified = "patch")
-  }
-}
+/// The store spec.
+store_spec: project(path = "specs/store") {}
 
 store_svc: project(path = "services/store") {
   implements = [store]
   paths = { orders = "src/orders/**" }
   depends_on = [shared_types, mailer]
-  owners = ["@petstore/store"]
 }
 
-shared_types: project(path = "packages/types") {
-  owners = ["@petstore/platform"]
-}
+shared_types: project(path = "packages/types") {}
 
 mailer: project<external>(path = "vendor/mailer") {
   source = git("https://github.com/petstore/mailer", ref = "v1.8.0")

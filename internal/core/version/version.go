@@ -11,8 +11,8 @@ import (
 )
 
 // Version is the product version: the spec version it implements, then
-// the build counter after +. TestVersionMatchesProject keeps it equal to
-// the project tree's version.
+// the build counter after +. TestVersionMatchesSpec keeps its spec part
+// equal to the version of the spec package heron.lock pins.
 var Version = "0.6.0+build1"
 
 // Commit and Built are the commit the binary was built from and when, in

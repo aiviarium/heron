@@ -65,7 +65,7 @@ func signatureOf(n *resolve.Node) string {
 	return sig
 }
 
-// mdNames writes declarations by their names in code, as `@rev`.
+// mdNames writes declarations by their names in code, as `@exit`.
 func (s *Site) mdNames(ns []*resolve.Node) string {
 	var out []string
 	for _, n := range ns {

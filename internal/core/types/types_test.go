@@ -77,8 +77,8 @@ func TestErrors(t *testing.T) {
 		{"import = [\"std/doc@1\"]\n@displey(\"X\")\nx: section\n", "unknown annotation @displey"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | A [link](#nowhere).\n}\n", "the link to #nowhere doesn't resolve"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | <warnin>x</warnin>\n}\n", "unknown tag <warnin>"},
-		{"p: project(path = \".\") {\n  implemnts = []\n}\n", "has no field implemnts; did you mean implements?"},
-		{"p: project(path = \".\")\np {\n  versioning {\n    shceme = \"x\"\n  }\n}\n", "has no field shceme"},
+		{"import = [\"std/impl@1\"]\np: project(path = \".\") {\n  implemnts = []\n}\n", "has no field implemnts; did you mean implements?"},
+		{"import = [\"std/impl@1\"]\np: project(path = \".\")\np {\n  source {\n    urll = \"x\"\n  }\n}\n", "has no field urll"},
 		{"import = [\"std/doc@1\"]\nx: section\nx {\n  nope {\n    a = 1\n  }\n}\n", "x.nope doesn't exist"},
 		{"t: task do {\n  log(missing)\n}\n", "unknown name missing"},
 		{"t: task do {\n  let a = 1\n  log(\"$a $b\")\n}\n", "unknown name b"},
@@ -263,10 +263,10 @@ ping(): op
 	}
 }
 
-// The kinds of std/spec check their bodies,
+// The kinds of std/spec and std/impl check their bodies,
 // their fields and the variants a lifecycle names.
 func TestSpecKinds(t *testing.T) {
-	base := "import = [\"std/doc@1\", \"std/types@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"
+	base := "import = [\"std/doc@1\", \"std/types@1\", \"std/impl@1\"]\nStatus: enum {\n  OPEN: Self\n  SHUT: Self\n}\n"
 	for src, want := range map[string]string{
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.GONE)\n}\n":                          "Status has no member GONE",
 		"life: states(Status) {\n  t: transition(Status.OPEN, Status.SHUT) {\n    must {{ x }}\n  }\n}\n": "transition doesn't accept must",

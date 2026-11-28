@@ -25,7 +25,6 @@ language.scripting.processes_and_files.scripting_processes       scripting
 language.scripting.tasks.scripting_tasks                         scripting
 language.specifications.layout.specifications_feature_layout     specifications
 language.specifications.planning.specifications_planning         specifications
-language.specifications.projects.specifications_projects         specifications
-language.specifications.projects.specifications_versioning       specifications
 language.specifications.requirements.specifications_example      specifications
+language.std.impl.impl_projects                                  specifications
 tools.docs.extending.docs_configuration                          docs

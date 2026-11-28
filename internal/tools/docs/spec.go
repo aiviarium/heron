@@ -13,7 +13,7 @@ var (
 	strengthKinds = map[string]bool{"spec.must": true, "spec.should": true, "spec.may": true, "spec.must_not": true, "spec.should_not": true}
 	// Conditions that open the sentence, in the order std/spec declares
 	// them; unless closes it.
-	leadConditions = []string{"spec.where", "spec.while", "spec.when", "spec.if"}
+	leadConditions = []string{"spec.while", "spec.when", "spec.if"}
 )
 
 // ruleStrength returns the kind name of a rule's or quality's strength
@@ -55,9 +55,6 @@ func (s *Site) childrenOfKind(n *resolve.Node, kind string) []*resolve.Node {
 // "the parser", the one type that realizes it, or the system.
 func (s *Site) subject(n *resolve.Node) string {
 	if by := s.ruleBy(n); by != nil {
-		if s.kindPath(by) == "project.component" {
-			return s.linkHTML(by, `<code>`+esc(by.Name)+`</code>`, "subject")
-		}
 		return strings.Replace(esc(label("docs.rule.subject_named", "name", "\x00")), "\x00", s.linkHTML(by, esc(subjectWords(s, by)), "subject"), 1)
 	}
 	// The one type that references it: the type whose instances it holds of.
@@ -274,7 +271,7 @@ func (s *Site) afterSentence(n *resolve.Node) string {
 	}
 	for _, ch := range n.Children {
 		k := s.kindPath(ch)
-		if ch.Name != "" || k == "" || strengthKinds[k] || strings.HasPrefix(k, "spec.") || k == "project.verify" {
+		if ch.Name != "" || k == "" || strengthKinds[k] || strings.HasPrefix(k, "spec.") {
 			continue
 		}
 		b.WriteString(` <span class="rule-extra">` + esc(displayName(s, ch)) + `: ` + sentence(s.inlineHTML(ch)) + `</span>`)
@@ -321,8 +318,8 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 	return `<span class="rule-meta">` + strings.Join(parts, `<span class="dot"> · </span>`) + s.markTags(lens.Restriction(s.Checker, n)) + `</span>`
 }
 
-// ruleRest writes what follows a requirement's paragraph: its prose and
-// what verifies it.
+// ruleRest writes what follows a requirement's paragraph: its rationale,
+// its prose and its derived lists.
 func (c *Ctx) ruleRest(n *resolve.Node) {
 	if r := project.Rationale(c.Site.Checker, n); r != nil {
 		if h := c.Site.inlineHTML(r); h != "" {
@@ -333,9 +330,6 @@ func (c *Ctx) ruleRest(n *resolve.Node) {
 		c.W(`<p class="rationale"><span class="field-label">`, esc(label("docs.label.reason")), `</span> `, esc(v), `</p>`)
 	}
 	c.Prose(n)
-	if v := c.verifyList(n); v != "" {
-		c.W(v)
-	}
 	c.W(c.derivedLists(n))
 }
 
@@ -358,7 +352,7 @@ func renderRule(c *Ctx) error {
 	if n.Name != "" {
 		link = s.gutterLink(n, "#"+Anchor(n))
 	}
-	head := link + sent + statusBadge(n) + c.qualityFacts(n)
+	head := link + sent + c.qualityFacts(n)
 	if s.summarized(n) {
 		rest := c.at(n, c.Level)
 		rest.out = &strings.Builder{}
@@ -611,37 +605,6 @@ func renderTransition(c *Ctx) error {
 	c.consequences(n)
 	c.W(`</div>`)
 	return nil
-}
-
-// verifyList is the list of a node's verify children: each test or script
-// by its file and name, with its prose, or "".
-func (c *Ctx) verifyList(n *resolve.Node) string {
-	vs := c.Site.childrenOfKind(n, "project.verify")
-	if len(vs) == 0 {
-		return ""
-	}
-	var b strings.Builder
-	b.WriteString(`<ul class="verify">`)
-	for _, v := range vs {
-		b.WriteString(`<li id="` + attr(Anchor(v)) + `">` + verifyRef(v))
-		if p := c.Site.inlineHTML(v); strings.TrimSpace(p) != "" {
-			b.WriteString(` <span class="verify-note">` + p + `</span>`)
-		}
-		b.WriteString(`</li>`)
-	}
-	b.WriteString(`</ul>`)
-	return b.String()
-}
-
-// verifyRef is a verify node's file and test, as `internal/core/syntax/parse_test.go`
-// `TestLineStarts`.
-func verifyRef(v *resolve.Node) string {
-	path, _ := argString(kindArgs(v), 0, "path")
-	out := `<code class="path">` + esc(path) + `</code>`
-	if t, ok := argString(kindArgs(v), 1, "test"); ok {
-		out += ` <code class="test">` + esc(t) + `</code>`
-	}
-	return out
 }
 
 // relPathOf is a node's path inside its package, as a spec's readers name

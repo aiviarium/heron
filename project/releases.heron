@@ -1,4 +1,0 @@
-releases: section {
-  | What the implementation has shipped, each release tagged in git as `v<version>`. Nothing
-  | is released yet: the first release will be listed here when it's tagged.
-}

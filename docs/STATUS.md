@@ -6,20 +6,14 @@ at the end.
 The spec is the sealed package `heron/` of
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs), imported
 here at 0.6.0 and pinned in `heron.lock`: what the code must do is stated
-there, by domain (`language/`, `cli/`, `tools/`, `product/`). How this
-repository implements it is the project tree's (`project/`): the components,
-the proofs that link each requirement to its tests, the status of the rest,
-the delivery plan and the releases. `heron generate conformance` reports
-every requirement of the spec as proven, planned, untested or missing, with
-the requirements on people and agents as practices of their own, and
-`scripts/ci.sh` fails while any is missing. This file is a readable summary
-of where the build stands and links into both rather than repeating them;
-where they disagree, the spec wins.
+there, by domain (`language/`, `cli/`, `tools/`, `product/`). This file is
+a readable summary of where the build stands and links into the spec rather
+than repeating it; where they disagree, the spec wins.
 
 ## Unit 1
 
-Unit 1 ("Language and runtime") against the four items of its "Done means"
-(the project tree's `delivery/unit_1/`). Every check named here runs in
+Unit 1 ("Language and runtime") against the four items of its "Done means".
+Every check named here runs in
 `scripts/ci.sh`, which also passes from a fresh `git clone` of the
 repository into an empty directory, with the spec package from `heron run
 setup` or from the sibling checkout `HERON_SPECS_DIR` names, so no other
@@ -51,9 +45,8 @@ checking clean:
   of unit 3 (DevOps);
 - `language.markup.long_form.markup_prompt` is a prompt of unit 4 (Agents).
 
-The project's roadmap (`project/delivery/roadmap.heron`) plans them: they
-check clean once those units declare what they use, and unit 1 is done
-without them until then.
+They check clean once those units declare what they use, and unit 1 is
+done without them until then.
 
 ### 2. Setup
 
@@ -110,8 +103,8 @@ helper live in unit packages. Nothing needed moving.
 gives the language and runtime alone, with `check`, `fmt`, `lint`, `run`
 and `generate` and no `lsp`, `serve` or docs target. `scripts/ci.sh` builds
 it and, with it, formats, checks and lints the repository's tree (the spec
-package and the project tree) and `examples/petstore` and runs `e2e-setup.sh`, `e2e-tasks.sh` and
-`e2e-project.sh` (`HERON_TAGS=unit1`; setup then pins no Vale).
+package and the root project) and `examples/petstore` and runs `e2e-setup.sh` and
+`e2e-tasks.sh` (`HERON_TAGS=unit1`; setup then pins no Vale).
 `e2e-prose.sh` builds its own unit-1 binary. CI also fails if a package
 under `internal/core` or `std`, or its tests, imports `internal/tools`, so
 unit 1's Go tests are unit 1's alone.
@@ -149,7 +142,7 @@ name should be reported, not installed.
 **`setup_runs_generate`: should setup run every generation target?** Yes.
 The Implementation tab has `heron generate` write "setup
 files and the managed ignore block", so after setup a fresh checkout should
-be where `heron generate` leaves it. `repo.generate` should run every
+be where `heron generate` leaves it. `impl.generate` should run every
 registered target, as `heron generate` without targets does, after
 `pnpm install`, writing all sections of the ignore block. A failing adapter should fail setup, and a second run
 must still change nothing, which the adapters' write-only-on-change rule
@@ -165,8 +158,8 @@ agree on one location without unit 1 knowing the `audit` node exists.
 
 ## Unit 2
 
-Unit 2 ("Development tools") against the three items of its "Done means"
-(the project tree's `delivery/unit_2/`). The checks run in
+Unit 2 ("Development tools") against the three items of its "Done means".
+The checks run in
 `scripts/ci.sh` with Vale required (`HERON_REQUIRE_VALE=1`, Vale v3.28.1
 installed from the Go proxy).
 
@@ -198,8 +191,7 @@ moves the cursor and sees the preview follow. `e2e-docs.sh` runs `heron generate
 checks every link and island in Chromium.
 
 Gaps:
-- Release notes and the package graph wait on `docs_release_notes` and
-  `docs_package_graph`.
+- The package graph waits on `docs_package_graph`.
 - A preview whose render fails isn't tested in VS Code, only in Go.
 
 ### 3. Prose
@@ -230,7 +222,6 @@ and the docs; it's now dedented.
 ## Open questions
 
 The questions still open about what the system does are the spec's, kept in
-heron-specs as `open(…)` nodes on the nodes they're about. Questions about
-how this repository builds it belong to the project tree. A question is
-resolved by writing its answer into the spec as rules, or into the project
-tree, and removing the `open`.
+heron-specs as `open(…)` nodes on the nodes they're about. A question is
+resolved by writing its answer into the spec as rules and removing the
+`open`.

@@ -130,7 +130,7 @@ func renderDiagnostic(c *Ctx) error {
 		c.W(`</div>`)
 		return nil
 	}
-	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, s.diagnosticBadges(n), statusBadge(n))
+	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, s.diagnosticBadges(n))
 	if m := s.errorText(n, "title"); m != "" {
 		c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 	}
@@ -166,9 +166,6 @@ func renderDiagnostic(c *Ctx) error {
 			c.W(`<li>`, s.inlineHTML(e), `</li>`)
 		}
 		c.W(`</ul></div>`)
-	}
-	if v := c.verifyList(n); v != "" {
-		c.W(v)
 	}
 	c.W(`</div>`)
 	return nil

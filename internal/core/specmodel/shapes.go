@@ -68,26 +68,15 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		subjects(c, n, ds)
 		ruleLinks(c, t, n, ds)
 		triggers(c, n, ds)
-		whereFeature(c, t, n, ds)
-		revision(n, ds)
 	case Is(c, n, "spec.scenario"):
 		scenario(c, n, ds)
-		revision(n, ds)
 	case Is(c, n, "spec.usecase"):
 		if len(UseCaseActors(c, n)) == 0 {
 			errAt(ds, n.Decl, "usecase", "use case %s references no actor; its first actor reference is its primary actor", n.Name)
 		}
 		UseCaseChecks(t, c, n, ds)
-		revision(n, ds)
 	case Is(c, n, "types.error"):
 		placeholders(c, n, ds)
-		revision(n, ds)
-	case Is(c, n, "project.story"):
-		for _, ch := range n.Children {
-			if Is(c, ch, "spec.given", "spec.when", "spec.then", "spec.must", "spec.should", "spec.may", "spec.must_not", "spec.should_not") {
-				errAt(ds, ch.Decl, "story", "story %s holds a %s; a story lists the spec items it adds or changes, which state the behaviour", n.Name, KindName(c, ch))
-			}
-		}
 	case Is(c, n, "spec.example"):
 		for _, r := range nodeRefs(c, n) {
 			if r.Target != nil && Is(c, r.Target, "spec.scenario") && !isOutcome(c, r.Target) {
@@ -267,16 +256,6 @@ func seeTargets(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	}
 }
 
-func revision(n *resolve.Node, ds *diag.List) {
-	a := project.AnnotationArg(n, "rev")
-	if a == nil {
-		return
-	}
-	if v := strings.TrimSpace(a.Expr.Syntax().Text()); v == "0" || strings.HasPrefix(v, "-") {
-		errAt(ds, a.Site, "type", "a revision is a whole number from 1, not %s", v)
-	}
-}
-
 // children of a node by their standard kind.
 func childrenOf(c *types.Checker, n *resolve.Node, kinds ...string) []*resolve.Node {
 	var out []*resolve.Node
@@ -337,22 +316,6 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	}
 	if problem != "" {
 		errAt(ds, n.Decl, "scenario", "scenario %s %s", n.Name, problem)
-	}
-}
-
-// whereFeature checks that a requirement's `where` links an optional
-// feature, the one it applies with.
-func whereFeature(c *types.Checker, t *resolve.Tree, n *resolve.Node, ds *diag.List) {
-	for _, w := range childrenOf(c, n, "spec.where") {
-		ok := false
-		for _, r := range OwnRefs(c, t, w) {
-			if r.Target != nil && Is(c, r.Target, "spec.feature") && project.FeatureOptional(r.Target) {
-				ok = true
-			}
-		}
-		if !ok {
-			errAt(ds, w.Decl, "where", "where in %s links no optional feature; it names the optional feature the requirement applies with, and a state is written with while", n.Name)
-		}
 	}
 }
 

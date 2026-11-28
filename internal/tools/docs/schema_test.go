@@ -93,8 +93,8 @@ func TestSchemaLanding(t *testing.T) {
 	// and its name alone links that place wherever it's met again: a
 	// transition holds the conditions a rule lists.
 	tree := h[strings.Index(h, `id="schema-tree"`):strings.Index(h, `id="ui"`)]
-	if n := strings.Count(tree, `href="_schema.spec.where.html"`); n != 1 {
-		t.Errorf("where is listed %d times in the tree", n)
+	if n := strings.Count(tree, `href="_schema.spec.while.html"`); n != 1 {
+		t.Errorf("while is listed %d times in the tree", n)
 	}
 	mustHave(t, "tree", tree, `<li id="tree-spec.condition">`, `<span class="tree-cat tree-again"><a class="ref" href="#tree-spec.condition">condition</a></span>`)
 	if strings.Count(tree, `id="tree-spec.condition"`) != 1 {
@@ -284,7 +284,7 @@ func TestTypeViews(t *testing.T) {
 func TestSchemaSearch(t *testing.T) {
 	t.Parallel()
 	s := site(t, schemaTree)
-	want := map[string]string{"rule": "_schema.spec.rule.html", "@touch": "_schema.spec.touch.html", "<external>": "_schema.html#spec.external", "block": "_schema.html#doc.block"}
+	want := map[string]string{"rule": "_schema.spec.rule.html", "@touch": "_schema.spec.touch.html", "<security>": "_schema.html#spec.security", "block": "_schema.html#doc.block"}
 	for _, e := range s.Search() {
 		if u, ok := want[e.Title]; ok && e.URL == u {
 			delete(want, e.Title)

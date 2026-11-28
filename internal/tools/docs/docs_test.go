@@ -35,11 +35,9 @@ func site(t *testing.T, entry string) *Site {
 }
 
 var entries = map[string]string{
-	"petstore":  "../../../examples/petstore/index.heron",
-	"kinds":     "testdata/kinds/index.heron",
-	"shop":      "../../../examples/shop/index.heron",
-	"shop-spec": "../../../examples/shop-spec/index.heron",
-	"schema":    "testdata/schema/index.heron",
+	"petstore": "../../../examples/petstore/index.heron",
+	"kinds":    "testdata/kinds/index.heron",
+	"schema":   "testdata/schema/index.heron",
 }
 
 // The spec package's entry, as the repository imports it: from
@@ -382,9 +380,6 @@ func TestLayeredKinds(t *testing.T) {
 			`<p class="line-head"><code>--json</code> <code><span class="tk-type">Bool</span></code><span class="sep">, </span>default <code><span class="tk-kw">false</span></code></p>`,
 			`<code>2</code> can&#39;t read {path}`,
 		},
-		"runtime.syntax.html": {
-			`<dt>Used by</dt><dd><a class="ref" href="runtime.resolve.html"><code>resolve</code></a></dd>`,
-		},
 		"lang.html": {
 			`<a class="code-ref tk-name" href="#lang.core.member">member</a><span class="tk-punct">*</span>`,
 			`Used by <a class="code-ref" href="#lang.core.file"><code>file</code></a>`,
@@ -392,9 +387,6 @@ func TestLayeredKinds(t *testing.T) {
 		"op_page.html": {
 			`<dt>Route</dt><dd><code class="path">/docs/&lt;op&gt;</code></dd>`,
 			`<div class="region" id="op_page.body.facts"><a class="anchor region-name" href="#op_page.body.facts">Facts</a>`,
-		},
-		"index.html": {
-			`<dt>Adds</dt><dd><a class="ref" href="guarantees.html#guarantees.parse_all">Parse all</a></dd>`,
 		},
 		"people.html": {
 			`<a class="anchor" href="#people.ci">Ci</a><span class="aliases">system</span>`,
@@ -410,7 +402,6 @@ func TestLayeredKinds(t *testing.T) {
 			`<div class="goal-block" id="trust"><div class="goal-head"><span class="label">Goal</span>`,
 			`<dt>Measure</dt><dd>Nine trees in ten check clean on the first CI run.</dd>`,
 			`<span class="derived-label">Rules <span class="derived-mark">derived</span></span>`,
-			`<span class="derived-label">Stories <span class="derived-mark">derived</span></span>`,
 		},
 	}
 	got := map[string]string{}

@@ -34,11 +34,10 @@ refunds: feature(sell, buyer) {
     then {{ it's rejected }}
   }
 
-  gifts: feature(optional = true) {
+  gifts: feature {
     | Refunds to gift cards.
 
     gift_limit: rule(desk) {
-      where {{ [refunds.gifts] }}
       must {{ refund at most the payment }}
     }
   }
@@ -73,7 +72,7 @@ payments: api {
 }
 `
 
-// The Features page lists every feature, nested, with its goals, its marks
+// The Features page lists every feature, nested, with its goals, its flags
 // and the number of its requirements; a feature's page shows its facts,
 // its requirements by kind and their coverage; an error shows its
 // effective codes marked derived or explicit; a command shows its usage
@@ -83,12 +82,12 @@ func TestFeaturePages(t *testing.T) {
 	dir := writeTree(t, map[string]string{"index.heron": featureTree})
 	s := site(t, filepath.Join(dir, "index.heron"))
 	idx := pageHTML(t, s, "_features.html")
-	mustHave(t, "features page", idx, `>Refunds</a>`, `>Gifts</a>`, `>Safety</a>`, `Optional`, `security`, `Requirements 3`, `>Sell</a>`)
+	mustHave(t, "features page", idx, `>Refunds</a>`, `>Gifts</a>`, `>Safety</a>`, `security`, `Requirements 3`, `>Sell</a>`)
 	if strings.Index(idx, ">Refunds</a>") > strings.Index(idx, ">Gifts</a>") {
 		t.Error("gifts is listed before the feature it nests in")
 	}
 	f := pageHTML(t, s, "refunds.html")
-	mustHave(t, "feature page", f, `class="section feature"`, `For <a`, `>Buyer</a>`, `Covered 1 / 3`, `Not covered by a scenario, an example or a proof`, `>Card only</a>`)
+	mustHave(t, "feature page", f, `class="section feature"`, `For <a`, `>Buyer</a>`, `Covered 1 / 3`, `Not covered by a scenario or an example`, `>Card only</a>`)
 	saf := pageHTML(t, s, "safety.html")
 	mustHave(t, "cross-cutting feature", saf, `>Card only</a>`, `Covered 0 / 1`)
 	mustHave(t, "error codes", f, `HTTP <code>404 refund.GONE</code>`, `gRPC <code>NOT_FOUND</code> <span class="mark">derived</span>`, `exit <code>3</code> <span class="mark">explicit</span>`)
@@ -97,10 +96,25 @@ func TestFeaturePages(t *testing.T) {
 
 	files := agentFiles(t, filepath.Join(dir, "index.heron"), AgentOptions{})
 	in := string(fileByPath(files, "INDEX.md").Content)
-	mustHave(t, "agent index", in, "## Features", "- [Refunds](refunds.md#refunds): 3 requirements", "  - [Gifts](refunds.gifts.md#refunds.gifts): 1 requirements, optional", "- [Safety](safety.md#safety): 1 requirements")
+	mustHave(t, "agent index", in, "## Features", "- [Refunds](refunds.md#refunds): 3 requirements", "  - [Gifts](refunds.gifts.md#refunds.gifts): 1 requirements", "- [Safety](safety.md#safety): 1 requirements")
 	var all string
 	for _, f := range files {
 		all += string(f.Content)
 	}
 	mustHave(t, "agent export", all, "joins [safety](safety.md#safety)", "Usage:\n\n```sh\nshop refund [--dry-run] <payment>\n```", "option `-n`, `--dry-run` Bool")
+}
+
+func pageHTML(t *testing.T, s *Site, file string) string {
+	t.Helper()
+	for _, p := range s.Pages {
+		if p.File == file {
+			h, err := s.RenderPage(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return h
+		}
+	}
+	t.Fatalf("no page %s", file)
+	return ""
 }

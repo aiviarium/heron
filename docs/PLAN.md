@@ -9,13 +9,11 @@ The spec is a detached system. It's authored in
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs) as the
 sealed package `heron/`, versioned on its own, and never names code. This
 repository imports it, `git+https://github.com/aiviarium/heron-specs//heron@v0`
-pinned in `heron.lock`, and holds only the implementation: the code and the
-project tree (`project/`: architecture components, the proofs that link each
-spec requirement to its tests, status, the delivery plan and releases). It
-can't amend the spec; a change to what the system does is a change to
-heron-specs first. This file is a readable overview of how the build was
-carried out and links into the spec and the project tree rather than
-repeating them; where they disagree, the spec wins.
+pinned in `heron.lock`, and holds only the implementation. It can't amend
+the spec; a change to what the system does is a change to heron-specs
+first. This file is a readable overview of how the build was carried out
+and links into the spec rather than repeating it; where they disagree, the
+spec wins.
 
 The first build was rebuilt from a design sketch whose code blocks were its
 first fixtures. That sketch and the history before this repository's first
@@ -33,10 +31,8 @@ internal/core/             unit 1
   syntax/                  lexer and lossless, error-recovering parser (CST)
   ast/                     typed views over the CST, generated from grammar/
   ast/internal/astgen/     the generator (go generate)
-  project/                 std/project's Go side: project mode, the
-                           implementation version schemes, conformance;
-                           release/ is `heron release` and the
-                           `conformance` target of `heron generate`
+  project/                 the spec model the tools share: kinds, arguments,
+                           annotations, references, features, the gap report
   format/                  heron fmt, from the CST
   diag/                    the diagnostics every stage reports
   resolve/                 entry points, include/import, scopes, amends, the
@@ -47,8 +43,8 @@ internal/core/             unit 1
                            the fixture check-clean test
   lint/                    core lints; the prose view and prose providers
   eval/                    interpreter for `do` code; no I/O (host interface)
-  records/                 audit records, release output, caches as data files
-  setup/                   std/repo's Go side: toolchain, heron.lock, sources
+  records/                 audit records, caches as data files
+  setup/                   std/impl's Go side: toolchain, heron.lock, sources
   gen/                     generation framework and `heron generate`
   cli/                     unit 1's commands: check, fmt, lint, run, generate
   fixtures/                the fixtures: the code blocks of the spec
@@ -60,17 +56,15 @@ grammar/                   heron.ungram (node kinds) and, later, tree-sitter
 web/                       pnpm workspace: unit 2's tokens/ strings/ docs/
 editors/vscode/            unit 2's VS Code extension
 index.heron                the repository's tree: imports the spec package,
-                           includes the project tree, and its setup task
+                           and the root project with its setup task
 heron.lock                 pins the spec package's tag and commit
-project/                   the project tree: components, proofs, status,
-                           delivery, releases
 fixtures/                  modes.txt, pending.txt and contexts.txt, keyed by
                            example node path, and the contexts examples check in
 scripts/spec-setup.sh      heron run setup, or links $HERON_SPECS_DIR in its place
 scripts/spec-docs.sh       builds the spec package as its docs site and serves it (--live: heron serve)
 scripts/ci.sh              local CI: the spec package, gofmt, vet,
                            go-check-sumtype, tests, fixture checks,
-                           conformance, the e2e-*.sh scripts
+                           the e2e-*.sh scripts
 examples/petstore/         the Example tab's repository, as far as unit 1 goes
 ```
 
@@ -187,8 +181,7 @@ script or test that proves each and the gaps that remain.
     counts recomputations.
   - Fixtures: 26 of the spec package's 29 Heron examples check clean; the
     other 3 are in `fixtures/pending.txt`, each with its reason, and wait
-    for packages of units 3 and 4 (`std/ci`, `std/env` and prompts), as the
-    project's roadmap (`project/delivery/roadmap.heron`) plans. The
+    for packages of units 3 and 4 (`std/ci`, `std/env` and prompts). The
     repository's tree, the spec package included, checks and lints clean in
     `scripts/ci.sh`.
   - Bodies are checked against `accept` lists: prose, code, child kinds
@@ -210,11 +203,11 @@ script or test that proves each and the gaps that remain.
     `<confirm>` (or `--yes`), prints the result as data or `--json`, and
     with `--undo-on-failure` runs the `@undo` task of every finished task,
     newest first. Exit 1 is a failed task, 2 a usage error.
-  - `records` stores records of registered kinds as JSON data files
-    (`project/architecture/runtime/records.heron`); `heron run` records every run
+  - `records` stores records of registered kinds as JSON data files;
+    `heron run` records every run
     that starts under `.heron/audit/run/`. A sample record kind is written,
     listed, read back and pruned in `records`' tests.
-  - `heron run setup` (`internal/core/setup`, `std/repo`): checks the
+  - `heron run setup` (`internal/core/setup`, `std/impl`): checks the
     toolchain, or installs it with `--install_toolchain`; pins the imported
     packages and the projects' git sources in `heron.lock`, checks the
     packages against their pins (`--update` moves them) and checks the
@@ -260,7 +253,7 @@ receives the run record's events (`call`, `step`, `log`, `set`,
 - Go backs std's `log`, `emit`, `run`, `read`, `write`, `temp`,
   `json.decode` and `json.encode`; `attempt` is a special form and
   `clock.now` reads `Caps.Clock`.
-- For Go funcs that read the tree they run in, such as `std/repo`'s:
+- For Go funcs that read the tree they run in, such as `std/impl`'s:
   `eval.MachineOf(ctx)` gives the calling machine inside a
   `registry.FuncImpl`, `Machine.Value(ctx, node)` a node's value,
   `Machine.KindArg(ctx, node, name)` a named kind argument such as a
@@ -454,10 +447,7 @@ s.DataJS()                        // the search index, hover cards and island st
   too, with `ctx.Tag` (`Kind`, `Body`, `Attrs`) set and `ctx.Node` nil.
 - Pages: one per top-level section and its subsections (deeper sections
   render inline), per documented scope, per api, op and type, plus the
-  glossary (`_glossary.html`) and diagnostics (`_diagnostics.html`); a
-  project that implements a spec adds `_conformance.html`, `_releases.html`
-  and, unless `implements` names the spec's site with `docs`, the spec
-  read-only on `_spec.html`. Files
+  glossary (`_glossary.html`) and diagnostics (`_diagnostics.html`). Files
   are flat, named by node path (`orders.ordering.html`), so every link is
   relative and the site works from `file://`.
 - `heron generate docs` writes `.heron/docs/` under the working directory

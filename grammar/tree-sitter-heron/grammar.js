@@ -23,12 +23,12 @@ const PREC = {
 
 const IDENT = /[A-Za-z_][A-Za-z0-9_]*/;
 
-// The standard kinds that take their text as Verbatim: std/project's exports,
+// The standard kinds that take their text as Verbatim: std/grammar's
 // production and token, and std/doc's code and math. As the Go parser
 // does, a `{{ }}` body of a node whose `:` slot or callee names one, by its
 // last segment, is text: no tags, inserts, links or code spans. The names
 // are keywords only where a name may stand, and read as identifiers.
-const VERBATIM = ['exports', 'surface', 'production', 'token', 'code', 'math'];
+const VERBATIM = ['production', 'token', 'code', 'math'];
 
 const commaSep = (rule) => optional(seq(rule, repeat(seq(',', rule)), optional(',')));
 

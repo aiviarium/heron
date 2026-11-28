@@ -1,9 +1,8 @@
 # Heron examples of the spec that can't check clean yet, keyed by example
-# node path, each with the reason: the project's roadmap
-# (project/delivery/roadmap.heron) says which later unit brings what the
+# node path, each with the reason: the later unit that brings what the
 # example uses. TestFixturesCheckClean fails when a listed example starts
 # checking clean, so the list can't go stale.
 
-language.data.configuration.data_configuration   waits for std/ci of unit 3 (DevOps), as the roadmap (delivery.roadmap) plans
-language.data.configuration.data_layering        waits for std/ci and std/env of unit 3 (DevOps), as the roadmap (delivery.roadmap) plans
-language.markup.long_form.markup_prompt          waits for prompts of unit 4 (Agents), as the roadmap (delivery.roadmap) plans
+language.data.configuration.data_configuration   waits for std/ci of unit 3 (DevOps)
+language.data.configuration.data_layering        waits for std/ci and std/env of unit 3 (DevOps)
+language.markup.long_form.markup_prompt          waits for prompts of unit 4 (Agents)

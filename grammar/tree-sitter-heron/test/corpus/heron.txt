@@ -116,7 +116,7 @@ Scopes, enter, invoke, bare names and flags
 refunds.{
   window = 30
 }
-repository {
+store {
   ready
 }
 gauge: widget<large>(size = 3) {
@@ -390,13 +390,13 @@ c: Text = (sh)```
       (backtick))))
 
 ==================
-Verbatim bodies: the text of surface, production, token, code and math
+Verbatim bodies: the text of production, token, code and math
 ==================
 
-s: tech.surface {{
+s: tech.production {{
   load(): Promise<Result> $x [a](#b) `c
   <T>x</T> \}} }}
-surface(title = "a.ts") {{ <Result> ${x} }}
+code(title = "a.ts") {{ <Result> ${x} }}
 production {{ "<" Path TagAttr* ">" }}
 e: code(lang = "ts") {{ Map<K> }}
 n: note {{ <b>x</b> }}
