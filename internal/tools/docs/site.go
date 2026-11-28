@@ -148,6 +148,7 @@ type Site struct {
 	// icons are the icons the tree's packages declare, once read; anchors
 	// the nodes by their anchors, once indexed.
 	icons        *icon.Set
+	navIcons     map[*Page]string // each entry's icon in the navigation, once worked out
 	anchors      map[string]*resolve.Node
 	implementors map[*resolve.Node][]*resolve.Node
 	// rpcModel is the tree's RPC projection, built on first use.

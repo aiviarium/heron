@@ -653,3 +653,50 @@ func TestPreviewRequest(t *testing.T) {
 		t.Errorf("preview of no file: %v", err)
 	}
 }
+
+// A node a macro produced is declared by the invocation that produced it:
+// its definition and references land on the invocation, in the file, and
+// it can't be renamed in place.
+func TestMacroProducedNodes(t *testing.T) {
+	src := `import = ["std/schema@1", "std/doc@1"]
+
+writer: actor {{ Writes the spec. }}
+
+house_guide(author: Ref(actor)): macro = (heron)"""
+  one_behaviour: rule($author) {
+    should {{ state one behaviour in a rule }}
+  }
+  """
+
+guide: section {
+  house_guide(author = writer)
+}
+
+see: section {{ As [guide.one_behaviour] says. }}
+`
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "index.heron"), src)
+	c := start(t, dir)
+	uri := lsptest.FileURI(filepath.Join(dir, "index.heron"))
+	c.Open(uri, src)
+	noDiagnostics(t, c, "a macro's nodes")
+	at := lsptest.At(src, "one_behaviour]", 0, 2)
+	var locs []location
+	if err := c.Call("textDocument/definition", pos(uri, at), &locs); err != nil {
+		t.Fatal(err)
+	}
+	if len(locs) != 1 || locs[0].URI != uri || locs[0].Range.Start.Line != 11 {
+		t.Fatalf("definition of a produced node: %+v", locs)
+	}
+	if err := c.Call("textDocument/references", map[string]any{"textDocument": map[string]any{"uri": uri}, "position": at, "context": map[string]any{"includeDeclaration": true}}, &locs); err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range locs {
+		if l.URI != uri {
+			t.Fatalf("a reference outside the file: %+v", locs)
+		}
+	}
+	if err := c.Call("textDocument/rename", map[string]any{"textDocument": map[string]any{"uri": uri}, "position": at, "newName": "two"}, nil); err == nil || !strings.Contains(err.Error(), "produced by the macro house_guide") {
+		t.Fatalf("renaming a produced node: %v", err)
+	}
+}

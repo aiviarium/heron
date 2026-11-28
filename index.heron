@@ -1,10 +1,13 @@
 // The Heron implementation's tree: the spec it implements, imported as a
 // sealed package from aiviarium/heron-specs at the version heron.lock pins,
 // and the repository as its root project. Nothing here amends the spec;
-// `heron run setup` installs it before the tree checks.
+// `heron run setup` installs it before the tree checks. The spec imports
+// the authoring guide it adopts from the folder beside its own, so the
+// guide's package is installed beside it too: importing it adds nothing.
 import = [
   "std/impl@1",
   "git+https://github.com/aiviarium/heron-specs//heron@v0",
+  "git+https://github.com/aiviarium/heron-specs//authoring@v0",
 ]
 
 project(".") {

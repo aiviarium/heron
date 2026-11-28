@@ -30,8 +30,21 @@ func (s *Session) position(params json.RawMessage, p *TextDocumentPositionParams
 }
 
 func (s *Session) location(f resolve.FileID, start, end int) Location {
+	f, start, end, _ = s.unexpand(f, start, end)
 	src, _ := s.text(f)
 	return Location{URI: s.uriOf(f), Range: newLines(src).rng(start, end)}
+}
+
+// unexpand maps a place in source a macro produced to the invocation that
+// produced it, which a file holds; expanded reports whether it did.
+func (s *Session) unexpand(f resolve.FileID, start, end int) (resolve.FileID, int, int, bool) {
+	for _, r := range s.results {
+		if r.res.Tree.Expansion(f) != nil {
+			file, a, b, _ := r.res.Tree.Invocation(string(f), start, end)
+			return resolve.FileID(file), a, b, true
+		}
+	}
+	return f, start, end, false
 }
 
 // --- hover ---
@@ -374,6 +387,9 @@ func (s *Session) renameTarget(params json.RawMessage, p *TextDocumentPositionPa
 	if site.File == nil || site.File.ID.IsStd() || resolve.IsBuiltin(t.node) {
 		return t, id, &rpcError{Code: codeInvalidParams, Message: t.node.Name + " is declared in a standard package"}
 	}
+	if e := t.node.Decl.File; e != nil && e.Expansion != nil {
+		return t, id, &rpcError{Code: codeInvalidParams, Message: t.node.Name + " is produced by the macro " + e.Expansion.Macro.Name}
+	}
 	return t, id, nil
 }
 
@@ -408,6 +424,9 @@ func (s *Session) rename(params json.RawMessage) (any, error) {
 	}
 	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
 	for _, o := range s.occurrences(t.node) {
+		if _, _, _, expanded := s.unexpand(o.file, o.start, o.end); expanded {
+			continue // what a macro produced changes with the macro
+		}
 		loc := s.location(o.file, o.start, o.end)
 		edit.Changes[loc.URI] = append(edit.Changes[loc.URI], TextEdit{Range: loc.Range, NewText: p.NewName})
 	}

@@ -99,7 +99,7 @@ func TestSpecKindsRender(t *testing.T) {
 		"refunds.never_twice":  {"A ticket <strong class=\"strength\">must not</strong> refund a ticket twice, and must instead answer with the first refund."},
 		"refunds.held":         {"A ticket <strong class=\"strength\">must</strong> hold.", `Types <span class="derived-mark">derived</span></span> <a class="ref ref-type" href="Ticket.html" data-card="Ticket">Ticket</a>`},
 		"refunds.capture_date": {`<dfn class="term-name">Capture date</dfn> — The day a payment was captured.`},
-		"refunds.later":        {"Not a goal", "Partial refunds."},
+		"refunds.later":        {`<div class="goal-block nongoal-block" id="refunds.later"><div class="goal-head"><svg class="icon kind-mark nongoal-mark"`, `<path d="M2 2L22 22"/></svg><a class="anchor goal-name" href="#refunds.later">Non-goal</a></div>`, "Partial refunds."},
 		"refunds.hints":        {"Guidance", "Use the ledger client."},
 		"refunds.fast_answers": {`<dt>Measure</dt><dd>within two seconds at the 99th percentile</dd>`, `<dt>Measures</dt><dd><a class="ref" href="refunds.html#refunds.quick">Quick</a></dd>`},
 		"refunds.quick":        {`<dt>Measure</dt><dd>Answers within two seconds.</dd>`, `Scenarios <span class="derived-mark">derived</span></span> <a class="ref" href="refunds.html#refunds.fast_answers">Fast answers</a>`, `See also <span class="derived-mark">derived</span></span> <a class="ref" href="refunds.html#refunds.later">Later</a>`},

@@ -40,6 +40,7 @@ func NewSession() *Session {
 	l := resolve.NewLoader()
 	r := resolve.New(l)
 	r.Built = types.PackageBuilt
+	r.Expand = expandMacros
 	return &Session{Loader: l, Resolver: r, memo: map[[32]byte]diag.List{}}
 }
 
@@ -106,6 +107,11 @@ func (s *Session) checkTree(t *resolve.Tree) *Result {
 	for k, v := range next {
 		s.memo[k] = v
 	}
+	// A macro invocation left the tree for what it produced; its call is
+	// still checked against the macro's parameters.
+	for _, inv := range t.Invocations {
+		res.Diags = append(res.Diags, c.CheckNode(inv)...)
+	}
 	// Requirements written as elements in nodes the memo served read their
 	// attributes before the docs do; a package's were read
 	// when it was built.
@@ -131,7 +137,7 @@ func (s *Session) checkTree(t *resolve.Tree) *Result {
 	res.Diags = append(res.Diags, lds...)
 	// Icon marks name icons a package declares (std/docs).
 	res.Diags = append(res.Diags, icon.Check(t, c)...)
-	res.Diags = res.Diags.Sort()
+	res.Diags = t.MapDiags(res.Diags).Sort()
 	return res
 }
 
@@ -158,6 +164,8 @@ func interfaceHash(t *resolve.Tree) [32]byte {
 	if t.Context != nil && t.Context.File != nil {
 		files = append(files, t.Context.File)
 	}
+	// What macros produced declares nodes as a file does.
+	files = append(files, t.Expansions...)
 	for _, f := range files {
 		h.Write([]byte(f.ID))
 		h.Write([]byte{0})

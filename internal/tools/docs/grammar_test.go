@@ -50,8 +50,9 @@ func ungram(t *testing.T, path string) (tokens map[string]bool, prods map[string
 }
 
 // The tree productions and tokens of spec/language/grammar stay equal to
-// grammar/heron.ungram, as rules ungram_is_the_spec and grammar_per_concern
-// state.
+// grammar/heron.ungram, as the rule ungram_is_the_spec states, with each
+// concern's productions in a grammar of its own, as the spec repository's
+// house rule grammar_per_concern says.
 func TestSpecGrammarIsUngram(t *testing.T) {
 	t.Parallel() // a session and site of its own; the slow tests run at once
 	const source = "grammar/heron.ungram"

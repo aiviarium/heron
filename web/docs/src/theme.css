@@ -855,7 +855,8 @@ table.ops code.path { overflow-wrap: anywhere; }
 .kind-mark { margin-right: 0.35em; color: var(--h-text-faint); }
 .h > .kind-mark { width: 0.85em; height: 0.85em; vertical-align: -0.05em; }
 .refs .kind-mark, .cause .kind-mark { width: 14px; height: 14px; vertical-align: -2px; }
-.goal-head .kind-mark { color: var(--h-accent); width: 14px; height: 14px; align-self: center; }
+/* A goal's icon, and a nongoal's, the goal's struck through, on the same card. */
+.goal-head .kind-mark, .goal-head .nongoal-mark { color: var(--h-accent); width: 14px; height: 14px; align-self: center; }
 .nav-group > .label > .icon { width: 12px; height: 12px; margin-right: var(--h-space-1); vertical-align: -2px; }
 .home-link-title > .icon, .home-primary-title > .icon, .tile-title > .icon { margin-right: var(--h-space-2); color: var(--h-text-secondary); }
 .outline .kind-icon { width: 11px; height: 11px; margin-right: 6px; color: var(--h-text-faint); opacity: 0.8; vertical-align: -1px; }

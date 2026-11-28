@@ -104,6 +104,7 @@ func nodeAt(res *check.Result, file resolve.FileID, off int) *resolve.Node {
 // a node only entered or amended there counts at its first site in it.
 func declaredInFile(n *resolve.Node, file resolve.FileID) (int, int, bool) {
 	for _, site := range append([]resolve.Site{n.Decl}, n.Sites...) {
+		site = site.Holder()
 		if site.File != nil && site.File.ID == file && site.N != nil {
 			s, e := site.Span()
 			return s, e, true

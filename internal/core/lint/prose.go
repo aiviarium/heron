@@ -45,7 +45,7 @@ func RunWith(r *registry.Registry, res *check.Result, cache *ProseCache) diag.Li
 			runProvider(p.Name+"\x00"+key, p, check, regions, res, cache, &out)
 		}
 	}
-	return out.Sort()
+	return res.Tree.MapDiags(out).Sort()
 }
 
 func runProvider(prefix string, p *registry.ProseProvider, check func([]*registry.ProseRegion) []registry.ProseFinding, regions []*prose.Region, res *check.Result, cache *ProseCache, out *diag.List) {

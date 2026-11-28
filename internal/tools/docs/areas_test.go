@@ -74,6 +74,10 @@ guide: section {
   basics: section {
     | The basics, with an icon its author chose.
   }
+
+  more: section {
+    | More, with none.
+  }
 }
 
 docs {
@@ -96,8 +100,9 @@ errors: section {
 `
 
 // A folder that holds an api and no page but its errors' is listed in
-// the Reference alone; the navigation's icons are its top-level entries'
-// own, never deeper; and the gathered pages are never listed twice.
+// the Reference alone; the navigation shows an icon an entry's node sets,
+// at any depth, and a site page's own, and never a kind's; and the
+// gathered pages are never listed twice.
 func TestAPIScopesAndNavIcons(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "index.heron"), []byte(apiScopeTree), 0o644); err != nil {
@@ -113,8 +118,17 @@ func TestAPIScopesAndNavIcons(t *testing.T) {
 	for _, p := range []string{"dev/guide.html", "explore/guide.html"} {
 		nav := navTree(f[p])
 		mustNotHave(t, p+" nav", nav, `href="store_api.html"`, `href="store_api.errors.html"`)
-		if regexp.MustCompile(`<a href="guide.basics.html"[^>]*><svg`).MatchString(nav) {
-			t.Errorf("%s: an entry below the top level shows an icon:\n%s", p, nav)
+		if !regexp.MustCompile(`<a href="guide.basics.html"[^>]*><svg`).MatchString(nav) {
+			t.Errorf("%s: an entry below the top level doesn't show the icon its node sets:\n%s", p, nav)
+		}
+		if !regexp.MustCompile(`<a href="guide.more.html"[^>]*><span class="icon nav-blank" aria-hidden="true"></span><span class="t">`).MatchString(nav) {
+			t.Errorf("%s: an entry without an icon beside one with an icon keeps no icon's space:\n%s", p, nav)
+		}
+		if !regexp.MustCompile(`<a href="guide.html"[^>]*><span class="t">`).MatchString(nav) {
+			t.Errorf("%s: a section shows its kind's icon:\n%s", p, nav)
+		}
+		if !regexp.MustCompile(`<a href="_diagnostics.html"[^>]*><svg class="icon"`).MatchString(nav) {
+			t.Errorf("%s: the Errors page shows no icon:\n%s", p, nav)
 		}
 		if n := strings.Count(nav, `href="_glossary.html"`) + strings.Count(nav, `href="_diagnostics.html"`); n > 1 {
 			t.Errorf("%s: a gathered page is listed twice", p)

@@ -79,11 +79,11 @@ func (s *Site) RenderFile(file resolve.FileID) (*Fragment, error) {
 	islands := map[string]bool{}
 	var nodes []*resolve.Node
 	s.Tree.Walk(func(n *resolve.Node) {
-		if n.Decl.File == nil || n.Decl.File.ID != file || !own(n) {
+		if d := n.Decl.Holder(); d.File == nil || d.File.ID != file || !own(n) {
 			return
 		}
 		for a := n.Parent; a != nil; a = a.Parent {
-			if a.Decl.File != nil && a.Decl.File.ID == file {
+			if d := a.Decl.Holder(); d.File != nil && d.File.ID == file {
 				return
 			}
 		}
@@ -424,8 +424,10 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 		}
 		b.WriteString(`</div>`)
 	}
-	var item func(q *Page, depth int)
-	item = func(q *Page, depth int) {
+	// pad says whether an entry's list holds an entry with an icon, so
+	// an entry without one keeps an icon's space and the names line up.
+	var item func(q *Page, pad bool)
+	item = func(q *Page, pad bool) {
 		cur := ""
 		if q == p {
 			cur = ` aria-current="page"`
@@ -441,10 +443,12 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			}
 			b.WriteString(`>` + esc(q.Method) + `</span>`)
 		}
-		if q.Layout != "op" && depth == 0 {
-			// Icons mark the top-level entries alone, where their authors
-			// set one.
-			b.WriteString(s.ownIcon(q.Node) + q.icon)
+		if q.Layout != "op" {
+			if ic := s.navIcon(q); ic != "" {
+				b.WriteString(ic)
+			} else if pad {
+				b.WriteString(navBlank)
+			}
 		}
 		b.WriteString(`<span class="t">` + esc(q.Title) + `</span>`)
 		if q.Layout == "op" && q.Node != nil && deprecatedBadge(q.Node) != "" {
@@ -464,18 +468,23 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			open = " open"
 		}
 		b.WriteString(`<li><details class="nav-branch" data-key="` + attr(q.File) + `"` + open + `><summary>` + link.String() + `</summary><ul>`)
+		kidsPad := s.anyNavIcon(q.Children)
 		for _, c := range q.Children {
-			item(c, depth+1)
+			item(c, kidsPad)
 		}
 		b.WriteString(`</ul></details></li>`)
 	}
 	if len(a.Pages) > 0 {
 		b.WriteString(`<ul class="nav">`)
+		var top []*Page
 		for _, q := range a.Pages {
-			if q == s.Home {
-				continue
+			if q != s.Home {
+				top = append(top, q)
 			}
-			item(q, 0)
+		}
+		pad := s.anyNavIcon(top)
+		for _, q := range top {
+			item(q, pad)
 		}
 		b.WriteString(`</ul>`)
 	}
@@ -495,8 +504,9 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 				}
 			}
 			b.WriteString(`<div class="nav-group"><details class="nav-types nav-fold" data-key="fold:` + attr(g.Title) + `"` + open + `><summary>` + esc(g.Title) + `<span class="count">` + fmt.Sprint(len(g.Pages)) + `</span></summary><ul class="nav">`)
+			pad := s.anyNavIcon(g.Pages)
 			for _, q := range g.Pages {
-				item(q, 0)
+				item(q, pad)
 			}
 			b.WriteString(`</ul></details></div>`)
 			continue
@@ -517,11 +527,15 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 			b.WriteString(`<div class="label">` + s.ownIcon(gn) + esc(g.Title) + `</div>`)
 		}
 		b.WriteString(`<ul class="nav">`)
+		var listed []*Page
 		for _, q := range g.Pages {
-			if q.Layout == "api" {
-				continue
+			if q.Layout != "api" {
+				listed = append(listed, q)
 			}
-			item(q, 0)
+		}
+		pad := s.anyNavIcon(listed)
+		for _, q := range listed {
+			item(q, pad)
 		}
 		b.WriteString(`</ul>`)
 		if len(g.Types) > 0 {
@@ -533,8 +547,9 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 				}
 			}
 			b.WriteString(`<details class="nav-types" data-key="types:` + attr(g.Types[0].File) + `"` + open + `><summary>` + esc(label("docs.nav.types")) + `<span class="count">` + fmt.Sprint(len(g.Types)) + `</span></summary><ul class="nav">`)
+			pad := s.anyNavIcon(g.Types)
 			for _, q := range g.Types {
-				item(q, 0)
+				item(q, pad)
 			}
 			b.WriteString(`</ul></details>`)
 		}
@@ -543,8 +558,9 @@ func (s *Site) sidebar(b *strings.Builder, p *Page) {
 	if len(s.sitePages) > 0 {
 		// The pages of the whole site close every area's navigation.
 		b.WriteString(`<div class="nav-group nav-site"><ul class="nav">`)
+		pad := s.anyNavIcon(s.sitePages)
 		for _, q := range s.sitePages {
-			item(q, 1)
+			item(q, pad)
 		}
 		b.WriteString(`</ul></div>`)
 	}

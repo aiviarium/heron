@@ -187,7 +187,8 @@ func TestProseFixtureSourceMaps(t *testing.T) {
 		}
 		seen[run.Result] = true
 		srcs := map[string]string{}
-		for _, f := range run.Result.Tree.Files {
+		// Prose a macro produced is projected from the source it produced.
+		for _, f := range append(append([]*resolve.File(nil), run.Result.Tree.Files...), run.Result.Tree.Expansions...) {
 			srcs[string(f.ID)] = f.Src
 		}
 		for _, rg := range prose.Project(run.Result.Tree, run.Result.Checker) {

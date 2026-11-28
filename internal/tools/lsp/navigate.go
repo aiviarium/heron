@@ -268,6 +268,10 @@ func declSpan(n *resolve.Node) (resolve.Site, int, int) {
 	if site.N == nil || site.File == nil {
 		return resolve.Site{}, 0, 0
 	}
+	// A node a macro produced is declared by the invocation, in a file.
+	for site.File.Expansion != nil {
+		site = site.File.Expansion.Site
+	}
 	if p := childOf(site.N, syntax.Path); p != nil {
 		if ids := pathIdents(p); len(ids) > 0 {
 			last := ids[len(ids)-1]

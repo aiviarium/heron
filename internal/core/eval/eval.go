@@ -150,7 +150,28 @@ func (m *Machine) RunCode(ctx context.Context, n *resolve.Node, vars map[string]
 // Expand runs a macro and returns the source it produces: its template, or
 // what its `do` body emits, joined by newlines.
 func (m *Machine) Expand(ctx context.Context, macro *resolve.Node, args Args) (string, error) {
-	vars, err := m.bind(ctx, macro, callArgs{pos: args.Positional, named: args.Named}, nil)
+	return m.expand(ctx, macro, callArgs{pos: args.Positional, named: args.Named})
+}
+
+// ExpandAt expands a macro invoked in structure, as `resource_ops(name =
+// "category")` in an api body: its arguments are evaluated where the
+// invocation stands, then it expands as Expand does.
+func (m *Machine) ExpandAt(ctx context.Context, macro *resolve.Node, at resolve.Site, args ast.Args) (string, error) {
+	f := &frame{scope: at.Scope, file: at.File, vars: map[string]Value{}}
+	if at.Scope != nil {
+		f.node = at.Scope.Node
+	}
+	m.evaluating++
+	ca, err := m.args(ctx, f, args)
+	m.evaluating--
+	if err != nil {
+		return "", err
+	}
+	return m.expand(ctx, macro, ca)
+}
+
+func (m *Machine) expand(ctx context.Context, macro *resolve.Node, args callArgs) (string, error) {
+	vars, err := m.bind(ctx, macro, args, nil)
 	if err != nil {
 		return "", err
 	}

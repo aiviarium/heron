@@ -79,6 +79,9 @@ type File struct {
 	Src  string
 	Hash [32]byte
 	Tree *syntax.Tree
+	// Expansion is set on source a macro produced, which no file on disk
+	// holds: it names the invocation the source stands for.
+	Expansion *Expansion
 }
 
 // Loader reads and parses files. Parses are memoized per file by content

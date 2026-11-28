@@ -439,6 +439,14 @@ type Tree struct {
 	Targets map[*syntax.Node]FileID
 	// Elements maps each kind element that declares a node to the node.
 	Elements map[*syntax.Node]*Node
+	// Expansions lists the source the tree's macro invocations produced,
+	// in the order they expanded, each as a file of its own.
+	Expansions []*File
+	// Invocations are the macro invocations that expanded: each left its
+	// parent's children for what it produced, and is still checked as a
+	// call.
+	Invocations []*Node
+	expansions  map[FileID]*File
 }
 
 // ElementNode returns the node a kind element declares, or nil when the

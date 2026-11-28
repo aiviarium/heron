@@ -16,7 +16,7 @@ func addIntentRenderers() {
 		"spec.persona":    renderPersona,
 		"spec.goal":       renderGoal,
 		"spec.quality":    renderGoal,
-		"spec.nongoal":    renderNote,
+		"spec.nongoal":    renderNongoal,
 		"spec.assumption": renderNote,
 		"spec.part":       renderPart,
 		"spec.scenario":   renderScenario,
@@ -174,13 +174,21 @@ func renderGoal(c *Ctx) error {
 	return nil
 }
 
-// renderNote shows a nongoal or an assumption as a callout.
+// renderNongoal shows a nongoal as a goal's card: the goal's icon struck
+// through and "Non-goal" where a goal shows its name, then its text.
+func renderNongoal(c *Ctx) error {
+	n := c.Node
+	c.W(`<div class="goal-block nongoal-block" id="`, attr(Anchor(n)), `"><div class="goal-head">`, c.Site.nongoalMark(n), `<a class="anchor goal-name" href="#`, attr(Anchor(n)), `">`, esc(label("docs.label.nongoal")), `</a></div>`)
+	c.Prose(n)
+	c.W(c.derivedLists(n))
+	c.W(`</div>`)
+	return nil
+}
+
+// renderNote shows an assumption as a callout.
 func renderNote(c *Ctx) error {
 	n := c.Node
-	key := "docs.label.nongoal"
-	if c.Site.kindPath(n) == "spec.assumption" {
-		key = "docs.label.assumption"
-	}
+	key := "docs.label.assumption"
 	c.W(`<aside class="callout callout-note" id="`, attr(Anchor(n)), `"><div class="label">`, esc(label(key)), `</div>`)
 	c.Prose(n)
 	c.W(c.derivedLists(n))

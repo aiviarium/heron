@@ -32,6 +32,12 @@ type Resolver struct {
 	// concurrent checks may share them.
 	Built func(*Package)
 
+	// Expand, when set, expands the macro invocations among a tree's
+	// members: for each of invs that invokes a macro, the source it
+	// produces or why it produced none. Expansion is evaluation, which
+	// needs the checker, so the check stage sets it.
+	Expand func(t *Tree, invs []*Node) []Expanded
+
 	packages map[string]*pkgEntry
 	inflight map[string]*Package
 	stack    []string
@@ -111,6 +117,7 @@ func (r *Resolver) resolveTree(entry FileID, core []string, self *Package, ctx *
 	t.Entry = f
 	t.Root.Decl = Site{File: f}
 	b.file(f, t.Root, outer)
+	b.expand()
 	useCaseSteps(t)
 	return t
 }

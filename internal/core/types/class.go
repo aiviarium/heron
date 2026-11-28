@@ -114,6 +114,24 @@ func off(n *syntax.Node) int {
 	return s
 }
 
+// Macro returns the macro an invocation in structure calls, as
+// `resource_ops(name = "category")` in an api body, or nil when the
+// invocation calls a kind, a type or anything else.
+func (c *Checker) Macro(n *resolve.Node) *resolve.Node {
+	if n.Decl.N == nil || n.Decl.N.Kind != syntax.Invoke {
+		return nil
+	}
+	p := calleePath(n)
+	if p == nil {
+		return nil
+	}
+	b := c.lookupBinding(n.Decl.Scope, n.Decl.File, off(p), resolve.PathSegs(p))
+	if b.Node == nil || !IsStd(c.KindOf(b.Node), "core", "core.macro") {
+		return nil
+	}
+	return b.Node
+}
+
 // calleePath returns the path an anonymous node's member calls.
 func calleePath(n *resolve.Node) *syntax.Node {
 	if n.Decl.N == nil {

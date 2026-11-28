@@ -13,8 +13,11 @@ import (
 // prose, its examples as code blocks titled by their names, and a how-to's
 // or a tutorial's steps as one numbered list.
 
+// authoredKinds are the kinds of std/docs's authored pages.
+var authoredKinds = map[string]bool{"docs.guide": true, "docs.howto": true, "docs.concept": true, "docs.tutorial": true}
+
 func addAuthoredRenderers() {
-	for _, k := range []string{"docs.guide", "docs.howto", "docs.concept", "docs.tutorial"} {
+	for k := range authoredKinds {
 		builtins[k] = renderAuthored
 	}
 	builtins["docs.step"] = renderStep

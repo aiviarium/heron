@@ -35,7 +35,8 @@ func Project(t *resolve.Tree, c *types.Checker) []*Region {
 		}
 	})
 	p := &projector{c: c, owners: owners}
-	for _, f := range t.Files {
+	// What macros produced is prose of the tree too.
+	for _, f := range append(append([]*resolve.File(nil), t.Files...), t.Expansions...) {
 		p.file = f
 		if f.Tree == nil || f.Tree.Root == nil {
 			continue
