@@ -9,7 +9,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/lint"
 )
 
-const gapsIndex = `import = ["std/doc@1", "std/lint@1"]
+const gapsIndex = `import = ["std/doc@1", "std/types@1", "std/lint@1"]
 
 customer: actor {{ Someone who paid. }}
 
@@ -44,7 +44,7 @@ refunds: section {
     then {{ a receipt }}
   }
 
-  buy: usecase(actor = customer) {{
+  buy: usecase(customer) {{
     1. [customer] asks for a refund.
     2. [desk] refunds it.
 
@@ -58,8 +58,7 @@ quiet: section {
   speedy: quality {{ Feels quick. }}
 }
 
-@status(422)
-orphan: error("orphan") {
+orphan: error(422) {
   title = "bad"
 }
 `

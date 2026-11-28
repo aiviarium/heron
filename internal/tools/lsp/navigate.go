@@ -186,6 +186,12 @@ func (s *Session) targetAt(id resolve.FileID, off int) (target, *result) {
 	if tok.Kind != syntax.Ident {
 		return target{tok: tok}, r
 	}
+	// A flag names the flag it resolved to on its node's kind.
+	if len(anc) > 0 && anc[0].Kind == syntax.Flags && res != nil && res.Checker != nil {
+		if n := res.Checker.FlagRefs[tok]; n != nil {
+			return target{node: n, tok: tok}, r
+		}
+	}
 	for i, a := range anc {
 		if a.Kind != syntax.Path {
 			continue

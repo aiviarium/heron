@@ -95,26 +95,23 @@ Instruction: type {
 }
 
 // Its codes on gRPC, JSON-RPC and Sparrow derive from its status.
-@status(404)
-ParcelNotFound: type(Error) {
-  message: String = "No parcel has this id."
+ParcelNotFound: error(404) {
+  title = "No parcel has the id {id}."
   id: String = ""
 }
 
-@status(422)
 @proto.status(INVALID_ARGUMENT)
 @jsonrpc.code(-32010)
 // Sparrow answers it with a sigil of its own rather than invalid_argument,
 // so a client tells it from any other bad input.
 @sigil(80)
-InvalidAddress: type(Error) {
-  message: String = "The address can't be delivered to."
+InvalidAddress: error(422) {
+  title = "The address can't be delivered to: {field} is wrong."
   /// The field of the address that's wrong.
   field: String = ""
 }
 
-@status(503)
 @jsonrpc.code(-32011)
-RouteUnavailable: type(Error) {
-  message: String = "No route can be planned right now; retry shortly."
+RouteUnavailable: error(503) {
+  title = "No route can be planned right now; retry shortly."
 }

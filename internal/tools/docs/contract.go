@@ -10,13 +10,13 @@ import (
 	"github.com/aiviarium/heron/internal/core/specmodel"
 )
 
-// exitCode is the exit status an error ends a run with: its @exit, or the
-// one its @status derives; explicit says which.
-func exitCode(e *resolve.Node) (code string, explicit bool) {
-	if x := annText(e, "exit"); x != "" {
+// exitCode is the exit status an error ends a run with: its @exit, its
+// own or inherited, or the one its status derives; explicit says which.
+func (s *Site) exitCode(e *resolve.Node) (code string, explicit bool) {
+	if x := s.errorExit(e); x != "" {
 		return x, true
 	}
-	if d, ok := rpc.ExitCode(annText(e, "status")); ok {
+	if d, ok := rpc.ExitCode(s.Checker.ErrorStatus(e)); ok {
 		return fmt.Sprint(d), false
 	}
 	return "", false
@@ -37,7 +37,7 @@ func addContractRenderers() {
 		"project.responsibility": renderStepAlone,
 		"project.exports":        renderSurface,
 		"spec.screen":            renderScreen,
-		"spec.error":             renderDiagnostic,
+		"types.error":            renderError,
 		"spec.region":            renderRegion,
 	} {
 		builtins[k] = f
@@ -430,17 +430,13 @@ func renderCommand(c *Ctx) error {
 			c.W(`</tbody></table></div>`)
 		}
 	}
-	errs := s.childrenOfKind(n, "spec.error")
-	errs = append(errs, s.annRefs(n, "throws")...)
+	errs := s.commandErrors(n)
 	if len(errs) > 0 {
 		c.Heading(c.Level+1, Anchor(n)+".exit", label("docs.heading.exit_codes"), "")
 		c.W(`<ul class="lines">`)
 		for _, e := range errs {
-			code, _ := exitCode(e)
-			title := ""
-			if t := e.Child("title"); t != nil && t.Value != nil {
-				title, _ = resolve.StringValue(t.Value.Syntax())
-			}
+			code, _ := s.exitCode(e)
+			title := s.errorText(e, "title")
 			c.W(`<li id="`, attr(Anchor(e)), `"><p class="line-head"><code>`, esc(code), `</code> `, esc(title), `</p></li>`)
 		}
 		c.W(`</ul>`)
@@ -482,7 +478,7 @@ func renderCommand(c *Ctx) error {
 			c.W(`</ul>`)
 		}
 	}
-	if err := c.otherChildren(n, "spec.error", "spec.command", "spec.example"); err != nil {
+	if err := c.otherChildren(n, "types.error", "spec.command", "spec.example"); err != nil {
 		return err
 	}
 	c.W(`</section>`)

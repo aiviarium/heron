@@ -86,12 +86,12 @@ language_core_format: section {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
-  proves(heron.language.core_format.nodes.flags.flag_placement) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+  proves(heron.language.core_format.nodes.flags.flags_by_kind, heron.language.core_format.nodes.flags.ambiguous_flags, heron.language.core_format.nodes.flags.qualified_flags, heron.language.core_format.nodes.errors.ambiguous_flag) {
+    verify("internal/core/types/model_test.go", test = "TestFlagsByKind")
   }
 
   proves(heron.language.core_format.nodes.annotations.core_annotations_win) {
-    verify("internal/core/rpc/rpc_test.go", test = "TestAmbiguousCode")
+    verify("internal/core/types/model_test.go", test = "TestCoreAnnotationsWin")
   }
 
   proves(heron.language.core_format.nodes.annotations.annotations_resolve) {

@@ -69,16 +69,6 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   // --- Intent ---
 
-  /// The role an actor plays: what kind of party it is.
-  ActorRole: enum {
-    /// A person using the system.
-    PERSON: Self
-    /// Another program, called by or calling the system.
-    SYSTEM: Self
-    /// An AI agent acting for a person.
-    AGENT: Self
-  }
-
   /// What a product is for, in the words of the people it's for, with an
   /// optional measure of success; its references name the actors or
   /// personas who asked for it. Validated, never proven by a test.
@@ -87,14 +77,21 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// A role that crosses the system's boundary.
+  /// A role that crosses the system's boundary; its role flag says what
+  /// kind of party it is, a person without one.
   @icon("user")
-  actor(role: ActorRole = ActorRole.PERSON): kind(in = [block], layer = Layer.INTENT) {
+  actor: kind(in = [block], layer = Layer.INTENT) {
     accept(prose)
   }
 
-  /// An archetype of a person who plays an actor.
-  persona(plays: Ref(actor)): kind(in = [block], layer = Layer.INTENT) {
+  /// The role an actor plays: a person using the system, another program,
+  /// called by or calling the system, or an AI agent acting for a person.
+  person: flag(on = [actor], group = "role")
+  system: flag(on = [actor], group = "role")
+  agent: flag(on = [actor], group = "role")
+
+  /// An archetype of a person; its references name the actors it plays.
+  persona(refs<variadic>?: Ref(Any)): kind(in = [block], layer = Layer.INTENT, references = [actor]) {
     /// What the persona wants to get done.
     goals?: Prose
     /// What gets in their way today.
@@ -277,19 +274,32 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
   }
 
-  /// A use case's goal level.
-  UseCaseLevel: enum {
-    SUMMARY: Self
-    USER: Self
-    SUBFUNCTION: Self
-  }
-
   /// How its primary actor reaches one goal with the product: its body is
   /// the main path as a numbered list and its extensions as items numbered
-  /// `2a.`. Its references after the actor name the goals and qualities it
-  /// serves and the assumptions it relies on.
+  /// `2a.`, with its `success` and `minimal` guarantees. Its references
+  /// name its actors, the first its primary actor and any later one a
+  /// secondary actor, the goals and qualities it serves and the
+  /// assumptions it relies on; it references at least one actor.
   @icon("route")
-  usecase(actor: Ref(actor), refs<variadic>?: Ref(Any), level?: UseCaseLevel, success?: String, minimal?: String): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [goal, quality, assumption]) {
+  usecase(refs<variadic>?: Ref(Any)): kind(in = [block, touchable], layer = Layer.SPECIFICATION, references = [actor, goal, quality, assumption]) {
+    accept(prose)
+    accept(kind = success, max = 1)
+    accept(kind = minimal, max = 1)
+  }
+
+  /// A use case's goal level: a summary of several user goals, one user
+  /// goal, or a subfunction of one.
+  summary: flag(on = [usecase], group = "level")
+  user: flag(on = [usecase], group = "level")
+  subfunction: flag(on = [usecase], group = "level")
+
+  /// What a use case guarantees once it succeeds.
+  success: kind {
+    accept(prose)
+  }
+
+  /// What a use case guarantees whichever way it ends.
+  minimal: kind {
     accept(prose)
   }
 
@@ -336,52 +346,13 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
 
   /// The revision of a requirement or contract entry, a whole number from
   /// 1, raised when its meaning changes; on a proof, the revision it proves.
-  rev(n: Int): annotation(on = [rule, constraint, scenario, usecase, error, command, screen, revised])
+  rev(n: Int): annotation(on = [rule, constraint, scenario, usecase, types.error, command, screen, revised])
 
   // --- Contract ---
 
-  /// How serious a diagnostic is, as an editor shows it.
-  Severity: enum {
-    error: Self
-    warning: Self
-    info: Self
-    hint: Self
-  }
-
-  /// One problem the product reports, with one identity on every surface:
-  /// its id and its `title` with a `{name}` for each of its members, the
-  /// values it carries as data, typed as a record's are. Its `@status` is
-  /// its one required projection; every surface's code derives from it,
-  /// and an override annotation, as `@exit`, sets one where the derived
-  /// code doesn't fit. `@severity` says how serious it is as a diagnostic
-  /// (an error when left out). Its prose links the rule, or `Fails.`
-  /// extension, that says when it's reported. An error never names who
-  /// reports it: the raiser names it, with `@throws` or by holding it, or
-  /// the linked rule's subject does.
-  @icon("circle-alert")
-  error(id: String): kind(in = [block], layer = Layer.CONTRACT) {
-    /// The message, with `{name}` for each member filled in where it
-    /// happens.
-    title: String
-    /// The message reported at the related site.
-    related?: String
-    accept(prose)
-    accept(kind = types.member, infer = true)
-    accept(kind = example)
-  }
-
-  /// The HTTP status an error is answered with, and its text, the error's
-  /// id when left out: the one projection every error has, which the codes
-  /// of the other surfaces derive from. On a spec error, or on a type that
-  /// implements Error.
-  status(code: Int, text?: String): annotation(on = [error, types.type])
-
   /// The exit status an error ends a command-line run with, where the one
-  /// derived from its `@status` doesn't fit.
-  exit(code: Int): annotation(on = [error])
-
-  /// How serious an error is as a diagnostic; an error when left out.
-  severity(level: Severity): annotation(on = [error])
+  /// derived from its status doesn't fit.
+  exit(code: Int): annotation(on = [types.error])
 
   /// A concrete case with exact inputs and outputs; its reference names the
   /// outcome scenario it pins down. As a rule's child, a key or boundary
@@ -406,7 +377,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
     accept(prose)
     accept(kind = example)
     accept(kind = command)
-    accept(kind = error)
+    accept(kind = types.error)
     accept(category = block)
   }
 
@@ -434,7 +405,7 @@ spec: package(version = "1.1", requires = ["std/doc@1", "std/types@1"]) {
   }
 
   /// An entry of a surface that's no longer to be used.
-  deprecated: flag(on = [command, screen, region, op, error])
+  deprecated: flag(on = [command, screen, region, types.op, types.error])
 
   // --- Context for implementors ---
 

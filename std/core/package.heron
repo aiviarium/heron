@@ -71,11 +71,12 @@ core: package(version = "1.0") {
   log(message: String): func
 
   /// Wraps a call that may throw, returning its result or its error.
-  attempt(value: Any): func(Result(Any, Error))
+  attempt(value: Any): func(Result(Any, Any))
 
   /// Text that a conversion such as `Int(s)` or `Float(s)` can't read as the
   /// number asked for.
-  ParseError: type(Error) {
+  ParseError: error(400) {
+    title = "{message}"
     message: String
   }
 

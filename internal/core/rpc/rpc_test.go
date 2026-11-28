@@ -117,7 +117,7 @@ func TestServiceProjection(t *testing.T) {
 	if f := get.Response.Fields[0]; get.Response.Name != "GetParcelResponse" || f.Name != "parcel" || f.Number != 1 || f.Message == nil || f.Message.Name != "Parcel" {
 		t.Errorf("response: %+v", get.Response.Fields[0])
 	}
-	if len(get.Errors) != 1 || get.Errors[0].GRPC != "NOT_FOUND" || get.Errors[0].JSONRPC != "-32004" || get.Errors[0].Status != "404" || get.Errors[0].Message != "No parcel has this id." {
+	if len(get.Errors) != 1 || get.Errors[0].GRPC != "NOT_FOUND" || get.Errors[0].JSONRPC != "-32004" || get.Errors[0].Status != "404" || get.Errors[0].Message != "No parcel has the id {id}." {
 		t.Errorf("errors: %+v", get.Errors)
 	}
 	if d := get.Errors[0].Detail; d == nil || d.FullName() != "acme.parcels.v1.ParcelNotFound" || len(d.Fields) != 1 || d.Fields[0].Name != "id" {
@@ -333,13 +333,13 @@ P: type { uri: String }
 // What the checker reports about JSON-RPC bindings.
 func TestJSONRPCDiagnostics(t *testing.T) {
 	for src, want := range map[string]string{
-		"@jsonrpc\nx: api {\n  a(): op(String)\n  @jsonrpc(\"a\")\n  b(): op(String)\n}\n":         "b is the JSON-RPC method a, which a already is",
-		"@jsonrpc(\"m\")\nx: api {\n  a(): op\n}\n":                                                "@jsonrpc on api doesn't take method",
-		"x: api {\n  @jsonrpc(batch = true)\n  a(): op\n}\n":                                       "@jsonrpc on op doesn't take batch",
-		"@jsonrpc\nx: api {\n  a(): op(Stream(String))\n}\n":                                       "a streams, and a JSON-RPC method answers once",
-		"@jsonrpc\nx: api {\n  @throws(E)\n  a(): op\n}\nE: type(Error) {\n  message: String\n}\n": "a is a notification, which is never answered, so it can't throw E",
-		"@jsonrpc\nx: api {\n  a(@params p: P, q: String): op\n}\nP: type { u: String }\n":         "@params p must be the only parameter of a, of a record type",
-		"@jsonrpc\nx: api {\n  a(@params p: String): op\n}\n":                                      "@params p must be the only parameter of a",
+		"@jsonrpc\nx: api {\n  a(): op(String)\n  @jsonrpc(\"a\")\n  b(): op(String)\n}\n": "b is the JSON-RPC method a, which a already is",
+		"@jsonrpc(\"m\")\nx: api {\n  a(): op\n}\n":                                        "@jsonrpc on api doesn't take method",
+		"x: api {\n  @jsonrpc(batch = true)\n  a(): op\n}\n":                               "@jsonrpc on op doesn't take batch",
+		"@jsonrpc\nx: api {\n  a(): op(Stream(String))\n}\n":                               "a streams, and a JSON-RPC method answers once",
+		"@jsonrpc\nx: api {\n  @throws(E)\n  a(): op\n}\nE: error(500) {}\n":               "a is a notification, which is never answered, so it can't throw E",
+		"@jsonrpc\nx: api {\n  a(@params p: P, q: String): op\n}\nP: type { u: String }\n": "@params p must be the only parameter of a, of a record type",
+		"@jsonrpc\nx: api {\n  a(@params p: String): op\n}\n":                              "@params p must be the only parameter of a",
 	} {
 		_, res := build(t, map[string]string{"index.heron": jhead + src})
 		if got := diags(res); !strings.Contains(got, want) {
@@ -348,8 +348,7 @@ func TestJSONRPCDiagnostics(t *testing.T) {
 	}
 }
 
-// What the linter reports: errors without a code for their binding and
-// JSON-RPC codes in the reserved range.
+// What the linter reports: JSON-RPC codes in the reserved range.
 func TestCodeLints(t *testing.T) {
 	m, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/jsonrpc@1\"]\n" + `
 @proto("a.v1")
@@ -359,15 +358,15 @@ x: api {
   a(): op(String)
 }
 
-Bare: type(Error) { message: String }
+Bare: error(500) {}
 
 @jsonrpc.code(-32500)
 @proto.status(INTERNAL)
-Reserved: type(Error) { message: String }
+Reserved: error(500) {}
 
 @jsonrpc.code(-32050)
 @proto.status(INTERNAL)
-Server: type(Error) { message: String }
+Server: error(500) {}
 `})
 	if res.Diags.HasErrors() {
 		t.Fatalf("%s", diags(res))
@@ -377,33 +376,27 @@ Server: type(Error) { message: String }
 		got = append(got, f.Message)
 	}
 	all := strings.Join(got, "\n")
-	for _, want := range []string{
-		"Bare is thrown by a, a gRPC method, and has neither @status nor @proto.status: it's answered as UNKNOWN",
-		"Bare is thrown by a, a JSON-RPC method, and has neither @status nor @code",
-		"-32500 is in JSON-RPC's reserved range",
-	} {
-		if !strings.Contains(all, want) {
-			t.Errorf("missing %q in\n%s", want, all)
-		}
+	if !strings.Contains(all, "-32500 is in JSON-RPC's reserved range") {
+		t.Errorf("missing the reserved code in\n%s", all)
 	}
-	if strings.Contains(all, "-32050") || len(got) != 3 {
+	if strings.Contains(all, "-32050") || len(got) != 1 {
 		t.Errorf("a server code is allowed, and nothing else is reported:\n%s", all)
 	}
 }
 
 // An unqualified annotation two imported packages declare is ambiguous,
-// but one the core declares is the core's: `@status` is always the
-// error's HTTP status, and std/proto's is written @proto.status.
+// as @reserved and @status of std/proto and std/sparrow are; the
+// qualified form names one.
 func TestAmbiguousCode(t *testing.T) {
-	_, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/sparrow@1\"]\n@reserved(2)\nE: type(Error) { message: String }\n"})
-	if got := diags(res); !strings.Contains(got, "@reserved is declared by more than one imported package: write @proto.reserved or @sparrow.reserved") {
+	_, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/sparrow@1\"]\n@reserved(2)\n@status(not_found)\nE: error(500) {}\n"})
+	if got := diags(res); !strings.Contains(got, "@reserved is declared by more than one imported package: write @proto.reserved or @sparrow.reserved") || !strings.Contains(got, "@status is declared by more than one imported package: write @proto.status or @sparrow.status") {
 		t.Errorf("got %q", got)
 	}
-	_, res = build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/sparrow@1\"]\n@status(404)\n@proto.status(INVALID_ARGUMENT)\nE: type(Error) { message: String }\n"})
+	_, res = build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/sparrow@1\"]\n@proto.status(INVALID_ARGUMENT)\nE: error(404) {}\n"})
 	if res.Diags.HasErrors() {
-		t.Errorf("the core's @status beside @proto.status: %s", diags(res))
+		t.Errorf("@proto.status: %s", diags(res))
 	}
-	_, res = build(t, map[string]string{"index.heron": head + "@proto.status(NOT_FOUND)\nE: type(Error) { message: String }\n"})
+	_, res = build(t, map[string]string{"index.heron": head + "@proto.status(NOT_FOUND)\nE: error(500) {}\n"})
 	if res.Diags.HasErrors() {
 		t.Errorf("one package: %s", diags(res))
 	}
@@ -447,7 +440,7 @@ func TestDerivedCodes(t *testing.T) {
 	if rpc.GRPCCode("") != "" {
 		t.Error("no status derives no code")
 	}
-	m, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/jsonrpc@1\"]\n@proto(\"a.v1\")\nx: api {\n  @jsonrpc\n  @throws(Gone, Odd)\n  a(): op(String)\n}\n@status(404)\nGone: type(Error) { message: String }\n@status(422)\n@proto.status(INVALID_ARGUMENT)\n@jsonrpc.code(-32602)\nOdd: type(Error) { message: String }\n"})
+	m, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/jsonrpc@1\"]\n@proto(\"a.v1\")\nx: api {\n  @jsonrpc\n  @throws(Gone, Odd)\n  a(): op(String)\n}\nGone: error(404) {}\n@proto.status(INVALID_ARGUMENT)\n@jsonrpc.code(-32602)\nOdd: error(422) {}\n"})
 	if res.Diags.HasErrors() {
 		t.Fatal(diags(res))
 	}
@@ -534,5 +527,60 @@ func TestStreamExamples(t *testing.T) {
 	})
 	if rpc.StreamKind(res.Checker, nav) != rpc.BidiStreaming || rpc.StreamKind(res.Checker, one) != rpc.Unary {
 		t.Error("streaming kinds")
+	}
+}
+
+// An error a method throws covers the errors that extend it; each is an
+// ordinary message of its members, the inherited ones flattened in after
+// its own, with its id, status and title, and the overrides it inherits.
+func TestErrorExtensionsFlattened(t *testing.T) {
+	m, res := build(t, map[string]string{"index.heron": "import = [\"std/types@1\", \"std/proto@1\", \"std/jsonrpc@1\", \"std/sparrow@1\"]\n" + `
+@proto("a.v1")
+@sparrow("a", id = 1)
+x: api {
+  @jsonrpc
+  @throws(StoreError)
+  a(): op(String)
+}
+
+@proto.status(FAILED_PRECONDITION)
+@jsonrpc.code(-32050)
+StoreError: error(400, id = "store.REFUSED") {
+  title = "refused {order}"
+  order: String
+}
+
+NotFound: error(StoreError, 404) {
+  title = "no {order} at {shelf}"
+  shelf: Int
+}
+`})
+	if res.Diags.HasErrors() {
+		t.Fatal(diags(res))
+	}
+	me := method(t, m, "A")
+	if len(me.Errors) != 2 || me.Errors[0].Node.Name != "StoreError" || me.Errors[1].Node.Name != "NotFound" {
+		t.Fatalf("errors %+v", me.Errors)
+	}
+	nf := me.Errors[1]
+	if nf.ID != "NotFound" || nf.Status != "404" || nf.Message != "no {order} at {shelf}" {
+		t.Errorf("NotFound: id %q, status %q, title %q", nf.ID, nf.Status, nf.Message)
+	}
+	if nf.GRPC != "FAILED_PRECONDITION" || !nf.GRPCExplicit {
+		t.Errorf("NotFound inherits @proto.status: %s", nf.GRPC)
+	}
+	var fields []string
+	for _, f := range nf.Fields {
+		fields = append(fields, f.Name+" "+f.Type)
+	}
+	if strings.Join(fields, ", ") != "shelf Int, order String" {
+		t.Errorf("NotFound's fields %v", fields)
+	}
+	if d := nf.Detail; d == nil || d.Name != "NotFound" || len(d.Fields) != 2 {
+		t.Errorf("NotFound's detail message %+v", d)
+	}
+	jm := m.JSONAPIs[0].Methods[0]
+	if len(jm.Errors) != 2 || jm.Errors[1].JSONRPC != "-32050" {
+		t.Errorf("JSON-RPC errors %+v", jm.Errors)
 	}
 }

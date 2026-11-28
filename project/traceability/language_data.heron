@@ -78,4 +78,33 @@ language_data: section {
     verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
   }
 
+  proves(heron.language.data.types.error_inheritance) {
+    verify("internal/core/types/model_test.go", test = "TestErrorKind")
+  }
+
+  proves(heron.language.data.types.throws_covers_extensions) {
+    verify("internal/core/types/model_test.go", test = "TestErrorKind")
+    verify("internal/core/rpc/rpc_test.go", test = "TestErrorExtensionsFlattened")
+    verify("internal/core/eval/eval_test.go", test = "TestDeclaredErrorTypes")
+  }
+
+  proves(heron.language.data.types.extends_acyclic, heron.language.data.types.errors.extends_cycle) {
+    verify("internal/core/types/model_test.go", test = "TestErrorKind")
+  }
+
+  proves(heron.language.data.types.members_kept, heron.language.data.types.errors.retyped_member) {
+    verify("internal/core/types/model_test.go", test = "TestErrorKind")
+  }
+
+  proves(heron.language.data.types.errors_flattened) {
+    verify("internal/core/rpc/rpc_test.go", test = "TestErrorExtensionsFlattened")
+  }
+
+  proves(heron.language.data.types.derived_tags, heron.language.data.types.errors.tag_not_derivable, heron.language.data.types.errors.duplicate_tag) {
+    verify("internal/core/types/model_test.go", test = "TestUnionVariants")
+  }
+
+  proves(heron.language.data.types.distinct_variants, heron.language.data.types.errors.duplicate_variant) {
+    verify("internal/core/types/model_test.go", test = "TestUnionVariants")
+  }
 }

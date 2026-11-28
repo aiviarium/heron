@@ -1,14 +1,14 @@
 // The kinds of std/spec's layers, std/grammar and std/project, each once,
 // for the renderer tests.
-import = ["std/doc@1", "std/grammar@1", "std/project@1"]
+import = ["std/doc@1", "std/types@1", "std/grammar@1", "std/project@1"]
 
 trust: goal(people.writer, measure = "Nine trees in ten check clean on the first CI run.") {{ Authors ship a spec their team trusts. }}
 
 people: section {
   writer: actor {{ Someone who writes Heron. }}
-  ci: actor(role = ActorRole.SYSTEM) {{ The build server. }}
+  ci: actor<system> {{ The build server. }}
 
-  maya: persona(plays = people.writer) {
+  maya: persona(people.writer) {
     goals =| Ship a spec her team trusts.
     | A staff engineer.
   }
@@ -21,22 +21,24 @@ checker: part {{ Reads a tree and reports what breaks it. }}
 editing: section {
   | Writing Heron in an editor.
 
-  check_tree: usecase(actor = people.writer, success = "A tree that checks clean.", minimal = "No file changes.") {{
-    The writer checks a tree.
+  check_tree: usecase(people.writer) {
+    | The writer checks a tree.
+    |
+    | 1. [people.writer] runs `heron check`.
+    | 2. [checker] parses every file.
+    | 3. [checker] reports no errors.
+    |
+    | - 2a. A file can't be read:
+    |   [checker] exits 2. Fails.
+    | - 3a. The tree has errors:
+    |   [people.writer] fixes them. Back to 1.
 
-    1. [people.writer] runs `heron check`.
-    2. [checker] parses every file.
-    3. [checker] reports no errors.
+    success {{ A tree that checks clean. }}
+    minimal {{ No file changes. }}
+  }
 
-    - 2a. A file can't be read:
-      [checker] exits 2. Fails.
-    - 3a. The tree has errors:
-      [people.writer] fixes them. Back to 1.
-  }}
-
-  @status(422)
   @exit(2)
-  unreadable: error("unreadable") {
+  unreadable: error(422) {
     title = "can't read {path}"
     path: String
     | Reported as [editing.check_tree.2a] says.

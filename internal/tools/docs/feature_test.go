@@ -43,16 +43,14 @@ refunds: feature(sell, buyer) {
     }
   }
 
-  @status(404)
-  gone: error("refund.GONE") {
+  gone: error(404, id = "refund.GONE") {
     title = "payment {payment} is gone"
     payment: String
     | Reported as [late] says.
   }
 
-  @status(409)
   @exit(3)
-  busy: error("refund.BUSY") {
+  busy: error(409, id = "refund.BUSY") {
     title = "another refund runs"
     | Reported as [late] says.
   }

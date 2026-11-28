@@ -23,15 +23,9 @@ type surfaceCode struct {
 // it, and its exit status where a command holds it or throws it.
 func (s *Site) errorCodes(n *resolve.Node) []surfaceCode {
 	var out []surfaceCode
-	status := annText(n, "status")
+	status := s.Checker.ErrorStatus(n)
 	if status != "" {
-		text := ""
-		if a := annotation(s, n, "status"); a != nil {
-			text, _ = argString(a.Args(), 1, "text")
-		}
-		if text == "" {
-			text, _ = argString(kindArgs(n), 0, "id")
-		}
+		text := s.Checker.ErrorStatusText(n)
 		code := status
 		if text != "" {
 			code += " " + text
@@ -81,7 +75,7 @@ func (s *Site) errorCodes(n *resolve.Node) []surfaceCode {
 		}
 	}
 	if s.onCommand(n) {
-		if code, explicit := exitCode(n); code != "" {
+		if code, explicit := s.exitCode(n); code != "" {
 			out = append(out, surfaceCode{Surface: "exit", Code: code, Explicit: explicit})
 		}
 	}
@@ -100,13 +94,13 @@ func (s *Site) onCommand(n *resolve.Node) bool {
 		s.commandThrows = map[*resolve.Node]bool{}
 		s.Tree.Walk(func(x *resolve.Node) {
 			if s.kindPath(x) == "spec.command" {
-				for _, t := range s.annRefs(x, "throws") {
+				for _, t := range s.commandErrors(x) {
 					s.commandThrows[t] = true
 				}
 			}
 		})
 	}
-	return s.commandThrows[n] || annText(n, "exit") != ""
+	return s.commandThrows[n] || s.errorExit(n) != ""
 }
 
 // codeMark is how a page marks an effective code: derived from @status,

@@ -254,9 +254,11 @@ pay: howto {
   open: step {{ Open the cart. }}
 }
 
-buy: usecase(actor = shopper, success = "An order paid for.") {{
-  1. [shopper] opens the cart.
-}}
+buy: usecase(shopper) {
+  | 1. [shopper] opens the cart.
+
+  success {{ An order paid for. }}
+}
 `
 		res := checkSrc(t, src)
 		if res.Diags.HasErrors() {

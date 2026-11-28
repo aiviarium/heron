@@ -79,8 +79,7 @@ g: grammar {
   p: production {{ x }}
 }
 
-@status(422)
-e: error("x") {
+e: error(422, id = "x") {
   title = "bad"
 }
 `)
@@ -107,8 +106,7 @@ r: rule(desk, self_service) {
   must {{ refund inside the [window], as [customer] asks; see [e] }}
 }
 
-@status(422)
-e: error("x") {
+e: error(422, id = "x") {
   title = "bad"
 }
 
@@ -219,7 +217,7 @@ ex_case: scenario(r) {
 	wantAll(t, res, "reference: self_service is a goal, and a op references only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition")
 	wantNone(t, res, "type:", "too-many-arguments", "Refund is a", "r is a rule", "refund.2", "unresolved", "missing-argument")
 	c := res.Checker
-	for path, want := range map[string]int{"payments.create": 2, "payments.ping": 1, "payments.named": 1, "payments": 1, "c": 1, "s": 1, "s.list": 1, "bare": 1, "g": 1, "g.P": 1, "g.T": 1, "uc": 1, "ex_case": 1} {
+	for path, want := range map[string]int{"payments.create": 2, "payments.ping": 1, "payments.named": 1, "payments": 1, "c": 1, "s": 1, "s.list": 1, "bare": 1, "g": 1, "g.P": 1, "g.T": 1, "uc": 2, "ex_case": 1} {
 		if got := len(project.References(c, res.Tree.Find(path))); got != want {
 			t.Errorf("%s has %d references, want %d", path, got, want)
 		}
@@ -293,8 +291,7 @@ sees_down: rule {
   must {{ u }}
 }
 
-@status(422)
-e: error("x") {
+e: error(422, id = "x") {
   title = "bad"
 }
 
@@ -381,7 +378,7 @@ c: constraint {
   must {{ y }}
 }
 
-p: persona(plays = desk) {{ Someone. }}
+p: persona(desk) {{ Someone. }}
 
 both: scenario(r) {
   given {{ g }}
@@ -404,7 +401,7 @@ unmeasured: scenario(q) {
 		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
 		"accept: rule accepts at most 1 trigger, when or if",
 		"missing-rationale: constraint c needs a rationale, its reason from outside the solution",
-		"type: desk is a part, not an actor",
+		"reference: desk is a part, and a persona references only actor",
 		"scenario: scenario both mixes outcome clauses and quality fields",
 		"scenario: scenario none has neither outcome clauses nor quality fields",
 		"scenario: scenario lost references no rule or path of a use case",
@@ -416,15 +413,19 @@ unmeasured: scenario(q) {
 // off steps that exist and end with one outcome; steps resolve as paths.
 func TestUseCases(t *testing.T) {
 	res := checkSrc(t, head+`
-confirm: usecase(actor = customer, level = UseCaseLevel.SUBFUNCTION) {{
+confirm: usecase<subfunction>(customer) {{
   1. [customer] enters the code.
 }}
 
-big: usecase(actor = customer, level = UseCaseLevel.SUBFUNCTION) {{
+big: usecase<subfunction>(customer) {{
   1. [confirm]
 }}
 
-buy: usecase(actor = customer) {{
+nobody: usecase(self_service) {{
+  1. [desk] does it.
+}}
+
+buy: usecase(customer) {{
   A customer asks for a refund.
 
   1. [customer] picks the payment.
@@ -451,7 +452,8 @@ wrong: scenario(buy.7) {
 `)
 	wantAll(t, res,
 		"usecase: step 2 opens with window, a term; a step's first link names an actor or a part",
-		"usecase: step 1 includes confirm, which is at level SUBFUNCTION",
+		"usecase: step 1 includes confirm, which is at level subfunction",
+		"usecase: use case nobody references no actor; its first actor reference is its primary actor",
 		"usecase: use case buy has no step 5",
 		"usecase: use case buy has no step 9",
 		`usecase: extension 3a ends with "[desk] does it."`,
@@ -474,8 +476,7 @@ wrong: scenario(buy.7) {
 // appears in the title or the related message.
 func TestErrorPlaceholders(t *testing.T) {
 	res := checkSrc(t, head+`
-@status(422)
-e: error("x") {
+e: error(422, id = "x") {
   title = "a {b} and {c}"
   b: String
   d: String
@@ -495,4 +496,56 @@ s: story {
 }
 `)
 	wantAll(t, res, "story: story s holds a given; a story lists the spec items it adds or changes")
+}
+
+// A use case's actors are the actors it references: the first its primary
+// actor, any later one a secondary actor. Its level is its level flag, a
+// user goal without one, and its guarantees are its success and minimal
+// children.
+func TestUseCaseActors(t *testing.T) {
+	res := checkSrc(t, head+`
+bank: actor<system> {{ The card network. }}
+
+pay: usecase<summary>(self_service, customer, bank) {
+  | 1. [customer] pays.
+  | 2. [bank] settles.
+
+  success {{ The payment is settled. }}
+  minimal {{ No money moves. }}
+}
+
+plain: usecase(customer) {{
+  1. [customer] looks.
+}}
+`)
+	if res.Diags.HasErrors() {
+		t.Fatal(messages(res))
+	}
+	c := res.Checker
+	var names []string
+	for _, a := range specmodel.UseCaseActors(c, res.Tree.Find("pay")) {
+		names = append(names, a.Name)
+	}
+	if strings.Join(names, " ") != "customer bank" {
+		t.Errorf("pay's actors %v, want its primary actor customer, then bank", names)
+	}
+	if l := c.GroupFlag(res.Tree.Find("pay"), "level"); l != "summary" {
+		t.Errorf("pay's level %q", l)
+	}
+	if l := c.GroupFlag(res.Tree.Find("plain"), "level"); l != "" {
+		t.Errorf("plain carries no level flag, got %q", l)
+	}
+	if r := c.GroupFlag(res.Tree.Find("bank"), "role"); r != "system" {
+		t.Errorf("bank's role %q", r)
+	}
+	pay := res.Tree.Find("pay")
+	for _, g := range []string{"success", "minimal"} {
+		found := false
+		for _, ch := range pay.Children {
+			found = found || specmodel.Is(c, ch, "spec."+g)
+		}
+		if !found {
+			t.Errorf("pay has no %s guarantee", g)
+		}
+	}
 }

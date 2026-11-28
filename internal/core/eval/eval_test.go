@@ -630,24 +630,40 @@ func (missingProcs) Run(_ context.Context, c eval.Command) (eval.Exit, error) {
 func TestDeclaredErrorTypes(t *testing.T) {
 	h := load(t, `import = ["std/types@1", "std/files@1", "std/json@1"]
 
+Base: error(400) {
+  title = "base {x}"
+  x: String
+}
+
+Child: error(Base, 404) {}
+
+Grandchild: error(Child) {}
+
 file_error: func(List(Bool)) do {
   let r = attempt(read("nope.txt"))
-  return [r.error is FileError, r.error is Error, r.error is DecodeError]
+  return [r.error is FileError, r.error is DecodeError]
 }
 
 decode_error: func(List(Bool)) do {
   let r = attempt(json.decode(List(Int), "{"))
-  return [r.error is DecodeError, r.error is Error]
+  return [r.error is DecodeError, r.error is Base]
 }
 
 parse_error: func(List(Bool)) do {
   let r = attempt(Int("three"))
-  return [r.error is ParseError, r.error is Error, r.error is FileError]
+  return [r.error is ParseError, r.error is FileError]
+}
+
+extended: func(List(Bool)) do {
+  let e = Grandchild(x = "a")
+  return [e is Grandchild, e is Child, e is Base, e is ParseError]
 }
 `, nil)
-	want(t, h.mustCall("file_error", nil), []eval.Value{true, true, false})
-	want(t, h.mustCall("decode_error", nil), []eval.Value{true, true})
-	want(t, h.mustCall("parse_error", nil), []eval.Value{true, true, false})
+	want(t, h.mustCall("file_error", nil), []eval.Value{true, false})
+	want(t, h.mustCall("decode_error", nil), []eval.Value{true, false})
+	want(t, h.mustCall("parse_error", nil), []eval.Value{true, false})
+	// An error is also each error it extends.
+	want(t, h.mustCall("extended", nil), []eval.Value{true, true, true, false})
 }
 
 func TestProcessAndFileEdges(t *testing.T) {

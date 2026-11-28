@@ -100,7 +100,7 @@ func wantDiagContaining(t *testing.T, res *check.Result, sub string) {
 	t.Errorf("no diagnostic containing %q in %v", sub, diagStrings(res))
 }
 
-const projectHead = `import = ["std/doc@1", "std/project@1", "../shop/"]
+const projectHead = `import = ["std/doc@1", "std/types@1", "std/project@1", "../shop/"]
 
 app: implements(shop, at = "2.1.3") {
   version = "2.1.3+build1"
@@ -115,7 +115,7 @@ func TestProjectMode(t *testing.T) {
 		"goal":    "g: goal {{ More. }}\n",
 		"term":    "word: term {{ A word. }}\n",
 		"actor":   "admin: actor {{ An admin. }}\n",
-		"error":   "@status(422)\nd: error(\"E1\") {\n  title = \"bad\"\n}\n",
+		"error":   "d: error(422, id = \"E1\") {\n  title = \"bad\"\n}\n",
 		"nested":  "notes: section {\n  r: rule {\n    must {{ x }}\n  }\n}\n",
 		"command": "c: command(\"shop\") {}\n",
 		"feature": "f: feature {{ More. }}\n",
@@ -283,7 +283,7 @@ app: implements(shop, at = "` + at + `") {
 // counts as no proof; intent is never a requirement; the gap report lists
 // behaviour no contract entry realizes.
 func TestConformanceRevisionsAndGaps(t *testing.T) {
-	spec := `import = ["std/doc@1"]
+	spec := `import = ["std/doc@1", "std/types@1"]
 
 shop: package(version = "1.0.0", sealed = true) {
   pay_fast: goal {{ Paying takes one step. }}
@@ -299,8 +299,7 @@ shop: package(version = "1.0.0", sealed = true) {
     must {{ send a receipt }}
   }
 
-  @status(422)
-  no_receipt: error("shop.NO_RECEIPT") {
+  no_receipt: error(422, id = "shop.NO_RECEIPT") {
     title = "no receipt for {order}"
     order: String
     | Reported as [receipt] says.

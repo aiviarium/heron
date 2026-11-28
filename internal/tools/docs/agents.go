@@ -390,7 +390,7 @@ func (e *agentExport) separate(ch, parent *resolve.Node) bool {
 		"spec.assumption", "spec.term", "spec.scenario", "spec.usecase", "types.op", "types.api", "spec.command",
 		"spec.part", "spec.actor", "spec.persona", "spec.states", "grammar.grammar":
 		return true
-	case "spec.error":
+	case "types.error":
 		return e.s.kindPath(parent) != "spec.command"
 	case "spec.example":
 		return !strengthHolder(e.s.kindPath(parent)) && e.s.kindPath(parent) != "spec.command"
@@ -783,7 +783,7 @@ func (e *agentExport) nodeText(n *resolve.Node) string {
 		body(e.scenario(n))
 	case k == "spec.command":
 		body(e.command(n))
-	case k == "spec.error":
+	case k == "types.error":
 		body(e.errorNode(n))
 	case k == "types.op":
 		body(e.op(n))
@@ -999,14 +999,14 @@ func (e *agentExport) scenario(n *resolve.Node) string {
 func (e *agentExport) usecase(n *resolve.Node) string {
 	s := e.s
 	var facts []string
-	if a := s.argRef(n, 0, "actor"); a != nil {
-		facts = append(facts, "actor "+s.mdLink(a, stableID(a)))
+	actors := specmodel.UseCaseActors(s.Checker, n)
+	if len(actors) > 0 {
+		facts = append(facts, "actor "+s.mdLink(actors[0], stableID(actors[0])))
 	}
-	level := "USER"
-	if x := namedArg(kindArgs(n), "level"); x != nil {
-		level = variantName(x)
+	if len(actors) > 1 {
+		facts = append(facts, "supporting actors "+e.links(actors[1:]))
 	}
-	facts = append(facts, "level "+level)
+	facts = append(facts, "level "+useCaseLevel(s, n))
 	if ts := project.Served(s.Checker, n); len(ts) > 0 {
 		facts = append(facts, "serves "+e.links(ts))
 	}
@@ -1015,8 +1015,8 @@ func (e *agentExport) usecase(n *resolve.Node) string {
 	}
 	ls := []string{strings.Join(facts, " · ")}
 	for _, a := range []string{"success", "minimal"} {
-		if v, ok := argString(kindArgs(n), -1, a); ok {
-			ls = append(ls, a+": "+v)
+		for _, ch := range s.childrenOfKind(n, "spec."+a) {
+			ls = append(ls, a+": "+strings.TrimSpace(s.proseMD(ch)))
 		}
 	}
 	out := lines(ls...)
@@ -1161,14 +1161,9 @@ func (e *agentExport) command(n *resolve.Node) string {
 		}
 		ls = append(ls, withDoc(l, doc(o)))
 	}
-	errs := append(s.childrenOfKind(n, "spec.error"), s.annRefs(n, "throws")...)
-	for _, x := range errs {
-		code, _ := exitCode(x)
-		title := ""
-		if t := x.Child("title"); t != nil && t.Value != nil {
-			title, _ = resolve.StringValue(t.Value.Syntax())
-		}
-		ls = append(ls, "exit "+code+": "+title)
+	for _, x := range s.commandErrors(n) {
+		code, _ := s.exitCode(x)
+		ls = append(ls, "exit "+code+": "+s.errorText(x, "title"))
 	}
 	for _, ex := range s.childrenOfKind(n, "spec.example") {
 		ls = append(ls, "example: "+s.inlineMD(ex))
@@ -1197,13 +1192,15 @@ func withDoc(l, doc string) string {
 	return l + ":\n\n" + strings.Join(ls, "\n")
 }
 
-// errorNode writes an error node with its projections and fields.
+// errorNode writes an error with its projections and its members, the
+// inherited ones included.
 func (e *agentExport) errorNode(n *resolve.Node) string {
 	s := e.s
-	args := kindArgs(n)
-	id, _ := argString(args, 0, "id")
-	f := []string{"id `" + id + "`"}
-	f = append(f, "severity "+diagnosticSeverity(n))
+	f := []string{"id `" + s.Checker.ErrorID(n) + "`"}
+	f = append(f, "severity "+s.Checker.ErrorSeverity(n))
+	if p := s.Checker.ErrorParent(n); p != nil {
+		f = append(f, "extends "+s.mdLink(p, stableID(p)))
+	}
 	for _, c := range s.errorCodes(n) {
 		x := c.Surface + " " + c.Code
 		if c.Surface != "HTTP" {
@@ -1215,9 +1212,8 @@ func (e *agentExport) errorNode(n *resolve.Node) string {
 		f = append(f, "reported by "+s.mdLink(by, stableID(by)))
 	}
 	ls := []string{strings.Join(f, " · ")}
-	if t := n.Child("title"); t != nil && t.Value != nil {
-		v, _ := resolve.StringValue(t.Value.Syntax())
-		ls = append(ls, "title: "+v)
+	if t := s.errorText(n, "title"); t != "" {
+		ls = append(ls, "title: "+t)
 	}
 	for _, ch := range project.ErrorMembers(s.Checker, n) {
 		ls = append(ls, "member `"+ch.Name+"` "+memberType(ch))
@@ -1370,7 +1366,7 @@ func (e *agentExport) op(n *resolve.Node) string {
 				}
 			}
 		}
-		if x := annText(er.typ, "exit"); x != "" && s.kindPath(er.typ) == "spec.error" {
+		if x := s.errorExit(er.typ); x != "" && s.kindPath(er.typ) == "types.error" {
 			f = append(f, "exit "+x)
 		}
 		ls = append(ls, strings.Join(f, " · "))

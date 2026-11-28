@@ -30,8 +30,14 @@ type Checker struct {
 	// Refs maps each path that resolved to the node it names, for
 	// go-to-definition and the lints that follow references.
 	Refs map[*syntax.Node]*resolve.Node
+	// FlagRefs maps each flag written to the flag it resolved to.
+	FlagRefs map[*syntax.Token]*resolve.Node
 	// linkIdx indexes the nodes a link reaches by suffix, once built.
 	linkIdx *linkIndex
+	// errKids indexes each error's children, once built.
+	errKids map[*resolve.Node][]*resolve.Node
+	// variants caches each union's variants.
+	variants map[*resolve.Node][]UnionVariant
 }
 
 // New returns a checker for a tree.
@@ -44,6 +50,8 @@ func New(t *resolve.Tree) *Checker {
 		accepts:   map[*resolve.Node][]acceptEntry{},
 		LocalUses: map[*resolve.Local]int{},
 		Refs:      map[*syntax.Node]*resolve.Node{},
+		FlagRefs:  map[*syntax.Token]*resolve.Node{},
+		variants:  map[*resolve.Node][]UnionVariant{},
 	}
 }
 
@@ -100,6 +108,12 @@ func (c *Checker) own(n *resolve.Node) {
 	switch n.Shape {
 	case resolve.ShapeDeclared, resolve.ShapeValue:
 		c.declared(n)
+		switch {
+		case c.IsError(n):
+			c.checkError(n)
+		case c.metaIs(n, "types", "types.union"):
+			c.checkUnion(n)
+		}
 	case resolve.ShapeAnon:
 		c.anon(n)
 	case resolve.ShapeSet:
@@ -371,34 +385,63 @@ func (c *Checker) nameFlags(n *resolve.Node) {
 	if fl == nil {
 		return
 	}
+	k := c.EffectiveKind(n)
 	for _, t := range (ast.Flags{N: fl}).Idents() {
-		c.flag(t, n.Decl.Scope, n.Decl.File)
+		c.flag(t, k, n.Decl.Scope, n.Decl.File)
 	}
 }
 
 func (c *Checker) kindFlags(fl ast.Flags, kind *resolve.Node, sc *resolve.Scope, file *resolve.File) {
 	for _, t := range fl.Idents() {
-		c.flag(t, sc, file)
+		c.flag(t, kind, sc, file)
 	}
 }
 
-// flag checks that a flag names a flag declaration in scope.
-func (c *Checker) flag(t *syntax.Token, sc *resolve.Scope, file *resolve.File) {
-	n := c.lookupPath(sc, file, t.Start, []string{t.Text}, c.IsFlag)
-	if n == nil {
-		c.diags.Errorf(string(file.ID), t.Start, t.End(), "unresolved", "unknown flag %s%s", t.Text, c.closestWhere(sc, t.Text, c.IsFlag))
+// flag checks that a flag written on a node of kind k, or on an
+// annotation, names a flag that attaches there, as ResolveFlag finds it.
+func (c *Checker) flag(t *syntax.Token, k *resolve.Node, sc *resolve.Scope, file *resolve.File) {
+	n, forms := c.ResolveFlag(t.Text, k, sc, file, t.Start)
+	if len(forms) > 1 {
+		c.diags.Errorf(string(file.ID), t.Start, t.End(), "ambiguous", "<%s> is declared for %s by more than one imported package: write %s", t.Text, k.Name, strings.Join(forms, " or "))
+	}
+	if n != nil {
+		c.FlagRefs[t] = n
 		return
 	}
-	if !c.IsFlag(n) {
+	if x := c.lookupPath(sc, file, t.Start, strings.Split(t.Text, "."), nil); x != nil && !c.IsFlag(x) && len(c.FlagsNamed(sc, t.Text)) == 0 {
 		c.diags.Errorf(string(file.ID), t.Start, t.End(), "not-a-flag", "%s is not a flag", t.Text)
+		return
 	}
+	c.diags.Errorf(string(file.ID), t.Start, t.End(), "unresolved", "unknown flag %s%s", t.Text, c.flagSuggestion(t.Text, k, sc))
+}
+
+// flagSuggestion is what an unknown flag is reported with: where the flags
+// of its name attach, or the closest flag that attaches to the kind.
+func (c *Checker) flagSuggestion(name string, k *resolve.Node, sc *resolve.Scope) string {
+	segs := strings.Split(name, ".")
+	if others := c.FlagsNamed(sc, segs[len(segs)-1]); len(others) > 0 && k != nil {
+		var on []string
+		for _, f := range others {
+			for _, x := range c.On(f) {
+				on = append(on, x.Name)
+			}
+		}
+		return fmt.Sprintf(" for %s; <%s> attaches to %s", k.Name, segs[len(segs)-1], strings.Join(on, ", "))
+	}
+	return c.closestWhere(sc, name, func(n *resolve.Node) bool {
+		if !c.IsFlag(n) {
+			return false
+		}
+		on := c.On(n)
+		return k == nil || len(on) == 0 || c.Fits(k, on)
+	})
 }
 
 // params checks parameter types, defaults and annotations.
 func (c *Checker) params(ps ast.Params, sc *resolve.Scope, file *resolve.File) {
 	for _, p := range ps.Params() {
 		for _, f := range p.Flags().Idents() {
-			c.flag(f, sc, file)
+			c.flag(f, nil, sc, file)
 		}
 		for _, a := range childrenOf(p.N, syntax.Annotation) {
 			c.annotation(resolve.Site{File: file, N: a, Scope: sc})
@@ -898,7 +941,7 @@ func (c *Checker) annotation(s resolve.Site) {
 	}
 	c.Refs[a.Path().N] = d
 	for _, f := range a.Flags().Idents() {
-		c.flag(f, s.Scope, s.File)
+		c.flag(f, d, s.Scope, s.File)
 	}
 	c.args(a.Args(), c.Params(d), "@"+d.Name, s.Scope, s.File, len(a.Flags().Idents()) == 0)
 }
@@ -925,7 +968,7 @@ func (c *Checker) coreAnnotation(sc *resolve.Scope, file *resolve.File, at int, 
 			out = n
 			return false
 		}
-		if !n.Decl.File.ID.IsStd() {
+		if !n.Decl.File.ID.IsStd() && c.Tree != nil && c.Tree.Find(n.Path()) == n {
 			return false // the tree's own declaration shadows the core
 		}
 		return true
@@ -979,8 +1022,19 @@ func (c *Checker) ambiguousAnnotation(sc *resolve.Scope, name string) []string {
 
 // --- suggestions ---
 
+// closest suggests the closest name in scope, leaving out flags, which are
+// a namespace of their own.
 func (c *Checker) closest(sc *resolve.Scope, name string) string {
-	return c.closestWhere(sc, name, nil)
+	if sc == nil {
+		return ""
+	}
+	var cands []string
+	sc.Names(func(n string, b resolve.Binding) {
+		if b.Node == nil || !c.IsFlag(b.Node) {
+			cands = append(cands, n)
+		}
+	})
+	return suggest(name, cands)
 }
 
 func (c *Checker) closestWhere(sc *resolve.Scope, name string, pred func(*resolve.Node) bool) string {

@@ -234,6 +234,18 @@ func (r *reader) members(t *resolve.Node, env map[string]Type) []member {
 	return out
 }
 
+// variantType reads the type of one of a union's variants.
+func (r *reader) variantType(u *resolve.Node, v types.UnionVariant) Type {
+	site := v.Node.Decl
+	if u.Body != nil && site.Scope == nil {
+		site.Scope = u.Body
+	}
+	if v.Expr != nil {
+		return r.readTypeExpr(v.Expr, u.Decl, nil)
+	}
+	return r.readType(ast.Declare{N: v.Node.Decl.N}.Type(), site, nil)
+}
+
 // envFor binds a generic type's parameters to the arguments it's used with.
 func (r *reader) envFor(x Type) map[string]Type {
 	if x.Decl == nil || len(x.Args) == 0 || x.Decl.Decl.N == nil || x.Decl.Decl.N.Kind != syntax.Declare {
@@ -362,21 +374,7 @@ func Camel(s string) string {
 }
 
 // Snake writes a name in lower snake case: ParcelEvent is parcel_event.
-func Snake(s string) string {
-	var b strings.Builder
-	rs := []rune(s)
-	for i, r := range rs {
-		if r >= 'A' && r <= 'Z' {
-			if i > 0 && rs[i-1] != '_' && (rs[i-1] < 'A' || rs[i-1] > 'Z' || i+1 < len(rs) && rs[i+1] >= 'a' && rs[i+1] <= 'z') {
-				b.WriteByte('_')
-			}
-			b.WriteRune(r + ('a' - 'A'))
-			continue
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
-}
+func Snake(s string) string { return types.Snake(s) }
 
 // UpperSnake writes a name in upper snake case: ParcelStatus is
 // PARCEL_STATUS, inTransit is IN_TRANSIT.

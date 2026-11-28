@@ -133,23 +133,14 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 			return
 		}
 		seen[t] = true
-		if s.kindPath(t) == "types.interface" && len(s.implementors[t]) > 0 {
-			for _, i := range s.implementors[t] {
-				addErr(i)
-			}
+		if !s.Checker.IsError(t) {
 			return
 		}
-		e := opError{typ: t}
-		if s.kindPath(t) == "spec.error" {
-			// An error node: its HTTP status and id are its projection.
-			e.code, _ = argString(kindArgs(t), 0, "id")
-			e.status = annText(t, "status")
-		} else if a := annotation(s, t, "status"); a != nil {
-			if es := argExprs(a.Args()); len(es) > 0 {
-				e.status = strings.TrimSpace(es[0].Syntax().Text())
-			}
+		o.errors = append(o.errors, opError{typ: t, code: s.Checker.ErrorID(t), status: s.Checker.ErrorStatus(t)})
+		// A thrown error covers the errors that extend it.
+		for _, d := range s.Checker.ErrorDescendants(t) {
+			addErr(d)
 		}
-		o.errors = append(o.errors, e)
 	}
 	for _, t := range thrown {
 		addErr(t)
@@ -885,7 +876,7 @@ func (c *Ctx) httpBody(o *opInfo) {
 		}
 		if e.code != "" {
 			c.W(s.linkHTML(e.typ, esc(displayName(s, e.typ)), ""), ` <code class="err-code">`, esc(e.code), `</code></div>`)
-			if title := fieldString(e.typ, "title"); title != "" {
+			if title := s.errorText(e.typ, "title"); title != "" {
 				c.W(`<p class="err-title">`, messageHTML(title), `</p>`)
 			}
 			var fs []string

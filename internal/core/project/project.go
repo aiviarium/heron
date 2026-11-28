@@ -43,7 +43,7 @@ var SpecKinds = map[string]string{
 	"spec.usecase":       "use case",
 	"spec.states":        "lifecycle",
 	"spec.transition":    "transition",
-	"spec.error":         "error",
+	"types.error":        "error",
 	"spec.command":       "command",
 	"spec.screen":        "screen",
 	"spec.region":        "screen region",
@@ -63,7 +63,7 @@ var RequirementKinds = map[string]bool{
 	"spec.scenario":   true,
 	"spec.usecase":    true,
 	"spec.transition": true,
-	"spec.error":      true,
+	"types.error":     true,
 }
 
 // Project is a tree's `implements` node and what hangs off it.
@@ -307,8 +307,8 @@ func (p *Project) Requirements() []*Requirement {
 }
 
 // PracticeSubject reports whether a requirement's subject is a person or
-// an agent: an std/spec actor of kind PERSON, the default, or AGENT, or
-// a persona. What it asks of them is a practice of the people and agents
+// an agent: an std/spec actor of the role person, the default, or agent,
+// or a persona. What it asks of them is a practice of the people and agents
 // who author and build, which no test of the code proves, unless a proof
 // links one, as a test of contrast or of visible text can.
 func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
@@ -320,12 +320,8 @@ func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
 	case "spec.persona":
 		return true
 	case "spec.actor":
-		role := NamedArg(KindArgs(by), "role")
-		if role == nil {
-			return true
-		}
-		k := strings.TrimSpace(role.Syntax().Text())
-		return strings.HasSuffix(k, "PERSON") || strings.HasSuffix(k, "AGENT")
+		role := c.GroupFlag(by, "role")
+		return role == "" || role == "person" || role == "agent"
 	}
 	return false
 }
@@ -788,15 +784,20 @@ func ProseText(n *resolve.Node) string {
 }
 
 // ErrorMembers are the members of an error, the values it carries as data
-// and in its message, in the order written.
+// and in its message: its own in the order written, then those it
+// inherits and doesn't declare again, nearest ancestor first.
 func ErrorMembers(c *types.Checker, n *resolve.Node) []*resolve.Node {
 	var out []*resolve.Node
-	for _, ch := range n.Children {
-		if ch.Name == "" || ch.Decl.N == nil || ch.Decl.N.Kind != syntax.Declare && ch.Decl.N.Kind != syntax.Value {
-			continue
-		}
-		if k := KindPath(c, ch); k == "" || k == "types.member" {
-			out = append(out, ch)
+	seen := map[string]bool{}
+	for _, x := range append([]*resolve.Node{n}, c.ErrorAncestors(n)...) {
+		for _, ch := range x.Children {
+			if ch.Name == "" || seen[ch.Name] || ch.Decl.N == nil || ch.Decl.N.Kind != syntax.Declare && ch.Decl.N.Kind != syntax.Value {
+				continue
+			}
+			if k := KindPath(c, ch); k == "" || k == "types.member" {
+				seen[ch.Name] = true
+				out = append(out, ch)
+			}
 		}
 	}
 	return out

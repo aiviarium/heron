@@ -221,7 +221,7 @@ func TestAgentUsecaseLines(t *testing.T) {
 		t.Fatal("no use case fix_a_diagnostic in the export")
 	}
 	for _, want := range []string{
-		"- actor [actors.author](actors.md#actors.author) · level USER",
+		"- actor [actors.author](actors.md#actors.author) · level user",
 		"- step 1 · by [system.editor_extension](system.md#system.editor_extension): ",
 		"- extension 1a · at step 1 · if The language server isn't running · by [system.editor_extension](system.md#system.editor_extension) · outcome fails: ",
 		"· outcome back to 4: ",
@@ -235,7 +235,7 @@ func TestAgentUsecaseLines(t *testing.T) {
 	}
 }
 
-const agentTree = `import = ["std/schema@1", "std/doc@1", "std/http@1", "std/docs@1"]
+const agentTree = `import = ["std/schema@1", "std/doc@1", "std/types@1", "std/http@1", "std/docs@1"]
 
 shop: package(version = "1.0") {
   | A shop that sells things.
@@ -261,8 +261,7 @@ shop: package(version = "1.0") {
     }
 
     @display("Out of stock")
-    @status(409)
-    out_of_stock: error("shop.OUT_OF_STOCK") {
+    out_of_stock: error(409, id = "shop.OUT_OF_STOCK") {
       title = "{item} is out of stock"
       item: String
       | Reported as [orders.place] says.

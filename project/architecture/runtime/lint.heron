@@ -17,8 +17,8 @@ lint: component("internal/core/lint", heron.system.linter, lang = "go") {
   }}
 
   core_lints: responsibility {{
-    Registers the core lints: `unused-let`, `flag-placement`, `annotation-placement`,
-    `tag-kind`, `example-params` and `repeated-import`.
+    Registers the core lints: `unused-let`, `annotation-placement`, `tag-kind`,
+    `example-params` and `repeated-import`.
   }}
 
   exports(title = "lint.go") {{
@@ -71,7 +71,6 @@ lint: component("internal/core/lint", heron.system.linter, lang = "go") {
   }
 
   responsibility {{ Returns the error unused-let: A `let` nothing below it uses. }}
-  responsibility {{ Returns the error flag-placement: A flag on a kind it doesn't attach to: the [flag diagnostics](#heron.language.schemas.flags). }}
   responsibility {{ Returns the error annotation-placement: An annotation where it doesn't attach, or repeated without `<repeatable>`: the [annotation diagnostics](#heron.language.schemas.annotations). }}
   responsibility {{ Returns the error tag-kind: A tag whose name isn't a kind that may stand in prose. }}
   responsibility {{ Returns the error example-params: An [op example](#heron.language.apis.examples.op_example) that leaves out a required parameter. }}

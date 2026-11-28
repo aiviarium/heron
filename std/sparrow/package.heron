@@ -49,23 +49,23 @@ sparrow: package(version = "1.0", requires = ["std/types@1"]) {
   tag(n: Int): annotation(on = [types.member, types.param, types.variant])
 
   /// A record's, enum's or union's TypeId in its facet, 64 and up.
-  id(n: Int): annotation(on = [types.type, types.enum, types.union])
+  id(n: Int): annotation(on = [types.type, types.error, types.enum, types.union])
 
   /// The sigil of an enum value, or of an error answered with a sigil of
   /// its own rather than a core code: its id in the facet, 64 and up.
-  sigil(n: Int): annotation(on = [types.variant, types.type, spec.error])
+  sigil(n: Int): annotation(on = [types.variant, types.error])
 
   /// A record encoded as a map from tag to value, absent fields left out,
   /// for types with many optional fields that are usually empty.
-  sparse: annotation(on = [types.type])
+  sparse: annotation(on = [types.type, types.error])
 
   /// Tags of fields that were removed and are never reused.
-  reserved(tags<variadic>: Int): annotation(on = [types.type, types.union])
+  reserved(tags<variadic>: Int): annotation(on = [types.type, types.error, types.union])
 
   /// Ids that the facet once defined and never defines again, by space.
   retired(types?: List(Int), services?: List(Int), methods?: List(Int), sigils?: List(Int)): annotation(on = [types.api])
 
   /// The core status code an error is answered with, where the one derived
-  /// from its `@status` doesn't fit.
-  status(code: Code): annotation(on = [types.type, spec.error])
+  /// from its status doesn't fit.
+  status(code: Code): annotation(on = [types.error])
 }

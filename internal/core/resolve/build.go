@@ -811,7 +811,8 @@ func exportsOf(t *Tree) (exports []*Node, version string) {
 }
 
 // NameFlags returns the flags written on a node's name, as in
-// `development<export>`.
+// `development<export>`, each by its plain name, a qualified one's last
+// segment.
 func NameFlags(n *Node) []string {
 	if n.Decl.N == nil {
 		return nil
@@ -822,7 +823,7 @@ func NameFlags(n *Node) []string {
 	}
 	var out []string
 	for _, t := range (ast.Flags{N: fl}).Idents() {
-		out = append(out, t.Text)
+		out = append(out, t.Text[strings.LastIndexByte(t.Text, '.')+1:])
 	}
 	return out
 }

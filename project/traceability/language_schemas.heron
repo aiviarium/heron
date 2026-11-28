@@ -143,15 +143,11 @@ language_schemas: section {
   }
 
   proves(heron.language.schemas.flags.flag_on) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+    verify("internal/core/types/model_test.go", test = "TestFlagsOnAnnotationsAndStatus")
   }
 
   proves(heron.language.schemas.flags.flag_on_annotation) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagOnAnnotation")
-  }
-
-  proves(heron.language.schemas.flags.errors.flag_misplaced) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+    verify("internal/core/types/model_test.go", test = "TestFlagsOnAnnotationsAndStatus")
   }
 
   proves(heron.language.schemas.annotations.declaring_annotations) {
@@ -234,7 +230,4 @@ language_schemas: section {
     verify("internal/core/lint/lint_test.go", test = "TestAnnotationPlacement")
   }
 
-  proves(heron.language.schemas.flags.errors.flag_misplaced_on_annotation) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagOnAnnotation")
-  }
 }

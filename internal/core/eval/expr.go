@@ -908,12 +908,25 @@ func (m *Machine) is(f *frame, v Value, t ast.Expr) (Value, error) {
 		return true, nil
 	}
 	if r, ok := v.(*Record); ok {
-		// A type is also each interface it implements, such as Error.
+		// A type is also each interface it implements, and an error each
+		// error it extends.
 		if n := m.lookupNode(f, []string{r.Type}, pe.N); n != nil {
-			for _, i := range m.Types.Implements(n) {
-				if i.Name == name {
-					return true, nil
+			seen := map[*resolve.Node]bool{}
+			var walk func(n *resolve.Node) bool
+			walk = func(n *resolve.Node) bool {
+				if seen[n] {
+					return false
 				}
+				seen[n] = true
+				for _, i := range m.Types.Implements(n) {
+					if i.Name == name || walk(i) {
+						return true
+					}
+				}
+				return false
+			}
+			if walk(n) {
+				return true, nil
 			}
 		}
 	}

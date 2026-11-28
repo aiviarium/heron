@@ -378,6 +378,9 @@ func (p *Package) each(name string, f func(*Node) bool) bool {
 	return true
 }
 
+// Each calls f for every node the package makes visible under a name.
+func (p *Package) Each(name string, f func(*Node) bool) { p.each(name, f) }
+
 func (p *Package) names(f func(string, *Node)) {
 	if p.Tree == nil {
 		return

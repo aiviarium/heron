@@ -1,6 +1,6 @@
 // std/types: records, enums, unions, interfaces, apis and the types the
 // Data and APIs tabs build on.
-import = ["std/schema@1", "std/spec@1"]
+import = ["std/schema@1", "std/spec@1", "std/doc@1"]
 
 types: package(version = "1.0") {
   /// A record. Each member is `name<flags>?: Type = default`; its
@@ -28,10 +28,20 @@ types: package(version = "1.0") {
   /// A value of an enum, of the enum's own type, or a variant of a union.
   variant: kind(typed = true)
 
-  /// A tagged union with named variants.
-  union(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
+  /// A union of types, each value one of its variants. A variant is
+  /// positional, as `union(Card, BankTransfer)`, its tag the type's name in
+  /// snake_case, or in the body as `name: Type`, its tag the name; the two
+  /// forms mix, and the tags are unique. Tagged unless `<untagged>`.
+  union(variants<variadic>?: Any): kind(layer = Layer.CONTRACT) {
     accept(kind = variant, infer = true)
   }
+
+  /// How a union's values are told apart on the wire: by the variant's tag,
+  /// the default, or by their shape alone, as `String | Int` is.
+  /// `union<untagged>(String, Int)` is `String | Int`, and its body names
+  /// are labels only.
+  tagged: flag(on = [union], group = "tagging")
+  untagged: flag(on = [union], group = "tagging")
 
   /// Shared members and behaviour.
   interface(implements<variadic>?: Ref(interface)): kind(layer = Layer.CONTRACT) {
@@ -57,10 +67,48 @@ types: package(version = "1.0") {
     accept(kind = spec.example)
   }
 
-  /// The interface every error implements; only such a type can be thrown.
-  Error: interface {
-    message: String
+  /// One problem a product reports, a type of its own, usable wherever a
+  /// type is, with one identity on every surface. `status` is its HTTP
+  /// status, the projection the codes of the other surfaces derive from,
+  /// and an override annotation, as `@exit`, sets one where the derived
+  /// code doesn't fit; `id` names it on every surface, the node's name when
+  /// left out, and `status_text` is shown beside the status, the id when
+  /// left out. Its `title` is the message, with a `{name}` for each of its
+  /// members, the values it carries as data, typed as a record's are. A
+  /// severity flag says how serious it is as a diagnostic, an error without
+  /// one. Its prose links the rule, or `Fails.` extension, that says when
+  /// it's reported; it never names who reports it.
+  @icon("circle-alert")
+  error<overload>(status: Int, id?: String, status_text?: String): kind(in = [block], layer = Layer.CONTRACT) {
+    /// The message, with `{name}` for each member filled in where it
+    /// happens.
+    title: String
+    /// The message reported at the related site.
+    related?: String
+    accept(prose)
+    accept(kind = member, infer = true)
+    accept(kind = spec.example)
   }
+
+  /// An error that extends another, its one parent: it's a case of the
+  /// parent, so a `@throws` of the parent covers it, and it inherits the
+  /// parent's status, override annotations, severity flag, title, related
+  /// message and members. It may set any of them again and add members,
+  /// but never removes or retypes one; its id and status text are its own.
+  @icon("circle-alert")
+  error<overload>(extends: Ref(error), status?: Int, id?: String, status_text?: String): kind(in = [block], layer = Layer.CONTRACT) {
+    title?: String
+    related?: String
+    accept(prose)
+    accept(kind = member, infer = true)
+    accept(kind = spec.example)
+  }
+
+  /// How serious an error is as a diagnostic, as an editor shows it; an
+  /// error without one of them.
+  warning: flag(on = [error], group = "severity")
+  info: flag(on = [error], group = "severity")
+  hint: flag(on = [error], group = "severity")
 
   /// A moment in time.
   Timestamp: type

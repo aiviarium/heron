@@ -93,6 +93,10 @@ tools_docs_design: section {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
   }
 
+  proves(heron.tools.docs.screens.type_page.fields.error_facts) {
+    verify("internal/tools/docs/api_test.go", test = "TestErrorPage")
+  }
+
   proves(heron.tools.docs.screens.type_page.fields.variants_listed) {
     verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
   }

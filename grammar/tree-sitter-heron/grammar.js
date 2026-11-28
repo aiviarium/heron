@@ -117,7 +117,8 @@ module.exports = grammar({
     _member_path: ($) =>
       seq(choice($._name, $.string), repeat(seq('.', choice($._name, $.string)))),
 
-    flags: ($) => seq(token.immediate('<'), commaSep($._name), '>'),
+    // A flag is plain or qualified by its package, as `<tests.slow>`.
+    flags: ($) => seq(token.immediate('<'), commaSep(seq($._name, repeat(seq(token.immediate('.'), $._name)))), '>'),
 
     // --- members ---
 

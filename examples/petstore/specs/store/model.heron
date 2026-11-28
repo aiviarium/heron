@@ -46,30 +46,29 @@ OrderRequest: type {
   ship_date?: Timestamp
 }
 
-/// Everything the store can refuse a request with.
-StoreError: interface(Error)
+/// Everything the store can refuse a request with; each error below
+/// extends it, so `@throws(StoreError)` covers them all.
+StoreError: error(400) {
+  title = "The store can't do this."
+}
 
-@status(404)
-PetNotFound: type(StoreError) {
-  message: String = "No pet exists with this id."
+PetNotFound: error(StoreError, 404) {
+  title = "No pet exists with the id {pet_id}."
   pet_id: Int
 }
 
-@status(409)
-PetNotAvailable: type(StoreError) {
-  message: String = "The pet is not available for sale."
+PetNotAvailable: error(StoreError, 409) {
+  title = "The pet is {status}, not available for sale."
   status: PetStatus
 }
 
-@status(404)
-OrderNotFound: type(StoreError) {
-  message: String = "No order exists with this id."
+OrderNotFound: error(StoreError, 404) {
+  title = "No order exists with the id {order_id}."
   order_id: Int
 }
 
-@status(409)
-OrderNotCancellable: type(StoreError) {
-  message: String = "A delivered order can't be cancelled."
+OrderNotCancellable: error(StoreError, 409) {
+  title = "A delivered order can't be cancelled."
 }
 
 Page(T: Any): type {

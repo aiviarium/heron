@@ -22,7 +22,7 @@ language_specifications: section {
   }
 
   proves(heron.language.specifications.context.flags_on_features) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+    verify("internal/core/types/model_test.go", test = "TestFlagsOnAnnotationsAndStatus")
   }
 
   proves(heron.language.specifications.context.terms_linked) {
@@ -96,7 +96,7 @@ language_specifications: section {
   }
 
   proves(heron.language.specifications.traceability.status_placement) {
-    verify("internal/core/lint/lint_test.go", test = "TestFlagPlacement")
+    verify("internal/core/types/model_test.go", test = "TestFlagsOnAnnotationsAndStatus")
   }
 
   proves(heron.language.specifications.quality_checks.unambiguous_wording) {
@@ -210,7 +210,7 @@ language_specifications: section {
     verify("cmd/heron/help_test.go", test = "TestHelpIsTheSpec")
   }
 
-  proves(heron.language.specifications.contract.codes.status_required, heron.language.specifications.contract.errors.missing_status) {
+  proves(heron.language.specifications.contract.codes.status_required) {
     verify("internal/core/specmodel/features_test.go", test = "TestErrorStatus")
   }
 
@@ -228,5 +228,17 @@ language_specifications: section {
 
   proves(heron.language.specifications.traceability.proofs_name_requirements, heron.language.specifications.traceability.errors.unknown_requirement) {
     verify("internal/core/check/project_test.go", test = "TestProjectStructure")
+  }
+
+  proves(heron.language.specifications.usecases.usecase_actor_required, heron.language.specifications.usecases.errors.usecase_without_actor) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCases")
+  }
+
+  proves(heron.language.specifications.usecases.usecase_level, heron.language.specifications.usecases.guarantees_as_children) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestUseCaseActors")
+  }
+
+  proves(heron.language.specifications.contract.error_severity) {
+    verify("internal/core/types/model_test.go", test = "TestErrorKind")
   }
 }

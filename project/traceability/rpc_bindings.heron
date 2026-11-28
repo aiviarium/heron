@@ -123,10 +123,6 @@ rpc_bindings: section {
     verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
   }
 
-  proves(heron.language.apis.grpc.status_codes.uncoded_errors) {
-    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
-  }
-
   proves(heron.language.apis.grpc.calls.metadata_params) {
     verify("internal/core/rpc/rpc_test.go", test = "TestServiceProjection")
     verify("internal/core/rpc/rpc_test.go", test = "TestProjectionRules")
@@ -173,10 +169,6 @@ rpc_bindings: section {
     verify("internal/core/rpc/rpc_test.go", test = "TestProtoDiagnostics")
   }
 
-  proves(heron.language.apis.grpc.errors.uncoded_grpc_error) {
-    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
-  }
-
   proves(heron.language.apis.jsonrpc.methods.method_names) {
     verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPC")
   }
@@ -205,10 +197,6 @@ rpc_bindings: section {
     verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
   }
 
-  proves(heron.language.apis.jsonrpc.error_objects.uncoded_jsonrpc) {
-    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
-  }
-
   proves(heron.language.apis.jsonrpc.errors.duplicate_method) {
     verify("internal/core/rpc/rpc_test.go", test = "TestJSONRPCDiagnostics")
   }
@@ -230,10 +218,6 @@ rpc_bindings: section {
   }
 
   proves(heron.language.apis.jsonrpc.errors.reserved_error_code) {
-    verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
-  }
-
-  proves(heron.language.apis.jsonrpc.errors.uncoded_jsonrpc_error) {
     verify("internal/core/rpc/rpc_test.go", test = "TestCodeLints")
   }
 

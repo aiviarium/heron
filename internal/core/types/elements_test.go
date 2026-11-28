@@ -15,7 +15,7 @@ func TestElementsCheck(t *testing.T) {
 	_, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/docs@1"]
 
 people: section {
-  desk: actor(role = ActorRole.SYSTEM) {{ The console. }}
+  desk: actor<system> {{ The console. }}
 }
 
 ok: section {
@@ -90,7 +90,7 @@ func TestElementVariadicAttribute(t *testing.T) {
 	c, ds := checkDir(t, map[string]string{"index.heron": `import = ["std/doc@1", "std/project@1"]
 
 people: section {
-  desk: actor(role = ActorRole.SYSTEM) {{ The console. }}
+  desk: actor<system> {{ The console. }}
 }
 
 ok: section {

@@ -63,12 +63,12 @@ proto: package(version = "1.0", requires = ["std/types@1"]) {
   fixed: flag(group = "encoding", on = [field])
 
   /// Field numbers that are never reused.
-  reserved(numbers<variadic>: Int): annotation(on = [types.type, types.enum, types.union])
+  reserved(numbers<variadic>: Int): annotation(on = [types.type, types.error, types.enum, types.union])
 
   /// A parameter that travels as gRPC metadata, by its own name or this one.
   metadata(name?: String): annotation(on = [types.param])
 
   /// The gRPC status code an error is answered with, where the one derived
-  /// from its `@status` doesn't fit.
-  status(code: Code): annotation(on = [types.type, spec.error])
+  /// from its status doesn't fit.
+  status(code: Code): annotation(on = [types.error])
 }

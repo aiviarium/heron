@@ -75,44 +75,28 @@ x: section {
 `}), "unused-let: let unused is never used")
 }
 
-func TestFlagPlacement(t *testing.T) {
-	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/doc@1"]
-x: feature<security>
-y: section<security>
-`}), "flag-placement: <security> doesn't attach to section; it attaches to feature")
-}
-
-func TestFlagOnAnnotation(t *testing.T) {
-	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/schema@1", "std/doc@1"]
-@insert<raw>
-x: section
-@highlight<raw>("keyword")
-quiet: flag
-`}), "flag-placement: <raw> doesn't attach to @highlight; it attaches to insert")
-}
-
 func TestAnnotationPlacement(t *testing.T) {
 	wantOnly(t, lintFiles(t, map[string]string{"index.heron": `import = ["std/types@1", "std/http@1", "std/doc@1"]
-@status(404)
-NotFound: type(Error) {
-  message: String
+@exit(3)
+NotFound: error(404) {
+  title = "not found"
 }
 
-@status(500)
+@exit(3)
 overview: section
 
 a: api {
   get_one(@path id: String): op(NotFound)
-  @status(1)
+  @exit(1)
   @http("/x")
   @http("/y")
-  other(@status(2) id: String): op(NotFound)
+  other(@exit(2) id: String): op(NotFound)
 }
 `}),
-		"annotation-placement: @status doesn't attach to section; it attaches to error, type",
-		"annotation-placement: @status doesn't attach to op",
+		"annotation-placement: @exit doesn't attach to section; it attaches to error",
+		"annotation-placement: @exit doesn't attach to op",
 		"annotation-placement: @http stands twice on one node",
-		"annotation-placement: @status doesn't attach to a parameter",
+		"annotation-placement: @exit doesn't attach to a parameter",
 	)
 }
 
@@ -122,10 +106,10 @@ listing: kind(modes = [structure]) {
   accept(prose)
 }
 x: section {
-  | A <ActorRole>tip</ActorRole> and a <listing>x</listing>.
+  | A <Money>tip</Money> and a <listing>x</listing>.
 }
 `}),
-		"tag-kind: <ActorRole> names ActorRole, which isn't a kind",
+		"tag-kind: <Money> names Money, which isn't a kind",
 		"tag-kind: <listing> is a kind that stands only in structure",
 	)
 }
@@ -181,25 +165,25 @@ func TestStdLintsClean(t *testing.T) {
 func TestRedundantCode(t *testing.T) {
 	dir := t.TempDir()
 	src := `import = ["std/types@1", "std/proto@1", "std/jsonrpc@1"]
-@status(404)
 @proto.status(NOT_FOUND)
 @jsonrpc.code(-32004)
-Gone: type(Error) { message: String }
+Gone: error(404) { title = "gone" }
 
-@status(422)
 @proto.status(INVALID_ARGUMENT)
 @jsonrpc.code(-32602)
-Odd: type(Error) { message: String }
+Odd: error(422) { title = "odd" }
 
-@status(400)
+// An inherited status derives the code too.
+@proto.status(Code.FAILED_PRECONDITION)
+OddChild: error(Odd) {}
+
 @exit(2)
-usage: error("x exit 2") {
+usage: error(400, id = "x exit 2") {
   title = "a usage error"
 }
 
-@status(500)
 @exit(3)
-crash: error("x exit 3") {
+crash: error(500, id = "x exit 3") {
   title = "a crash"
 }
 `
@@ -226,8 +210,9 @@ crash: error("x exit 3") {
 		}
 	}
 	wantOnly(t, got,
-		"redundant-code: @proto.status sets NOT_FOUND, the code Gone's @status derives; leave it out",
-		"redundant-code: @jsonrpc.code sets -32004, the code Gone's @status derives; leave it out",
-		"redundant-code: @exit sets 2, the code usage's @status derives; leave it out",
+		"redundant-code: @proto.status sets NOT_FOUND, the code Gone's status derives; leave it out",
+		"redundant-code: @jsonrpc.code sets -32004, the code Gone's status derives; leave it out",
+		"redundant-code: @proto.status sets FAILED_PRECONDITION, the code OddChild's status derives; leave it out",
+		"redundant-code: @exit sets 2, the code usage's status derives; leave it out",
 	)
 }

@@ -110,8 +110,8 @@ func renderActor(c *Ctx) error {
 	n := c.Node
 	c.W(`<div class="term actor" id="`, attr(Anchor(n)), `">`)
 	c.W(`<dt class="term-name"><a class="anchor" href="#`, attr(Anchor(n)), `">`, esc(displayName(c.Site, n)), `</a>`)
-	if k := actorKind(n); k != "" && k != "PERSON" {
-		c.W(`<span class="aliases">`, esc(kindWords(strings.ToLower(k))), `</span>`)
+	if k := c.Site.Checker.GroupFlag(n, "role"); k != "" && k != "person" {
+		c.W(`<span class="aliases">`, esc(kindWords(k)), `</span>`)
 	}
 	c.W(`</dt><dd>`)
 	c.Prose(n)
@@ -119,23 +119,12 @@ func renderActor(c *Ctx) error {
 	return nil
 }
 
-func actorKind(n *resolve.Node) string {
-	args := kindArgs(n)
-	if e := namedArg(args, "role"); e != nil {
-		return variantName(e)
-	}
-	if es := argExprs(args); len(es) > 0 {
-		return variantName(es[0])
-	}
-	return ""
-}
-
 func renderPersona(c *Ctx) error {
 	n := c.Node
 	s := c.Site
 	c.W(`<article class="card-block persona" id="`, attr(Anchor(n)), `">`)
 	c.W(`<div class="card-head"><a class="anchor card-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`)
-	if a := s.argRef(n, 0, "plays"); a != nil {
+	for _, a := range project.HardTargets(s.Checker, n) {
 		c.W(`<span class="mark">`, s.linkHTML(a, esc(displayName(s, a)), ""), `</span>`)
 	}
 	c.W(`</div>`)

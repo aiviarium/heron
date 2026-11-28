@@ -28,7 +28,7 @@ func (p *Project) gaps() Gaps {
 			realized[t] = true
 		}
 		// An error's prose links the rules that say when it's reported.
-		if KindPath(c, n) == "spec.error" {
+		if KindPath(c, n) == "types.error" {
 			for _, t := range ErrorRules(c, n) {
 				realized[t] = true
 			}

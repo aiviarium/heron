@@ -114,7 +114,7 @@ docs: package(version = "1.0", requires = ["std/doc@1"]) {
     title = "User"
     default = true
     nav = LensNav.TASK
-    show = [authored, step, spec.goal, spec.nongoal, spec.example, spec.term, spec.command, spec.error]
+    show = [authored, step, spec.goal, spec.nongoal, spec.example, spec.term, spec.command, types.error]
     hide = [spec.rule, spec.condition, production]
     depth = 2
     prefix = ""

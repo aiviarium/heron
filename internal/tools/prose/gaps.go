@@ -199,7 +199,7 @@ func reportGaps(li *lint.Input) {
 			}
 		case is(n, "spec.scenario"):
 			scenarios = append(scenarios, n)
-		case is(n, "spec.error", "spec.command", "spec.screen") || is(n, "types.op"):
+		case is(n, "types.error", "spec.command", "spec.screen") || is(n, "types.op"):
 			entries = append(entries, n)
 		}
 		for _, x := range project.Carried(c, n) {
@@ -211,7 +211,7 @@ func reportGaps(li *lint.Input) {
 		}
 		// An error points up through its prose: the rules and steps it
 		// links say when it's reported.
-		if is(n, "spec.error") {
+		if is(n, "types.error") {
 			for _, x := range project.ErrorRules(c, n) {
 				linked[x] = true
 				linked[n] = true
@@ -224,6 +224,10 @@ func reportGaps(li *lint.Input) {
 		}
 		for _, x := range refs(n, "throws") {
 			linked[x] = true
+			// A thrown error covers the errors that extend it.
+			for _, d := range c.ErrorDescendants(x) {
+				linked[d] = true
+			}
 		}
 		return true
 	})
@@ -251,7 +255,7 @@ func reportGaps(li *lint.Input) {
 		}
 	}
 	for _, e := range entries {
-		if is(e, "spec.error") {
+		if is(e, "types.error") {
 			if !linked[e] {
 				li.As(SpecName+".OrphanEntry").Report(e, e.Decl, diag.Warning, orphanMessage(e.Name))
 			}

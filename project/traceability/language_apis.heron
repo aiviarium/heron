@@ -41,7 +41,7 @@ language_apis: section {
     verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
   }
 
-  proves(heron.language.apis.responses.interface_errors) {
+  proves(heron.language.apis.responses.extended_errors) {
     verify("internal/tools/docs/api_test.go", test = "TestOpPageParts")
   }
 

@@ -220,6 +220,16 @@ func (s *Site) typeSchema(t *resolve.Node, ref func(*resolve.Node)) *omap {
 		out.set("enum", vals)
 		return out
 	}
+	if s.kindPath(t) == "types.union" && !s.Checker.UnionTagged(t) {
+		// An untagged union's values are one of its variants, told apart by
+		// their shape alone; its body names are labels only.
+		var one []any
+		for _, m := range s.members(t, nil) {
+			one = append(one, s.schemaOf(m.typ, ref))
+		}
+		out.set("oneOf", one)
+		return out
+	}
 	out.set("type", "object")
 	props := &omap{}
 	var required []string

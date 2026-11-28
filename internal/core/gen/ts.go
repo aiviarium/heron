@@ -43,6 +43,10 @@ func TS(in *Input) ([]registry.GeneratedFile, error) {
 				root.at(nsPath(n)).decls = append(root.at(nsPath(n)).decls, g.enum(n))
 			case g.c.IsType(n) && n.Name != "" && types.IsStd(g.c.KindOf(n), "types", "types.type"):
 				root.at(nsPath(n)).decls = append(root.at(nsPath(n)).decls, g.record(n))
+			case g.c.IsError(n) && n.Name != "" && (n.Parent == nil || g.c.KindOf(n.Parent) == nil):
+				// An error of a data model, outside a kind's body, as a
+				// record of its members that extends its parent's.
+				root.at(nsPath(n)).decls = append(root.at(nsPath(n)).decls, g.record(n))
 			}
 		})
 	}
@@ -155,7 +159,11 @@ func (g *tsGen) enum(n *resolve.Node) string {
 func (g *tsGen) record(n *resolve.Node) string {
 	var b strings.Builder
 	b.WriteString(docComment(n))
-	fmt.Fprintf(&b, "export interface %s {\n", n.Name)
+	if p := g.c.ErrorParent(n); p != nil {
+		fmt.Fprintf(&b, "export interface %s extends %s {\n", n.Name, p.Name)
+	} else {
+		fmt.Fprintf(&b, "export interface %s {\n", n.Name)
+	}
 	for _, m := range n.Children {
 		if m.Decl.N == nil || m.Decl.N.Kind != syntax.Declare {
 			continue

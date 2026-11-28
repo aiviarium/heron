@@ -76,28 +76,17 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		}
 		whereFeature(c, t, n, ds)
 		revision(n, ds)
-	case Is(c, n, "spec.persona"):
-		for _, r := range refsOf(c, n, "plays") {
-			if r.Target != nil && !Is(c, r.Target, "spec.actor") {
-				errAt(ds, r.Site, "type", "%s is a %s, not an actor", r.Target.Name, KindName(c, r.Target))
-			}
-		}
 	case Is(c, n, "spec.scenario"):
 		scenario(c, n, ds)
 		revision(n, ds)
 	case Is(c, n, "spec.usecase"):
-		for _, r := range refsOf(c, n, "actor") {
-			if r.Target != nil && !Is(c, r.Target, "spec.actor") {
-				errAt(ds, r.Site, "type", "%s is a %s, not an actor", r.Target.Name, KindName(c, r.Target))
-			}
+		if len(UseCaseActors(c, n)) == 0 {
+			errAt(ds, n.Decl, "usecase", "use case %s references no actor; its first actor reference is its primary actor", n.Name)
 		}
 		UseCaseChecks(t, c, n, ds)
 		revision(n, ds)
-	case Is(c, n, "spec.error"):
+	case Is(c, n, "types.error"):
 		placeholders(c, n, ds)
-		if project.AnnotationArg(n, "status") == nil {
-			errAt(ds, n.Decl, "status", "error %s has no @status; every error has one, which the codes of its other surfaces derive from", n.Name)
-		}
 		revision(n, ds)
 	case Is(c, n, "project.story"):
 		for _, ch := range n.Children {
@@ -376,7 +365,9 @@ func placeholders(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	}
 	used := map[string]bool{}
 	for _, name := range []string{"title", "related"} {
-		ch := n.Child(name)
+		// The title or related message in effect, its own or inherited;
+		// only its own is checked here.
+		ch := c.ErrorField(n, name)
 		if ch == nil || ch.Value == nil {
 			continue
 		}
@@ -384,7 +375,7 @@ func placeholders(c *types.Checker, n *resolve.Node, ds *diag.List) {
 		for _, m := range placeholderRe.FindAllStringSubmatchIndex(text, -1) {
 			p := text[m[2]:m[3]]
 			used[p] = true
-			if fields[p] == nil {
+			if fields[p] == nil && ch.Parent == n {
 				start, _ := ch.Value.Syntax().Span()
 				ds.Errorf(string(ch.ValueSite.File.ID), start+m[0], start+m[1], "placeholder",
 					"{%s} in the title of %s is no member of it; declare %s with its type, as %s: String", p, n.Name, p, p)
@@ -392,7 +383,7 @@ func placeholders(c *types.Checker, n *resolve.Node, ds *diag.List) {
 		}
 	}
 	for name, f := range fields {
-		if !used[name] {
+		if !used[name] && f.Parent == n {
 			warnAt(ds, f.Decl, "placeholder", "member %s of %s appears in neither its title nor its related message", name, n.Name)
 		}
 	}

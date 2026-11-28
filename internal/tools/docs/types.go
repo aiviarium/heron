@@ -127,6 +127,20 @@ type member struct {
 // members returns a type's fields, its own first, then those of the
 // interfaces it implements that it doesn't redeclare.
 func (s *Site) members(t *resolve.Node, env map[string]texpr) []member {
+	if s.kindPath(t) == "types.union" {
+		// A union's variants, positional or in its body, by their tags.
+		var out []member
+		for _, v := range s.Checker.UnionVariants(t) {
+			m := member{node: v.Node, name: v.Node.Name, site: s.bodySite(t, v.Node.Decl)}
+			if v.Expr != nil {
+				m.typ = s.readTypeExpr(v.Expr, t.Decl, env)
+			} else {
+				m.typ = s.readType(ast.Declare{N: v.Node.Decl.N}.Type(), m.site, env)
+			}
+			out = append(out, m)
+		}
+		return out
+	}
 	var out []member
 	seen := map[string]bool{}
 	var collect func(t *resolve.Node, from *resolve.Node, depth int)
@@ -229,15 +243,21 @@ func renderType(c *Ctx) error {
 	}
 	c.Prose(n)
 
-	// Facts: the status an error is returned with, the interfaces it
-	// implements.
+	// Facts: an error's id, status and the error it extends, a type's
+	// interfaces.
 	var facts []string
-	if a := annotation(s, n, "status"); a != nil {
-		if es := argExprs(a.Args()); len(es) > 0 {
-			facts = append(facts, `<dt>`+esc(label("docs.label.status"))+`</dt><dd><code class="status-code">`+esc(strings.TrimSpace(es[0].Syntax().Text()))+`</code></dd>`)
+	if s.Checker.IsError(n) {
+		facts = append(facts, `<dt>`+esc(label("docs.label.id"))+`</dt><dd><code class="err-code">`+esc(s.Checker.ErrorID(n))+`</code></dd>`)
+		if st := s.Checker.ErrorStatus(n); st != "" {
+			facts = append(facts, `<dt>`+esc(label("docs.label.status"))+`</dt><dd><code class="status-code">`+esc(st)+`</code> `+esc(s.Checker.ErrorStatusText(n))+`</dd>`)
 		}
-	}
-	if impl := s.Checker.Implements(n); len(impl) > 0 {
+		if p := s.Checker.ErrorParent(n); p != nil {
+			facts = append(facts, `<dt>`+esc(label("docs.label.extends"))+`</dt><dd>`+s.linkHTML(p, `<code>`+esc(p.Name)+`</code>`, "")+`</dd>`)
+		}
+		if t := s.errorText(n, "title"); t != "" {
+			facts = append(facts, `<dt>`+esc(label("docs.label.message"))+`</dt><dd>`+messageHTML(t)+`</dd>`)
+		}
+	} else if impl := s.Checker.Implements(n); len(impl) > 0 {
 		var ls []string
 		for _, i := range impl {
 			ls = append(ls, s.linkHTML(i, `<code>`+esc(i.Name)+`</code>`, ""))

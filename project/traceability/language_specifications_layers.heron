@@ -55,10 +55,6 @@ language_specifications_layers: section {
     verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
 
-  proves(heron.language.specifications.intent.errors.not_an_actor) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
-  }
-
   proves(heron.language.specifications.intent.goal_measure_shown) {
     verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
@@ -69,10 +65,6 @@ language_specifications_layers: section {
 
   proves(heron.language.specifications.intent.intent_layer) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
-  }
-
-  proves(heron.language.specifications.intent.persona_plays_actor) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
   }
 
   proves(heron.language.specifications.intent.references_named_kind) {

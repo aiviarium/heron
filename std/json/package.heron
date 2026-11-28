@@ -6,12 +6,14 @@ json: package(version = "1.0", requires = ["std/types@1"]) {
   json: language(grammar = "source.json")
 
   /// Text that isn't JSON, or isn't the shape of the type asked for.
-  DecodeError: type(Error) {
+  DecodeError: error(400) {
+    title = "{message}"
     message: String
   }
 
   /// A value JSON can't hold.
-  EncodeError: type(Error) {
+  EncodeError: error(400) {
+    title = "{message}"
     message: String
   }
 
@@ -28,7 +30,7 @@ json: package(version = "1.0", requires = ["std/types@1"]) {
 
   /// The case of a type's field names in JSON; on an api, of its ops'
   /// parameters and of every type they reach that sets none.
-  keys(case: Case): annotation(on = [types.type, types.api])
+  keys(case: Case): annotation(on = [types.type, types.error, types.api])
 
   /// Reads JSON text as a value of a type.
   @throws(DecodeError)

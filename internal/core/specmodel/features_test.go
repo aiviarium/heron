@@ -72,17 +72,20 @@ bad_ref: feature(desk) {{ A feature for a part. }}
 // Every error has a @status, its one required projection.
 func TestErrorStatus(t *testing.T) {
 	res := checkSrc(t, head+`
-@status(404)
-found: error("x") {
+found: error(404, id = "x") {
   title = "found"
 }
 
-missing: error("y") {
+missing: error(id = "y") {
   title = "missing"
 }
+
+inherited: error(found) {}
 `)
-	wantAll(t, res, "status: error missing has no @status; every error has one, which the codes of its other surfaces derive from")
-	wantNone(t, res, "error found has no")
+	wantAll(t, res, "missing-argument: kind error needs the argument status")
+	if n := len(res.Diags); n != 1 {
+		t.Errorf("an error that extends another inherits its status: %v", messages(res))
+	}
 }
 
 // A command's parameters are its inputs, and its usage line is derived

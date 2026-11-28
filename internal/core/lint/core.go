@@ -19,13 +19,12 @@ import (
 func Register(r *registry.Registry) {
 	for _, l := range []registry.Lint{
 		{Name: "unused-let", Summary: "a let that nothing below it uses", Run: wrap(unusedLet)},
-		{Name: "flag-placement", Summary: "a flag on a kind it doesn't attach to", Run: wrap(flagPlacement)},
 		{Name: "annotation-placement", Summary: "an annotation where it doesn't attach, or repeated without <repeatable>", Run: wrap(annotationPlacement)},
 		{Name: "tag-kind", Summary: "a tag whose name isn't a kind that may stand in prose", Run: wrap(tagKind)},
 		{Name: "example-params", Summary: "an op example that leaves out a required parameter", Run: wrap(exampleParams)},
 		{Name: "repeated-import", Summary: "an import that an enclosing scope already makes", Run: wrap(repeatedImport)},
-		{Name: "rpc-code", Summary: "an error an RPC method throws without a code for its binding, or a JSON-RPC code in the reserved range", Run: wrap(rpcCodes)},
-		{Name: "redundant-code", Summary: "an override of an error's code that sets the code its @status derives", Run: wrap(redundantCodes)},
+		{Name: "rpc-code", Summary: "a JSON-RPC code in the reserved range", Run: wrap(rpcCodes)},
+		{Name: "redundant-code", Summary: "an override of an error's code that sets the code its status derives", Run: wrap(redundantCodes)},
 		{Name: "sparrow-id", Summary: "a Sparrow TypeId or method id left to the order it's reached in, while others of its facet are written", Run: wrap(sparrowIDs)},
 	} {
 		r.MustAddLint(l)
@@ -34,8 +33,7 @@ func Register(r *registry.Registry) {
 
 func wrap(f func(*Input)) func(any) { return func(in any) { f(in.(*Input)) } }
 
-// rpcCodes reports the errors gRPC and JSON-RPC methods throw without a
-// code of their binding, and JSON-RPC codes in the reserved range.
+// rpcCodes reports JSON-RPC codes in the reserved range.
 func rpcCodes(in *Input) {
 	for _, f := range rpc.Build(in.Tree, in.Checker).Lints {
 		if f.Lint == "" {
@@ -46,11 +44,14 @@ func rpcCodes(in *Input) {
 
 // redundantCodes reports an override annotation of an error's code,
 // @proto.status, @sparrow.status, @jsonrpc.code or @exit, that sets the
-// code its @status derives, with a fix that removes it.
+// code its status derives, with a fix that removes it.
 func redundantCodes(in *Input) {
 	c := in.Checker
 	eachNode(in, func(n *resolve.Node) {
-		status := ""
+		if !c.IsError(n) {
+			return
+		}
+		status := c.ErrorStatus(n)
 		type override struct {
 			site      resolve.Site
 			name, set string
@@ -84,8 +85,6 @@ func redundantCodes(in *Input) {
 				v = v[i+1:] // a variant written Code.NOT_FOUND
 			}
 			switch pkg := d.Parent.Name; {
-			case d.Name == "status" && (pkg == "spec" || pkg == "core"):
-				status = v
 			case d.Name == "status" && (pkg == "proto" || pkg == "sparrow"), d.Name == "code" && pkg == "jsonrpc", d.Name == "exit" && pkg == "spec":
 				os = append(os, override{site: s, name: "@" + pkg + "." + d.Name, set: v})
 			}
@@ -126,7 +125,7 @@ func redundantCodes(in *Input) {
 				}
 			}
 			fix := diag.Fix{Title: "Remove " + o.name, Edits: []diag.Edit{{File: string(o.site.File.ID), Start: s, End: end}}}
-			in.ReportFix(n, o.site.File, s, e, diag.Warning, fmt.Sprintf("%s sets %s, the code %s's @status derives; leave it out", o.name, o.set, n.Name), []diag.Fix{fix})
+			in.ReportFix(n, o.site.File, s, e, diag.Warning, fmt.Sprintf("%s sets %s, the code %s's status derives; leave it out", o.name, o.set, n.Name), []diag.Fix{fix})
 		}
 	})
 }
@@ -171,70 +170,12 @@ func unusedLet(in *Input) {
 	eachNode(in, func(n *resolve.Node) { visit(n.Body, n) })
 }
 
-// kindSlot returns a node's kind slot flags and the scope they're read in.
-func kindSlotFlags(n *resolve.Node) []*syntax.Token {
-	if n.Decl.N == nil {
-		return nil
-	}
-	var fl ast.Flags
-	switch n.Decl.N.Kind {
-	case syntax.Declare:
-		if t, ok := (ast.Declare{N: n.Decl.N}).Type().(ast.NamedType); ok {
-			fl = t.Flags()
-		}
-	case syntax.Value:
-		if t, ok := (ast.Value{N: n.Decl.N}).Type().(ast.NamedType); ok {
-			fl = t.Flags()
-		}
-	case syntax.Invoke:
-		fl = (ast.Invoke{N: n.Decl.N}).Flags()
-	}
-	return fl.Idents()
-}
-
 func names(ns []*resolve.Node) string {
 	var out []string
 	for _, n := range ns {
 		out = append(out, n.Name)
 	}
 	return strings.Join(out, ", ")
-}
-
-func flagPlacement(in *Input) {
-	c := in.Checker
-	eachNode(in, func(n *resolve.Node) {
-		k := c.KindOf(n)
-		if k == nil {
-			return
-		}
-		for _, t := range kindSlotFlags(n) {
-			fd := c.FlagFor(t.Text, k, n.Decl.Scope, n.Decl.File, t.Start)
-			if fd == nil {
-				continue
-			}
-			if on := c.On(fd); len(on) > 0 && !c.Fits(k, on) {
-				in.ReportAt(n, n.Decl.File, t.Start, t.End(), diag.Warning,
-					fmt.Sprintf("<%s> doesn't attach to %s; it attaches to %s", t.Text, k.Name, names(on)))
-			}
-		}
-		for _, a := range n.Annotations {
-			ann := ast.Annotation{N: a.N}
-			d := c.Refs[ann.Path().N]
-			if d == nil {
-				continue
-			}
-			for _, t := range ann.Flags().Idents() {
-				fd := c.FlagFor(t.Text, d, a.Scope, a.File, t.Start)
-				if fd == nil {
-					continue
-				}
-				if on := c.On(fd); len(on) > 0 && !c.Fits(d, on) {
-					in.ReportAt(n, a.File, t.Start, t.End(), diag.Warning,
-						fmt.Sprintf("<%s> doesn't attach to @%s; it attaches to %s", t.Text, d.Name, names(on)))
-				}
-			}
-		}
-	})
 }
 
 func annotationPlacement(in *Input) {

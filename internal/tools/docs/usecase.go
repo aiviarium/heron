@@ -63,20 +63,19 @@ func renderUsecase(c *Ctx) error {
 	c.W(`<section class="node usecase" id="`, attr(Anchor(n)), `">`)
 	c.title(statusBadge(n))
 	var rows [][2]string
-	if a := s.argRef(n, 0, "actor"); a != nil {
-		rows = append(rows, [2]string{label("docs.label.actor"), s.linkHTML(a, esc(displayName(s, a)), "")})
+	actors := specmodel.UseCaseActors(s.Checker, n)
+	if len(actors) > 0 {
+		rows = append(rows, [2]string{label("docs.label.actor"), s.linkHTML(actors[0], esc(displayName(s, actors[0])), "")})
 	}
-	level := "USER"
-	if e := namedArg(kindArgs(n), "level"); e != nil {
-		level = variantName(e)
+	if len(actors) > 1 {
+		rows = append(rows, [2]string{label("docs.label.supporting_actors"), c.refLinks(actors[1:])})
 	}
-	rows = append(rows, [2]string{label("docs.label.level"), esc(kindWords(strings.ToLower(level)))})
+	rows = append(rows, [2]string{label("docs.label.level"), esc(kindWords(useCaseLevel(s, n)))})
 	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(project.Served(s.Checker, n))})
-	if v, ok := argString(kindArgs(n), -1, "success"); ok {
-		rows = append(rows, [2]string{label("docs.label.success"), esc(v)})
-	}
-	if v, ok := argString(kindArgs(n), -1, "minimal"); ok {
-		rows = append(rows, [2]string{label("docs.label.minimal"), esc(v)})
+	for _, g := range []string{"success", "minimal"} {
+		for _, ch := range s.childrenOfKind(n, "spec."+g) {
+			rows = append(rows, [2]string{label("docs.label." + g), s.inlineHTML(ch)})
+		}
 	}
 	c.factList(rows)
 	p, ok := specmodel.ParseUseCase(s.Checker, n)
@@ -130,6 +129,15 @@ func renderUsecase(c *Ctx) error {
 	c.W(c.derivedLists(n))
 	c.W(`</section>`)
 	return nil
+}
+
+// useCaseLevel is a use case's goal level, from its level flag: "user"
+// without one.
+func useCaseLevel(s *Site, n *resolve.Node) string {
+	if l := s.Checker.GroupFlag(n, "level"); l != "" {
+		return l
+	}
+	return "user"
 }
 
 // asSubject reads a step that opens with its party's link as a sentence
@@ -230,7 +238,7 @@ func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 	}
 	s.Tree.Walk(func(n *resolve.Node) {
 		// An error's prose links the rules that say when it's reported.
-		if s.kindPath(n) == "spec.error" {
+		if s.kindPath(n) == "types.error" {
 			for _, t := range project.ErrorRules(s.Checker, n) {
 				add(t, "reported_as", n)
 				if t.Shape == resolve.ShapeStep && t.Parent != nil {

@@ -227,7 +227,6 @@
       "whole_params": "one record as the whole of params",
       "params_structure": "Params",
       "error_data": "data",
-      "error_info": "ErrorInfo metadata",
       "error_detail": "Detail",
       "service": "Service",
       "protocols": "Protocols",
@@ -254,7 +253,10 @@
       "requirements": "Requirements",
       "covered": "Covered",
       "not_covered": "Not covered by a scenario, an example or a proof",
-      "for_actors": "For"
+      "for_actors": "For",
+      "extends": "Extends",
+      "id": "Id",
+      "message": "Message"
     },
     "lang": {
       "curl": "cURL",

@@ -175,7 +175,9 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 		if l := LayerOf(c, n); l != None {
 			order = append(order, n)
 			for _, r := range OwnRefs(c, t, n) {
-				if r.Target != n && LayerOf(c, r.Target) != None && !Is(c, r.Target, "spec.term", "spec.feature") {
+				// An error's parent is checked by the checker, which reports
+				// an error that extends itself.
+				if r.Target != n && LayerOf(c, r.Target) != None && !Is(c, r.Target, "spec.term", "spec.feature") && r.Target != c.ErrorParent(n) {
 					graph[n] = append(graph[n], r)
 				}
 				tl := LayerOf(c, r.Target)

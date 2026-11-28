@@ -176,6 +176,9 @@ func (c *Checker) lookupBinding(sc *resolve.Scope, file *resolve.File, at int, s
 			out = b
 			return false
 		}
+		if len(segs) == 1 && c.IsFlag(b.Node) {
+			return true // flags are a namespace of their own
+		}
 		if n := c.walkSegs(b.Node, segs[1:]); n != nil {
 			out = resolve.Binding{Node: n}
 			return false

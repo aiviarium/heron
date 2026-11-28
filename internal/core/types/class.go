@@ -6,6 +6,7 @@ package types
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
@@ -165,7 +166,7 @@ func (c *Checker) IsCategory(n *resolve.Node) bool { return c.metaIs(n, "schema"
 func (c *Checker) IsPackage(n *resolve.Node) bool { return c.metaIs(n, "schema", "schema.package") }
 
 // typeKinds are the std/types kinds whose instances are types.
-var typeKinds = []string{"types.type", "types.enum", "types.union", "types.interface"}
+var typeKinds = []string{"types.type", "types.enum", "types.union", "types.interface", "types.error"}
 
 // IsType reports whether n is a type: a primitive, an instance of a std/types
 // type kind, or an alias bound to a type.
@@ -187,6 +188,75 @@ func (c *Checker) IsType(n *resolve.Node) bool {
 
 // IsEnum reports whether n declares an enum.
 func (c *Checker) IsEnum(n *resolve.Node) bool { return c.metaIs(n, "types", "types.enum") }
+
+// IsError reports whether n declares an error.
+func (c *Checker) IsError(n *resolve.Node) bool { return c.metaIs(n, "types", "types.error") }
+
+// ErrorParent is the error an error extends, or nil for a root error.
+func (c *Checker) ErrorParent(n *resolve.Node) *resolve.Node {
+	if !c.IsError(n) {
+		return nil
+	}
+	var e ast.Expr
+	for i, a := range declArgs(n) {
+		switch a := a.(type) {
+		case ast.PositionalArg:
+			if i == 0 {
+				e = a.Expr()
+			}
+		case ast.NamedArg:
+			if a.Ident() != nil && a.Ident().Text == "extends" {
+				e = a.Expr()
+			}
+		}
+	}
+	p, ok := e.(ast.PathExpr)
+	if !ok {
+		return nil
+	}
+	t := c.lookupPath(n.Decl.Scope, n.Decl.File, off(p.N), resolve.PathSegs(p.Path().N), c.IsError)
+	if t == nil || !c.IsError(t) {
+		return nil
+	}
+	return t
+}
+
+// ErrorAncestors are the errors an error extends, its parent first, up to
+// a root or a cycle.
+func (c *Checker) ErrorAncestors(n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	seen := map[*resolve.Node]bool{n: true}
+	for p := c.ErrorParent(n); p != nil && !seen[p]; p = c.ErrorParent(p) {
+		seen[p] = true
+		out = append(out, p)
+	}
+	return out
+}
+
+// ErrorCovers reports whether an error named in `@throws` covers err:
+// err is it, or extends it.
+func (c *Checker) ErrorCovers(named, err *resolve.Node) bool {
+	if named == err {
+		return true
+	}
+	for _, a := range c.ErrorAncestors(err) {
+		if a == named {
+			return true
+		}
+	}
+	return false
+}
+
+// ErrorSeverity is how serious an error is as a diagnostic: its severity
+// flag, or the one it inherits, or "error".
+func (c *Checker) ErrorSeverity(n *resolve.Node) string {
+	for _, x := range append([]*resolve.Node{n}, c.ErrorAncestors(n)...) {
+		if f := c.GroupFlag(x, "severity"); f != "" {
+			return f
+		}
+	}
+	return "error"
+}
 
 // IsInterface reports whether n declares an interface.
 func (c *Checker) IsInterface(n *resolve.Node) bool { return c.metaIs(n, "types", "types.interface") }
@@ -339,6 +409,12 @@ func (c *Checker) Fits(k *resolve.Node, targets []*resolve.Node) bool {
 	for _, t := range targets {
 		if t == k {
 			return true
+		}
+		for _, o := range t.Overloads {
+			// Another signature of an overloaded kind is the same kind.
+			if o == k {
+				return true
+			}
 		}
 		for _, cat := range c.Categories(k) {
 			if cat == t {
@@ -652,9 +728,20 @@ func (c *Checker) typeMember(t *resolve.Node, name string, seen map[*resolve.Nod
 	return Field{}, false
 }
 
-// Implements returns the interfaces a type, enum, union or interface names
-// as its positional arguments or in `implements = […]`.
+// Implements returns the interfaces a type, enum or interface names as its
+// positional arguments or in `implements = […]`, or the error an error
+// extends.
 func (c *Checker) Implements(t *resolve.Node) []*resolve.Node {
+	if c.metaIs(t, "types", "types.union") {
+		return nil // a union's arguments are its variants
+	}
+	if c.IsError(t) {
+		// An error's parent is the one type it extends.
+		if p := c.ErrorParent(t); p != nil {
+			return []*resolve.Node{p}
+		}
+		return nil
+	}
 	var out []*resolve.Node
 	for _, a := range declArgs(t) {
 		var e ast.Expr
@@ -709,16 +796,7 @@ func (c *Checker) kindFlag(n, k *resolve.Node, name string) *resolve.Node {
 	if sc == nil {
 		return nil
 	}
-	var out *resolve.Node
-	sc.Each(name, nil, -1, func(b resolve.Binding) bool {
-		if b.Node != nil && c.IsFlag(b.Node) {
-			if on := c.refList(b.Node, "on"); len(on) == 0 || c.Fits(k, on) {
-				out = b.Node
-				return false
-			}
-		}
-		return true
-	})
+	out, _ := c.ResolveFlag(name, k, sc, nil, -1)
 	return out
 }
 
@@ -844,31 +922,115 @@ func (c *Checker) acceptList(k *resolve.Node) []acceptEntry {
 // none means anywhere.
 func (c *Checker) On(decl *resolve.Node) []*resolve.Node { return c.refList(decl, "on") }
 
-// FlagDecl resolves a flag written at a place to its declaration.
-func (c *Checker) FlagDecl(name string, sc *resolve.Scope, file *resolve.File, at int) *resolve.Node {
-	n := c.lookupPath(sc, file, at, []string{name}, c.IsFlag)
-	if n != nil && c.IsFlag(n) {
-		return n
+// ResolveFlag resolves a flag written on a node of kind k, an annotation's
+// declaration for a flag on an annotation, or nil where no kind applies. A
+// qualified name, as `types.warning`, names the flag by its path. A plain
+// name resolves among the flags in scope whose `on` lists k or a category
+// of k, so flags of one name on different kinds never clash, and else among
+// the flags in scope without `on`, as `variadic`. It returns the flag, nil
+// when none fits, and the qualified forms of the flags it's ambiguous
+// with: flags of one name that two imported packages attach to one kind.
+func (c *Checker) ResolveFlag(name string, k *resolve.Node, sc *resolve.Scope, file *resolve.File, at int) (*resolve.Node, []string) {
+	if sc == nil || name == "" {
+		return nil, nil
 	}
-	return nil
-}
-
-// FlagFor resolves a flag written on an instance of kind k: of the flags
-// the name could mean, the first that attaches to k, or else the first,
-// so a <planned> declared by two packages imported together resolves to
-// the one that attaches to the kind.
-func (c *Checker) FlagFor(name string, k *resolve.Node, sc *resolve.Scope, file *resolve.File, at int) *resolve.Node {
-	n := c.lookupPath(sc, file, at, []string{name}, func(n *resolve.Node) bool {
+	fits := func(n *resolve.Node) bool {
 		if !c.IsFlag(n) {
 			return false
 		}
 		on := c.On(n)
-		return k == nil || len(on) == 0 || c.Fits(k, on)
-	})
-	if n != nil && c.IsFlag(n) {
-		return n
+		return len(on) > 0 && c.Fits(k, on)
 	}
-	return nil
+	if segs := strings.Split(name, "."); len(segs) > 1 {
+		n := c.lookupPath(sc, file, at, segs, c.IsFlag)
+		if n == nil || !c.IsFlag(n) {
+			return nil, nil
+		}
+		if on := c.On(n); k != nil && len(on) > 0 && !c.Fits(k, on) {
+			return nil, nil
+		}
+		return n, nil
+	}
+	if k != nil {
+		if n, forms := c.flagAmong(sc, file, at, name, fits); n != nil {
+			return n, forms
+		}
+	}
+	scoped := func(n *resolve.Node) bool { return c.IsFlag(n) && (k == nil || len(c.On(n)) == 0) }
+	if n := c.lookupPath(sc, file, at, []string{name}, scoped); n != nil && scoped(n) {
+		return n, nil
+	}
+	return nil, nil
+}
+
+// flagAmong finds the flag of a name that fits, innermost scope first: a
+// flag the tree declares shadows imported ones, and two imported packages
+// declaring one at the same scope make it ambiguous.
+func (c *Checker) flagAmong(sc *resolve.Scope, file *resolve.File, at int, name string, fits func(*resolve.Node) bool) (*resolve.Node, []string) {
+	seen := map[*resolve.Scope]bool{}
+	var found *resolve.Node
+	var forms []string
+	var walk func(sc *resolve.Scope) bool
+	walk = func(sc *resolve.Scope) bool {
+		for ; sc != nil; sc = sc.Parent {
+			if seen[sc] {
+				return false
+			}
+			seen[sc] = true
+			if sc.Node != nil {
+				if n := sc.Node.Child(name); n != nil && fits(n) {
+					found = n
+					return true
+				}
+			}
+			pkgs := map[*resolve.Node]bool{}
+			for _, p := range sc.Imports {
+				p.Each(name, func(n *resolve.Node) bool {
+					if fits(n) && n.Parent != nil && !pkgs[n.Parent] {
+						pkgs[n.Parent] = true
+						if found == nil {
+							found = n
+						}
+						forms = append(forms, "<"+n.Parent.Name+"."+name+">")
+					}
+					return true
+				})
+			}
+			if found != nil {
+				return true
+			}
+			for _, a := range sc.Also {
+				if walk(a) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	walk(sc)
+	if len(forms) < 2 {
+		forms = nil
+	}
+	sort.Strings(forms)
+	return found, forms
+}
+
+// FlagsNamed returns the flags of a name in scope, whatever they attach
+// to, for the suggestion an unknown flag is reported with.
+func (c *Checker) FlagsNamed(sc *resolve.Scope, name string) []*resolve.Node {
+	var out []*resolve.Node
+	seen := map[*resolve.Node]bool{}
+	if sc == nil {
+		return nil
+	}
+	sc.Each(name, nil, -1, func(b resolve.Binding) bool {
+		if b.Node != nil && c.IsFlag(b.Node) && !seen[b.Node] {
+			seen[b.Node] = true
+			out = append(out, b.Node)
+		}
+		return true
+	})
+	return out
 }
 
 // EffectiveKind is the kind a node counts as for what attaches to it: the
@@ -908,14 +1070,48 @@ func (c *Checker) StructureOnly(k *resolve.Node) bool {
 }
 
 // HasKindFlag reports whether a declaration's kind slot carries a flag, as
-// `annotation<repeatable>` does.
+// `annotation<repeatable>` does, plain or qualified.
 func HasKindFlag(n *resolve.Node, flag string) bool {
 	for _, f := range declFlags(n) {
-		if f.Text == flag {
+		if f.Text == flag || strings.HasSuffix(f.Text, "."+flag) {
 			return true
 		}
 	}
 	return false
+}
+
+// GroupFlag is the name of the flag of a group, as "severity", that a node
+// carries on its kind slot or its name, or "" when it carries none: the
+// value a flag group stands for, as `usecase<user>` sets the level.
+func (c *Checker) GroupFlag(n *resolve.Node, group string) string {
+	if n == nil || n.Decl.N == nil {
+		return ""
+	}
+	toks := declFlags(n)
+	if fl := childOf(n.Decl.N, syntax.Flags); fl != nil {
+		toks = append(toks, (ast.Flags{N: fl}).Idents()...)
+	}
+	k := c.EffectiveKind(n)
+	for _, t := range toks {
+		f := c.FlagRefs[t]
+		if f == nil {
+			f, _ = c.ResolveFlag(t.Text, k, n.Decl.Scope, n.Decl.File, t.Start)
+		}
+		if f == nil {
+			continue
+		}
+		if g, ok := resolve.StringValue(namedArgSyntax(f, "group")); ok && g == group {
+			return f.Name
+		}
+	}
+	return ""
+}
+
+func namedArgSyntax(n *resolve.Node, name string) *syntax.Node {
+	if e := namedArg(n, name); e != nil {
+		return e.Syntax()
+	}
+	return nil
 }
 
 // acceptsMode reports whether a kind's body takes prose or code.

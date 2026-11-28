@@ -3,7 +3,8 @@ import = ["std/schema@1", "std/types@1"]
 
 files: package(version = "1.0", requires = ["std/types@1"]) {
   /// A file that couldn't be read or written.
-  FileError: type(Error) {
+  FileError: error(500) {
+    title = "{path}: {message}"
     message: String
     path: String
   }

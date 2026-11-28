@@ -85,7 +85,6 @@ language_data_planned: progress<planned>(
   heron.language.data.typed_strings.errors.not_a_version,
   heron.language.data.configuration.profiles,
   heron.language.data.configuration.build_time_conditions,
-  heron.language.data.types.only_errors_thrown,
   heron.language.data.types.errors_never_enums,
   heron.language.data.types.structural_satisfaction,
   heron.language.data.types.restating_members,
@@ -252,7 +251,6 @@ layered_planned: progress<planned>(
 layered_untested: progress<untested>(
   heron.language.specifications.layers.links_on_lower_node,
   heron.language.specifications.usecases.step_uses,
-  heron.language.specifications.usecases.usecase_actor_checked,
   heron.language.specifications.contract.error_title_required,
   heron.language.specifications.contract.one_identity,
   heron.language.specifications.contract.refines_scenario,

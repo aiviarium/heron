@@ -92,7 +92,7 @@ func TestNamesResolveByPosition(t *testing.T) {
 		if k := c.KindOf(w); from(k) != "k.heron" {
 			t.Errorf("%v: the : slot took widget from %s", order, from(k))
 		}
-		if f := c.FlagDecl("widget", w.Decl.Scope, w.Decl.File, -1); from(f) != "f.heron" {
+		if f, _ := c.ResolveFlag("widget", nil, w.Decl.Scope, w.Decl.File, -1); from(f) != "f.heron" {
 			t.Errorf("%v: <widget> took %s", order, from(f))
 		}
 		holder := tr.Find("holder")

@@ -18,7 +18,8 @@ repo: package(version = "1.0", requires = ["std/types@1"]) {
   repository<export>: Repository
 
   /// A setup step that couldn't finish.
-  SetupError: type(Error) {
+  SetupError: error(500) {
+    title = "{message}"
     message: String
   }
 

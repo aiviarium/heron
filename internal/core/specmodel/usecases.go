@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/diag"
-	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
@@ -60,18 +59,29 @@ func ParseUseCase(c *types.Checker, n *resolve.Node) (Parsed, bool) {
 	return Parsed{}, false
 }
 
+// level is a use case's goal level, from its level flag: 0 for summary, 1
+// for user, the level of one without a flag, and 2 for subfunction.
 func level(c *types.Checker, n *resolve.Node) int {
-	e := project.NamedArg(project.KindArgs(n), "level")
-	if e == nil {
-		return 1
-	}
-	switch t := e.Syntax().Text(); {
-	case strings.HasSuffix(t, "SUMMARY"):
+	switch c.GroupFlag(n, "level") {
+	case "summary":
 		return 0
-	case strings.HasSuffix(t, "SUBFUNCTION"):
+	case "subfunction":
 		return 2
 	}
 	return 1
+}
+
+// UseCaseActors are the actors a use case references, in the order
+// written: the first is its primary actor, any later one a secondary
+// actor.
+func UseCaseActors(c *types.Checker, n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	for _, r := range nodeRefs(c, n) {
+		if r.Target != nil && Is(c, r.Target, "spec.actor") {
+			out = append(out, r.Target)
+		}
+	}
+	return out
 }
 
 // UseCaseChecks reports what a use case's notation breaks.
@@ -122,7 +132,7 @@ func UseCaseChecks(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.
 	}
 }
 
-func levelName(l int) string { return []string{"SUMMARY", "USER", "SUBFUNCTION"}[l] }
+func levelName(l int) string { return []string{"summary", "user", "subfunction"}[l] }
 
 // reaches reports whether use case from includes target, directly or not.
 func reaches(c *types.Checker, from, target *resolve.Node, seen map[*resolve.Node]bool) bool {

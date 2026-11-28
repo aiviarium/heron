@@ -22,13 +22,39 @@ func fieldString(n *resolve.Node, name string) string {
 	return v
 }
 
-// diagnosticSeverity is a diagnostic's severity as written, or "error".
-func diagnosticSeverity(n *resolve.Node) string {
-	if t := annText(n, "severity"); t != "" {
-		t = strings.Trim(t[strings.LastIndex(t, ".")+1:], `"`)
-		return strings.ToLower(t)
+// errorText is a field an error sets, its own or inherited, as its
+// title, or "".
+func (s *Site) errorText(n *resolve.Node, field string) string {
+	f := s.Checker.ErrorField(n, field)
+	if f == nil || f.Value == nil {
+		return ""
 	}
-	return "error"
+	v, _ := resolve.StringValue(f.Value.Syntax())
+	return v
+}
+
+// commandErrors are the errors a command exits with: those it holds and
+// those its @throws names, each followed by the errors that extend it.
+func (s *Site) commandErrors(n *resolve.Node) []*resolve.Node {
+	var out []*resolve.Node
+	seen := map[*resolve.Node]bool{}
+	for _, e := range append(s.childrenOfKind(n, "types.error"), s.annRefs(n, "throws")...) {
+		for _, x := range append([]*resolve.Node{e}, s.Checker.ErrorDescendants(e)...) {
+			if !seen[x] {
+				seen[x] = true
+				out = append(out, x)
+			}
+		}
+	}
+	return out
+}
+
+// errorExit is the @exit an error carries or inherits, or "".
+func (s *Site) errorExit(n *resolve.Node) string {
+	if x := s.Checker.ErrorAnnotated(n, func(x *resolve.Node) bool { return annText(x, "exit") != "" }); x != nil {
+		return annText(x, "exit")
+	}
+	return ""
 }
 
 // messageHTML is a message template with each ‹placeholder› marked and each
@@ -69,10 +95,19 @@ func placeholders(m string) string {
 }
 
 // diagnosticBadges are a diagnostic's code and severity, as text.
-func diagnosticBadges(n *resolve.Node) string {
-	code, _ := argString(kindArgs(n), 0, "id")
-	sev := diagnosticSeverity(n)
+func (s *Site) diagnosticBadges(n *resolve.Node) string {
+	code := s.Checker.ErrorID(n)
+	sev := s.Checker.ErrorSeverity(n)
 	return `<code class="diag-code">` + esc(code) + `</code> <span class="sev sev-` + attr(sev) + `">` + esc(sev) + `</span>`
+}
+
+// renderError writes an error: on a page of its own, as an error of a
+// data model, as a type is written; elsewhere as a diagnostic.
+func renderError(c *Ctx) error {
+	if c.isPage() {
+		return renderType(c)
+	}
+	return renderDiagnostic(c)
 }
 
 // renderDiagnostic writes a diagnostic as one entry of a compact list: its
@@ -83,9 +118,9 @@ func renderDiagnostic(c *Ctx) error {
 	s := c.Site
 	if s.Opts.Lens != nil && s.Opts.Lens.Name == "user" {
 		// The error a person meets: code and message, and the fix.
-		code, _ := argString(kindArgs(n), 0, "id")
+		code := s.Checker.ErrorID(n)
 		c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line"><code class="diag-code">`, esc(code), `</code>`)
-		if m := fieldString(n, "title"); m != "" {
+		if m := s.errorText(n, "title"); m != "" {
 			c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 		}
 		c.W(`</p>`)
@@ -95,8 +130,8 @@ func renderDiagnostic(c *Ctx) error {
 		c.W(`</div>`)
 		return nil
 	}
-	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, diagnosticBadges(n), statusBadge(n))
-	if m := fieldString(n, "title"); m != "" {
+	c.W(`<div class="diag" id="`, attr(Anchor(n)), `"><p class="diag-line">`, s.diagnosticBadges(n), statusBadge(n))
+	if m := s.errorText(n, "title"); m != "" {
 		c.W(` <span class="diag-message">`, messageHTML(m), `</span>`)
 	}
 	if n.Name != "" {
@@ -111,7 +146,7 @@ func renderDiagnostic(c *Ctx) error {
 		meta = append(meta, `<code class="meta-kind">`+esc(k.Name)+`</code>`)
 	}
 	meta = append(meta, s.codeFacts(n)...)
-	if r := fieldString(n, "related"); r != "" {
+	if r := s.errorText(n, "related"); r != "" {
 		meta = append(meta, esc(label("docs.label.related_site"))+` <span class="diag-related">`+messageHTML(r)+`</span>`)
 	}
 	if by := s.reportedBy(n); by != nil {
@@ -143,12 +178,12 @@ func renderDiagnostic(c *Ctx) error {
 // each linked to the section that specifies it.
 func (s *Site) diagnosticsPage(c *Ctx) error {
 	ds := append([]*resolve.Node(nil), s.diagnostics...)
-	code := func(n *resolve.Node) string { v, _ := argString(kindArgs(n), 0, "id"); return v }
+	code := func(n *resolve.Node) string { return s.Checker.ErrorID(n) }
 	sort.SliceStable(ds, func(i, j int) bool {
 		if a, b := code(ds[i]), code(ds[j]); a != b {
 			return a < b
 		}
-		return fieldString(ds[i], "title") < fieldString(ds[j], "title")
+		return s.errorText(ds[i], "title") < s.errorText(ds[j], "title")
 	})
 	// One entry per code: a code with one diagnostic on one line with its
 	// message, a code with more as the code once and each message under
@@ -162,7 +197,7 @@ func (s *Site) diagnosticsPage(c *Ctx) error {
 		groups = append(groups, []*resolve.Node{d})
 	}
 	message := func(d *resolve.Node) string {
-		m := messageHTML(fieldString(d, "title"))
+		m := messageHTML(s.errorText(d, "title"))
 		if s.anchorOf[d] == c.Page {
 			// The entry is the diagnostic's place.
 			return `<span class="diag-message">` + m + `</span>`

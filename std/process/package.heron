@@ -14,7 +14,8 @@ process: package(version = "1.0", requires = ["std/types@1"]) {
   }
 
   /// A process that exited with a non-zero status.
-  ProcessError: type(Error) {
+  ProcessError: error(500) {
+    title = "{message}, exit status {exit}"
     message: String
     exit: Int
   }

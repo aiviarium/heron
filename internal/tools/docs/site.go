@@ -250,18 +250,16 @@ func (s *Site) classify() {
 		switch k := s.kindPath(n); {
 		case k == "spec.term":
 			s.terms = append(s.terms, n)
-		case k == "spec.error":
+		case k == "types.error" && s.inReference(n):
+			s.errors = append(s.errors, n)
+		case k == "types.error":
 			s.diagnostics = append(s.diagnostics, n)
 		case k == "types.api":
 			s.apis = append(s.apis, n)
 		case k == "spec.states":
 			s.lifecycles = append(s.lifecycles, n)
 		case s.isTypeDecl(n):
-			if s.isError(n) {
-				s.errors = append(s.errors, n)
-			} else {
-				s.types = append(s.types, n)
-			}
+			s.types = append(s.types, n)
 			for _, i := range s.Checker.Implements(n) {
 				s.implementors[i] = append(s.implementors[i], n)
 			}
@@ -282,27 +280,12 @@ func (s *Site) isTypeDecl(n *resolve.Node) bool {
 	return false
 }
 
-// isError reports whether a type is an error: it implements Error, directly
-// or through an interface, or carries @status.
-func (s *Site) isError(n *resolve.Node) bool {
-	if annotation(s, n, "status") != nil {
-		return true
-	}
-	seen := map[*resolve.Node]bool{}
-	var walk func(t *resolve.Node) bool
-	walk = func(t *resolve.Node) bool {
-		if t == nil || seen[t] {
-			return false
-		}
-		seen[t] = true
-		for _, i := range s.Checker.Implements(t) {
-			if i.Name == "Error" || walk(i) {
-				return true
-			}
-		}
-		return false
-	}
-	return walk(n)
+// inReference reports whether an error is part of a data model, as an
+// api's errors are, rather than a diagnostic of a section: it stands in no
+// node of a kind, as a type in a model file does, so it gets a page of its
+// own in the reference, beside the types.
+func (s *Site) inReference(n *resolve.Node) bool {
+	return n.Shape == resolve.ShapeDeclared && (n.Parent == nil || n.Parent.Shape == resolve.ShapeRoot || s.Checker.KindOf(n.Parent) == nil)
 }
 
 // pageKinds are the kinds whose nodes get pages of their own at any depth:

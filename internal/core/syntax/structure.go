@@ -370,12 +370,26 @@ func (p *parser) path(strs bool) {
 	p.wrap(m, Path)
 }
 
+// flagLenAt is the length of a flag's name at an offset: an identifier, or
+// a qualified one, as `types.warning`, which is one token.
+func (p *parser) flagLenAt(off int) int {
+	n := p.identLenAt(off)
+	for n > 0 && off+n < len(p.src) && p.src[off+n] == '.' {
+		m := p.identLenAt(off + n + 1)
+		if m == 0 {
+			break
+		}
+		n += 1 + m
+	}
+	return n
+}
+
 // flagsAhead reports whether `<…>` at the cursor is a flag list.
 func (p *parser) flagsAhead() bool {
 	o := p.pos + 1
 	for {
 		o += p.spacesAt(o)
-		n := p.identLenAt(o)
+		n := p.flagLenAt(o)
 		if n == 0 {
 			return false
 		}
@@ -403,7 +417,7 @@ func (p *parser) flags() {
 		if p.peek(0) == '>' {
 			break
 		}
-		if n := p.identLen(); n > 0 {
+		if n := p.flagLenAt(p.pos); n > 0 {
 			p.tok(Ident, n)
 		}
 		p.ws()

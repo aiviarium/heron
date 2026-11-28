@@ -168,7 +168,7 @@ func (s *Site) inOrder(children []*resolve.Node) []*resolve.Node {
 			g = 1
 		case k == "spec.rule" || k == "spec.quality" || k == "spec.guidance" || s.summarized(ch):
 			g = 2
-		case k == "spec.error" || s.isContainer(ch) && s.onlyDiagnostics(ch):
+		case k == "types.error" || s.isContainer(ch) && s.onlyDiagnostics(ch):
 			g = 5
 		case s.isContainer(ch):
 			g = 4
@@ -194,7 +194,7 @@ func (s *Site) gatheredDiagnostic(n *resolve.Node) bool {
 	if !s.errorsGathered() {
 		return false
 	}
-	return s.kindPath(n) == "spec.error" || s.isContainer(n) && s.onlyDiagnostics(n)
+	return s.kindPath(n) == "types.error" || s.isContainer(n) && s.onlyDiagnostics(n)
 }
 
 // onlyDiagnostics reports whether a section holds diagnostics and nothing
@@ -205,7 +205,7 @@ func (s *Site) onlyDiagnostics(n *resolve.Node) bool {
 		if ch.Shape == resolve.ShapeSet || ch.Shape == resolve.ShapeValue || !s.placed(ch) {
 			continue
 		}
-		if s.kindPath(ch) != "spec.error" {
+		if s.kindPath(ch) != "types.error" {
 			return false
 		}
 		any = true

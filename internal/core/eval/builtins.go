@@ -276,8 +276,8 @@ func (m *Machine) jsonNames(t *resolve.Node) map[string]string {
 			return
 		}
 		for _, ch := range n.Children {
-			if ch.Name == "" {
-				continue
+			if ch.Name == "" || ch.Shape == resolve.ShapeSet {
+				continue // an error's title is no member
 			}
 			if _, ok := out[ch.Name]; !ok {
 				out[ch.Name] = jsonnames.Member(ch, t, "")

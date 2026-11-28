@@ -9,7 +9,7 @@ import (
 
 // opSrc is an api with every part an op page shows: parameters in each
 // location, a cross-cutting annotation, errors from the op, its api and
-// an interface's implementors, and streams.
+// the errors that extend one, and streams.
 const opSrc = `import = ["std/schema@1", "std/types@1", "std/http@1", "std/ws@1"]
 
 limits: package(version = "1.0") {
@@ -20,16 +20,19 @@ limits: package(version = "1.0") {
 Refund: type { id: String }
 Event: type { id: String }
 
-StoreError: interface(Error)
+StoreError: error(400) {
+  title = "refused by {store}"
+  store: String
+}
 
-@status(404)
-NotFound: type(StoreError) { message: String }
+NotFound: error(StoreError, 404) {
+  title = "No such {refund} in {store}"
+  refund: String
+}
 
-@status(409)
-Conflict: type(StoreError) { message: String }
+Conflict: error(StoreError, 409) {}
 
-@status(422)
-Invalid: type(Error) { message: String }
+Invalid: error(422) {}
 
 @http(base_path = "/v1")
 @limits.rate_limit(per_minute = 60)
@@ -86,7 +89,8 @@ func TestOpPageParts(t *testing.T) {
 			"Idempotency-Key",          // a header by its name
 			"Rate limit", "per_minute", // the api's cross-cutting annotation
 			"Idempotent", "@idempotent", // the op's, with no arguments
-			`<code class="status err">404</code>`, // an interface's implementors, by status
+			`<code class="status err">400</code>`, // an error and those that extend it, by status
+			`<code class="status err">404</code>`,
 			`<code class="status err">409</code>`,
 			`<code class="status err">422</code>`, // the api's @throws
 			`<code class="status ok">200</code>`,  // the success response
@@ -113,5 +117,38 @@ func TestOpPageParts(t *testing.T) {
 	}
 	if h := page("refunds.note.html"); strings.Contains(h, `id="refunds.note.body"`) {
 		t.Error("a scalar parameter named body is shown as the request body")
+	}
+}
+
+// An error of a data model gets a page in the reference beside the types:
+// its id, its status with its text, the error it extends and its title as
+// facts, and its members with the inherited ones, marked by where they
+// come from.
+func TestErrorPage(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.heron"), []byte(opSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := site(t, filepath.Join(dir, "index.heron"))
+	p := s.PageByFile("NotFound.html")
+	if p == nil {
+		t.Fatal("no page for NotFound")
+	}
+	h, err := s.RenderPage(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`<code class="err-code">NotFound</code>`,
+		`<code class="status-code">404</code> NotFound`,
+		`>StoreError</code></a>`,
+		`No such <span class="ph">‹refund›</span>`,
+		`<code class="fname">refund</code>`,
+		`<code class="fname">store</code>`,
+		`<span class="from">`,
+	} {
+		if !strings.Contains(h, want) {
+			t.Errorf("the error page lacks %q", want)
+		}
 	}
 }

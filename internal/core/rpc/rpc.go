@@ -192,11 +192,10 @@ type EnumValue struct {
 // Error is an error an op throws, with its projections.
 type Error struct {
 	Node   *resolve.Node
-	IsNode bool   // an error node of std/spec rather than a type
-	ID     string // an error node's id
+	ID     string // its id, its name unless it sets one
 	Status string // HTTP, as 404; "" without @status
-	// StatusText is the text shown beside the status: @status's text, or
-	// an error node's id.
+	// StatusText is the text shown beside the status: its status_text, or
+	// its id.
 	StatusText string
 	// The effective codes on each binding: the one @status derives, or the
 	// one an override sets, which the *Explicit fields mark. "" when
@@ -212,9 +211,9 @@ type Error struct {
 	// SparrowSigilAt is its @sigil.
 	SparrowSigil   *SparrowSigil
 	SparrowSigilAt resolve.Site
-	Message        string // the error's message, or an error node's title
+	Message        string // the error's title
 	Fields         []ErrorField
-	Detail         *Message // the error detail message of a type, in the service's package
+	Detail         *Message // the error's own message, in the service's package
 	Throws         resolve.Site
 	FromAPI        bool
 	JSONCodes      resolve.Site
@@ -742,20 +741,7 @@ func (m *Model) buildService(api *resolve.Node) {
 		meth.Request = m.request(pkg, s, meth, p.params)
 		meth.Response = m.response(pkg, s, meth, p.result)
 		meth.Errors = m.errorsOf(meth.Op, pkg)
-		for i := range meth.Errors {
-			e := &meth.Errors[i]
-			if e.GRPC == "" && Own(e.Node) {
-				m.warnf(e.Node, errSite(e), "%s is thrown by %s, a gRPC method, and has neither @status nor @proto.status: it's answered as UNKNOWN", e.Node.Name, meth.Op.Name)
-			}
-		}
 	}
-}
-
-func errSite(e *Error) resolve.Site {
-	if e.Throws.N != nil {
-		return e.Throws
-	}
-	return e.Node.Decl
 }
 
 // opsOf lists an api's ops in the order written.
@@ -926,7 +912,7 @@ func (m *Model) typeMessage(pkg *Package, t Type) *Message {
 	}
 	c := m.r.c
 	kind := project.KindPath(c, d)
-	if kind != "types.type" && kind != "types.union" {
+	if kind != "types.type" && kind != "types.union" && kind != "types.error" {
 		return nil
 	}
 	name := m.messageName(t)
@@ -942,11 +928,7 @@ func (m *Model) typeMessage(pkg *Package, t Type) *Message {
 	if len(t.Args) == 0 {
 		m.typeIn[d] = msg
 	}
-	for _, i := range c.Implements(d) {
-		if i.Name == "Error" && isStd(i) {
-			msg.Error = true
-		}
-	}
+	msg.Error = c.IsError(d)
 	as := m.r.annsOf(d)
 	if a := find(as, "proto", "reserved"); a != nil {
 		for _, e := range argAll(a.a) {
@@ -966,15 +948,9 @@ func (m *Model) typeMessage(pkg *Package, t Type) *Message {
 	var parts []pf
 	if kind == "types.union" {
 		msg.Oneof = Snake(d.Name)
-		for _, v := range d.Children {
-			if v.Decl.N == nil || v.Decl.N.Kind != syntax.Declare {
-				continue
-			}
-			site := v.Decl
-			if d.Body != nil && site.Scope == nil {
-				site.Scope = d.Body
-			}
-			vt := m.r.readType(ast.Declare{N: v.Decl.N}.Type(), site, nil)
+		for _, uv := range c.UnionVariants(d) {
+			v := uv.Node
+			vt := m.r.variantType(d, uv)
 			if vt.Name == "List" || vt.Name == "Set" || vt.Name == "Map" {
 				m.errorf(v.Decl, "proto", "%s has no protobuf form: a list or map can't be a variant of a union", d.Name)
 			}
@@ -990,9 +966,6 @@ func (m *Model) typeMessage(pkg *Package, t Type) *Message {
 		}
 		for _, mem := range m.r.members(src, env) {
 			opt := mem.optional || patch
-			if msg.Error && mem.name == "message" {
-				continue
-			}
 			parts = append(parts, pf{name: mem.name, typ: mem.typ, optional: opt, doc: mem.doc, node: mem.node})
 		}
 	}
@@ -1301,8 +1274,8 @@ func (m *Model) enumOf(pkg *Package, d *resolve.Node) *Enum {
 	return e
 }
 
-// errorsOf reads the errors an op throws, its own first, an interface as
-// each type that implements it, with their projections.
+// errorsOf reads the errors an op throws, its own first, each followed by
+// the errors that extend it, with their projections.
 func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 	c := m.r.c
 	var out []Error
@@ -1313,65 +1286,38 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 			return
 		}
 		seen[t] = true
-		if project.KindPath(c, t) == "types.interface" && len(m.implementor[t]) > 0 {
-			for _, i := range m.implementor[t] {
-				add(i, at, fromAPI)
-			}
+		if !c.IsError(t) {
 			return
 		}
-		e := Error{Node: t, Throws: at, FromAPI: fromAPI}
-		as := m.r.annsOf(t)
-		if a := find(as, "spec", "status"); a != nil {
-			e.Status = strings.TrimSpace(exprString(arg(a.a, 0, "code")))
-			if x := arg(a.a, 1, "text"); x != nil {
-				e.StatusText, _ = resolve.StringValue(x.Syntax())
-			}
+		e := Error{Node: t, Throws: at, FromAPI: fromAPI, ID: c.ErrorID(t), Status: c.ErrorStatus(t), StatusText: c.ErrorStatusText(t)}
+		if ch := c.ErrorField(t, "title"); ch != nil && ch.Value != nil {
+			e.Message, _ = resolve.StringValue(ch.Value.Syntax())
 		}
-		if project.KindPath(c, t) == "spec.error" {
-			e.IsNode = true
-			e.ID, _ = project.ArgString(project.KindArgs(t), 0, "id")
-			if e.StatusText == "" {
-				e.StatusText = e.ID
-			}
-			if ch := t.Child("title"); ch != nil && ch.Value != nil {
-				e.Message, _ = resolve.StringValue(ch.Value.Syntax())
-			}
-			for _, ch := range project.ErrorMembers(c, t) {
-				ty := ""
-				if ch.Decl.N != nil {
-					switch ch.Decl.N.Kind {
-					case syntax.Declare:
-						ty = strings.TrimSpace(ast.Declare{N: ch.Decl.N}.Type().Syntax().Text())
-					case syntax.Value:
-						ty = strings.TrimSpace(ast.Value{N: ch.Decl.N}.Type().Syntax().Text())
-					}
-				}
-				e.Fields = append(e.Fields, ErrorField{Name: ch.Name, Type: ty})
-			}
-		} else {
-			for _, mem := range m.r.members(t, nil) {
-				if mem.name == "message" {
-					if mem.node.Decl.N != nil && mem.node.Decl.N.Kind == syntax.Value {
-						e.Message, _ = resolve.StringValue(ast.Value{N: mem.node.Decl.N}.Expr().Syntax())
-					}
-					continue
-				}
-				e.Fields = append(e.Fields, ErrorField{Name: mem.name, Type: mem.typ.Text})
-			}
-			if pkg != nil {
-				e.Detail = m.typeMessage(pkg, Type{Decl: t, Name: t.Name, Text: t.Name})
-			}
+		for _, mem := range m.r.members(t, nil) {
+			e.Fields = append(e.Fields, ErrorField{Name: mem.name, Type: mem.typ.Text})
 		}
-		for _, a := range as {
-			switch {
-			case a.name == "status" && a.pkg == "proto":
-				e.GRPC, e.GRPCExplicit = variantName(arg(a.a, 0, "code")), true
-			case a.name == "code" && a.pkg == "jsonrpc":
-				e.JSONRPC, e.JSONRPCExplicit = strings.TrimSpace(exprString(arg(a.a, 0, "code"))), true
-				e.JSONCodes = a.site
-			case a.name == "status" && a.pkg == "sparrow":
-				e.Sparrow, e.SparrowExplicit = variantName(arg(a.a, 0, "code")), true
+		if pkg != nil {
+			e.Detail = m.typeMessage(pkg, Type{Decl: t, Name: t.Name, Text: t.Name})
+		}
+		// An override is inherited from the nearest error that sets one.
+		lineage := append([]*resolve.Node{t}, c.ErrorAncestors(t)...)
+		override := func(pkg, name string) *ann {
+			for _, x := range lineage {
+				if a := find(m.r.annsOf(x), pkg, name); a != nil && a.pkg == pkg {
+					return a
+				}
 			}
+			return nil
+		}
+		if a := override("proto", "status"); a != nil {
+			e.GRPC, e.GRPCExplicit = variantName(arg(a.a, 0, "code")), true
+		}
+		if a := override("jsonrpc", "code"); a != nil {
+			e.JSONRPC, e.JSONRPCExplicit = strings.TrimSpace(exprString(arg(a.a, 0, "code"))), true
+			e.JSONCodes = a.site
+		}
+		if a := override("sparrow", "status"); a != nil {
+			e.Sparrow, e.SparrowExplicit = variantName(arg(a.a, 0, "code")), true
 		}
 		if e.GRPC == "" {
 			e.GRPC = GRPCCode(e.Status)
@@ -1382,10 +1328,14 @@ func (m *Model) errorsOf(op *resolve.Node, pkg *Package) []Error {
 		if d, ok := JSONRPCCode(e.Status); ok && e.JSONRPC == "" {
 			e.JSONRPC = strconv.Itoa(d)
 		}
-		if a := find(as, "sparrow", "sigil"); a != nil && a.pkg == "sparrow" {
+		if a := override("sparrow", "sigil"); a != nil {
 			e.SparrowSigilAt = a.site
 		}
 		out = append(out, e)
+		// A thrown error covers the errors that extend it.
+		for _, d := range c.ErrorDescendants(t) {
+			add(d, at, fromAPI)
+		}
 	}
 	for i, holder := range []*resolve.Node{op, op.Parent} {
 		if holder == nil || i == 1 && project.KindPath(c, holder) != "types.api" {
@@ -1492,12 +1442,6 @@ func (m *Model) buildJSON(api *resolve.Node) {
 			for _, e := range jm.Errors {
 				m.errorf(e.Throws, "jsonrpc", "%s is a notification, which is never answered, so it can't throw %s", op.Name, e.Node.Name)
 				break
-			}
-		}
-		for i := range jm.Errors {
-			e := &jm.Errors[i]
-			if e.JSONRPC == "" && Own(e.Node) && !jm.Notification {
-				m.warnf(e.Node, errSite(e), "%s is thrown by %s, a JSON-RPC method, and has neither @status nor @code", e.Node.Name, op.Name)
 			}
 		}
 		m.jsonOps[op] = jm

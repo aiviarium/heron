@@ -121,8 +121,8 @@ func TestConformancePractices(t *testing.T) {
 		}
 		return string(b)
 	}
-	spec := strings.Replace(read("../../../examples/shop-spec/index.heron"), "  /// The parts of the system", `  helper: actor(role = ActorRole.AGENT) {{ An agent that builds the shop. }}
-  ledger: actor(role = ActorRole.SYSTEM) {{ The books. }}
+	spec := strings.Replace(read("../../../examples/shop-spec/index.heron"), "  /// The parts of the system", `  helper: actor<agent> {{ An agent that builds the shop. }}
+  ledger: actor<system> {{ The books. }}
 
   conduct: section {
     tidy_carts: rule(buyer) {

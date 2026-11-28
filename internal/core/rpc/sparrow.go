@@ -585,9 +585,7 @@ func (m *Model) buildSparrow(api *resolve.Node) {
 				e.Sparrow = ""
 				e.SparrowSigil = f.errorSigil(m, e)
 			}
-			if !e.IsNode {
-				m.sparrowRef(f, Type{Decl: e.Node, Name: e.Node.Name, Text: e.Node.Name})
-			}
+			m.sparrowRef(f, Type{Decl: e.Node, Name: e.Node.Name, Text: e.Node.Name})
 		}
 	}
 	for _, p := range todo {
@@ -844,7 +842,7 @@ func (m *Model) sparrowStruct(f *SparrowFacet, t Type) *SparrowType {
 	}
 	c := m.r.c
 	kind := project.KindPath(c, d)
-	if kind != "types.type" && kind != "types.union" {
+	if kind != "types.type" && kind != "types.union" && kind != "types.error" {
 		return nil
 	}
 	name := m.messageName(t)
@@ -861,11 +859,7 @@ func (m *Model) sparrowStruct(f *SparrowFacet, t Type) *SparrowType {
 	if Own(d) {
 		m.typeID(st, d, len(t.Args) > 0)
 	}
-	for _, i := range c.Implements(d) {
-		if i.Name == "Error" && isStd(i) {
-			st.Error = true
-		}
-	}
+	st.Error = c.IsError(d)
 	as := m.r.annsOf(d)
 	reserved := map[int64]bool{}
 	if a := find(as, "sparrow", "reserved"); a != nil {
@@ -885,15 +879,8 @@ func (m *Model) sparrowStruct(f *SparrowFacet, t Type) *SparrowType {
 	var parts []part
 	if kind == "types.union" {
 		st.Kind = schema.KindUnion
-		for _, v := range d.Children {
-			if v.Decl.N == nil || v.Decl.N.Kind != syntax.Declare {
-				continue
-			}
-			site := v.Decl
-			if d.Body != nil && site.Scope == nil {
-				site.Scope = d.Body
-			}
-			parts = append(parts, part{name: v.Name, typ: m.r.readType(ast.Declare{N: v.Decl.N}.Type(), site, nil), doc: DocOf(v), node: v})
+		for _, uv := range c.UnionVariants(d) {
+			parts = append(parts, part{name: uv.Node.Name, typ: m.r.variantType(d, uv), doc: DocOf(uv.Node), node: uv.Node})
 		}
 	} else {
 		if a := find(as, "sparrow", "sparse"); a != nil {
@@ -907,10 +894,6 @@ func (m *Model) sparrowStruct(f *SparrowFacet, t Type) *SparrowType {
 			env = m.r.envFor(t.Args[0])
 		}
 		for _, mem := range m.r.members(src, env) {
-			// An error's message travels in the Error message itself.
-			if st.Error && mem.name == "message" {
-				continue
-			}
 			parts = append(parts, part{name: mem.name, typ: mem.typ, optional: mem.optional || patch, doc: mem.doc, node: mem.node})
 		}
 	}

@@ -71,8 +71,8 @@ func TestErrors(t *testing.T) {
 		{"import = [\"std/types@1\"]\nR: type {\n  n: Int = \"x\"\n}\n", "expected Int, got a string"},
 		{"import = [\"std/doc@1\"]\nx: section<lage>\n", "unknown flag lage"},
 		{"import = [\"std/doc@1\"]\nx: sektion\n", "unknown kind or type sektion; did you mean section?"},
-		{"import = [\"std/doc@1\"]\nx: actor(rol = PERSON)\n", "kind actor takes no argument rol; did you mean role?"},
-		{"import = [\"std/doc@1\"]\nx: actor(role = \"robot\")\n", `"robot" is not a value of ActorRole`},
+		{"import = [\"std/doc@1\"]\nx: abbr(titel = \"x\")\n", "kind abbr takes no argument titel; did you mean title?"},
+		{"import = [\"std/json@1\", \"std/types@1\"]\n@keys(\"snake\")\nR: type {}\n", `"snake" is not a value of Case`},
 		{"import = [\"std/doc@1\"]\nx: abbr\n", "kind abbr needs the argument title"},
 		{"import = [\"std/doc@1\"]\n@displey(\"X\")\nx: section\n", "unknown annotation @displey"},
 		{"import = [\"std/doc@1\"]\nx: section {\n  | A [link](#nowhere).\n}\n", "the link to #nowhere doesn't resolve"},
@@ -217,7 +217,7 @@ func TestGenericsAndPatch(t *testing.T) {
 // An api holds ops; an op takes prose, its params and named examples; an
 // example sets the op's params and states one outcome.
 func TestApisAndOps(t *testing.T) {
-	base := "import = [\"std/types@1\"]\nThing: type { id: String }\nGone: type(Error) { message: String }\n"
+	base := "import = [\"std/types@1\"]\nThing: type { id: String }\nGone: error(404) { title = \"gone\" }\n"
 	valid := base + `
 @throws(Gone)
 store: api {
@@ -273,8 +273,8 @@ func TestSpecKinds(t *testing.T) {
 		"d: decision<accepted> {\n  choice =| x\n}\n":                                                     "unknown kind or type decision",
 		"q: constraint(reason = \"x\") {\n  must {{ a }}\n  should {{ b }}\n}\n":                          "constraint accepts at most 1 strength node",
 		"c: scenario {\n  when {{ a }}\n  when {{ b }}\n}\n":                                              "scenario accepts at most 1 when",
-		"a: actor(role = ActorRole.ROBOT) {{ x }}\n":                                                      "ActorRole has no member ROBOT",
-		"s: persona(plays = nobody) {\n  goals =| w\n}\n":                                                 "unknown name nobody",
+		"a: actor<robot> {{ x }}\n":                                                                       "unknown flag robot",
+		"s: persona(nobody) {\n  goals =| w\n}\n":                                                         "unknown name nobody",
 		"p: project(path = \".\") {\n  depends_on = [nobody]\n}\n":                                        "unknown name nobody",
 		"p: project(path = \".\") {\n  owner = \"x\"\n}\n":                                                "p (a project) has no field owner",
 		"p: project(path = \".\") {\n  t: task do {\n    log(\"x\")\n  }\n}\n":                            "",

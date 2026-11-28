@@ -125,23 +125,19 @@ kite: package(version = "1.4.0") {
     @lens(developer)
     | Spec writers: every rule here names the syncer, so the conformance report groups them.
 
-    @status(422)
-    unreadable: error("unreadable") {
+    unreadable: error(422) {
       title = "can't read {file}"
       file: String
       | A note Kite can't read, such as one without read permission.
     }
 
-    @status(422)
-    unlistable: error("unreadable") {
+    unlistable: error(422, id = "unreadable") {
       title = "can't list <{folder}>"
       folder: String
       | A folder Kite can't list, so none of its notes sync.
     }
 
-    @status(422)
-    @severity(warning)
-    store_down: error("store-unreachable") {
+    store_down: error<warning>(422, id = "store-unreachable") {
       title = "the store at {address} doesn't answer"
       address: String
       | The store didn't answer within the timeout; Kite retries at the next interval.
@@ -160,8 +156,8 @@ kite: package(version = "1.4.0") {
   }
 
   /// No note has the id.
-  @status(404)
-  NoteNotFound: type(Error) {
+  NoteNotFound: error(404) {
+    title = "No note has the id {id}."
     id: String
   }
 
@@ -191,8 +187,7 @@ kite: package(version = "1.4.0") {
     }
   }
 
-  @status(423)
-  note_locked: error("store.NOTE_LOCKED") {
+  note_locked: error(423, id = "store.NOTE_LOCKED") {
     title = "{id} is being written by another sync"
     id: String
     | Reported as [gone_notes] says.
@@ -216,8 +211,7 @@ kite: package(version = "1.4.0") {
 
       | Exits 0 when the sync finished.
 
-      @status(422)
-      exit_1: error("kite sync exit 1") {
+      exit_1: error(422, id = "kite sync exit 1") {
         title = "a note couldn't be copied"
         | Reported as [cli.sync.exits_nonzero] says.
       }
@@ -228,18 +222,20 @@ kite: package(version = "1.4.0") {
     }
   }
 
-  sync_notes: usecase(actor = kite.system.writer, success = "The store holds every note.") {{
-    A writer syncs their notes.
+  sync_notes: usecase(kite.system.writer) {
+    | A writer syncs their notes.
+    |
+    | 1. [kite.system.writer] runs `kite sync`.
+    | 2. [kite.system.syncer] copies the changed notes.
+    | 3. [kite.system.syncer] logs what it copied.
+    |
+    | - 2a. The store doesn't answer:
+    |   [kite.system.syncer] retries at the next interval. Back to 2.
+    | - 2b. A note can't be read:
+    |   [kite.system.syncer] skips it and reports it. Fails.
 
-    1. [kite.system.writer] runs `kite sync`.
-    2. [kite.system.syncer] copies the changed notes.
-    3. [kite.system.syncer] logs what it copied.
-
-    - 2a. The store doesn't answer:
-      [kite.system.syncer] retries at the next interval. Back to 2.
-    - 2b. A note can't be read:
-      [kite.system.syncer] skips it and reports it. Fails.
-  }}
+    success {{ The store holds every note. }}
+  }
 }
 
 docs {

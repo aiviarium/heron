@@ -595,16 +595,9 @@ func (c *Ctx) rpcErrors(op *resolve.Node, errs []rpc.Error, b string, first bool
 				c.W(`<code class="status err" title="`, attr(label("docs.label.sigil")), `">`, esc(e.SparrowSigil.Name), `</code> <code class="status-code">`, strconv.FormatUint(e.SparrowSigil.ID, 10), `</code>`)
 			}
 		}
-		if e.IsNode {
-			c.W(s.linkHTML(e.Node, esc(displayName(s, e.Node)), ""), ` <code class="err-code">`, esc(e.ID), `</code></div>`)
-			if title := fieldString(e.Node, "title"); title != "" {
-				c.W(`<p class="err-title">`, messageHTML(title), `</p>`)
-			}
-		} else {
-			c.W(s.linkHTML(e.Node, `<code class="t">`+esc(e.Node.Name)+`</code>`, ""), `</div>`)
-			if e.Message != "" {
-				c.W(`<p class="err-title">`, esc(e.Message), `</p>`)
-			}
+		c.W(s.linkHTML(e.Node, esc(displayName(s, e.Node)), ""), ` <code class="err-code">`, esc(e.ID), `</code></div>`)
+		if e.Message != "" {
+			c.W(`<p class="err-title">`, messageHTML(e.Message), `</p>`)
 		}
 		if len(e.Fields) > 0 {
 			var fs []string
@@ -615,10 +608,6 @@ func (c *Ctx) rpcErrors(op *resolve.Node, errs []rpc.Error, b string, first bool
 			switch {
 			case b == bindJSONRPC:
 				where = label("docs.label.error_data")
-			case b == bindSparrow:
-				where = label("docs.label.error_detail")
-			case e.IsNode:
-				where = label("docs.label.error_info")
 			default:
 				where = label("docs.label.error_detail")
 			}
@@ -1278,7 +1267,7 @@ func (c *Ctx) rpcAside(o *opInfo, b string, bs []string) string {
 					eo.set("code", code)
 					eo.set("message", errorMessage(e, ex.thrown))
 					data := errorFields(ex.thrown)
-					if e != nil && e.IsNode {
+					if e != nil {
 						d := &omap{}
 						d.set("id", e.ID)
 						for _, k := range data.keys {
@@ -1784,7 +1773,7 @@ func connectError(me *rpc.Method, e *rpc.Error, thrown any, code string) *omap {
 }
 
 // errorDetail is the one detail an error travels with: its own message,
-// or a google.rpc.ErrorInfo for an error node.
+// its members, inherited ones included.
 func errorDetail(me *rpc.Method, e *rpc.Error, thrown any, grpc bool) *omap {
 	if e == nil {
 		return nil
@@ -1792,18 +1781,7 @@ func errorDetail(me *rpc.Method, e *rpc.Error, thrown any, grpc bool) *omap {
 	fields := errorFields(thrown)
 	typ := ""
 	var value any = fields
-	if e.IsNode {
-		typ = "google.rpc.ErrorInfo"
-		info := &omap{}
-		info.set("reason", e.ID)
-		info.set("domain", me.Service.Package)
-		md := &omap{}
-		for _, k := range fields.keys {
-			md.set(k, scalar(fields.vals[k]))
-		}
-		info.set("metadata", md)
-		value = info
-	} else if e.Detail != nil {
+	if e.Detail != nil {
 		typ = e.Detail.FullName()
 		value = protoMessage(e.Detail, fields)
 	}
