@@ -67,6 +67,11 @@ language_core_format: section {
 
   proves(heron.language.core_format.nodes.creating.arguments) {
     verify("internal/core/types/types_test.go", test = "TestErrors")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestConstructorReferences")
+  }
+
+  proves(heron.language.core_format.nodes.creating.optional_before_references) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestConstructorReferences")
   }
 
   proves(heron.language.core_format.nodes.creating.argument_errors) {

@@ -29,6 +29,11 @@ language_schemas: section {
     verify("internal/core/types/types_test.go", test = "TestErrors")
   }
 
+  proves(heron.language.schemas.kinds.declaring.references_kinds) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestCustomReferenceKinds")
+    verify("internal/core/types/elements_test.go", test = "TestElementVariadicAttribute")
+  }
+
   proves(heron.language.schemas.kinds.declaring.heading_kind) {
     verify("internal/core/resolve/resolve_test.go", test = "TestProseFileHeadings")
   }

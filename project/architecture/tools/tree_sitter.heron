@@ -1,6 +1,5 @@
 @display("Tree-sitter grammar")
-@realizes(heron.system.editor_grammar)
-tree_sitter: component("grammar/tree-sitter-heron", lang = "js") {
+tree_sitter: component("grammar/tree-sitter-heron", heron.system.editor_grammar, lang = "js") {
   | The editor grammar: a tree-sitter grammar kept next to the Go parser and tested against
   | the same fixtures. Editors get [static highlighting](#heron.language.schemas.highlighting.static_highlighting), folding and structural selection
   | from it without starting the binary; everything semantic comes from [the language server](#architecture.tools.lsp).

@@ -1,5 +1,4 @@
-@realizes(heron.system.parser, heron.system.checker)
-fixtures: component("internal/core/fixtures", lang = "go") {
+fixtures: component("internal/core/fixtures", heron.system.parser, heron.system.checker, lang = "go") {
   | Reads the parser and checker fixtures from the spec package: every fenced code block of
   | an `example` node, keyed by the node's path. The spec is their one source; nothing is
   | copied into this repository.

@@ -2,6 +2,7 @@ package docs
 
 import (
 	"fmt"
+	"github.com/aiviarium/heron/internal/core/project"
 	"os"
 	"regexp"
 	"sort"
@@ -881,7 +882,7 @@ func (e *agentExport) subject(n *resolve.Node) string {
 	if by := s.ruleBy(n); by != nil {
 		return "the " + subjectWords(s, by)
 	}
-	for _, t := range s.targets(n) {
+	for _, t := range s.specLinks()[n]["hard"] {
 		if s.isTypeDecl(t) {
 			w := kindWords(t.Name)
 			if strings.ContainsRune("aeiou", rune(w[0])) {
@@ -908,14 +909,13 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 	if ap := s.childOfKind(n, "spec.applies"); ap != nil {
 		ls = append(ls, "applies: "+s.inlineMD(ap))
 	}
-	for _, a := range []string{"reason", "rationale", "measure"} {
-		v, ok := argString(kindArgs(n), -1, a)
-		if a == "rationale" {
-			v, ok = annString(n, a)
-		}
-		if ok && v != "" {
+	for _, a := range []string{"reason", "measure"} {
+		if v, ok := argString(kindArgs(n), -1, a); ok && v != "" {
 			ls = append(ls, a+": "+v)
 		}
+	}
+	if r := project.Rationale(s.Checker, n); r != nil {
+		ls = append(ls, "rationale: "+s.inlineMD(r))
 	}
 	for _, ch := range n.Children {
 		k := s.kindPath(ch)
@@ -928,12 +928,12 @@ func (e *agentExport) requirement(n *resolve.Node) string {
 	if by := s.ruleBy(n); by != nil {
 		refs = append(refs, "by "+s.mdLink(by, stableID(by)))
 	}
-	if ts := s.targets(n); len(ts) > 0 {
-		refs = append(refs, "targets "+e.links(ts))
-	}
-	for _, a := range []string{"serves", "derives", "relies"} {
-		if ts := s.annRefs(n, a); len(ts) > 0 {
-			refs = append(refs, a+" "+e.links(ts))
+	for _, l := range []struct {
+		words string
+		ts    []*resolve.Node
+	}{{"serves", project.Served(s.Checker, n)}, {"relies on", project.ReliedOn(s.Checker, n)}, {"asked by", project.AskedBy(s.Checker, n)}} {
+		if len(l.ts) > 0 {
+			refs = append(refs, l.words+" "+e.links(l.ts))
 		}
 	}
 	if len(refs) > 0 {
@@ -974,11 +974,11 @@ func (e *agentExport) scenario(n *resolve.Node) string {
 			ls = append(ls, strings.TrimPrefix(k, "spec.")+": "+s.inlineMD(ch))
 		}
 	}
-	if t := s.annRef(n, "illustrates"); t != nil {
+	if t := project.Described(s.Checker, n); t != nil {
 		ls = append(ls, "illustrates "+s.mdLink(t, stableID(t)))
 	}
-	if ts := s.annRefs(n, "serves"); len(ts) > 0 {
-		ls = append(ls, "serves "+e.links(ts))
+	if ts := project.ReferenceTargets(s.Checker, n, "spec.quality"); len(ts) > 0 {
+		ls = append(ls, "measures "+e.links(ts))
 	}
 	out := lines(ls...)
 	var rest []string
@@ -1006,8 +1006,11 @@ func (e *agentExport) usecase(n *resolve.Node) string {
 		level = variantName(x)
 	}
 	facts = append(facts, "level "+level)
-	if ts := s.annRefs(n, "serves"); len(ts) > 0 {
+	if ts := project.Served(s.Checker, n); len(ts) > 0 {
 		facts = append(facts, "serves "+e.links(ts))
+	}
+	if ts := project.ReliedOn(s.Checker, n); len(ts) > 0 {
+		facts = append(facts, "relies on "+e.links(ts))
 	}
 	ls := []string{strings.Join(facts, " · ")}
 	for _, a := range []string{"success", "minimal"} {
@@ -1425,7 +1428,7 @@ func (e *agentExport) op(n *resolve.Node) string {
 		ls = append(ls, strings.Join(f, " · "))
 	}
 	if len(o.realizes) > 0 {
-		ls = append(ls, "realizes "+e.links(o.realizes))
+		ls = append(ls, "carries out "+e.links(o.realizes))
 	}
 	if len(o.performs) > 0 {
 		ls = append(ls, "performs "+e.links(o.performs))
@@ -1570,20 +1573,11 @@ func (e *agentExport) valueMD(x ast.Expr, site resolve.Site) string {
 	return "`" + strings.Join(strings.Fields(x.Syntax().Text()), " ") + "`"
 }
 
-var derivedKeys = []struct{ key, words string }{
-	{"realized_by", "realized by"}, {"reported_as", "reported as"}, {"illustrated_by", "illustrated by"}, {"served_by", "served by"},
-	{"refined_by", "refined by"}, {"relied_on_by", "relied on by"}, {"derived_by", "derived by"},
-}
-
 // derived writes a node's derived lists, each marked as derived.
 func (e *agentExport) derived(n *resolve.Node) string {
-	m := e.s.specLinks()[n]
-	if len(m) == 0 {
-		return ""
-	}
 	var ls []string
-	for _, k := range derivedKeys {
-		ns := append([]*resolve.Node(nil), m[k.key]...)
+	for _, g := range e.s.backlinkGroups(n) {
+		ns := append([]*resolve.Node(nil), g.nodes...)
 		sort.SliceStable(ns, func(i, j int) bool { return stableID(ns[i]) < stableID(ns[j]) })
 		var keep []*resolve.Node
 		for _, x := range ns {
@@ -1592,7 +1586,7 @@ func (e *agentExport) derived(n *resolve.Node) string {
 			}
 		}
 		if len(keep) > 0 {
-			ls = append(ls, k.words+" (derived): "+e.links(keep))
+			ls = append(ls, g.label+" (derived): "+e.links(keep))
 		}
 	}
 	return lines(ls...)
@@ -1728,7 +1722,7 @@ func (e *agentExport) index(files []AgentFile) []byte {
 - Every node has a heading of its kind and its full id, as ` + "`### rule language.apis.grpc.numbering.unique_numbers`" + `. An id is the node's path in the tree, dots between its scopes; it's stable, so search for it to find the node.
 - A requirement opens with its strength: must, mustNot, should, shouldNot or may, as RFC 2119 means them. Its conditions read in the order where, while, when, if; ` + "`then`" + ` says what follows, and ` + "`instead`" + ` what to do in its place. Its last line links who it binds (by), what it's about (targets) and the goals it serves.
 - A link leads to a file and to the id of the node, as ` + "`[x](file.md#id)`" + `. A name followed by an id in code isn't in these files.
-- Lists marked (derived), such as realized by and illustrated by, are worked out from links written on other nodes, never written on this one.
+- Lists marked (derived), such as related and illustrated by, are worked out from references written on other nodes, never written on this one.
 - Sizes are approximate tokens: a file's bytes over four.
 `)
 	b.WriteString("\n## Areas\n\nThe top areas of the tree. Each area's file ends with the map of the files below it, so any file is two or three links from here.\n\n")

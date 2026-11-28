@@ -1,5 +1,4 @@
-@realizes(heron.system.checker)
-check: component("internal/core/check", lang = "go") {
+check: component("internal/core/check", heron.system.checker, lang = "go") {
   | Runs the stages of `heron check` over an [entry point](#heron.language.core_format.files.entry_point), parse, resolve and type-check,
   | in a session that keeps what stays valid between checks, so a watch loop or the
   | language server redoes only what an edit touches. It also runs the design's fixtures

@@ -54,16 +54,14 @@ pet_lifecycle: states(Pet.status) {
 
 fast_orders: quality(measure = "Orders answer within 200 ms at the 99th percentile.") {{ Placing an order feels instant. }}
 
-@serves(fast_orders)
-order_speed: scenario {
+order_speed: scenario(fast_orders) {
   stimulus =| a customer places an order
   environment =| normal load
   response =| the order is answered
   measure =| within 200 ms at the 99th percentile
 }
 
-@targets(store.place_order)
 guidance {{
-  Lock the pet's row while placing the order; two orders for the same pet
+  Lock the pet's row while [placing the order](#store.place_order); two orders for the same pet
   arrive together more often than you'd think.
 }}

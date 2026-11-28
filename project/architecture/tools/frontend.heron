@@ -2,8 +2,7 @@ frontend: section {
   | The pnpm workspace under `web/`, one component each: TypeScript with Solid 2, built
   | with Vite around one shared component package.
 
-  @realizes(heron.system.editor, heron.system.docs_generator)
-  tokens: component("web/tokens", lang = "ts") {
+  tokens: component("web/tokens", heron.system.editor, heron.system.docs_generator, lang = "ts") {
     | The design tokens, declared once in `tokens.json` and generated to CSS, TS and Go, as
     | [the design system](#heron.tools.frontend.design_system) says.
 
@@ -18,8 +17,7 @@ frontend: section {
     }
   }
 
-  @realizes(heron.system.editor, heron.system.docs_generator)
-  strings: component("web/strings", lang = "ts") {
+  strings: component("web/strings", heron.system.editor, heron.system.docs_generator, lang = "ts") {
     | The catalogue of every string the tools show that doesn't come from a spec, in
     | `strings.json`, keyed `<tool>.<group>.<name>`: the docs renderer reads `docs.*`, its
     | islands `docs.island.*` through `data.js`, and the app `app.*`. Go reads it through the
@@ -33,24 +31,21 @@ frontend: section {
     }
   }
 
-  @realizes(heron.system.editor, heron.system.docs_generator)
-  components: component("web/components", lang = "ts") {
+  components: component("web/components", heron.system.editor, heron.system.docs_generator, lang = "ts") {
     | The shared components the app and the docs' islands compose from the [UI SDK](#heron.tools.frontend.design_system.ui_sdk): buttons, icon
     | buttons, keys, the file tree, lists, tabs and the palette, styled from the tokens.
 
     uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings]
   }
 
-  @realizes(heron.system.editor)
-  editor_package: component("web/editor", lang = "ts") {
+  editor_package: component("web/editor", heron.system.editor, lang = "ts") {
     | Monaco set up for Heron, the language client over the `/lsp` socket, the models of the
     | open files, the language features and the preview, as [the code editor](#heron.tools.frontend.editor) specifies.
 
     uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings, architecture.tools.frontend.components]
   }
 
-  @realizes(heron.system.editor)
-  shell_package: component("web/shell", lang = "ts") {
+  shell_package: component("web/shell", heron.system.editor, lang = "ts") {
     | The app `heron serve` embeds: the [editor screen](#heron.tools.frontend.screens.editor_screen), its state, the generated API client
     | and the [extension points](#heron.tools.frontend.shell) later [units](#delivery.units) add their views through.
 
@@ -65,8 +60,7 @@ frontend: section {
     }
   }
 
-  @realizes(heron.system.docs_generator)
-  docs_islands: component("web/docs", lang = "ts") {
+  docs_islands: component("web/docs", heron.system.docs_generator, lang = "ts") {
     | The docs' built-in theme and [islands](#heron.tools.docs.islands), built once into `internal/tools/docs/assets` and embedded.
 
     uses = [architecture.tools.frontend.tokens, architecture.tools.frontend.strings, architecture.tools.frontend.components]

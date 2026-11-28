@@ -2,8 +2,7 @@
 // for the renderer tests.
 import = ["std/doc@1", "std/grammar@1", "std/project@1"]
 
-@source("authors")
-trust: goal(measure = "Nine trees in ten check clean on the first CI run.") {{ Authors ship a spec their team trusts. }}
+trust: goal(people.writer, measure = "Nine trees in ten check clean on the first CI run.") {{ Authors ship a spec their team trusts. }}
 
 people: section {
   writer: actor {{ Someone who writes Heron. }}
@@ -42,8 +41,7 @@ editing: section {
     | Reported as [editing.check_tree.2a] says.
   }
 
-  @illustrates(guarantees.parse_all)
-  saved: scenario {
+  saved: scenario(guarantees.parse_all) {
     given {{ a file with a type error }}
     given {{ the language server running }}
     when {{ the writer saves the file }}
@@ -51,8 +49,7 @@ editing: section {
   }
 }
 
-@serves(trust)
-see_errors: story<planned>(adds = [guarantees.parse_all]) {
+see_errors: story<planned>(trust, adds = [guarantees.parse_all]) {
   done {{ The team has tried it. }}
 }
 
@@ -98,8 +95,7 @@ cli: section {
 }
 
 lang: section {
-  @source("grammar/heron.ungram")
-  core: grammar(notation = "ebnf") {
+  core: grammar(notation = "ebnf", source = "grammar/heron.ungram") {
     start = lang.core.file
     /// The implicit root of a file.
     file: production {{ member* }}
@@ -111,15 +107,12 @@ lang: section {
 }
 
 guarantees: section {
-  @by(checker)
-  @serves(trust)
-  @rationale("A file left unread hides its errors.")
-  parse_all: rule {
+  parse_all: rule(checker, trust) {
     must {{ read every file }}
+    rationale {{ A file left unread hides its errors. }}
   }
 
-  @by(people.writer)
-  writer_saves: rule {
+  writer_saves: rule(people.writer) {
     should {{ save before running a task }}
   }
 }

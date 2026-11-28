@@ -111,13 +111,6 @@ func OwnRefs(c *types.Checker, t *resolve.Tree, n *resolve.Node) []Ref {
 		}
 	}
 	for _, a := range n.Annotations {
-		if an := (ast.Annotation{N: a.N}); an.N != nil {
-			if p := an.Path().N; p != nil {
-				if segs := resolve.PathSegs(p); len(segs) == 1 && segs[0] == "realizes" {
-					continue // a link up, checked by its own rule
-				}
-			}
-		}
 		add(a.File, a.Scope, a.N, false)
 	}
 	for _, p := range n.Prose {
@@ -131,7 +124,7 @@ func OwnRefs(c *types.Checker, t *resolve.Tree, n *resolve.Node) []Ref {
 			add(ch.ValueSite.File, ch.ValueSite.Scope, ch.Value.Syntax(), false)
 		}
 		// A rule's strength and conditions are the rule's own text.
-		if ch.Name == "" && ch.Shape == resolve.ShapeAnon && LayerOf(c, ch) == None {
+		if ch.Name == "" && (ch.Shape == resolve.ShapeAnon || ch.Shape == resolve.ShapeElement) && LayerOf(c, ch) == None {
 			for _, r := range OwnRefs(c, t, ch) {
 				if !seen[r.Site.N] {
 					seen[r.Site.N] = true
@@ -176,9 +169,15 @@ func KindName(c *types.Checker, n *resolve.Node) string {
 // nodes.
 func Check(t *resolve.Tree, c *types.Checker) diag.List {
 	var ds diag.List
+	graph := map[*resolve.Node][]Ref{}
+	var order []*resolve.Node
 	project.Own(t, func(n *resolve.Node) bool {
 		if l := LayerOf(c, n); l != None {
+			order = append(order, n)
 			for _, r := range OwnRefs(c, t, n) {
+				if r.Target != n && LayerOf(c, r.Target) != None && !Is(c, r.Target, "doc.term") {
+					graph[n] = append(graph[n], r)
+				}
 				tl := LayerOf(c, r.Target)
 				if tl > l {
 					if os.Getenv("HERON_LAYER_DEBUG") != "" {
@@ -193,7 +192,49 @@ func Check(t *resolve.Tree, c *types.Checker) diag.List {
 		shapes(t, c, n, &ds)
 		return true
 	})
+	cycles(graph, order, &ds)
 	return ds
+}
+
+// cycles reports each cycle of the reference graph: the references in the
+// signatures and the prose of the layered nodes, leaving out the terms
+// they mention, which are vocabulary. Every reference points to the same
+// layer or up, so the graph is acyclic once no cycle stays in a layer.
+func cycles(graph map[*resolve.Node][]Ref, order []*resolve.Node, ds *diag.List) {
+	const (
+		white = iota
+		grey
+		black
+	)
+	color := map[*resolve.Node]int{}
+	var stack []*resolve.Node
+	var visit func(n *resolve.Node)
+	visit = func(n *resolve.Node) {
+		color[n] = grey
+		stack = append(stack, n)
+		for _, r := range graph[n] {
+			switch color[r.Target] {
+			case white:
+				visit(r.Target)
+			case grey:
+				var names []string
+				for i := len(stack) - 1; i >= 0; i-- {
+					names = append([]string{stack[i].Name}, names...)
+					if stack[i] == r.Target {
+						break
+					}
+				}
+				errAt(ds, r.Site, "cycle", "%s references itself through %s", r.Target.Name, strings.Join(append(names, r.Target.Name), " → "))
+			}
+		}
+		stack = stack[:len(stack)-1]
+		color[n] = black
+	}
+	for _, n := range order {
+		if color[n] == white {
+			visit(n)
+		}
+	}
 }
 
 func displayPath(n *resolve.Node) string {

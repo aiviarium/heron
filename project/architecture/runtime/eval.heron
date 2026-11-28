@@ -1,5 +1,4 @@
-@realizes(heron.system.interpreter)
-eval: component("internal/core/eval", lang = "go") {
+eval: component("internal/core/eval", heron.system.interpreter, lang = "go") {
   | The interpreter for the `do` code of funcs, macros, tasks and [hooks](#heron.language.scripting.code.hook). It does no I/O of
   | its own: processes, files, the environment and the clock come in through capabilities,
   | and [foreign funcs](#heron.language.interop.declaring.foreign_func) and transports through the registry, so a run is replayable from what
@@ -153,8 +152,7 @@ eval: component("internal/core/eval", lang = "go") {
   verify("scripts/e2e-tasks.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for tasks: `heron run` runs a task with params from the command line, asks for missing ones, honours `@needs` and `@undo`, and records the run. }}
 }
 
-@realizes(heron.system.interpreter, heron.system.extension_host)
-eval_host: component("internal/core/eval/host", lang = "go") {
+eval_host: component("internal/core/eval/host", heron.system.interpreter, heron.system.extension_host, lang = "go") {
   | Supplies `eval`'s capabilities from the operating system: processes through `os/exec`,
   | files through `os`, the process environment and the wall clock. `heron run` and the
   | language server's task runs use it; tests use fakes instead.

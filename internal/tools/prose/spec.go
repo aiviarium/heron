@@ -120,7 +120,7 @@ func collect(t *resolve.Tree, c *types.Checker) *specFacts {
 		isQuality[q] = true
 	}
 	for _, r := range rules {
-		for _, g := range project.AnnotationRefs(c, r, "serves") {
+		for _, g := range project.Served(c, r) {
 			if isQuality[g] {
 				f.measured[r] = true
 			}

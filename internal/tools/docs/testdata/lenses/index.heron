@@ -86,24 +86,18 @@ kite: package(version = "1.4.0") {
 
     conflict: term {{ A note changed in two places since the last sync. }}
 
-    @by(kite.system.syncer)
-    @targets(sync)
-    copies_changed: rule {
+    copies_changed: rule(kite.system.syncer) {
       must {{ copy every note whose content changed since the last sync }}
       then {{ a note that only moved is renamed in the store, not copied again }}
     }
 
-    @by(kite.system.syncer)
-    @targets(conflict)
-    keeps_both: rule {
+    keeps_both: rule(kite.system.syncer) {
       when {{ a note changed in the folder and in the store }}
       must {{ keep both copies, the store's under a `.conflict` suffix }}
       while {{ the two copies differ }}
     }
 
-    @by(kite.system.syncer)
-    @targets(sync)
-    logs_each: rule {
+    logs_each: rule(kite.system.syncer) {
       must {{ append a line to the sync log for every note it copies }}
       then {{ the log grows with each sync, so it's rotated once it reaches 1 MB }}
     }
@@ -114,9 +108,7 @@ kite: package(version = "1.4.0") {
       backoff: section {
         | How long a sync waits between tries.
 
-        @by(kite.system.syncer)
-        @targets(backoff)
-        backoff_doubles: rule {
+        backoff_doubles: rule(kite.system.syncer) {
           must {{ double the wait after each failed try, up to five minutes }}
         }
 
@@ -124,9 +116,7 @@ kite: package(version = "1.4.0") {
       }
     }
 
-    @by(kite.system.syncer)
-    @targets(sync)
-    no_deletes: rule {
+    no_deletes: rule(kite.system.syncer) {
       mustNot {{ delete a note from the store }}
       instead {{ move it to the store's `trash/` folder }}
       example {{ removing `ideas.md` locally moves it to `trash/ideas.md` }}
@@ -177,8 +167,7 @@ kite: package(version = "1.4.0") {
   store_api: api {
     @http<get>("/notes/:id")
     @throws(NoteNotFound)
-    @realizes(gone_notes)
-    get_note(@path id: String): op(Note) {
+    get_note(@path id: String): op(Note, gone_notes) {
       | Returns one note, with the time it last changed.
 
       one_note: example {
@@ -206,8 +195,7 @@ kite: package(version = "1.4.0") {
     | Reported as [gone_notes] says.
   }
 
-  @by(kite.system.syncer)
-  gone_notes: rule {
+  gone_notes: rule(kite.system.syncer) {
     when {{ the store answers 404 }}
     must {{ report the note as gone and keep the local copy }}
   }
@@ -233,8 +221,7 @@ kite: package(version = "1.4.0") {
         | Reported as [cli.sync.exits_nonzero] says.
       }
 
-      @by(kite.system.syncer)
-      exits_nonzero: rule {
+      exits_nonzero: rule(kite.system.syncer) {
         must {{ exit with status 1 when any note couldn't be copied }}
       }
     }

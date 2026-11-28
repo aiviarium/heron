@@ -17,7 +17,7 @@ shop: package(version = "1.0.0", sealed = true) {
   buyer: actor {{ Someone who buys. }}
 
   checkout: section {
-    | <rule id="tidy" @targets="checkout" @by="buyer"><must>keep the cart tidy</must></rule>
+    | <rule id="tidy" refs="buyer"><must>keep the cart tidy</must></rule>
   }
 }
 `

@@ -1,5 +1,4 @@
-@realizes(heron.system.formatter)
-format: component("internal/core/format", lang = "go") {
+format: component("internal/core/format", heron.system.formatter, lang = "go") {
   | Formats [Heron files](#heron.language.core_format.files.heron_file) from their [lossless tree](#heron.language.grammar.recovery.lossless_tree), behind `heron fmt`.
   | Formatting normalizes layout only, so hand-aligned columns survive and literal text is
   | never touched.

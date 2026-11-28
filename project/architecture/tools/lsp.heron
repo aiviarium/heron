@@ -1,6 +1,5 @@
 @display("LSP")
-@realizes(heron.system.language_server)
-lsp: component("internal/tools/lsp", lang = "go") {
+lsp: component("internal/tools/lsp", heron.system.language_server, lang = "go") {
   | The language server as a library: one [session](#heron.tools.lsp.session.lsp_session) per client, served over
   | standard input and output by `heron lsp` and over the `/lsp` socket by [the server](#architecture.tools.server). It answers from the
   | same checked tree as `heron check` and `heron lint`, so an editor never disagrees with

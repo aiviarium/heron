@@ -308,6 +308,8 @@ func (c *Checker) refList(decl *resolve.Node, name string) []*resolve.Node {
 		want = c.isKindOrCategory
 	case "args_from", "fields_from", "extends":
 		want = c.IsKind
+	case "references":
+		want = c.isKindOrCategory
 	}
 	var out []*resolve.Node
 	for _, x := range exprs {
@@ -412,7 +414,17 @@ func (c *Checker) KindParams(k *resolve.Node, instance *resolve.Node) []Param {
 		}
 		return nil
 	}
-	return c.Params(k)
+	ps := c.Params(k)
+	if len(ps) == 0 && k != nil && k.Decl.N != nil && k.Decl.N.Kind == syntax.Declare && (ast.Declare{N: k.Decl.N}).Params().N == nil {
+		// A kind that declares no parameters takes those of the kind it
+		// extends.
+		for x, i := c.Extends(k), 0; x != nil && i < 8; x, i = c.Extends(x), i+1 {
+			if xs := c.Params(x); len(xs) > 0 {
+				return xs
+			}
+		}
+	}
+	return ps
 }
 
 // Field is a field a node may set or enter.
@@ -490,6 +502,12 @@ func (c *Checker) Field(n *resolve.Node, name string) (Field, bool) {
 		if f, ok := c.memberField(k, name); ok {
 			return f, true
 		}
+		// A kind takes the member fields of the kind it extends.
+		for x, i := c.Extends(k), 0; x != nil && i < 8; x, i = c.Extends(x), i+1 {
+			if f, ok := c.memberField(x, name); ok {
+				return f, true
+			}
+		}
 		if from := c.refArg(k, "fields_from"); from != nil {
 			for a := n.Parent; a != nil; a = a.Parent {
 				if c.KindOf(a) == from {
@@ -548,8 +566,10 @@ func (c *Checker) Fields(n *resolve.Node) []Field {
 		for _, p := range c.KindParams(k, n) {
 			add(p.Name)
 		}
-		for _, ch := range k.AllChildren() {
-			add(ch.Name)
+		for x, i := k, 0; x != nil && i < 8; x, i = c.Extends(x), i+1 {
+			for _, ch := range x.AllChildren() {
+				add(ch.Name)
+			}
 		}
 	} else if t := m.decl; t != nil && c.IsType(t) {
 		var walk func(t *resolve.Node, depth int)
@@ -809,6 +829,13 @@ func (c *Checker) acceptList(k *resolve.Node) []acceptEntry {
 		}
 		out = append(out, e)
 	}
+	if len(out) == 0 && c.IsKind(k) {
+		// A kind with no body of its own takes the body of the kind it
+		// extends.
+		if x := c.Extends(k); x != nil && x != k {
+			out = c.acceptList(x)
+		}
+	}
 	c.accepts[k] = out
 	return out
 }
@@ -914,6 +941,19 @@ func (c *Checker) Extends(k *resolve.Node) *resolve.Node {
 		return nil
 	}
 	return c.refArg(k, "extends")
+}
+
+// ReferenceKinds are the kinds a kind's references may name, from its
+// `references`, or else from the kind it extends; ok is false when neither
+// declares any, and the kind's arguments are no references.
+func (c *Checker) ReferenceKinds(k *resolve.Node) (kinds []*resolve.Node, ok bool) {
+	for i := 0; k != nil && i < 8; i++ {
+		if namedArg(k, "references") != nil {
+			return c.refList(k, "references"), true
+		}
+		k = c.Extends(k)
+	}
+	return nil, false
 }
 
 // IsKindOrExtends reports whether kind k is want or extends it.

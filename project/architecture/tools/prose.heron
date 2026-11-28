@@ -1,5 +1,4 @@
-@realizes(heron.system.prose_linter)
-prose: component("internal/tools/prose", lang = "go") {
+prose: component("internal/tools/prose", heron.system.prose_linter, lang = "go") {
   | Two prose providers over the [prose view](#heron.language.markup.prose_view): Vale for style and spelling, and the
   | spec-aware lints of `std/lint`, which [the quality checks](#heron.language.specifications.quality_checks) specify. Both report through
   | `heron lint`, CI and the [language server](#architecture.tools.lsp) alike.

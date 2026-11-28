@@ -9,7 +9,7 @@ How a change moves from spec to code: ready, building, done.
    as [the spec's guide](#heron.guide.changing) says, and the change waits for a spec version that states it.
 2. **Building.** Each Go or TS package is one `component` under
    [the architecture](#architecture), whose path is the package's folder and which names the
-   system parts it realizes. A requirement the code doesn't meet yet is listed as
+   system parts it implements. A requirement the code doesn't meet yet is listed as
    `status<planned>` in [the status](#status).
 3. **Done.** The change links the test that proves each requirement it builds, as a
    `proves(…)` in [the traceability](#traceability), and takes the requirement off the status list.

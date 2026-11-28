@@ -50,7 +50,6 @@ overview: section {
   | <note kind="tip">Tags are kinds in scope.</note>
 }
 
-@targets(overview)
 late: rule {
   if {{ it arrives late }}
   must {{ reject it }}
@@ -277,7 +276,7 @@ func TestSpecKinds(t *testing.T) {
 		"p: project(path = \".\") {\n  depends_on = [nobody]\n}\n":                                        "unknown name nobody",
 		"p: project(path = \".\") {\n  owner = \"x\"\n}\n":                                                "p (a project) has no field owner",
 		"p: project(path = \".\") {\n  t: task do {\n    log(\"x\")\n  }\n}\n":                            "",
-		"@targets(Status)\nr: rule {{ The system must keep a status. }}\n":                                "",
+		"r: rule {{ The system must keep a status. }}\n":                                                  "",
 		"g: part {\n  r: rule {\n    must {{ x }}\n  }\n}\n":                                              "",
 	} {
 		got := check(t, base+src)

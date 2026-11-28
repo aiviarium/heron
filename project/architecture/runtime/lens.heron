@@ -1,5 +1,4 @@
-@realizes(heron.system.checker, heron.system.docs_generator)
-lens: component("internal/core/lens", lang = "go") {
+lens: component("internal/core/lens", heron.system.checker, heron.system.docs_generator, lang = "go") {
   | std/docs's Go side: the lenses a docs site builds, how each one treats a node by its kind
   | and the lens marks on and above it, and the checks on lenses, marks and authored pages.
   | The checker and the docs generator read the same model, so what a lens shows can't

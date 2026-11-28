@@ -7,7 +7,7 @@ The spec is the sealed package `heron/` of
 [aiviarium/heron-specs](https://github.com/aiviarium/heron-specs), imported
 here at 0.6.0 and pinned in `heron.lock`: what the code must do is stated
 there, by domain (`language/`, `cli/`, `tools/`, `product/`). How this
-repository realizes it is the project tree's (`project/`): the components,
+repository implements it is the project tree's (`project/`): the components,
 the proofs that link each requirement to its tests, the status of the rest,
 the delivery plan and the releases. `heron generate conformance` reports
 every requirement of the spec as proven, planned, untested or missing, with

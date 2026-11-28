@@ -1,5 +1,4 @@
-@realizes(heron.system.docs_generator)
-docs: component("internal/tools/docs", lang = "go") {
+docs: component("internal/tools/docs", heron.system.docs_generator, lang = "go") {
   | Renders a checked tree as a documentation site, as pages and as fragments for the live
   | preview. `heron generate docs` writes the site as plain files that work without a
   | server, and `heron serve` serves the same pages live as the spec browser, so what

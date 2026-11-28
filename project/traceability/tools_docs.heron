@@ -509,14 +509,6 @@ tools_docs: section {
     verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
   }
 
-  proves(heron.tools.docs.rendering.target_chip) {
-    verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
-  }
-
-  proves(heron.tools.docs.rendering.chip_leads) {
-    verify("internal/tools/docs/lenses_test.go", test = "TestRuleAsProse")
-  }
-
   proves(heron.tools.docs.rendering.content_order) {
     verify("internal/tools/docs/lenses_test.go", test = "TestDeveloperLens")
   }

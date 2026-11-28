@@ -88,7 +88,7 @@ func (c *Checker) element(n *resolve.Node) {
 
 // elementAnnotations reads an element's `@name="…"` attributes as its
 // annotations: as written where the annotation takes no string, as
-// `@by="desk"` names desk, and as one string where it takes one.
+// `@touch="desk"` names desk, and as one string where it takes one.
 func (c *Checker) elementAnnotations(n *resolve.Node) []resolve.Site {
 	file, sc := n.Decl.File, n.Decl.Scope
 	params := func(name string) []Param {
@@ -156,7 +156,8 @@ func (c *Checker) ElementArgs(t *resolve.Tree) {
 // PackageBuilt completes a package as it's built, before any tree imports
 // it: its kind elements' attributes are read as their kinds' arguments,
 // and its `@name` attributes as its annotations, so a requirement written
-// as an element has its `@targets` and `@by` wherever it's read, and the package's nodes stay unchanged after.
+// as an element has its references and annotations wherever it's read, and
+// the package's nodes stay unchanged after.
 func PackageBuilt(p *resolve.Package) {
 	if p.Tree == nil {
 		return

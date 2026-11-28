@@ -175,7 +175,7 @@ func run(heron, root string) error {
 
 	// Hover shows the /// docs; definition goes across files.
 	var h struct{ Contents struct{ Value string } }
-	if err := c.Call("textDocument/hover", pos(s.uri(api), lsptest.At(apiSrc, "op(Order)", 0, 4)), &h); err != nil {
+	if err := c.Call("textDocument/hover", pos(s.uri(api), lsptest.At(apiSrc, "op(Order,", 0, 4)), &h); err != nil {
 		return err
 	}
 	if !strings.Contains(h.Contents.Value, "An order for one pet") {
@@ -186,7 +186,7 @@ func run(heron, root string) error {
 		Range lsptest.Range `json:"range"`
 	}
 	var locs []location
-	if err := c.Call("textDocument/definition", pos(s.uri(api), lsptest.At(apiSrc, "op(Order)", 0, 4)), &locs); err != nil {
+	if err := c.Call("textDocument/definition", pos(s.uri(api), lsptest.At(apiSrc, "op(Order,", 0, 4)), &locs); err != nil {
 		return err
 	}
 	if len(locs) != 1 || locs[0].URI != s.uri(model) || locs[0].Range.Start.Line != lsptest.At(modelSrc, "Order: type", 0, 0).Line {
@@ -204,7 +204,7 @@ func run(heron, root string) error {
 	var we struct {
 		Changes map[string][]textEdit `json:"changes"`
 	}
-	p := pos(s.uri(api), lsptest.At(apiSrc, "op(Order)", 0, 4))
+	p := pos(s.uri(api), lsptest.At(apiSrc, "op(Order,", 0, 4))
 	p["newName"] = "Purchase"
 	if err := c.Call("textDocument/rename", p, &we); err != nil {
 		return err
@@ -220,7 +220,7 @@ func run(heron, root string) error {
 	if err := s.clean("after renaming Order"); err != nil {
 		return err
 	}
-	if !strings.Contains(s.docs[s.uri(api)], "op(Purchase)") || !strings.Contains(s.docs[s.uri(model)], "Purchase: type") {
+	if !strings.Contains(s.docs[s.uri(api)], "op(Purchase,") || !strings.Contains(s.docs[s.uri(model)], "Purchase: type") {
 		return fmt.Errorf("the rename didn't reach both files")
 	}
 	apiSrc = s.docs[s.uri(api)]

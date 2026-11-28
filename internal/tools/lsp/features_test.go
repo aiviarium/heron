@@ -475,3 +475,69 @@ func TestIconCompletionAndHover(t *testing.T) {
 		t.Errorf("hover on an icon mark: %s", h.Contents.Value)
 	}
 }
+
+// In a rule's signature, completion offers the nodes of the kinds a rule's
+// references may name, in a command's the kinds in types.realized, and in
+// an op's first place types too; hover on a node names each reference
+// with what it means.
+func TestReferenceCompletionAndHover(t *testing.T) {
+	dir := t.TempDir()
+	src := `import = ["std/doc@1", "std/types@1"]
+
+fast: goal {{ Refunds are quick. }}
+
+desk: part {{ The support console. }}
+
+window: term {{ The 30 days after capture. }}
+
+late: rule(desk, fast) {
+  must {{ reject a refund past the [window] }}
+}
+
+other: rule(d) {
+  must {{ wait }}
+}
+
+Refund: type {
+  amount: Int
+}
+
+c: command("refund", l)
+
+shop: api {
+  @see(fast)
+  refund(): op(R, late)
+}
+`
+	write(t, filepath.Join(dir, "index.heron"), src)
+	c := start(t, dir)
+	uri := lsptest.FileURI(filepath.Join(dir, "index.heron"))
+	c.Open(uri, src)
+	l := complete(t, c, uri, lsptest.At(src, "rule(d)", 0, 6), "")
+	if !l.has("desk") || !l.has("fast") || l.has("window") || l.has("late") {
+		t.Errorf("in a rule's references: %v", l.labels())
+	}
+	l = complete(t, c, uri, lsptest.At(src, `"refund", l)`, 0, 11), "")
+	if !l.has("late") || !l.has("other") || l.has("fast") || l.has("Refund") {
+		t.Errorf("in a command's references: %v", l.labels())
+	}
+	l = complete(t, c, uri, lsptest.At(src, "op(R", 0, 4), "")
+	if !l.has("Refund") || !l.has("late") || l.has("fast") {
+		t.Errorf("in an op's first place: %v", l.labels())
+	}
+	var h struct {
+		Contents struct{ Value string }
+	}
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, "late:", 0, 1)), &h); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.Contents.Value, "references `desk` (subject), `fast` (serves)") {
+		t.Errorf("hover on a rule:\n%s", h.Contents.Value)
+	}
+	if err := c.Call("textDocument/hover", pos(uri, lsptest.At(src, "refund():", 0, 1)), &h); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.Contents.Value, "references `late` (carries out), `fast` (see also)") {
+		t.Errorf("hover on an op:\n%s", h.Contents.Value)
+	}
+}

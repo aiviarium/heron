@@ -228,7 +228,9 @@ func methodOf(iface string, n *resolve.Node) method {
 	m.notification = true
 	if nt, ok := d.Type().(ast.NamedType); ok {
 		for _, a := range nt.Args().Args() {
-			if pa, ok := a.(ast.PositionalArg); ok {
+			// The result type is the first positional argument, unless
+			// it's a reference: a lower-case path such as a rule's.
+			if pa, ok := a.(ast.PositionalArg); ok && !isReference(pa.Expr()) {
 				r := exprRef(pa.Expr())
 				if r.name == "Stream" && len(r.args) == 1 {
 					r = r.args[0]
@@ -237,6 +239,7 @@ func methodOf(iface string, n *resolve.Node) method {
 				m.result = &r
 				m.notification = false
 			}
+			break
 		}
 	}
 	return m
@@ -865,4 +868,20 @@ func tsFile(p *proto, facets []facetDef) []byte {
 		b.WriteString("}\n\n")
 	}
 	return b.Bytes()
+}
+
+// isReference reports whether an op's positional argument is one of its
+// references rather than its result type: a path whose last name starts
+// with a lower-case letter or a digit, as a rule's or a step's.
+func isReference(e ast.Expr) bool {
+	pe, ok := e.(ast.PathExpr)
+	if !ok || pe.Path().N == nil {
+		return false
+	}
+	segs := resolve.PathSegs(pe.Path().N)
+	if len(segs) == 0 || segs[len(segs)-1] == "" {
+		return false
+	}
+	c := segs[len(segs)-1][0]
+	return c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_'
 }

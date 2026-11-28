@@ -1,5 +1,4 @@
-@realizes(heron.system.generator)
-gen: component("internal/core/gen", lang = "go") {
+gen: component("internal/core/gen", heron.system.generator, lang = "go") {
   | The generation framework behind `heron generate`: adapters read the checked tree and
   | return files, none with a config format of its own, and the framework writes them and
   | the managed ignore block. Built-in adapters and those extensions implement register

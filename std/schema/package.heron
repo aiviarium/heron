@@ -20,8 +20,10 @@ schema: package(version = "1.0") {
   /// A node kind, valid in structure and, through its categories, as a tag
   /// in prose. Its params are its kind arguments, and its body says what it
   /// accepts: kinds, prose or code. `layer` is the spec layer its nodes are
-  /// in; `extends` names the kind it specializes, whose params, fields,
-  /// body, layer and renderer it takes.
+  /// in; `references` lists the kinds, and categories of kinds, its hard
+  /// references, in its variadic reference parameter or `@touch`, may name;
+  /// `extends` names the kind it specializes, whose params, fields, body,
+  /// layer, references and renderer it takes.
   kind(
     in?: List(Ref(category)),
     heading?: Bool,
@@ -30,6 +32,7 @@ schema: package(version = "1.0") {
     fields_from?: Ref(kind),
     modes?: List(Mode),
     layer?: Layer,
+    references?: List(Ref(Any)),
     extends?: Ref(kind),
   ): kind {
     accept(kind = accept)

@@ -1,6 +1,5 @@
 @display("AST")
-@realizes(heron.system.parser)
-ast: component("internal/core/ast", lang = "go") {
+ast: component("internal/core/ast", heron.system.parser, lang = "go") {
   | Typed views over the syntax tree, one per node kind, generated from the grammar
   | description so the kinds and the parser can't drift apart. Every later stage reads
   | the tree through these views rather than by walking raw children.

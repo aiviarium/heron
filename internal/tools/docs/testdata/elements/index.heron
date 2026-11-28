@@ -14,7 +14,7 @@ refunds: section {
 
   window: term {{ The 30 days. }}
 
-  | <rule id="late" @by="desk">
+  | <rule id="late" refs="desk">
   |   <must>refuse a refund after the [window]</must>
   | </rule>
 }

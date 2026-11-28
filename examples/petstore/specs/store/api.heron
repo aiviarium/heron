@@ -13,11 +13,14 @@ store: api {
     @query cursor?: String,
   ): op(Page(Pet))
 
-  @realizes(orders.ordering.hold_on_order, orders.ordering.only_available)
   @http<post>("/store/orders")
   @throws(StoreError)
-  @performs(orders.pet_lifecycle.held)
-  place_order(@body request: OrderRequest): op(Order) {
+  place_order(@body request: OrderRequest): op(
+    Order,
+    orders.ordering.hold_on_order,
+    orders.ordering.only_available,
+    orders.pet_lifecycle.held,
+  ) {
     | Places an order for an [available](#orders.available) pet, subject to the [ordering rules](#orders.ordering).
 
     available_pet: example {
@@ -33,12 +36,14 @@ store: api {
 
   @http<post>("/store/orders/:order_id/approve")
   @throws(OrderNotFound)
-  @performs(orders.pet_lifecycle.sold)
-  approve_order(@path order_id: Int): op(Order)
+  approve_order(@path order_id: Int): op(Order, orders.pet_lifecycle.sold)
 
-  @realizes(orders.ordering.cancel_releases, orders.ordering.delivered_stays)
   @http<delete>("/store/orders/:order_id")
   @throws(StoreError)
-  @performs(orders.pet_lifecycle.released)
-  cancel_order(@path order_id: Int): op(Order)
+  cancel_order(@path order_id: Int): op(
+    Order,
+    orders.ordering.cancel_releases,
+    orders.ordering.delivered_stays,
+    orders.pet_lifecycle.released,
+  )
 }

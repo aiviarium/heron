@@ -1,5 +1,4 @@
-@realizes(heron.system.server)
-server: component("internal/tools/server", lang = "go") {
+server: component("internal/tools/server", heron.system.server, lang = "go") {
   | The shell of `heron serve`: it serves the frontend, the spec browser, the editor's
   | language server socket and the API on one address, and [mounts](#heron.language.core_format.mounts.mount) the ops other [units](#delivery.units)
   | declare. The built frontend is embedded, so everything still ships in one binary.
@@ -44,8 +43,7 @@ server: component("internal/tools/server", lang = "go") {
   verify("scripts/e2e-app.sh") {{ [heron serve](#heron.cli.serve) with the editor in Chromium. }}
 }
 
-@realizes(heron.system.server)
-server_api: component("internal/tools/server/api", lang = "go") {
+server_api: component("internal/tools/server/api", heron.system.server, lang = "go") {
   | The Go handlers of [the server API](#heron.tools.server_api.spec_server), which the spec package
   | publishes with its types and errors: `apigen` reads it from the spec package and writes
   | `api_gen.go` here and the TS client of `web/shell`. A later [unit](#delivery.units) adds its
@@ -66,8 +64,7 @@ server_api: component("internal/tools/server/api", lang = "go") {
 }
 
 @display("API generator")
-@realizes(heron.system.server)
-server_apigen: component("internal/tools/server/apigen", lang = "go") {
+server_apigen: component("internal/tools/server/apigen", heron.system.server, lang = "go") {
   | Writes a [unit](#delivery.units)'s routes and client from its ops on `spec_server`:
   | `go run ./internal/tools/server/apigen -base server.heron [-ext files] -go out.go -pkg name -ts out.ts`.
 
@@ -79,8 +76,7 @@ server_apigen: component("internal/tools/server/apigen", lang = "go") {
   }
 }
 
-@realizes(heron.system.server)
-server_route: component("internal/tools/server/route", lang = "go") {
+server_route: component("internal/tools/server/route", heron.system.server, lang = "go") {
   | What generated API code and the server shell share.
 
   uses = []

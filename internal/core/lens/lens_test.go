@@ -41,7 +41,6 @@ intro: section {
   @lens(user)
   | Only users read this.
 
-  @targets(intro)
   r: rule {
     must {{ do things }}
   }

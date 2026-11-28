@@ -1,5 +1,4 @@
-@realizes(heron.system.interpreter)
-records: component("internal/core/records", lang = "go") {
+records: component("internal/core/records", heron.system.interpreter, lang = "go") {
   | Stores audit records, release output and caches as data files. Record kinds register
   | through the registry, so every [unit](#delivery.units)'s records are written and read through one
   | store, the language server's gutter included.

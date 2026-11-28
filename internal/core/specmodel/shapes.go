@@ -40,15 +40,6 @@ func refsOf(c *types.Checker, n *resolve.Node, name string) []Ref {
 	return out
 }
 
-// annRefs resolves the arguments of a node's annotations named name.
-func annRefs(c *types.Checker, n *resolve.Node, name string) []Ref {
-	var out []Ref
-	for _, a := range project.AnnotationArgs(n, name) {
-		out = append(out, Ref{Site: a.Site, Target: project.RefTarget(c, a.Expr.Syntax(), a.Site)})
-	}
-	return out
-}
-
 // Is reports whether a node is of one of the standard kinds, or of a kind
 // that extends one.
 func Is(c *types.Checker, n *resolve.Node, kinds ...string) bool {
@@ -71,30 +62,14 @@ func StepTarget(n *resolve.Node) bool { return n != nil && n.Shape == resolve.Sh
 var placeholderRe = regexp.MustCompile(`\{([A-Za-z_][A-Za-z0-9_]*)\}`)
 
 func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
-	link := func(name string, ok func(*resolve.Node) bool, kinds string) {
-		for _, r := range annRefs(c, n, name) {
-			if r.Target == nil || ok(r.Target) {
-				continue
-			}
-			errAt(ds, r.Site, "link", "@%s takes %s, and %s is a %s", name, kinds, r.Target.Name, KindName(c, r.Target))
-		}
-	}
-	goalOrQuality := func(x *resolve.Node) bool { return Is(c, x, "spec.goal", "spec.quality") }
+	references(c, n, ds)
 	switch {
 	case Is(c, n, "spec.rule"):
-		link("serves", goalOrQuality, "a goal or a quality")
-		link("derives", func(x *resolve.Node) bool { return Is(c, x, "spec.rule") }, "a rule")
-		link("relies", func(x *resolve.Node) bool { return Is(c, x, "spec.assumption") }, "an assumption")
-		for _, r := range annRefs(c, n, "by") {
-			if r.Target != nil && !Is(c, r.Target, "spec.actor", "spec.part", "spec.persona") {
-				errAt(ds, r.Site, "type", "%s is a %s; a rule's @by names an actor or a part", r.Target.Name, KindName(c, r.Target))
-			}
-		}
+		subjects(c, n, ds)
+		ruleLinks(c, t, n, ds)
 		triggers(c, n, ds)
-		derivesCycle(c, n, ds)
 		revision(n, ds)
 	case Is(c, n, "spec.constraint"):
-		link("serves", goalOrQuality, "a goal or a quality")
 		if e, _ := argSite(n, "reason"); e == nil || strings.TrimSpace(strings.Trim(e.Syntax().Text(), `"`)) == "" {
 			errAt(ds, n.Decl, "missing-argument", "constraint %s needs a reason from outside the solution", n.Name)
 		}
@@ -109,8 +84,6 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 		scenario(c, n, ds)
 		revision(n, ds)
 	case Is(c, n, "spec.usecase"):
-		link("serves", goalOrQuality, "a goal or a quality")
-		link("relies", func(x *resolve.Node) bool { return Is(c, x, "spec.assumption") }, "an assumption")
 		for _, r := range refsOf(c, n, "actor") {
 			if r.Target != nil && !Is(c, r.Target, "spec.actor") {
 				errAt(ds, r.Site, "type", "%s is a %s, not an actor", r.Target.Name, KindName(c, r.Target))
@@ -128,9 +101,178 @@ func shapes(t *resolve.Tree, c *types.Checker, n *resolve.Node, ds *diag.List) {
 			}
 		}
 	case Is(c, n, "spec.example"):
-		link("refines", func(x *resolve.Node) bool { return Is(c, x, "spec.scenario") && isOutcome(c, x) }, "an outcome scenario")
+		for _, r := range nodeRefs(c, n) {
+			if r.Target != nil && Is(c, r.Target, "spec.scenario") && !isOutcome(c, r.Target) {
+				errAt(ds, r.Site, "reference", "%s is a quality scenario; an example pins down an outcome scenario", r.Target.Name)
+			}
+		}
 	}
-	realizesTargets(c, n, ds)
+	seeTargets(c, n, ds)
+}
+
+// nodeRefs resolves a node's hard references: its constructor's, then its
+// @touch's.
+func nodeRefs(c *types.Checker, n *resolve.Node) []Ref {
+	var out []Ref
+	for _, a := range project.HardReferences(c, n) {
+		out = append(out, Ref{Site: a.Site, Target: project.RefTarget(c, a.Expr.Syntax(), a.Site)})
+	}
+	return out
+}
+
+// realizedNames is how a message names the kinds in types.realized.
+const realizedNames = "a rule, a constraint, a use case or its step, a part, a lifecycle or a transition"
+
+// references checks a node's hard references, in its constructor and its
+// @touch: each names a kind its kind's `references` lists, or a kind that
+// extends one, and on a kind with no list, as a type, a kind in
+// types.realized. A term is vocabulary, which prose mentions and no
+// reference names, and no reference is listed twice.
+func references(c *types.Checker, n *resolve.Node, ds *diag.List) {
+	k := c.KindOf(n)
+	allowed, ok := c.ReferenceKinds(k)
+	var refs []Ref
+	if ok {
+		refs = nodeRefs(c, n)
+	} else {
+		for _, a := range project.Touches(n) {
+			refs = append(refs, Ref{Site: a.Site, Target: project.RefTarget(c, a.Expr.Syntax(), a.Site)})
+		}
+	}
+	what := "node"
+	if k != nil {
+		what = k.Name
+	}
+	ctor := len(project.References(c, n))
+	seen := map[*resolve.Node]bool{}
+	for i, r := range refs {
+		if r.Target == nil {
+			txt := strings.TrimSpace(r.Site.N.Text())
+			if i := strings.LastIndexByte(txt, '.'); i > 0 && i+1 < len(txt) && txt[i+1] >= '0' && txt[i+1] <= '9' {
+				errAt(ds, r.Site, "usecase", "use case %s has no step %s", txt[:i], txt[i+1:])
+			}
+			continue
+		}
+		if seen[r.Target] && ok && i >= ctor {
+			errAt(ds, r.Site, "reference", "%s is listed twice, in the constructor and in @touch; list it once", r.Target.Name)
+			continue
+		}
+		seen[r.Target] = true
+		if Is(c, r.Target, "doc.term") {
+			errAt(ds, r.Site, "reference", "%s is a term, which is vocabulary: a %s doesn't reference it; mention it in the prose", r.Target.Name, what)
+			continue
+		}
+		if ok && allows(c, allowed, r.Target) || !ok && realized(c, r.Target) {
+			continue
+		}
+		if !ok {
+			errAt(ds, r.Site, "reference", "%s is a %s, and @touch on a %s takes only %s", r.Target.Name, KindName(c, r.Target), what, realizedNames)
+			continue
+		}
+		var names []string
+		for _, a := range allowed {
+			if c.IsCategory(a) && types.IsStd(a, "types", "types.realized") {
+				names = append(names, realizedNames)
+				continue
+			}
+			names = append(names, a.Name)
+		}
+		errAt(ds, r.Site, "reference", "%s is a %s, and a %s references only %s", r.Target.Name, KindName(c, r.Target), what, orList(names))
+	}
+}
+
+// allows reports whether a reference to n fits a `references` list: n's
+// kind, or a kind it extends, is on the list or in a category on it, or n
+// is a step of a use case where use cases fit.
+func allows(c *types.Checker, allowed []*resolve.Node, n *resolve.Node) bool {
+	tk := c.KindOf(n)
+	if StepTarget(n) {
+		tk = c.KindOf(n.Parent)
+		if tk == nil || !Is(c, n.Parent, "spec.usecase") {
+			return false
+		}
+	}
+	for k, i := tk, 0; k != nil && i < 8; k, i = c.Extends(k), i+1 {
+		if c.Fits(k, allowed) {
+			return true
+		}
+	}
+	return false
+}
+
+// realized reports whether a node's kind, or a kind it extends, is in
+// types.realized, or the node is a step of a use case.
+func realized(c *types.Checker, n *resolve.Node) bool {
+	if StepTarget(n) {
+		return n.Parent != nil && Is(c, n.Parent, "spec.usecase")
+	}
+	for k, i := c.KindOf(n), 0; k != nil && i < 8; k, i = c.Extends(k), i+1 {
+		for _, cat := range c.Categories(k) {
+			if types.IsStd(cat, "types", "types.realized") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func orList(names []string) string {
+	switch len(names) {
+	case 0:
+		return "nothing"
+	case 1:
+		return names[0]
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
+}
+
+// subjects checks that a rule references at most one actor, persona or
+// part: its subject. A rule with none binds the system.
+func subjects(c *types.Checker, n *resolve.Node, ds *diag.List) {
+	var subs []Ref
+	for _, r := range nodeRefs(c, n) {
+		if r.Target != nil && Is(c, r.Target, "spec.actor", "spec.persona", "spec.part") {
+			subs = append(subs, r)
+		}
+	}
+	if len(subs) > 1 {
+		errAt(ds, subs[1].Site, "subject", "rule %s binds %s and %s; a rule references at most one actor or part, its subject", n.Name, subs[0].Target.Name, subs[1].Target.Name)
+	}
+}
+
+// ruleLinks checks that a rule's prose links no other rule: a rule is a
+// leaf, which states its own fact.
+func ruleLinks(c *types.Checker, t *resolve.Tree, n *resolve.Node, ds *diag.List) {
+	// The signature's references are checked by references.
+	sig := map[[2]int]bool{}
+	for _, r := range nodeRefs(c, n) {
+		s, e := r.Site.Span()
+		sig[[2]int{s, e}] = true
+	}
+	inSig := func(r Ref) bool {
+		s, _ := r.Site.Span()
+		for k := range sig {
+			if s >= k[0] && s < k[1] {
+				return true
+			}
+		}
+		return false
+	}
+	for _, r := range OwnRefs(c, t, n) {
+		if !inSig(r) && r.Target != n && Is(c, r.Target, "spec.rule") {
+			errAt(ds, r.Site, "rule-link", "rule %s links the rule %s; a rule references no other rule, so link the term, part or section they share, or state the fact in the rule itself", n.Name, r.Target.Name)
+		}
+	}
+}
+
+// seeTargets checks @see, the soft references: a term is vocabulary its
+// prose mentions, which @see doesn't name.
+func seeTargets(c *types.Checker, n *resolve.Node, ds *diag.List) {
+	for _, a := range project.AnnotationArgs(n, "see") {
+		if t := project.RefTarget(c, a.Expr.Syntax(), a.Site); t != nil && Is(c, t, "doc.term") {
+			errAt(ds, a.Site, "reference", "%s is a term, which is vocabulary: @see doesn't reference it; mention it in the prose", t.Name)
+		}
+	}
 }
 
 func revision(n *resolve.Node, ds *diag.List) {
@@ -161,31 +303,6 @@ func triggers(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	}
 }
 
-func derivesCycle(c *types.Checker, n *resolve.Node, ds *diag.List) {
-	seen := map[*resolve.Node]bool{}
-	var walk func(x *resolve.Node, path []string) bool
-	walk = func(x *resolve.Node, path []string) bool {
-		for _, r := range annRefs(c, x, "derives") {
-			if r.Target == nil {
-				continue
-			}
-			if r.Target == n {
-				rs := annRefs(c, n, "derives")
-				errAt(ds, rs[0].Site, "cycle", "%s derives from itself through %s", n.Name, strings.Join(append(path, n.Name), " → "))
-				return true
-			}
-			if !seen[r.Target] {
-				seen[r.Target] = true
-				if walk(r.Target, append(path, r.Target.Name)) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	walk(n, []string{n.Name})
-}
-
 func isOutcome(c *types.Checker, n *resolve.Node) bool {
 	return len(childrenOf(c, n, "spec.given", "spec.when", "spec.then")) > 0
 }
@@ -205,33 +322,25 @@ func scenario(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	case !outcome && !quality:
 		problem = "has neither outcome clauses nor quality fields"
 	case outcome:
-		ill := annRefs(c, n, "illustrates")
+		var ill []Ref
+		for _, r := range nodeRefs(c, n) {
+			if r.Target == nil || !Is(c, r.Target, "spec.quality") {
+				ill = append(ill, r)
+			}
+		}
 		switch {
 		case len(ill) == 0:
-			problem = "illustrates nothing"
-		case len(ill) == 1 && ill[0].Target == nil:
-			txt := strings.TrimSpace(ill[0].Site.N.Text())
-			if i := strings.LastIndexByte(txt, '.'); i > 0 && txt[i+1] >= '0' && txt[i+1] <= '9' {
-				errAt(ds, ill[0].Site, "usecase", "use case %s has no step %s", txt[:i], txt[i+1:])
-			} else {
-				errAt(ds, ill[0].Site, "unresolved", "%s names no node", txt)
-			}
+			problem = "references no rule or path of a use case"
 		case len(ill) > 1:
-			problem = "illustrates more than one rule or path"
-		case ill[0].Target != nil && !Is(c, ill[0].Target, "spec.rule", "spec.usecase") && !StepTarget(ill[0].Target):
-			problem = "illustrates " + ill[0].Target.Name + ", which is no rule or path of a use case"
+			problem = "references more than one rule or path"
 		}
 	case quality:
 		if m := n.Child("measure"); m == nil || m.Value == nil {
 			problem = "has no measure"
-		} else if len(annRefs(c, n, "serves")) == 0 {
-			problem = "serves no quality"
-		} else {
-			for _, r := range annRefs(c, n, "serves") {
-				if r.Target != nil && !Is(c, r.Target, "spec.quality") {
-					problem = "serves " + r.Target.Name + ", which is no quality"
-				}
-			}
+		} else if len(project.ReferenceTargets(c, n, "spec.quality")) == 0 {
+			problem = "references no quality it measures"
+		} else if len(project.ReferenceTargets(c, n, "spec.quality")) < len(nodeRefs(c, n)) {
+			problem = "references something other than the quality it measures"
 		}
 	}
 	if problem != "" {
@@ -264,33 +373,6 @@ func placeholders(c *types.Checker, n *resolve.Node, ds *diag.List) {
 	for name, f := range fields {
 		if !used[name] {
 			warnAt(ds, f.Decl, "placeholder", "field %s of %s appears in neither its title nor its related message", name, n.Name)
-		}
-	}
-}
-
-// realizesTargets checks @realizes: on a contract node or a component, it
-// names rules, use cases, steps, extensions or parts.
-func realizesTargets(c *types.Checker, n *resolve.Node, ds *diag.List) {
-	if Is(c, n, "project.component") {
-		return // a component names the spec subjects it builds
-	}
-	for _, a := range n.Annotations {
-		an := ast.Annotation{N: a.N}
-		if an.N == nil || an.Path().N == nil {
-			continue
-		}
-		if segs := resolve.PathSegs(an.Path().N); len(segs) == 0 || segs[len(segs)-1] != "realizes" {
-			continue
-		}
-		for _, e := range project.ArgExprs(an.Args()) {
-			t := project.RefTarget(c, e.Syntax(), a)
-			if t == nil {
-				continue
-			}
-			if !Is(c, t, "spec.rule", "spec.usecase", "spec.constraint", "spec.part", "spec.transition", "spec.states") && !StepTarget(t) {
-				errAt(ds, resolve.Site{File: a.File, N: e.Syntax(), Scope: a.Scope}, "link",
-					"@realizes takes rules, use cases, steps, extensions or parts, and %s is a %s", t.Name, KindName(c, t))
-			}
 		}
 	}
 }

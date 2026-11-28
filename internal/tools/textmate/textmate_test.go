@@ -107,5 +107,5 @@ func TestScopedSamples(t *testing.T) {
 	find("prose", "variable.other.insert.heron", "$kite.cli.sync.name")
 	find("structure", "keyword.control.heron", "import = [")
 	find("structure", "entity.name.type.heron", "Order: type")
-	find("structure", "entity.name.function.decorator.heron", "@realizes(x)")
+	find("structure", "entity.name.function.decorator.heron", "@touch(x)")
 }

@@ -1,5 +1,4 @@
-@realizes(heron.system.parser)
-syntax: component("internal/core/syntax", lang = "go") {
+syntax: component("internal/core/syntax", heron.system.parser, lang = "go") {
   | Splits one [Heron file](#heron.language.core_format.files.heron_file) into tokens and parses it into a [lossless tree](#heron.language.grammar.recovery.lossless_tree):
   | every byte of the input belongs to exactly one token, so printing the tokens in order
   | gives the input back, errors included. It's the first stage, and every later one reads

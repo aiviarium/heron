@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/diag"
 	"github.com/aiviarium/heron/internal/core/lint"
 	coreprose "github.com/aiviarium/heron/internal/core/lint/prose"
@@ -176,22 +175,11 @@ func reportGaps(li *lint.Input) {
 		case is(n, "spec.error", "spec.command", "spec.screen") || is(n, "types.op"):
 			entries = append(entries, n)
 		}
-		for _, a := range n.Annotations {
-			an := ast.Annotation{N: a.N}
-			if an.N == nil || an.Path().N == nil {
-				continue
-			}
-			if segs := resolve.PathSegs(an.Path().N); len(segs) == 0 || segs[len(segs)-1] != "realizes" {
-				continue
-			}
-			for _, e := range project.ArgExprs(an.Args()) {
-				if x := project.RefTarget(c, e.Syntax(), a); x != nil {
-					realized[x] = true
-					realized[n] = true // n realizes something
-					if x.Parent != nil && x.Shape == resolve.ShapeStep {
-						realized[x.Parent] = true
-					}
-				}
+		for _, x := range project.Carried(c, n) {
+			realized[x] = true
+			realized[n] = true // n realizes something
+			if x.Parent != nil && x.Shape == resolve.ShapeStep {
+				realized[x.Parent] = true
 			}
 		}
 		// An error points up through its prose: the rules and steps it
@@ -214,7 +202,7 @@ func reportGaps(li *lint.Input) {
 	})
 	motivated := map[*resolve.Node]bool{}
 	for _, r := range append(append([]*resolve.Node(nil), reqs...), scenarios...) {
-		s := refs(r, "serves")
+		s := project.Served(c, r)
 		if len(s) == 0 && !is(r, "spec.scenario") {
 			s = areaGoals(r)
 		}
@@ -225,20 +213,6 @@ func reportGaps(li *lint.Input) {
 			motivated[r] = true
 		}
 	}
-	// A rule derived from a motivated rule is motivated.
-	for changed := true; changed; {
-		changed = false
-		for _, r := range reqs {
-			if motivated[r] {
-				continue
-			}
-			for _, d := range refs(r, "derives") {
-				if motivated[d] {
-					motivated[r], changed = true, true
-				}
-			}
-		}
-	}
 	for _, g := range goals {
 		if !served[g] {
 			li.As(SpecName+".UnservedGoal").Report(g, g.Decl, diag.Warning, fmt.Sprintf("nothing serves %s; serve it from a rule, a use case or a scenario, or drop it", g.Name))
@@ -246,7 +220,7 @@ func reportGaps(li *lint.Input) {
 	}
 	for _, r := range reqs {
 		if !motivated[r] && !is(r, "spec.constraint") {
-			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; give it @serves or @derives, or make it a constraint with its reason", r.Name))
+			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; reference a goal or a quality in its signature, or make it a constraint with its reason", r.Name))
 		}
 	}
 	for _, e := range entries {
@@ -301,7 +275,7 @@ func reportGaps(li *lint.Input) {
 	for _, q := range qualities {
 		measured := project.NamedArg(project.KindArgs(q), "measure") != nil
 		for _, sc := range scenarios {
-			for _, g := range refs(sc, "serves") {
+			for _, g := range project.ReferenceTargets(c, sc, "spec.quality") {
 				measured = measured || g == q
 			}
 		}
@@ -324,5 +298,5 @@ func reportGaps(li *lint.Input) {
 
 // orphanMessage is Spec.OrphanEntry's message, for an entry and an error.
 func orphanMessage(name string) string {
-	return fmt.Sprintf("%s names no rule or step it exists for; give an entry @realizes, and link an error's rule in its prose", name)
+	return fmt.Sprintf("%s names no rule or step it exists for; give an entry its references, and link an error's rule in its prose", name)
 }

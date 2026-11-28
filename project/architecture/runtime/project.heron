@@ -1,5 +1,4 @@
-@realizes(heron.system.checker)
-project: component("internal/core/project", lang = "go") {
+project: component("internal/core/project", heron.system.checker, lang = "go") {
   | The implementation side of a detached spec: a tree whose root `implements` a spec
   | package, with std/project's proofs, statuses and releases. It checks project mode and
   | the implementation version schemes for `heron check`, and computes the conformance
@@ -40,8 +39,7 @@ project: component("internal/core/project", lang = "go") {
   }}
 }
 
-@realizes(heron.system.command_line, heron.system.generator)
-release: component("internal/core/project/release", lang = "go") {
+release: component("internal/core/project/release", heron.system.command_line, heron.system.generator, lang = "go") {
   | `heron release next [--tag label]`, the version of the next release of a project
   | that implements a spec, and `heron release check [--git]`, its versions against the
   | spec and, with `--git`, its releases against the git tags `v<version>`. It also

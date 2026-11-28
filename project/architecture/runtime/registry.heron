@@ -1,5 +1,4 @@
-@realizes(heron.system.extension_host)
-registry: component("internal/core/registry", lang = "go") {
+registry: component("internal/core/registry", heron.system.extension_host, lang = "go") {
   | The [extension points](#heron.language.interop.declaring.extension_point) every [unit](#delivery.units) registers through. A built-in part, a part of a
   | later [unit](#delivery.units) and a part an extension implements register the same way, so an earlier
   | [unit](#delivery.units) never knows which later ones exist. The registry holds plain Go values and

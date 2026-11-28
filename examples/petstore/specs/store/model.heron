@@ -8,7 +8,7 @@ Category: type {
   name: String
 }
 
-@realizes(orders.single_sale)
+@touch(orders.single_sale)
 Pet: type(Audited) {
   id: Int
   name: String

@@ -61,7 +61,7 @@ type crossAnn struct {
 	on   *resolve.Node
 }
 
-var ownAnnotations = map[string]bool{"http": true, "throws": true, "performs": true, "display": true, "doc": true, "lint": true, "ws": true, "realizes": true, "proto": true, "jsonrpc": true, "sparrow": true, "retired": true, "server": true}
+var ownAnnotations = map[string]bool{"http": true, "throws": true, "display": true, "doc": true, "lint": true, "ws": true, "touch": true, "see": true, "proto": true, "jsonrpc": true, "sparrow": true, "retired": true, "server": true}
 
 func (s *Site) readOp(op *resolve.Node) *opInfo {
 	o := &opInfo{node: op, api: op.Parent}
@@ -105,13 +105,8 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 			}
 			o.params = append(o.params, pp)
 		}
-		if t, ok := d.Type().(ast.NamedType); ok {
-			args := t.Args()
-			if es := argExprs(args); len(es) > 0 {
-				o.returns = s.readTypeExpr(es[0], site, nil)
-			} else if e := namedArg(args, "returns"); e != nil {
-				o.returns = s.readTypeExpr(e, site, nil)
-			}
+		if e := project.KindArg(s.Checker, op, "returns"); e != nil {
+			o.returns = s.readTypeExpr(e, site, nil)
 		}
 	}
 	if o.returns.name == "Stream" {
@@ -159,22 +154,12 @@ func (s *Site) readOp(op *resolve.Node) *opInfo {
 	for _, t := range thrown {
 		addErr(t)
 	}
-	for _, a := range op.Annotations {
-		an := ast.Annotation{N: a.N}
-		if an.N == nil || an.Path().N == nil || annName(an) != "realizes" {
-			continue
-		}
-		for _, e := range project.ArgExprs(an.Args()) {
-			if t := project.RefTarget(s.Checker, e.Syntax(), a); t != nil {
-				o.realizes = append(o.realizes, t)
-			}
-		}
-	}
-	for _, a := range annotationsNamed(op, "performs") {
-		for _, e := range argExprs(a.Args()) {
-			if t := s.refTarget(e.Syntax(), op.Decl); t != nil {
-				o.performs = append(o.performs, t)
-			}
+	for _, t := range project.HardTargets(s.Checker, op) {
+		if s.kindPath(t) == "spec.transition" {
+			// An op that references a transition performs it.
+			o.performs = append(o.performs, t)
+		} else {
+			o.realizes = append(o.realizes, t)
 		}
 	}
 	// Cross-cutting annotations, from the op and then its api.
@@ -770,7 +755,7 @@ func renderOp(c *Ctx) error {
 		for _, t := range o.realizes {
 			ls = append(ls, s.linkHTML(t, esc(displayName(s, t)), ""))
 		}
-		facts = append(facts, `<dt>`+esc(label("docs.label.realizes"))+`</dt><dd>`+strings.Join(ls, ", ")+`</dd>`)
+		facts = append(facts, `<dt>`+esc(label("docs.label.carries_out"))+`</dt><dd>`+strings.Join(ls, ", ")+`</dd>`)
 	}
 	for _, a := range o.crossCutting {
 		v := ""

@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"github.com/aiviarium/heron/internal/core/project"
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/ast"
@@ -198,8 +199,7 @@ func renderStory(c *Ctx) error {
 	s := c.Site
 	c.W(`<article class="card-block story" id="`, attr(Anchor(n)), `">`)
 	c.W(`<div class="card-head"><a class="anchor card-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a>`, statusBadge(n), `</div>`)
-	var serves []*resolve.Node
-	serves = append(serves, s.annRefs(n, "serves")...)
+	serves := project.Served(s.Checker, n)
 	c.factList([][2]string{
 		{label("docs.label.serves"), c.refLinks(serves)},
 		{label("docs.label.adds"), c.refLinks(s.argRefs(n, "adds"))},
@@ -247,10 +247,10 @@ func renderScenario(c *Ctx) error {
 			rows = append(rows, [2]string{label("docs.label." + f), h})
 		}
 	}
-	if t := s.annRef(n, "illustrates"); t != nil {
+	if t := project.Described(s.Checker, n); t != nil {
 		rows = append(rows, [2]string{label("docs.label.illustrates"), s.linkHTML(t, esc(displayName(s, t)), "")})
 	}
-	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.annRefs(n, "serves"))})
+	rows = append(rows, [2]string{label("docs.label.measures"), c.refLinks(project.ReferenceTargets(s.Checker, n, "spec.quality"))})
 	c.factList(rows)
 	c.W(c.verifyList(n))
 	c.W(c.derivedLists(n))
@@ -258,8 +258,9 @@ func renderScenario(c *Ctx) error {
 	return nil
 }
 
-// renderGoal shows a goal or a quality: its text, its measure and source,
-// and what serves it, derived from the links below it.
+// renderGoal shows a goal or a quality: its text, its measure, the actors
+// or personas who asked for it, and what serves it, derived from the
+// references below it.
 func renderGoal(c *Ctx) error {
 	n := c.Node
 	s := c.Site
@@ -271,11 +272,11 @@ func renderGoal(c *Ctx) error {
 	c.W(`<div class="goal-block" id="`, attr(Anchor(n)), `"><div class="goal-head">`, head, `<a class="anchor goal-name" href="#`, attr(Anchor(n)), `">`, esc(displayName(s, n)), `</a></div>`)
 	c.Prose(n)
 	var rows [][2]string
-	if m, ok := argString(kindArgs(n), 0, "measure"); ok {
+	if m, ok := argString(kindArgs(n), -1, "measure"); ok {
 		rows = append(rows, [2]string{label("docs.label.measure"), esc(m)})
 	}
-	if src, ok := annString(n, "source"); ok {
-		rows = append(rows, [2]string{label("docs.label.source"), esc(src)})
+	if by := project.AskedBy(s.Checker, n); len(by) > 0 {
+		rows = append(rows, [2]string{label("docs.label.asked_by"), c.refLinks(by)})
 	}
 	c.factList(rows)
 	c.W(c.derivedLists(n))

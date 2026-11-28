@@ -402,13 +402,14 @@ func TestLayeredKinds(t *testing.T) {
 		"guarantees.html": {
 			`<a class="ref subject" href="index.html#checker">checker</a> <strong class="strength">must</strong> read every file.`,
 			`<p class="rationale"><span class="field-label">Rationale</span> A file left unread hides its errors.</p>`,
-			`<span class="derived-label">Illustrated by <span class="derived-mark">derived</span></span> <a class="ref" href="editing.html#editing.saved">Saved</a>`,
+			`<span class="derived-label">Scenarios <span class="derived-mark">derived</span></span> <a class="ref" href="editing.html#editing.saved">Saved</a>`,
 			`The <a class="ref subject" href="people.html#people.writer">writer</a> <strong class="strength">should</strong>`,
 		},
 		"index.html#goal": {
 			`<div class="goal-block" id="trust"><div class="goal-head"><span class="label">Goal</span>`,
 			`<dt>Measure</dt><dd>Nine trees in ten check clean on the first CI run.</dd>`,
-			`<span class="derived-label">Served by <span class="derived-mark">derived</span></span>`,
+			`<span class="derived-label">Rules <span class="derived-mark">derived</span></span>`,
+			`<span class="derived-label">Stories <span class="derived-mark">derived</span></span>`,
 		},
 	}
 	got := map[string]string{}

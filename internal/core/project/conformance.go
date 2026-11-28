@@ -229,14 +229,14 @@ func (r *Report) Markdown() []byte {
 	b.WriteString("\n\n")
 	r.markdownTable(&b, func(row Row) bool { return row.Status != "practice" })
 	if r.Counts["practice"] > 0 {
-		b.WriteString("\n## Practices\n\nRequirements on the people and agents who author and build, by their `@by`; no test of the code proves them.\n\n")
+		b.WriteString("\n## Practices\n\nRequirements on the people and agents who author and build, by their subject; no test of the code proves them.\n\n")
 		r.markdownTable(&b, func(row Row) bool { return row.Status == "practice" })
 	}
 	for _, g := range []struct {
 		title, about string
 		items        []string
 	}{
-		{"Behaviour no contract entry realizes", "Rules on a part or the system, and use case steps a part takes, that no entry names with @realizes and no error's prose links.", r.Gaps.Unrealized},
+		{"Behaviour no contract entry carries out", "Rules on a part or the system, and use case steps a part takes, that no contract entry references and no error's prose links.", r.Gaps.Unrealized},
 		{"Tests that cite no requirement", "Tests of the project that no verify names; listed, never failed.", r.Gaps.UncitedTests},
 	} {
 		if len(g.items) == 0 {

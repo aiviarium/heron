@@ -51,8 +51,8 @@ func (s *Site) childrenOfKind(n *resolve.Node, kind string) []*resolve.Node {
 	return out
 }
 
-// subject is who a requirement binds: the node its `@by` names, as "the
-// parser", the type a rule on a type is about, or the system.
+// subject is who a requirement binds: the actor or part it references, as
+// "the parser", the one type that realizes it, or the system.
 func (s *Site) subject(n *resolve.Node) string {
 	if by := s.ruleBy(n); by != nil {
 		if s.kindPath(by) == "project.component" {
@@ -60,12 +60,11 @@ func (s *Site) subject(n *resolve.Node) string {
 		}
 		return strings.Replace(esc(label("docs.rule.subject_named", "name", "\x00")), "\x00", s.linkHTML(by, esc(subjectWords(s, by)), "subject"), 1)
 	}
-	// A rule's targets, or else the one type that realizes it: the type
-	// whose instances it holds of.
-	cands := s.targets(n)
-	if len(cands) == 0 {
+	// The one type that references it: the type whose instances it holds of.
+	var cands []*resolve.Node
+	{
 		var types []*resolve.Node
-		for _, x := range s.specLinks()[n]["realized_by"] {
+		for _, x := range s.specLinks()[n]["hard"] {
 			if s.isTypeDecl(x) {
 				types = append(types, x)
 			}
@@ -87,11 +86,11 @@ func (s *Site) subject(n *resolve.Node) string {
 	return esc(label("docs.rule.subject"))
 }
 
-// ruleBy is the node a rule's `@by` names, or nil.
-func (s *Site) ruleBy(n *resolve.Node) *resolve.Node { return s.annRef(n, "by") }
+// ruleBy is a rule's subject: the actor or part it references, or nil.
+func (s *Site) ruleBy(n *resolve.Node) *resolve.Node { return project.Subject(s.Checker, n) }
 
 // reportedBy is who reports an error, where it's worth saying: derived
-// from the `@by` of a rule its prose links, or else an op or api whose
+// from the subject of a rule its prose links, or else an op or api whose
 // `@throws` names it. An error inside a command needs no such line, and
 // an error never names its raiser itself.
 func (s *Site) reportedBy(n *resolve.Node) *resolve.Node {
@@ -283,29 +282,8 @@ func (s *Site) afterSentence(n *resolve.Node) string {
 	return b.String()
 }
 
-// targetChips links a requirement's targets that aren't the node it's
-// written in, which its heading already names.
-func (c *Ctx) targetChips(n *resolve.Node) string {
-	if c.Site.explore() && c.Site.Opts.Lens != nil {
-		// Explore names every target in the rule's facts line.
-		return ""
-	}
-	var b strings.Builder
-	for _, t := range c.Site.targets(n) {
-		if t == n.Parent || c.Page != nil && (t == c.Page.Node || c.Site.anchorOf[t] == c.Page) {
-			// A target on the same page reads from where the rule is.
-			continue
-		}
-		if b.Len() > 0 {
-			b.WriteString(",")
-		}
-		b.WriteString(` ` + c.Site.linkHTML(t, esc(c.refText(t)), "about-ref"))
-	}
-	return b.String()
-}
-
-// ruleMeta is a requirement's formal parts: its name, what it's about,
-// who it binds and what verifies it. Explore shows them under the
+// ruleMeta is a requirement's formal parts: its name, who it binds, its
+// strength and what it references. Explore shows them under the
 // sentence; the other lenses on hover.
 func (c *Ctx) ruleMeta(n *resolve.Node) string {
 	s := c.Site
@@ -323,18 +301,18 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 		}
 		return relPathOf(t)
 	}
-	for _, t := range s.targets(n) {
-		parts = append(parts, s.linkHTML(t, `<code>`+esc(short(t))+`</code>`, ""))
-	}
 	if by := s.ruleBy(n); by != nil {
 		parts = append(parts, s.linkHTML(by, `<code>`+esc(short(by))+`</code>`, ""))
 	}
 	if st := s.ruleStrength(n); st != "" {
 		parts = append(parts, `<code class="meta-strength">`+esc(st)+`</code>`)
 	}
-	for _, l := range []struct{ arg, key string }{{"serves", "docs.label.serves"}, {"derives", "docs.label.derives"}, {"relies", "docs.label.relies"}} {
-		if ts := s.annRefs(n, l.arg); len(ts) > 0 {
-			parts = append(parts, esc(label(l.key))+` `+c.refLinks(ts))
+	for _, l := range []struct {
+		ts  []*resolve.Node
+		key string
+	}{{project.Served(s.Checker, n), "docs.label.serves"}, {project.ReliedOn(s.Checker, n), "docs.label.relies"}, {project.AskedBy(s.Checker, n), "docs.label.asked_by"}} {
+		if len(l.ts) > 0 {
+			parts = append(parts, esc(label(l.key))+` `+c.refLinks(l.ts))
 		}
 	}
 	if len(parts) == 0 {
@@ -346,8 +324,10 @@ func (c *Ctx) ruleMeta(n *resolve.Node) string {
 // ruleRest writes what follows a requirement's paragraph: its prose and
 // what verifies it.
 func (c *Ctx) ruleRest(n *resolve.Node) {
-	if v, ok := annString(n, "rationale"); ok && v != "" {
-		c.W(`<p class="rationale"><span class="field-label">`, esc(label("docs.label.rationale")), `</span> `, esc(v), `</p>`)
+	if r := project.Rationale(c.Site.Checker, n); r != nil {
+		if h := c.Site.inlineHTML(r); h != "" {
+			c.W(`<p class="rationale"><span class="field-label">`, esc(label("docs.label.rationale")), `</span> `, h, `</p>`)
+		}
 	}
 	if v, ok := argString(kindArgs(n), -1, "reason"); ok && v != "" {
 		c.W(`<p class="rationale"><span class="field-label">`, esc(label("docs.label.reason")), `</span> `, esc(v), `</p>`)
@@ -379,11 +359,6 @@ func renderRule(c *Ctx) error {
 		link = s.gutterLink(n, "#"+Anchor(n))
 	}
 	head := link + sent + statusBadge(n) + c.qualityFacts(n)
-	if chips := c.targetChips(n); chips != "" {
-		// What the rule is about, where its place doesn't say: a quiet
-		// line after its sentence, never a tag standing above it.
-		head += `<span class="rule-about">` + esc(label("docs.label.about")) + ` ` + strings.TrimSpace(chips) + `</span>`
-	}
 	if s.summarized(n) {
 		rest := c.at(n, c.Level)
 		rest.out = &strings.Builder{}
@@ -542,18 +517,17 @@ func (s *Site) readLifecycle(n *resolve.Node) *lifecycle {
 	return l
 }
 
-// performers maps each transition to the ops whose @performs names it.
+// performers maps each transition to the ops whose hard references name
+// it: the ops that perform it.
 func (s *Site) performers() map[*resolve.Node][]*resolve.Node {
 	out := map[*resolve.Node][]*resolve.Node{}
 	s.Tree.Walk(func(n *resolve.Node) {
 		if !own(n) || s.kindPath(n) != "types.op" {
 			return
 		}
-		for _, a := range annotationsNamed(n, "performs") {
-			for _, e := range argExprs(a.Args()) {
-				if t := s.refTarget(e.Syntax(), n.Decl); t != nil {
-					out[t] = append(out[t], n)
-				}
+		for _, t := range project.HardTargets(s.Checker, n) {
+			if s.kindPath(t) == "spec.transition" {
+				out[t] = append(out[t], n)
 			}
 		}
 	})

@@ -1,5 +1,4 @@
-@realizes(heron.system.interpreter, heron.system.command_line)
-setup: component("internal/core/setup", lang = "go") {
+setup: component("internal/core/setup", heron.system.interpreter, heron.system.command_line, lang = "go") {
   | Backs `std/repo`: the toolchain check, the packages and sources pinned in `heron.lock`,
   | and the generated files `heron run setup` writes, and `std/spec`'s `git(…)`. Its funcs
   | run inside `eval` and reach the tree, the project's root and processes through the

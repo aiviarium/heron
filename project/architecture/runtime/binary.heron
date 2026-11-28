@@ -1,6 +1,5 @@
 @display("The binary")
-@realizes(heron.system.command_line)
-binary: component("cmd/heron", lang = "go") {
+binary: component("cmd/heron", heron.system.command_line, lang = "go") {
   | The one executable every [entry point](#heron.language.core_format.files.entry_point) runs
   | as: a laptop, a CI job, an agent and a worker run the same code at the same version.
   | `cmd/heron` holds no command of its own; it installs each built [unit](#delivery.units)'s

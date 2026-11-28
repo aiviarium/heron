@@ -63,7 +63,7 @@ func TestSpecGrammarIsUngram(t *testing.T) {
 		if s.kindPath(n) != "grammar.grammar" {
 			return
 		}
-		if src, _ := annString(n, "source"); src != source {
+		if src, _ := argString(kindArgs(n), -1, "source"); src != source {
 			return
 		}
 		grammars++

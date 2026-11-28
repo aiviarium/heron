@@ -18,29 +18,24 @@ desk: part {{ The support console. }}
 refunds: section {
   self_service: goal {{ Customers fix a wrong charge themselves. }}
 
-  @by(desk)
-  late: rule {
+  late: rule(desk) {
     must {{ refund the amount and/or offer credit }}
   }
 
-  @by(desk)
-  never: rule {
+  never: rule(desk) {
     mustNot {{ never refund twice }}
   }
 
-  @by(desk)
-  odd: rule {
+  odd: rule(desk) {
     while {{ it's not the case that the payment is held }}
     must {{ refund it }}
   }
 
-  @by(desk)
-  stored: rule {
+  stored: rule(desk) {
     must {{ keep the refund in the database for a sprint }}
   }
 
-  @illustrates(refunds.late)
-  click_flow: scenario {
+  click_flow: scenario(refunds.late) {
     given {{ a payment }}
     given {{ a customer }}
     given {{ a desk }}
@@ -111,8 +106,7 @@ func TestUnmotivated(t *testing.T) {
 
 desk: part {{ The console. }}
 
-@by(desk)
-r: rule {
+r: rule(desk) {
   must {{ refund }}
 }
 
@@ -129,5 +123,52 @@ c: constraint(reason = "The card network says so.") {
 	}
 	if len(un) != 1 || !strings.Contains(un[0], "r: rule") {
 		t.Errorf("unmotivated: %q", un)
+	}
+}
+
+// An entry's hard references, in its constructor or its @touch, keep it
+// from being an orphan; a soft @see doesn't.
+func TestOrphanCountsHardReferences(t *testing.T) {
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "index.heron"), `import = ["std/doc@1", "std/lint@1", "std/types@1"]
+
+desk: part {{ The support console. }}
+
+goal_area: section {
+  self_service: goal {{ Customers fix a wrong charge themselves. }}
+
+  late: rule(desk) {
+    must {{ refund the amount }}
+  }
+
+  refund_cmd: command("refund", goal_area.late)
+}
+
+shop: api {
+  @touch(goal_area.late)
+  touched(): op(Int)
+  built(): op(Int, goal_area.late)
+}
+
+docs_api: api {
+  @see(goal_area.late)
+  seen(): op(Int)
+}
+`)
+	got, _ := lintDir(t, dir, lint.NewProseCache())
+	var orphans []string
+	for _, f := range got {
+		if f.code == "Spec.OrphanEntry" {
+			orphans = append(orphans, f.text)
+		}
+	}
+	all := strings.Join(orphans, "\n")
+	if !strings.Contains(all, "seen()") {
+		t.Errorf("an op with only @see isn't an orphan:\n%s", all)
+	}
+	for _, n := range []string{"refund_cmd", "touched()", "built()"} {
+		if strings.Contains(all, n) {
+			t.Errorf("%s is an orphan:\n%s", n, all)
+		}
 	}
 }

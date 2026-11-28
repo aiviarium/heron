@@ -1,5 +1,4 @@
-@realizes(heron.system.checker, heron.system.linter)
-diag: component("internal/core/diag", lang = "go") {
+diag: component("internal/core/diag", heron.system.checker, heron.system.linter, lang = "go") {
   | The one shape every stage's findings share, from a syntax error to a prose lint, so the
   | command line, the language server and the docs report them alike.
 

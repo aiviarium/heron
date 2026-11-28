@@ -29,7 +29,7 @@ func TestAPILanding(t *testing.T) {
 func TestOpPageOutcomes(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	get := f["dev/kite.store_api.get_note.html"]
-	mustHave(t, "get_note", get, `<dt>Realizes</dt><dd><a class="ref" href="index.html#kite.gone_notes">Gone notes</a></dd>`)
+	mustHave(t, "get_note", get, `<dt>Carries out</dt><dd><a class="ref" href="index.html#kite.gone_notes">Gone notes</a></dd>`)
 	mustNotHave(t, "get_note", get, `(gone_notes)`)
 	put := f["dev/kite.store_api.put_note.html"]
 	mustHave(t, "put_note", put,

@@ -237,17 +237,10 @@ func (s *Site) specPage(c *Ctx) error {
 	return nil
 }
 
-// realizes returns the spec subjects a component's @realizes names.
+// realizes returns the spec subjects a component's references name: what
+// it builds.
 func (s *Site) realizes(n *resolve.Node) []*resolve.Node {
-	var out []*resolve.Node
-	for _, a := range annotationsNamed(n, "realizes") {
-		for _, e := range argExprs(a.Args()) {
-			if t := s.refTarget(e.Syntax(), n.Decl); t != nil {
-				out = append(out, t)
-			}
-		}
-	}
-	return out
+	return project.HardTargets(s.Checker, n)
 }
 
 // hasOwnPage reports whether a node is shown on a page of the tree's other

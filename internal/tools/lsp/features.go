@@ -10,8 +10,10 @@ import (
 	"strings"
 
 	"github.com/aiviarium/heron/internal/core/format"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
+	"github.com/aiviarium/heron/internal/core/types"
 )
 
 // position decodes a position request into a file and a byte offset.
@@ -100,7 +102,51 @@ func (s *Session) hover(params json.RawMessage) (any, error) {
 	if len(facts) > 0 {
 		b.WriteString("\n\n" + strings.Join(facts, " · "))
 	}
+	if refs := referenceWords(r.res.Checker, n); refs != "" {
+		b.WriteString("\n\nreferences " + refs)
+	}
 	return Hover{Contents: MarkupContent{Kind: "markdown", Value: b.String()}, Range: &rng}, nil
+}
+
+// referenceWords are a node's references, each with what it means by the
+// kind it names, as "`desk` (subject), `self_service` (serves)", or "".
+func referenceWords(c *types.Checker, n *resolve.Node) string {
+	var out []string
+	contract := project.IsContract(c, n)
+	for _, t := range project.ReferenceTargets(c, n) {
+		meaning := ""
+		switch kp := project.KindPath(c, t); {
+		case contract && kp == "spec.transition":
+			meaning = "performs"
+		case contract:
+			meaning = "carries out"
+		case kp == "spec.actor", kp == "spec.persona", kp == "spec.part":
+			meaning = "subject"
+			if k := project.KindPath(c, n); k == "spec.goal" || k == "spec.constraint" {
+				meaning = "asked by"
+			}
+		case kp == "spec.goal", kp == "spec.quality":
+			meaning = "serves"
+			if project.KindPath(c, n) == "spec.scenario" {
+				meaning = "measures"
+			}
+		case kp == "spec.assumption":
+			meaning = "relies on"
+		case kp == "spec.scenario":
+			meaning = "refines"
+		case kp == "spec.rule", kp == "spec.usecase", t.Shape == resolve.ShapeStep:
+			meaning = "illustrates"
+		}
+		w := "`" + t.Path() + "`"
+		if meaning != "" {
+			w += " (" + meaning + ")"
+		}
+		out = append(out, w)
+	}
+	for _, t := range project.SeeAlso(c, n) {
+		out = append(out, "`"+t.Path()+"` (see also)")
+	}
+	return strings.Join(out, ", ")
 }
 
 // displayID names a file in hover text: a standard file as std/…, a file

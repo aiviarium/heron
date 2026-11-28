@@ -39,16 +39,26 @@ types: package(version = "1.0") {
     accept(kind = func)
   }
 
-  /// A group of operations.
+  /// Kinds of other packages that a contract surface's hard references may
+  /// name, as std/spec's rule, constraint, use case, part, lifecycle and
+  /// transition. A kind with no `references` of its own takes them with
+  /// `@touch`, as a type does.
+  realized: category
+
+  /// A group of operations; its references name the rules, use cases and
+  /// parts it carries out.
   @icon("server")
-  api: kind(layer = Layer.CONTRACT) {
+  api(refs<variadic>?: Ref(Any)): kind(layer = Layer.CONTRACT, references = [realized]) {
     accept(prose)
     accept(kind = op)
   }
 
-  /// An operation: its inputs as parameters, its result type first.
+  /// An operation: its inputs as parameters, its result type first, then
+  /// its references: the rules, use case steps and transitions it carries
+  /// out, told from the result type by kind. An op that references a
+  /// transition performs it.
   @icon("zap")
-  op(returns?: Any): kind(layer = Layer.CONTRACT) {
+  op(returns?: Any, refs<variadic>?: Ref(Any)): kind(layer = Layer.CONTRACT, references = [realized]) {
     accept(prose)
     accept(kind = example)
   }

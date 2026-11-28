@@ -1,7 +1,7 @@
 // std/project: the implementation side of a detached spec. A spec is a
 // package of its own, authored and versioned apart from the code and
 // usually sealed; a project imports it at a version and adds only what is
-// about its implementation: the components that realize the spec's parts,
+// about its implementation: the components that build the spec's parts,
 // the tests that prove its requirements at a revision, where the rest
 // stands, its releases, and its delivery: stories, increments and
 // milestones. A project refers to the spec and never restates it.
@@ -32,9 +32,10 @@ project: package(version = "1.1", requires = ["std/doc@1"]) {
   // --- Architecture ---
 
   /// A unit of the implementation's code with one contract, such as a Go
-  /// or TS package, at a path from the repository root. `@realizes` names
-  /// the spec's parts it builds. Architecture, never a spec kind.
-  component(path: String, lang?: String): kind(in = [block, realizing]) {
+  /// or TS package, at a path from the repository root. Its references
+  /// name the spec's parts, actors or sections it builds. Architecture,
+  /// never a spec kind.
+  component(path: String, refs<variadic>?: Ref(Any), lang?: String): kind(in = [block], references = [spec.part, spec.actor, doc.section]) {
     /// The components it may import; any other import breaks the contract.
     uses?: List(Ref(component))
     accept(prose)
@@ -103,11 +104,11 @@ project: package(version = "1.1", requires = ["std/doc@1"]) {
 
   // --- Delivery ---
 
-  /// One change to the spec, small enough to build in one increment: the
-  /// spec items it adds and changes, and the core's `@serves` names the
-  /// goal it advances. It states no
-  /// behaviour; its `done` holds what delivery alone needs.
-  story(adds?: List(Ref(Any)), changes?: List(Ref(Any))): kind(in = [block, serving]) {
+  /// One change to the spec, small enough to build in one increment: its
+  /// references name the goals it advances, `adds` and `changes` the spec
+  /// items it adds and changes. It states no behaviour; its `done` holds
+  /// what delivery alone needs.
+  story(refs<variadic>?: Ref(Any), adds?: List(Ref(Any)), changes?: List(Ref(Any))): kind(in = [block], references = [spec.goal, spec.quality]) {
     accept(prose)
     accept(kind = done, max = 1)
   }

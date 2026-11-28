@@ -1,5 +1,4 @@
-@realizes(heron.system.extension_host)
-extension: component("internal/core/extension", lang = "go") {
+extension: component("internal/core/extension", heron.system.extension_host, lang = "go") {
   | Runs what packages declare and code implements: it starts [extension processes](#heron.language.schemas.extensions.extension_process) and
   | the [JS host](#heron.language.interop.host.js_host), speaks the protocol to them, runs the capability handshake, applies the
   | limits each declares, and registers what each implements in the registry the
@@ -123,8 +122,7 @@ extension: component("internal/core/extension", lang = "go") {
   verify("scripts/e2e-interop.sh") {{ [Unit](#delivery.units) 1's [done criterion](#delivery.unit_1) for extensions: a sample TS package's foreign func, transport, lint and resource driver type-check against their Heron declarations and work like built-in parts. }}
 }
 
-@realizes(heron.system.extension_host)
-protocol: component("internal/core/extension/protocol", lang = "go") {
+protocol: component("internal/core/extension/protocol", heron.system.extension_host, lang = "go") {
   | The extension protocol: its messages and methods, generated from `protocol.heron`, the
   | values that cross the boundary as their Heron types, and the wire encodings and framing.
 
@@ -199,8 +197,7 @@ protocol: component("internal/core/extension/protocol", lang = "go") {
 }
 
 @display("TS runtime")
-@realizes(heron.system.extension_host)
-js_runtime: component("web/runtime", lang = "ts") {
+js_runtime: component("web/runtime", heron.system.extension_host, lang = "ts") {
   | `@heron/runtime`, [unit](#delivery.units) 1's TS SDK and [JS host](#heron.language.interop.host.js_host): the same protocol in TS, the helpers an
   | extension's code defines its parts with, and the host that loads a project's TS modules
   | for its `js(…)` declarations. It's built in the `web/` workspace and installed into a

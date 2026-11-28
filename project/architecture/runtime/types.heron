@@ -1,5 +1,4 @@
-@realizes(heron.system.checker)
-types: component("internal/core/types", lang = "go") {
+types: component("internal/core/types", heron.system.checker, lang = "go") {
   | Checks the resolved tree against the [schemas](#heron.language.schemas.kinds.schema) in scope, and answers the questions
   | every later stage asks about a node: which kind or type it has, which fields and kind
   | arguments it takes, and what each path in it names.

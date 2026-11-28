@@ -202,7 +202,7 @@ type ruleGroup struct {
 	rules   int
 }
 
-// implementedBy groups the rules outside a component whose `@by` names it
+// implementedBy groups the rules outside a component whose subject is it
 // by the node each rule sits in, in tree order.
 func (s *Site) implementedBy(n *resolve.Node) []ruleGroup {
 	var out []ruleGroup
@@ -510,7 +510,7 @@ func (s *Site) grammarNames(g *resolve.Node) map[string]*resolve.Node {
 		}
 	}
 	add(g)
-	if src, ok := annString(g, "source"); ok && src != "" {
+	if src, ok := argString(kindArgs(g), -1, "source"); ok && src != "" {
 		for _, o := range s.grammarsBySource()[src] {
 			if o != g {
 				add(o)
@@ -528,7 +528,7 @@ func (s *Site) grammarsBySource() map[string][]*resolve.Node {
 			if s.kindPath(n) != "grammar.grammar" {
 				return
 			}
-			if src, ok := annString(n, "source"); ok && src != "" {
+			if src, ok := argString(kindArgs(n), -1, "source"); ok && src != "" {
 				s.grammarSources[src] = append(s.grammarSources[src], n)
 			}
 		})
@@ -638,7 +638,7 @@ func renderGrammar(c *Ctx) error {
 		}
 	}
 	notation, _ := argString(kindArgs(n), 0, "notation")
-	source, _ := annString(n, "source")
+	source, _ := argString(kindArgs(n), -1, "source")
 	var facts [][2]string
 	if notation != "" {
 		facts = append(facts, [2]string{label("docs.label.notation"), `<code>` + esc(notation) + `</code>`})

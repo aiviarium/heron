@@ -1,5 +1,4 @@
-@realizes(heron.system.checker)
-resolve: component("internal/core/resolve", lang = "go") {
+resolve: component("internal/core/resolve", heron.system.checker, lang = "go") {
   | Follows an [entry point](#heron.language.core_format.files.entry_point) into one node tree: `import` [mounts](#heron.language.core_format.mounts.mount) packages,
   | `include` places a tree's own files, bindings amend by path, and names resolve through
   | scopes. Its output is the tree every later stage reads. It's the stage that implements

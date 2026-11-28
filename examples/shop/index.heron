@@ -21,14 +21,12 @@ architecture: section {
   | How the store is built: one component per Go package.
 
   /// The cart a buyer fills before checking out.
-  @realizes(shop.parts.cart, shop.buyer)
-  cart: component("internal/cart", lang = "go") {
+  cart: component("internal/cart", shop.parts.cart, shop.buyer, lang = "go") {
     responsibility {{ Holds the items of a buyer's cart until checkout. }}
   }
 
   /// Payment through the payment provider.
-  @realizes(shop.parts.payments)
-  payments: component("internal/payments", lang = "go") {
+  payments: component("internal/payments", shop.parts.payments, lang = "go") {
     uses = [cart]
 
     responsibility {{ Charges an order and records that it is paid. }}

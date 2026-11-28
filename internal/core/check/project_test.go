@@ -34,7 +34,6 @@ func checkFiles(t *testing.T, files map[string]string, entry string) *check.Resu
 const projectKinds = `
 x: project(path = ".")
 
-@realizes(x)
 c: component("internal/c") {}
 
 proves(x) {
@@ -72,8 +71,7 @@ shop: package(version = "2.1.3", sealed = true) {
   buyer: actor {{ Someone who buys. }}
 
   checkout: section {
-    @by(buyer)
-    pay_once: rule {
+    pay_once: rule(buyer) {
       must {{ pay for an order once }}
     }
 
@@ -130,8 +128,7 @@ func TestProjectMode(t *testing.T) {
 	}
 	ok := projectHead + `
 arch: section {
-  @realizes(shop.buyer)
-  cart: component("internal/cart") {
+  cart: component("internal/cart", shop.buyer) {
     responsibility {{ Holds the cart. }}
   }
 }
@@ -286,14 +283,12 @@ shop: package(version = "1.0.0", sealed = true) {
 
   payments: part {{ Takes the buyer's money. }}
 
-  @by(payments)
   @rev(2)
-  pay_once: rule {
+  pay_once: rule(payments) {
     must {{ charge an order at most once }}
   }
 
-  @by(payments)
-  receipt: rule {
+  receipt: rule(payments) {
     must {{ send a receipt }}
   }
 
@@ -340,7 +335,7 @@ proves(shop.receipt, shop.no_receipt) {
 		t.Errorf("unrealized: %v", rep.Gaps.Unrealized)
 	}
 	md := string(rep.Markdown())
-	for _, s := range []string{"1 outdated, proven at an earlier revision only", "## Behaviour no contract entry realizes", "- `pay_once`", "<details><summary>pay_once (1)</summary>"} {
+	for _, s := range []string{"1 outdated, proven at an earlier revision only", "## Behaviour no contract entry carries out", "- `pay_once`", "<details><summary>pay_once (1)</summary>"} {
 		if !strings.Contains(md, s) {
 			t.Errorf("markdown lacks %q:\n%s", s, md)
 		}

@@ -1,6 +1,5 @@
 @display("CLI")
-@realizes(heron.system.command_line)
-cli: component("internal/core/cli", lang = "go") {
+cli: component("internal/core/cli", heron.system.command_line, lang = "go") {
   | Dispatches the binary's subcommands and registers [unit](#delivery.units) 1's commands, core lints,
   | record kinds and setup funcs. Each command's arguments, options and exit codes are in
   | [the command reference](#heron.cli); this component holds what they share.

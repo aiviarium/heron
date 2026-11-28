@@ -510,26 +510,97 @@ func findParam(ps []Param, name string) *Param {
 	return nil
 }
 
-// args checks arguments against parameters: named ones must exist,
-// positional ones fill parameters in order, a variadic parameter takes the
-// rest, and each value fits its parameter's type.
-func (c *Checker) args(args ast.Args, params []Param, what string, sc *resolve.Scope, file *resolve.File, required bool) {
-	given := map[string]bool{}
+// ArgSlots maps each argument to the index of the parameter it fills, or
+// -1 for none. A named argument fills its parameter; positional ones fill,
+// in order, the parameters no argument names, and a variadic parameter
+// takes the rest. An optional parameter that isn't a reference is passed
+// over by a positional argument whose path names no type, where a variadic
+// reference parameter follows it: `op(Order, place_order.3)` returns an
+// Order and references the step, and `op(place_order.3)` only references
+// it.
+func (c *Checker) ArgSlots(args ast.Args, params []Param, sc *resolve.Scope, file *resolve.File) []int {
+	named := map[string]bool{}
+	for _, a := range args.Args() {
+		if na, ok := a.(ast.NamedArg); ok && na.Ident() != nil {
+			named[na.Ident().Text] = true
+		}
+	}
+	refsAfter := func(i int) bool {
+		for _, p := range params[i+1:] {
+			if p.Variadic && c.refParam(p.Type) {
+				return true
+			}
+		}
+		return false
+	}
+	var out []int
 	pos := 0
 	for _, a := range args.Args() {
 		switch a := a.(type) {
+		case ast.NamedArg:
+			slot := -1
+			if a.Ident() != nil {
+				for i := range params {
+					if params[i].Name == a.Ident().Text {
+						slot = i
+					}
+				}
+			}
+			out = append(out, slot)
 		case ast.PositionalArg:
+			for pos < len(params) && !params[pos].Variadic {
+				p := params[pos]
+				if named[p.Name] || (p.Optional && !c.refParam(p.Type) && refsAfter(pos) && !c.namesType(a.Expr(), sc, file)) {
+					pos++
+					continue
+				}
+				break
+			}
 			if pos >= len(params) {
+				out = append(out, -1)
+				continue
+			}
+			out = append(out, pos)
+			if !params[pos].Variadic {
+				pos++
+			}
+		default:
+			out = append(out, -1)
+		}
+	}
+	return out
+}
+
+// namesType reports whether an argument is a path to a type, or no path:
+// what an optional parameter before a variadic reference takes.
+func (c *Checker) namesType(e ast.Expr, sc *resolve.Scope, file *resolve.File) bool {
+	pe, ok := e.(ast.PathExpr)
+	if !ok || pe.Path().N == nil {
+		return true
+	}
+	n := c.lookupPath(sc, file, off(pe.N), resolve.PathSegs(pe.Path().N), nil)
+	return n != nil && (c.IsType(n) || resolve.IsBuiltin(n))
+}
+
+// args checks arguments against parameters: named ones must exist,
+// positional ones fill parameters as ArgSlots says, and each value fits its
+// parameter's type.
+func (c *Checker) args(args ast.Args, params []Param, what string, sc *resolve.Scope, file *resolve.File, required bool) {
+	given := map[string]bool{}
+	slots := c.ArgSlots(args, params, sc, file)
+	for i, a := range args.Args() {
+		switch a := a.(type) {
+		case ast.PositionalArg:
+			if slots[i] < 0 {
 				c.errorf(file, a.N, "too-many-arguments", "%s takes %d positional argument%s", what, len(params), plural(len(params)))
 				c.expr(a.Expr(), sc, file, nil)
 				continue
 			}
-			p := params[pos]
+			p := params[slots[i]]
 			given[p.Name] = true
 			if p.Variadic {
 				c.variadic(a.Expr(), p, sc, file)
 			} else {
-				pos++
 				c.value(a.Expr(), p.Type, sc, file, &p)
 			}
 		case ast.NamedArg:

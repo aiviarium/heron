@@ -339,13 +339,8 @@ func (r *reader) opSignature(op *resolve.Node) ([]param, Type) {
 			site: resolve.Site{File: op.Decl.File, N: p.N, Scope: op.Decl.Scope},
 		})
 	}
-	if t, ok := d.Type().(ast.NamedType); ok {
-		args := t.Args()
-		if es := project.ArgExprs(args); len(es) > 0 {
-			result = r.readTypeExpr(es[0], site, nil)
-		} else if e := project.NamedArg(args, "returns"); e != nil {
-			result = r.readTypeExpr(e, site, nil)
-		}
+	if e := project.KindArg(r.c, op, "returns"); e != nil {
+		result = r.readTypeExpr(e, site, nil)
 	}
 	return ps, result
 }

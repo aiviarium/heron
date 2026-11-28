@@ -83,41 +83,83 @@ language_specifications_layers: section {
     verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
   }
 
-  proves(heron.language.specifications.layers.errors.derives_cycle) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
-  }
-
   proves(heron.language.specifications.layers.errors.points_down) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestReferencesPointUp")
   }
 
   proves(heron.language.specifications.layers.errors.revision_below_one) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
-  }
-
-  proves(heron.language.specifications.layers.errors.wrong_link_target) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
   }
 
   proves(heron.language.specifications.layers.layer_declared) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
   }
 
-  proves(heron.language.specifications.layers.links.area_goals) {
+  proves(heron.language.specifications.layers.references.area_goals) {
     verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
   }
 
-  proves(heron.language.specifications.layers.links.derives_acyclic) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  proves(heron.language.specifications.layers.references.reference_kinds) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestConstructorReferences")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestCustomReferenceKinds")
   }
 
-  proves(heron.language.specifications.layers.links.link_kinds) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+  proves(heron.language.specifications.layers.references.term_not_referenced) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestTouchAndSee")
   }
 
-  proves(heron.language.specifications.layers.links.realizes_annotation) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
-    verify("internal/tools/docs/docs_test.go", test = "TestLayeredKinds")
+  proves(heron.language.specifications.layers.references.one_subject) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+  }
+
+  proves(heron.language.specifications.layers.references.no_rule_to_rule) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestTouchAndSee")
+  }
+
+  proves(heron.language.specifications.layers.references.references_acyclic) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+  }
+
+  proves(heron.language.specifications.layers.references.op_result_first) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestConstructorReferences")
+  }
+
+  proves(heron.language.specifications.layers.references.touch_annotation) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestTouchAndSee")
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.layers.references.listed_twice) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestTouchAndSee")
+  }
+
+  proves(heron.language.specifications.layers.references.see_annotation) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestTouchAndSee")
+    verify("internal/tools/prose/gaps_test.go", test = "TestOrphanCountsHardReferences")
+    verify("internal/tools/docs/spec_test.go", test = "TestSpecKindsRender")
+  }
+
+  proves(heron.language.specifications.layers.errors.listed_twice) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestTouchAndSee")
+  }
+
+  proves(heron.language.specifications.layers.errors.wrong_reference) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+  }
+
+  proves(heron.language.specifications.layers.errors.two_subjects) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+  }
+
+  proves(heron.language.specifications.layers.errors.rule_links_rule) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
+  }
+
+  proves(heron.language.specifications.layers.errors.reference_cycle) {
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
   }
 
   proves(heron.language.specifications.layers.references_point_up) {
@@ -125,7 +167,7 @@ language_specifications_layers: section {
   }
 
   proves(heron.language.specifications.layers.revisions.revision_positive) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestLinks")
+    verify("internal/core/specmodel/specmodel_test.go", test = "TestReferences")
   }
 
   proves(heron.language.specifications.layers.same_layer_free) {
@@ -204,10 +246,6 @@ language_specifications_layers: section {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
   }
 
-  proves(heron.language.specifications.requirements.errors.not_a_subject) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
-  }
-
   proves(heron.language.specifications.requirements.errors.scenario_form) {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
   }
@@ -236,10 +274,6 @@ language_specifications_layers: section {
     verify("internal/core/specmodel/specmodel_test.go", test = "TestLayers")
   }
 
-  proves(heron.language.specifications.requirements.subject_actor_or_part) {
-    verify("internal/core/specmodel/specmodel_test.go", test = "TestShapes")
-  }
-
   proves(heron.language.specifications.traceability.errors.orphan_entry) {
     verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
   }
@@ -262,6 +296,7 @@ language_specifications_layers: section {
   }
 
   proves(heron.language.specifications.traceability.gaps.orphan_entry) {
+    verify("internal/tools/prose/gaps_test.go", test = "TestOrphanCountsHardReferences")
     verify("internal/tools/prose/gaps_test.go", test = "TestGapAndLayerLints")
   }
 

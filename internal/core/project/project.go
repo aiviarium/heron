@@ -299,13 +299,13 @@ func (p *Project) Requirements() []*Requirement {
 	return out
 }
 
-// PracticeSubject reports whether a requirement's `@by` names a person or
+// PracticeSubject reports whether a requirement's subject is a person or
 // an agent: an std/spec actor of kind PERSON, the default, or AGENT, or
 // a persona. What it asks of them is a practice of the people and agents
 // who author and build, which no test of the code proves, unless a proof
 // links one, as a test of contrast or of visible text can.
 func PracticeSubject(c *types.Checker, n *resolve.Node) bool {
-	by := AnnotationRef(c, n, "by")
+	by := Subject(c, n)
 	if by == nil {
 		return false
 	}
@@ -635,7 +635,7 @@ func Annotations(n *resolve.Node, name string) []resolve.Site {
 func HasAnnotation(n *resolve.Node, name string) bool { return len(Annotations(n, name)) > 0 }
 
 // AnnotationArgs are the positional arguments of a node's annotations
-// named name, as `@serves(a, b)` gives a and b.
+// named name, as `@touch(a, b)` gives a and b.
 func AnnotationArgs(n *resolve.Node, name string) []AnnArg {
 	var out []AnnArg
 	for _, a := range Annotations(n, name) {
@@ -655,7 +655,7 @@ func AnnotationArg(n *resolve.Node, name string) *AnnArg {
 	return nil
 }
 
-// AnnotationString is the string an annotation such as `@source("…")`
+// AnnotationString is the string an annotation such as `@display("…")`
 // holds.
 func AnnotationString(n *resolve.Node, name string) (string, bool) {
 	a := AnnotationArg(n, name)
@@ -676,7 +676,7 @@ func AnnotationText(n *resolve.Node, name string) string {
 }
 
 // AnnotationRefs are the nodes an annotation's arguments name, as
-// `@by(desk)` names desk.
+// `@touch(desk)` names desk.
 func AnnotationRefs(c *types.Checker, n *resolve.Node, name string) []*resolve.Node {
 	var out []*resolve.Node
 	for _, a := range AnnotationArgs(n, name) {
@@ -741,7 +741,7 @@ func ErrorRules(c *types.Checker, n *resolve.Node) []*resolve.Node {
 }
 
 // ErrorRaiser is who reports an error, derived from the other direction:
-// the command that holds it, or else the `@by` of the first rule its prose
+// the command that holds it, or else the subject of the first rule its prose
 // links to. An op's `@throws` is the third way, which readers that index
 // ops add. Nil when neither says.
 func ErrorRaiser(c *types.Checker, n *resolve.Node) *resolve.Node {
@@ -751,7 +751,7 @@ func ErrorRaiser(c *types.Checker, n *resolve.Node) *resolve.Node {
 		}
 	}
 	for _, r := range ErrorRules(c, n) {
-		if by := AnnotationRef(c, r, "by"); by != nil {
+		if by := Subject(c, r); by != nil {
 			return by
 		}
 	}

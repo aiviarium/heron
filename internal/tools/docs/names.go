@@ -308,10 +308,16 @@ func (s *Site) lookup(site resolve.Site, segs []string) *resolve.Node {
 	return out
 }
 
-// targets returns the nodes a requirement's `@targets` names, or a proof's
-// or a status's kind arguments.
+// targets returns the nodes a proof's or a status's kind arguments name.
+// A requirement's references are no targets: they're its subject, the goals
+// it serves and the assumptions it relies on, which its meta line shows.
 func (s *Site) targets(n *resolve.Node) []*resolve.Node {
-	out := s.annRefs(n, "targets")
+	var out []*resolve.Node
+	if k := s.Checker.KindOf(n); k != nil {
+		if _, ok := s.Checker.ReferenceKinds(k); ok {
+			return nil
+		}
+	}
 	for _, e := range argExprs(kindArgs(n)) {
 		if t := s.refTarget(e.Syntax(), n.Decl); t != nil {
 			out = append(out, t)
@@ -321,7 +327,7 @@ func (s *Site) targets(n *resolve.Node) []*resolve.Node {
 }
 
 // annRefs are the nodes a node's annotations named name refer to, as
-// `@serves(a, b)` names a and b.
+// `@throws(a, b)` names a and b.
 func (s *Site) annRefs(n *resolve.Node, name string) []*resolve.Node {
 	var out []*resolve.Node
 	for _, a := range project.AnnotationArgs(n, name) {
@@ -337,7 +343,7 @@ func (s *Site) annRefs(n *resolve.Node, name string) []*resolve.Node {
 func annText(n *resolve.Node, name string) string { return project.AnnotationText(n, name) }
 
 // annString is the string a node's annotation named name holds, as
-// `@source("authors")` holds authors.
+// `@display("Lenses")` holds Lenses.
 func annString(n *resolve.Node, name string) (string, bool) {
 	return project.AnnotationString(n, name)
 }

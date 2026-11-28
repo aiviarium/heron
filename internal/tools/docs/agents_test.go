@@ -123,24 +123,24 @@ func TestAgentExportOfSpec(t *testing.T) {
 			t.Errorf("INDEX.md lacks %q", want)
 		}
 	}
-	if strings.Contains(idx, "language.apis.grpc.numbering.md") {
+	if strings.Contains(idx, "language.apis.sparrow.numbering.md") {
 		t.Error("INDEX.md maps a file below a top area")
 	}
 	if n := Tokens(files[0].Content); n > 2000 {
 		t.Errorf("INDEX.md is %d tokens, want at most 2000", n)
 	}
-	for _, step := range [][2]string{{"language.md", "language.apis.md"}, {"language.apis.md", "language.apis.grpc.md"}, {"language.apis.grpc.md", "language.apis.grpc.numbering.md"}} {
+	for _, step := range [][2]string{{"language.md", "language.apis.md"}, {"language.apis.md", "language.apis.sparrow.md"}, {"language.apis.sparrow.md", "language.apis.sparrow.numbering.md"}} {
 		if f := fileByPath(files, step[0]); f == nil || !strings.Contains(string(f.Content), "## Files below") || !strings.Contains(string(f.Content), "]("+step[1]+")") {
 			t.Errorf("%s doesn't map %s under Files below", step[0], step[1])
 		}
 	}
-	f := fileByPath(files, "language.apis.grpc.numbering.md")
+	f := fileByPath(files, "language.apis.sparrow.numbering.md")
 	if f == nil {
-		t.Fatal("no language.apis.grpc.numbering.md")
+		t.Fatal("no language.apis.sparrow.numbering.md")
 	}
 	for _, want := range []string{
-		"### rule language.apis.grpc.numbering.unique_numbers",
-		"must: If two fields of a message, or two values of an enum, have one number, the checker must report number used twice at the second.",
+		"### rule language.apis.sparrow.numbering.unique_tags",
+		"must: If two fields of a struct have one tag, the checker must report duplicate tag at the second.",
 		"by [system.checker](system.md#system.checker)",
 		"## Specification",
 		"## Terms used here",
@@ -186,7 +186,7 @@ func TestAgentContextPack(t *testing.T) {
 		t.Fatalf("the last file is %s", p.Path)
 	}
 	c := string(p.Content)
-	for _, want := range []string{"# Context pack: ", "### rule language.apis.grpc.numbering.unique_numbers", "## Linked from here", "](../INDEX.md)", "](#language.apis.grpc.field_number)", "](../system.md#system.checker)"} {
+	for _, want := range []string{"# Context pack: ", "### rule language.apis.grpc.numbering.unique_numbers", "## Linked from here", "](../INDEX.md)", "](#language.apis.grpc.proto_service)", "](../system.md#system.checker)"} {
 		if !strings.Contains(c, want) {
 			t.Errorf("the pack lacks %q", want)
 		}
@@ -248,15 +248,13 @@ shop: package(version = "1.0") {
     order_term: term(aliases = ["order"]) {{ A request to buy things, with a total. }}
 
     @lens(user)
-    @serves(sell)
-    place: rule {
+    place: rule(sell) {
       when {{ a customer places an [order_term] }}
       must {{ record it }}
       then {{ it can be paid }}
     }
 
-    @illustrates(place)
-    happy: scenario {
+    happy: scenario(place) {
       given {{ a cart }}
       when {{ the customer checks out }}
       then {{ an order is recorded }}
@@ -353,8 +351,8 @@ func TestAgentExportSplitsAndOrders(t *testing.T) {
 		"### rule orders.place\n\nmust: When a customer places an [order](orders.md#orders.order_term), the system must record it.",
 		"- then: it can be paid",
 		"serves [sell](_root.md#sell)",
-		"- illustrated by (derived): [orders.happy](orders.md#orders.happy)",
-		"- reported as (derived): [orders.out_of_stock](",
+		"- Scenarios (derived): [orders.happy](orders.md#orders.happy)",
+		"- Errors (derived): [orders.out_of_stock](",
 	} {
 		if !strings.Contains(first, want) {
 			t.Errorf("orders.md lacks %q:\n%s", want, first)

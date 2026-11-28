@@ -1,5 +1,4 @@
-@realizes(heron.system.command_line)
-version: component("internal/core/version", lang = "go") {
+version: component("internal/core/version", heron.system.command_line, lang = "go") {
   | Which `heron` a binary is: the product version, the spec version it implements and its
   | build's commit, time and platform, as [heron version](#heron.cli.version) prints them.
 

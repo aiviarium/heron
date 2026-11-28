@@ -1,5 +1,4 @@
-@realizes(heron.system.linter)
-lint: component("internal/core/lint", lang = "go") {
+lint: component("internal/core/lint", heron.system.linter, lang = "go") {
   | Runs the registered lints and [prose lint providers](#heron.language.markup.prose_view.prose_lint_provider) over a checked tree, behind
   | `heron lint` and the language server. The core lints live here; packages, extensions
   | and later [units](#delivery.units) add theirs through the registry, and every lint reports alike.
@@ -95,8 +94,7 @@ lint: component("internal/core/lint", lang = "go") {
   }
 }
 
-@realizes(heron.system.prose_linter)
-prose_view: component("internal/core/lint/prose", lang = "go") {
+prose_view: component("internal/core/lint/prose", heron.system.prose_linter, lang = "go") {
   | The [prose view](#heron.language.markup.prose_view): projects the prose of a checked tree's own files into
   | [regions](#heron.language.markup.prose_view.prose_region) a text linter can read, keeping headings, lists and paragraphs, masking code,
   | inserts, links to nodes and [tag attributes](#heron.language.markup.tags.tag_attribute), and mapping every projected character back
@@ -147,8 +145,7 @@ prose_view: component("internal/core/lint/prose", lang = "go") {
 }
 
 @display("Sample prose provider")
-@realizes(heron.system.prose_linter)
-prose_words: component("internal/core/lint/prose/words", lang = "go") {
+prose_words: component("internal/core/lint/prose/words", heron.system.prose_linter, lang = "go") {
   | A sample [prose lint provider](#heron.language.markup.prose_view.prose_lint_provider) that flags configured words and offers each word's
   | replacement as a fix. It proves the prose provider [extension point](#heron.language.interop.declaring.extension_point) end to end:
   | `heronwords`, a binary built only by `scripts/e2e-prose.sh`, installs it with words

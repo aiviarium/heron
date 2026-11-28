@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/usecase"
@@ -25,19 +24,8 @@ func (p *Project) gaps() Gaps {
 	c := p.Checker
 	realized := map[*resolve.Node]bool{}
 	p.Package.Tree.Walk(func(n *resolve.Node) {
-		for _, a := range n.Annotations {
-			an := ast.Annotation{N: a.N}
-			if an.N == nil || an.Path().N == nil {
-				continue
-			}
-			if segs := resolve.PathSegs(an.Path().N); len(segs) == 0 || segs[len(segs)-1] != "realizes" {
-				continue
-			}
-			for _, e := range ArgExprs(an.Args()) {
-				if t := RefTarget(c, e.Syntax(), a); t != nil {
-					realized[t] = true
-				}
-			}
+		for _, t := range Carried(c, n) {
+			realized[t] = true
 		}
 		// An error's prose links the rules that say when it's reported.
 		if KindPath(c, n) == "spec.error" {
@@ -50,7 +38,7 @@ func (p *Project) gaps() Gaps {
 	p.Package.Tree.Walk(func(n *resolve.Node) {
 		switch KindPath(c, n) {
 		case "spec.rule":
-			if HasAnnotation(n, "by") && !isPart(AnnotationRef(c, n, "by")) {
+			if s := Subject(c, n); s != nil && !isPart(s) {
 				return
 			}
 			if !realized[n] {

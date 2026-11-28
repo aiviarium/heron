@@ -6,12 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/specmodel"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/usecase"
+	uistrings "github.com/aiviarium/heron/web/strings"
 )
 
 // rangeHTML renders the part of a prose site between two offsets as inline
@@ -71,7 +71,7 @@ func renderUsecase(c *Ctx) error {
 		level = variantName(e)
 	}
 	rows = append(rows, [2]string{label("docs.label.level"), esc(kindWords(strings.ToLower(level)))})
-	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(s.annRefs(n, "serves"))})
+	rows = append(rows, [2]string{label("docs.label.serves"), c.refLinks(project.Served(s.Checker, n))})
 	if v, ok := argString(kindArgs(n), -1, "success"); ok {
 		rows = append(rows, [2]string{label("docs.label.success"), esc(v)})
 	}
@@ -204,9 +204,11 @@ func outcomeLabel(x usecase.Ext) string {
 	return ""
 }
 
-// backlinks are the links written on lower nodes, walked in reverse: for
-// each target, the nodes that realize, illustrate, serve, refine, rely on
-// or derive from it, and the errors whose prose links it.
+// specLinks are the references and links written on lower nodes, walked
+// in reverse: for each target, under "hard", the nodes whose hard
+// references name it, a step's use case included; under "reported_as",
+// the errors whose prose links it; and under "see_also", the nodes whose
+// @see names it.
 func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 	if s.back != nil {
 		return s.back
@@ -236,43 +238,114 @@ func (s *Site) specLinks() map[*resolve.Node]map[string][]*resolve.Node {
 				}
 			}
 		}
-		for _, pair := range [][2]string{{"serves", "served_by"}, {"illustrates", "illustrated_by"}, {"refines", "refined_by"}, {"relies", "relied_on_by"}, {"derives", "derived_by"}} {
-			for _, t := range s.annRefs(n, pair[0]) {
-				add(t, pair[1], n)
+		// A hard reference's meaning comes from the kind it names; the
+		// docs list it by the kind that writes it.
+		// A rule's subject isn't listed: the rule's sentence names it, and
+		// a part such as the checker is the subject of hundreds.
+		subject := project.Subject(s.Checker, n)
+		for _, t := range project.HardTargets(s.Checker, n) {
+			if t == subject && s.kindPath(n) == "spec.rule" {
+				continue
+			}
+			add(t, "hard", n)
+			if t.Shape == resolve.ShapeStep && t.Parent != nil {
+				add(t.Parent, "hard", n)
 			}
 		}
-		for _, a := range n.Annotations {
-			an := ast.Annotation{N: a.N}
-			if an.N == nil || an.Path().N == nil {
-				continue
-			}
-			if segs := resolve.PathSegs(an.Path().N); len(segs) == 0 || segs[len(segs)-1] != "realizes" {
-				continue
-			}
-			for _, e := range project.ArgExprs(an.Args()) {
-				if t := project.RefTarget(s.Checker, e.Syntax(), a); t != nil {
-					add(t, "realized_by", n)
-					if t.Shape == resolve.ShapeStep && t.Parent != nil {
-						add(t.Parent, "realized_by", n)
-					}
-				}
-			}
+		for _, t := range project.SeeAlso(s.Checker, n) {
+			add(t, "see_also", n)
 		}
 	})
 	return s.back
 }
 
+// backlinkGroup is one derived list: the nodes of one kind that reference
+// a node, or the nodes that see it.
+type backlinkGroup struct {
+	key   string // the referencing kind's name, or "see_also"
+	label string
+	nodes []*resolve.Node
+}
+
+// backlinkOrder is the order the derived lists of the core kinds come in;
+// a custom kind's come after, by name.
+var backlinkOrder = []string{"op", "api", "command", "argument", "option", "screen", "region", "grammar", "production", "token", "type", "enum", "union", "interface", "error", "component", "scenario", "example", "usecase", "rule", "constraint", "goal", "story"}
+
+// backlinkGroups are a node's derived lists: the nodes that reference it,
+// grouped by their kind, the errors whose prose links it among them, then
+// the nodes that see it.
+func (s *Site) backlinkGroups(n *resolve.Node) []backlinkGroup {
+	m := s.specLinks()[n]
+	if len(m) == 0 {
+		return nil
+	}
+	by := map[string][]*resolve.Node{}
+	for _, key := range []string{"hard", "reported_as"} {
+		for _, x := range m[key] {
+			k := s.Checker.KindOf(x)
+			if k == nil {
+				continue
+			}
+			dup := false
+			for _, y := range by[k.Name] {
+				dup = dup || y == x
+			}
+			if !dup {
+				by[k.Name] = append(by[k.Name], x)
+			}
+		}
+	}
+	var keys []string
+	rank := map[string]int{}
+	for i, k := range backlinkOrder {
+		rank[k] = i + 1
+	}
+	for k := range by {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		ri, rj := rank[keys[i]], rank[keys[j]]
+		if ri == 0 {
+			ri = len(backlinkOrder) + 1
+		}
+		if rj == 0 {
+			rj = len(backlinkOrder) + 1
+		}
+		if ri != rj {
+			return ri < rj
+		}
+		return keys[i] < keys[j]
+	})
+	var out []backlinkGroup
+	for _, k := range keys {
+		out = append(out, backlinkGroup{key: k, label: kindPlural(k), nodes: by[k]})
+	}
+	if len(m["see_also"]) > 0 {
+		out = append(out, backlinkGroup{key: "see_also", label: label("docs.label.see_also"), nodes: m["see_also"]})
+	}
+	return out
+}
+
+// kindPlural is how a derived list names the kind of the nodes in it, as
+// "Ops" or "Use cases"; a custom kind's name in sentence case, with an s.
+func kindPlural(k string) string {
+	if uistrings.Has("docs.referenced_by." + k) {
+		return label("docs.referenced_by." + k)
+	}
+	w := kindWords(k)
+	if w == "" {
+		return k
+	}
+	return strings.ToUpper(w[:1]) + w[1:] + "s"
+}
+
 // derivedLists are a node's derived lists, each marked as derived.
 func (c *Ctx) derivedLists(n *resolve.Node) string {
 	s := c.Site
-	m := s.specLinks()[n]
-	if len(m) == 0 {
-		return ""
-	}
 	var b strings.Builder
-	for _, key := range []string{"realized_by", "reported_as", "illustrated_by", "served_by", "refined_by", "relied_on_by", "derived_by"} {
+	for _, g := range s.backlinkGroups(n) {
 		var links []string
-		ns := m[key]
+		ns := append([]*resolve.Node(nil), g.nodes...)
 		sort.SliceStable(ns, func(i, j int) bool { return ns[i].Path() < ns[j].Path() })
 		for _, x := range ns {
 			if !s.kept(x) && s.anchorOf[x] == nil {
@@ -283,14 +356,14 @@ func (c *Ctx) derivedLists(n *resolve.Node) string {
 		if len(links) == 0 {
 			continue
 		}
-		b.WriteString(`<div class="derived"><span class="derived-label">` + esc(label("docs.label."+key)) + ` <span class="derived-mark">` + esc(label("docs.label.derived")) + `</span></span> ` + strings.Join(links, ", ") + `</div>`)
+		b.WriteString(`<div class="derived"><span class="derived-label">` + esc(g.label) + ` <span class="derived-mark">` + esc(label("docs.label.derived")) + `</span></span> ` + strings.Join(links, ", ") + `</div>`)
 	}
 	return b.String()
 }
 
-// realizes reports whether a contract node names a rule with @realizes.
+// entryRealizes reports whether a node's hard references name a rule.
 func (s *Site) entryRealizes(entry, rule *resolve.Node) bool {
-	for _, x := range s.specLinks()[rule]["realized_by"] {
+	for _, x := range s.specLinks()[rule]["hard"] {
 		if x == entry {
 			return true
 		}

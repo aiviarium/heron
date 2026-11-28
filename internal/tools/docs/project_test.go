@@ -125,23 +125,17 @@ func TestConformancePractices(t *testing.T) {
   ledger: actor(kind = ActorKind.SYSTEM) {{ The books. }}
 
   conduct: section {
-    @by(buyer)
-    @targets(parts.cart)
-    tidy_carts: rule {
+    tidy_carts: rule(buyer) {
       should {{ empty a cart they won't pay for }}
     }
 
-    | <rule id="small_changes" @targets="parts.cart" @by="helper"><must>change one part at a time</must></rule>
+    | <rule id="small_changes" refs="helper"><must>change one part at a time</must></rule>
 
-    @by(buyer)
-    @targets(parts.cart)
-    proven_habit: rule {
+    proven_habit: rule(buyer) {
       must {{ see the total before paying }}
     }
 
-    @by(ledger)
-    @targets(parts.payments)
-    books_balance: rule {
+    books_balance: rule(ledger) {
       must {{ balance every day }}
     }
   }

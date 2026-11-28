@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aiviarium/heron/internal/core/ast"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/syntax"
 	"github.com/aiviarium/heron/internal/core/types"
@@ -18,7 +19,8 @@ import (
 // completion offers what fits where the cursor is, from the schemas in
 // scope: a body's fields, kinds and types after `:`, annotations after
 // `@`, flags after `<`, members after `.`, packages and files in import
-// and include strings. In prose it completes only after `$`, in a link's
+// and include strings, and in a kind's references the nodes of the kinds
+// it declares they name. In prose it completes only after `$`, in a link's
 // `(#…)` and after `<`; a plain word never completes.
 func (s *Session) completion(params json.RawMessage) (any, error) {
 	var p CompletionParams
@@ -177,7 +179,90 @@ func (c *completer) items() []CompletionItem {
 			return b.Local != nil || b.Node != nil && (c.c.IsKind(b.Node) || !c.isMeta(b.Node))
 		}, edit)...)
 	}
+	if kinds, types, ok := c.referenceKinds(anc); ok {
+		// A positional reference of a kind that declares the kinds its
+		// references name: those nodes, and the sections a path to one
+		// passes through; and types too where an op's result type may
+		// come first.
+		return c.names(c.scope(anc), func(b resolve.Binding) bool {
+			if b.Node == nil {
+				return false
+			}
+			if types && c.c.IsType(b.Node) {
+				return true
+			}
+			k := c.c.KindOf(b.Node)
+			if k == nil {
+				return !c.isMeta(b.Node) && !c.c.IsKind(b.Node) && !c.c.IsType(b.Node) && len(b.Node.Children) > 0
+			}
+			if k.Name == "section" {
+				return true
+			}
+			for x, i := k, 0; x != nil && i < 8; x, i = c.c.Extends(x), i+1 {
+				if c.c.Fits(x, kinds) {
+					return true
+				}
+			}
+			return false
+		}, edit)
+	}
 	return c.names(c.scope(anc), func(b resolve.Binding) bool { return b.Local != nil || b.Node != nil && !c.isMeta(b.Node) }, edit)
+}
+
+// referenceKinds are the kinds and categories a reference may name where
+// the cursor stands among the positional arguments of a kind slot whose
+// kind declares `references`, and whether a type fits there too, as an
+// op's result type does; ok is false anywhere else.
+func (c *completer) referenceKinds(anc []*syntax.Node) (kinds []*resolve.Node, types bool, ok bool) {
+	for i, a := range anc {
+		switch a.Kind {
+		case syntax.NamedArg:
+			return nil, false, false
+		case syntax.Args:
+			if i+1 >= len(anc) || anc[i+1].Kind != syntax.NamedType && anc[i+1].Kind != syntax.Invoke {
+				return nil, false, false
+			}
+			p := childOf(anc[i+1], syntax.Path)
+			if p == nil {
+				return nil, false, false
+			}
+			k := c.c.Refs[p]
+			if k == nil {
+				segs := resolve.PathSegs(p)
+				if sc := c.scope(anc); sc != nil && len(segs) > 0 {
+					sc.Each(segs[len(segs)-1], c.f, -1, func(b resolve.Binding) bool {
+						if b.Node != nil && c.c.IsKind(b.Node) {
+							k = b.Node
+							return false
+						}
+						return true
+					})
+				}
+			}
+			if k == nil || !c.c.IsKind(k) {
+				return nil, false, false
+			}
+			kinds, ok := c.c.ReferenceKinds(k)
+			if !ok {
+				return nil, false, false
+			}
+			// A type fits where an optional parameter that takes no
+			// reference comes first, as an op's result type.
+			ps := c.c.Params(k)
+			pos := 0
+			for _, x := range (ast.Args{N: a}).Args() {
+				if _, isPos := x.(ast.PositionalArg); !isPos {
+					continue
+				}
+				if _, e := x.Syntax().Span(); e < c.off {
+					pos++
+				}
+			}
+			types := pos == 0 && len(ps) > 0 && ps[0].Optional && !ps[0].Variadic && ps[0].Name == "returns"
+			return kinds, types, true
+		}
+	}
+	return nil, false, false
 }
 
 // isMeta reports whether a node is a schema declaration rather than a

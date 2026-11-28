@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aiviarium/heron/internal/core/check"
+	"github.com/aiviarium/heron/internal/core/project"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/specmodel"
 )
@@ -68,8 +69,7 @@ window: term {{ The 30 days after capture. }}
 // extends; a kind with neither has none.
 func TestLayers(t *testing.T) {
 	res := checkSrc(t, head+`
-@by(desk)
-r: rule {
+r: rule(desk) {
   must {{ refund }}
 }
 
@@ -102,9 +102,7 @@ e: error("x") {
 // within a layer, up, or from or to a node with no layer is fine.
 func TestReferencesPointUp(t *testing.T) {
 	res := checkSrc(t, head+`
-@by(desk)
-@serves(self_service)
-r: rule {
+r: rule(desk, self_service) {
   must {{ refund inside the [window], as [customer] asks; see [e] }}
 }
 
@@ -124,41 +122,256 @@ notes: section {
 	wantNone(t, res, "window is a term", "customer is a actor", "self_service is a goal", "notes")
 }
 
-// Links name the kinds their table allows; derives has no cycles; a
-// revision is a whole number from 1; @realizes names rules, use cases,
-// steps or parts.
-func TestLinks(t *testing.T) {
+// References name the kinds their kind's references list allows, a term
+// gets its own message, a rule binds at most one subject and links no
+// rule, the reference graph has no cycles and a revision is a whole number
+// from 1.
+func TestReferences(t *testing.T) {
 	res := checkSrc(t, head+`
-@serves(desk)
-@derives(b)
-a: rule {
+a: rule(desk, b, window) {
   must {{ x }}
 }
 
-@derives(a)
 @rev(0)
 b: rule {
   must {{ y }}
 }
 
-@realizes(window)
-c: command("x")
-`)
-	wantAll(t, res,
-		"link: @serves takes a goal or a quality, and desk is a part",
-		"cycle: a derives from itself",
-		"type: a revision is a whole number from 1, not 0",
-		"link: @realizes takes rules, use cases, steps, extensions or parts, and window is a term")
+two: rule(desk, customer) {
+  must {{ z }}
 }
 
-// A rule's by names an actor or a part; a constraint needs its reason; a
-// persona plays an actor; a scenario has one form, an outcome scenario
-// illustrates one rule or path, a quality scenario has a measure and
-// serves a quality; at most one trigger.
+linking: rule {
+  must {{ do what [b](#b) says }}
+}
+
+asked: goal(desk) {{ A goal a part asked for. }}
+
+p1: part {{ Works with [p2](#p2). }}
+
+p2: part {{ Works with [p1](#p1). }}
+
+c: command("x", window)
+`)
+	wantAll(t, res,
+		"reference: b is a rule, and a rule references only actor, part, goal, quality or assumption",
+		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
+		"reference: window is a term, which is vocabulary: a command doesn't reference it; mention it in the prose",
+		"subject: rule two binds desk and customer; a rule references at most one actor or part, its subject",
+		"rule-link: rule linking links the rule b",
+		"reference: desk is a part, and a goal references only actor or persona",
+		"cycle: p1 references itself through p1 → p2 → p1",
+		"type: a revision is a whole number from 1, not 0")
+	wantNone(t, res, "rule-link: rule a")
+}
+
+// The constructor's references come after the kind's main positional
+// parameters, and an op's first positional argument is its result type
+// only when it names a type: each kind takes them, and the checker reports
+// one that names a kind it doesn't take.
+func TestConstructorReferences(t *testing.T) {
+	res := checkSrc(t, head+`
+r: rule(desk) {
+  must {{ refund }}
+}
+
+refund: usecase(customer) {
+  | 1. The customer asks for a refund.
+  | 2. The desk refunds it.
+}
+
+Refund: type {
+  amount: Int
+}
+
+payments: api(r) {
+  create(amount: Int): op(Refund, r, refund.2)
+  ping(): op(r)
+  named(): op(returns = Refund, r)
+  wrong(): op(Refund, self_service)
+}
+
+c: command("refund", r) {
+  amount: argument("amount", r, type = Int)
+  quiet: option("--quiet", r, type = Bool)
+}
+
+s: screen(route = "/refunds", r) {
+  list: region(refund.2) {}
+}
+
+bare: screen(r)
+
+g: grammar(r, notation = "ungrammar") {
+  P: production(r) {{ x }}
+  T: token(r) {{ "x" }}
+}
+
+uc: usecase(customer, self_service) {
+  | 1. The customer asks.
+}
+
+ex_case: scenario(r) {
+  given {{ a payment }}
+  when {{ a refund is asked }}
+  then {{ it's refunded }}
+}
+`)
+	wantAll(t, res, "reference: self_service is a goal, and a op references only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition")
+	wantNone(t, res, "type:", "too-many-arguments", "Refund is a", "r is a rule", "refund.2", "unresolved", "missing-argument")
+	c := res.Checker
+	for path, want := range map[string]int{"payments.create": 2, "payments.ping": 1, "payments.named": 1, "payments": 1, "c": 1, "c.amount": 1, "c.quiet": 1, "s": 1, "s.list": 1, "bare": 1, "g": 1, "g.P": 1, "g.T": 1, "uc": 1, "ex_case": 1} {
+		if got := len(project.References(c, res.Tree.Find(path))); got != want {
+			t.Errorf("%s has %d references, want %d", path, got, want)
+		}
+	}
+	if e := project.KindArg(c, res.Tree.Find("payments.ping"), "returns"); e != nil {
+		t.Errorf("ping returns %s; a reference is no result type", e.Syntax().Text())
+	}
+	if e := project.KindArg(c, res.Tree.Find("payments.create"), "returns"); e == nil || e.Syntax().Text() != "Refund" {
+		t.Errorf("create's result type isn't Refund")
+	}
+	if e := project.KindArg(c, res.Tree.Find("bare"), "route"); e != nil {
+		t.Errorf("bare's route is %s; a reference is no route", e.Syntax().Text())
+	}
+}
+
+// @touch writes hard references as an annotation, on any kind: it takes
+// what the kind's constructor takes, a type's the kinds in types.realized,
+// and a reference written in both is listed twice. @see, the soft
+// reference, stands on any kind, names no term and points up as any
+// reference does.
+func TestTouchAndSee(t *testing.T) {
+	res := checkSrc(t, head+`
+r: rule(desk) {
+  must {{ refund }}
+}
+
+other: rule {
+  must {{ log }}
+}
+
+@touch(self_service)
+split: rule(desk) {
+  must {{ x }}
+}
+
+@touch(other)
+touching_rule: rule {
+  must {{ y }}
+}
+
+@touch(desk)
+twice: rule(desk) {
+  must {{ z }}
+}
+
+@touch(r)
+Refund: type {
+  amount: Int
+}
+
+@touch(self_service, window)
+Wrong: enum {
+  A: Self
+}
+
+@see(customer, self_service)
+seeing: rule {
+  must {{ w }}
+}
+
+@see(other)
+sees_rule: rule {
+  must {{ v }}
+}
+
+@see(window)
+sees_term: part {{ The ledger. }}
+
+@see(e)
+sees_down: rule {
+  must {{ u }}
+}
+
+e: error("x") {
+  title = "bad"
+}
+
+payments: api {
+  @touch(r)
+  pay(amount: Int): op(Refund)
+  @touch(r)
+  again(amount: Int): op(Refund, r)
+  @see(self_service)
+  look(): op(Refund)
+}
+`)
+	wantAll(t, res,
+		"reference: other is a rule, and a rule references only actor, part, goal, quality or assumption",
+		"reference: desk is listed twice, in the constructor and in @touch; list it once",
+		"reference: r is listed twice, in the constructor and in @touch; list it once",
+		"reference: self_service is a goal, and @touch on a enum takes only a rule, a constraint, a use case or its step, a part, a lifecycle or a transition",
+		"reference: window is a term, which is vocabulary: a enum doesn't reference it; mention it in the prose",
+		"reference: window is a term, which is vocabulary: @see doesn't reference it; mention it in the prose",
+		"rule-link: rule sees_rule links the rule other",
+		"layer: e is a error in the contract layer, and a specification node can't reference a lower layer")
+	wantNone(t, res, "rule split", "split binds", "Refund", "pay", "look", "seeing", "customer")
+	c := res.Checker
+	if got := project.Subject(c, res.Tree.Find("split")); got == nil || got.Name != "desk" {
+		t.Errorf("split's subject is %v, want desk", got)
+	}
+	if got := project.Served(c, res.Tree.Find("split")); len(got) != 1 || got[0].Name != "self_service" {
+		t.Errorf("split serves %v, want self_service through @touch", got)
+	}
+	if got := project.HardTargets(c, res.Tree.Find("payments.pay")); len(got) != 1 || got[0].Name != "r" {
+		t.Errorf("pay's hard references are %v, want r", got)
+	}
+	if got := project.HardTargets(c, res.Tree.Find("seeing")); len(got) != 0 {
+		t.Errorf("@see counted as a hard reference: %v", got)
+	}
+	if got := project.SeeAlso(c, res.Tree.Find("seeing")); len(got) != 2 {
+		t.Errorf("seeing sees %v, want customer and self_service", got)
+	}
+}
+
+// A custom kind declares the kinds its references may name, or takes the
+// list of the kind it extends.
+func TestCustomReferenceKinds(t *testing.T) {
+	res := checkSrc(t, `import = ["std/schema@1", "std/doc@1"]
+
+desk: part {{ The support console. }}
+
+b: rule {
+  must {{ y }}
+}
+
+team_rule: kind(extends = rule, references = [actor])
+
+plain_rule: kind(extends = rule)
+
+t1: team_rule(desk) {
+  must {{ v }}
+}
+
+t2: plain_rule(b) {
+  must {{ u }}
+}
+`)
+	wantAll(t, res,
+		"reference: desk is a part, and a team_rule references only actor",
+		"reference: b is a rule, and a plain_rule references only actor, part, goal, quality or assumption")
+	// A kind that extends another takes its parameters and its body.
+	wantNone(t, res, "too-many-arguments", "accept:")
+}
+
+// A rule references no term; a constraint needs its reason; a persona
+// plays an actor; a scenario has one form, an outcome scenario references
+// one rule or path, a quality scenario has a measure and references the
+// quality it measures; at most one trigger.
 func TestShapes(t *testing.T) {
 	res := checkSrc(t, head+`
-@by(window)
-r: rule {
+r: rule(window) {
   when {{ a }}
   if {{ b }}
   must {{ x }}
@@ -170,8 +383,7 @@ c: constraint {
 
 p: persona(plays = desk) {{ Someone. }}
 
-@illustrates(r)
-both: scenario {
+both: scenario(r) {
   given {{ g }}
   measure =| fast
 }
@@ -184,19 +396,18 @@ lost: scenario {
 
 q: quality {{ Quick. }}
 
-@serves(q)
-unmeasured: scenario {
+unmeasured: scenario(q) {
   stimulus =| a
 }
 `)
 	wantAll(t, res,
-		"type: window is a term; a rule's @by names an actor or a part",
+		"reference: window is a term, which is vocabulary: a rule doesn't reference it; mention it in the prose",
 		"accept: rule accepts at most 1 trigger, when or if",
 		"missing-argument: constraint c needs a reason from outside the solution",
 		"type: desk is a part, not an actor",
 		"scenario: scenario both mixes outcome clauses and quality fields",
 		"scenario: scenario none has neither outcome clauses nor quality fields",
-		"scenario: scenario lost illustrates nothing",
+		"scenario: scenario lost references no rule or path of a use case",
 		"scenario: scenario unmeasured has no measure")
 }
 
@@ -228,15 +439,13 @@ buy: usecase(actor = customer) {{
     [desk] does it.
 }}
 
-@illustrates(buy.2a)
-late: scenario {
+late: scenario(buy.2a) {
   given {{ an old payment }}
   when {{ the customer asks }}
   then {{ credit is offered }}
 }
 
-@illustrates(buy.7)
-wrong: scenario {
+wrong: scenario(buy.7) {
   given {{ a }}
 }
 `)

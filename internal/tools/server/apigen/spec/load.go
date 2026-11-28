@@ -211,14 +211,40 @@ func opOf(n *resolve.Node, basePath string) (*Op, error) {
 		op.Params = append(op.Params, pr)
 	}
 	if nt, ok := d.Type().(ast.NamedType); ok {
+		// The result type is the first positional argument, unless it's a
+		// reference: a lower-case path such as a rule's.
 		for _, a := range nt.Args().Args() {
 			if pa, ok := a.(ast.PositionalArg); ok {
-				r := exprRef(pa.Expr())
+				if !isReference(pa.Expr()) {
+					r := exprRef(pa.Expr())
+					op.Returns = &r
+				}
+				break
+			}
+			if na, ok := a.(ast.NamedArg); ok && na.Ident() != nil && na.Ident().Text == "returns" {
+				r := exprRef(na.Expr())
 				op.Returns = &r
+				break
 			}
 		}
 	}
 	return op, nil
+}
+
+// isReference reports whether an op's positional argument is one of its
+// references rather than its result type: a path whose last name starts
+// with a lower-case letter or a digit, as a rule's or a step's.
+func isReference(e ast.Expr) bool {
+	pe, ok := e.(ast.PathExpr)
+	if !ok || pe.Path().N == nil {
+		return false
+	}
+	segs := resolve.PathSegs(pe.Path().N)
+	if len(segs) == 0 || segs[len(segs)-1] == "" {
+		return false
+	}
+	c := segs[len(segs)-1][0]
+	return c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_'
 }
 
 func refOf(t ast.Type, optional bool) Type {
