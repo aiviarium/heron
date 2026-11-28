@@ -34,7 +34,7 @@ func TestSiteAreas(t *testing.T) {
 	mustNotHave(t, "notes tabs", tabsRe.FindString(notes), ">Calendar<", ">Docs<", ">Glossary<")
 	sw := switchRe.FindString(notes)
 	mustHave(t, "notes switcher", sw, `<span class="t">Notes</span>`,
-		`<a href="notes.html" aria-current="true"><span class="area-switch-title">`, `Notes</span><span class="area-switch-text">Notes keeps a folder of notes in sync across every device you sign in on, and keeps a history of each note.</span>`,
+		`<a href="notes.html" aria-current="true"><span class="area-switch-title">`, `Notes</span><span class="area-switch-text">Notes keeps a folder of notes in sync across devices.</span>`,
 		`<a href="calendar.html"><span class="area-switch-title">`)
 	if strings.Index(sw, `href="notes.html"`) > strings.Index(sw, `href="calendar.html"`) {
 		t.Error("the switcher doesn't keep the docs block's order")
@@ -56,7 +56,7 @@ func TestSiteAreas(t *testing.T) {
 	// The home page is the first area's.
 	mustHave(t, "home tabs", tabsRe.FindString(f["index.html"]), `<a href="notes.html" aria-current="true">Notes</a>`)
 	// The site's pages close every area's navigation.
-	for _, p := range []string{"notes.html", "help.html", "dev/calendar.html"} {
+	for _, p := range []string{"notes.html", "help.html", "contributor/calendar.html"} {
 		mustHave(t, p+" site pages", sidebarRe.FindString(f[p]), `<div class="nav-group nav-site">`, `href="_glossary.html"`)
 	}
 }
@@ -81,7 +81,7 @@ guide: section {
 }
 
 docs {
-  lenses = [user, developer, explore]
+  lenses = [user, contributor, explore]
 }
 `
 
@@ -115,7 +115,7 @@ func TestAPIScopesAndNavIcons(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
-	for _, p := range []string{"dev/guide.html", "explore/guide.html"} {
+	for _, p := range []string{"contributor/guide.html", "explore/guide.html"} {
 		nav := navTree(f[p])
 		mustNotHave(t, p+" nav", nav, `href="store_api.html"`, `href="store_api.errors.html"`)
 		if !regexp.MustCompile(`<a href="guide.basics.html"[^>]*><svg`).MatchString(nav) {
@@ -139,17 +139,71 @@ func TestAPIScopesAndNavIcons(t *testing.T) {
 	mustHave(t, "reference nav", sidebarRe.FindString(scope), `href="store_api.store.html"`)
 }
 
-// The gaps page lists the behaviour no contract entry carries out, by
-// feature, in the lenses that show rules, at the bottom of every area's
-// navigation; a lens without rules has none.
-func TestGapsPage(t *testing.T) {
-	_, f := lensFiles(t, kite)
-	gaps := f["dev/_gaps.html"]
-	mustHave(t, "dev gaps", gaps, `id="gap-unrealized"`, `<details class="gap-group"><summary>`, `<span class="gap-count">`, `href="kite.sync.html#kite.sync.copies_changed"`)
-	mustHave(t, "explore gaps", f["explore/_gaps.html"], `id="gap-unrealized"`)
-	mustHave(t, "dev nav", sidebarRe.FindString(f["dev/kite.sync.html"]), `<div class="nav-group nav-site">`, `href="_gaps.html"`)
+// gapsTree has an intent gap, a goal nothing serves, and a feature with
+// two rules about a part, one an error carries out.
+const gapsTree = `import = ["std/doc@1", "std/types@1", "std/lint@1", "std/docs@1"]
+
+writer: actor {{ Someone who keeps notes. }}
+
+syncer: part {{ Copies notes to the store. }}
+
+kept: goal {{ A note is never lost. }}
+
+lonely: goal {{ Nobody serves this. }}
+
+sync: feature(kept, writer) {
+  | How a sync copies notes.
+
+  copies: rule(syncer) {
+    must {{ copy every changed note }}
+  }
+
+  reports: rule(syncer) {
+    must {{ report a note it can't read }}
+  }
+
+  unreadable: error(422, id = "unreadable") {
+    title = "can't read {file}"
+    file: String
+    | Reported as [sync.reports] says.
+  }
+}
+
+docs {
+  lenses = [user, contributor, explore]
+}
+`
+
+// The gaps page gathers the intent gaps heron lint reports, by feature,
+// at the bottom of every area's navigation, in the lenses that show the
+// parts; contract coverage is a figure on a feature's page and a column
+// of the Features page there; the user lens has neither, and a tree with
+// no intent gap has no gaps page.
+func TestGapsAndContractCoverage(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.heron"), []byte(gapsTree), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
+	for _, l := range []string{"contributor/", "explore/"} {
+		gaps := f[l+"_gaps.html"]
+		mustHave(t, l+"gaps", gaps, `<details class="gap-group"><summary><code>lonely</code> <span class="gap-count">1</span>`, `href="index.html#lonely"`, `nothing serves lonely`)
+		mustNotHave(t, l+"gaps", gaps, "copies")
+		mustHave(t, l+"nav", sidebarRe.FindString(f[l+"sync.html"]), `<div class="nav-group nav-site">`, `href="_gaps.html"`)
+		mustHave(t, l+"feature", f[l+"sync.html"], `<p class="feature-contract"><span class="feature-contract-label">Contract coverage</span> <span class="feature-figure">1 of 2</span>`)
+		mustHave(t, l+"features", f[l+"_features.html"], `<p class="features-head"><span>Feature</span><span>Contract coverage</span></p>`, `<span class="feature-figure">1 of 2</span>`)
+	}
 	if _, ok := f["_gaps.html"]; ok {
 		t.Error("the user lens has a gaps page")
 	}
-	mustNotHave(t, "user nav", sidebarRe.FindString(f["kite.sync.html"]), `href="_gaps.html"`)
+	mustNotHave(t, "user nav", sidebarRe.FindString(f["sync.html"]), `href="_gaps.html"`)
+	mustNotHave(t, "user feature", f["sync.html"], "feature-contract", "Contract coverage")
+	mustNotHave(t, "user features", f["_features.html"], "feature-figure", "Contract coverage")
+	// Without an intent gap there's no gaps page.
+	_, k := lensFiles(t, kite)
+	for p := range k {
+		if strings.HasSuffix(p, "_gaps.html") {
+			t.Errorf("%s: a gaps page with no gap in it", p)
+		}
+	}
 }

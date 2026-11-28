@@ -45,7 +45,9 @@ intro: section {
     must {{ do things }}
   }
 
-  @lens(developer)
+  engine: part {{ Does the things. }}
+
+  @lens(contributor)
   devnote: section {
     | For spec writers.
   }
@@ -66,15 +68,15 @@ intro: section {
   }
 }
 
-@lens(user, developer)
+@lens(user, contributor)
 both: section {
   kept: section {
-    | For users and developers.
+    | For users and contributors.
   }
 
-  @lens(developer)
+  @lens(contributor)
   narrowed: section {
-    | For developers only.
+    | For contributors only.
   }
 }
 
@@ -97,7 +99,7 @@ func withLenses(s string) string { return strings.Replace(tree, "LENSES", s, 1) 
 // on a prose block check clean, and the docs block's choice reads back in
 // order with the default at the root.
 func TestLensesCheck(t *testing.T) {
-	res := checkSrc(t, withLenses("lenses = [user, developer, agent, explore]"))
+	res := checkSrc(t, withLenses("lenses = [user, contributor, agent, explore]"))
 	if res.Diags.HasErrors() {
 		t.Fatal(messages(res))
 	}
@@ -106,7 +108,7 @@ func TestLensesCheck(t *testing.T) {
 	for _, l := range s.Lenses {
 		got = append(got, l.Name+":"+l.Prefix)
 	}
-	if want := "user: developer:dev agent:agent explore:explore"; strings.Join(got, " ") != want {
+	if want := "user: contributor:contributor agent:agent explore:explore"; strings.Join(got, " ") != want {
 		t.Fatalf("lenses = %q, want %q", got, want)
 	}
 	if s.Default == nil || s.Default.Name != "user" {
@@ -130,9 +132,9 @@ func TestDefaultSiteIsExplore(t *testing.T) {
 // is a name that resolves to something other than a lens.
 func TestUnknownLens(t *testing.T) {
 	for _, c := range []struct{ from, to, want string }{
-		{"@lens(user)\n  |", "@lens(usr)\n  |", "unknown lens usr; the lenses in scope are agent, developer, explore, user"},
-		{"@lens(developer)\n  devnote", "@lens(developr)\n  devnote", "unknown lens developr; the lenses in scope are"},
-		{"@lens(developer)\n  devnote", "@lens(intro)\n  devnote", "intro is a section, not a lens"},
+		{"@lens(user)\n  |", "@lens(usr)\n  |", "unknown lens usr; the lenses in scope are agent, contributor, explore, user"},
+		{"@lens(contributor)\n  devnote", "@lens(contributr)\n  devnote", "unknown lens contributr; the lenses in scope are"},
+		{"@lens(contributor)\n  devnote", "@lens(intro)\n  devnote", "intro is a section, not a lens"},
 		{"lenses = [user, explore]", "lenses = [user, intro]", "intro is a section, not a lens"},
 		{"lenses = [user, explore]", "lenses = [user, nobody]", "unknown lens nobody"},
 		// `@lens` on an element that declares no node is a mark too.
@@ -153,9 +155,9 @@ func TestUnknownLens(t *testing.T) {
 // its own.
 func TestOneDefaultLens(t *testing.T) {
 	for _, c := range []struct{ lenses, want string }{
-		{"lenses = [developer, explore]", "a site has exactly one default lens; 0 of developer, explore set default = true"},
+		{"lenses = [contributor, explore]", "a site has exactly one default lens; 0 of contributor, explore set default = true"},
 		{"lenses = [user, other]\n  other: lens {\n    title = \"Other\"\n    default = true\n    prefix = \"o\"\n  }", "a site has exactly one default lens; 2 of user, other set default = true"},
-		{"lenses = [user, developer, again]\n  again: lens {\n    title = \"Again\"\n    prefix = \"dev\"\n  }", "developer and again are both served under dev/"},
+		{"lenses = [user, contributor, again]\n  again: lens {\n    title = \"Again\"\n    prefix = \"contributor\"\n  }", "contributor and again are both served under contributor/"},
 		{"lenses = [user, root]\n  root: lens {\n    title = \"Root\"\n    prefix = \"\"\n  }", "root: only the default lens is served at the site's root"},
 		{"lenses = [user, slash]\n  slash: lens {\n    title = \"Slash\"\n    prefix = \"/dev/\"\n  }", `slash: the prefix "/dev/" isn't one path segment`},
 		{"lenses = []", "the site builds no lens"},
@@ -172,7 +174,7 @@ func TestOneDefaultLens(t *testing.T) {
 // Each lens shows, sums up or hides a node by its kind or category and by
 // @lens; explore shows everything.
 func TestModes(t *testing.T) {
-	res := checkSrc(t, withLenses("lenses = [user, developer, agent, explore]"))
+	res := checkSrc(t, withLenses("lenses = [user, contributor, agent, explore]"))
 	if res.Diags.HasErrors() {
 		t.Fatal(messages(res))
 	}
@@ -184,43 +186,52 @@ func TestModes(t *testing.T) {
 	intro := res.Tree.Root.Child("intro")
 	start := intro.Child("start")
 	both := res.Tree.Root.Child("both")
-	nodes := map[string]*resolve.Node{"rule": intro.Child("r"), "devnote": intro.Child("devnote"), "guide": start, "intro": intro,
+	nodes := map[string]*resolve.Node{"rule": intro.Child("r"), "part": intro.Child("engine"), "devnote": intro.Child("devnote"), "guide": start, "intro": intro,
 		"example": start.Child("ok"), "inner": start.Child("inner"), "narrowed": both.Child("narrowed"), "kept": both.Child("kept")}
 	modes := map[lens.Mode]string{lens.Show: "show", lens.Summarize: "summarize", lens.Hide: "hide"}
 	for _, c := range []struct{ lens, node, want string }{
-		{"user", "rule", "hide"},
-		{"developer", "rule", "summarize"},
+		{"user", "rule", "summarize"},
+		{"contributor", "rule", "show"},
 		{"explore", "rule", "show"},
-		// Marked for the developer lens: out of user, in full in developer.
+		// What's only about building the product: out of user alone.
+		{"user", "part", "hide"},
+		{"contributor", "part", "show"},
+		// Marked for the contributor lens: out of user, in full in contributor.
 		{"user", "devnote", "hide"},
-		{"developer", "devnote", "show"},
+		{"contributor", "devnote", "show"},
 		{"explore", "devnote", "show"},
 		// agent hides sections by kind and shows guides.
 		{"agent", "intro", "hide"},
 		{"agent", "guide", "show"},
-		// user shows authored pages; a section is unlisted, so it takes its
-		// parent's treatment, and a root child is out when show is set.
+		// A section is unlisted, so it takes its parent's treatment, and a
+		// root child is out when show is set, as agent's is, and in when
+		// it isn't, as user's isn't.
 		{"user", "guide", "show"},
-		{"user", "intro", "hide"},
-		{"developer", "intro", "show"},
+		{"user", "intro", "show"},
+		{"contributor", "intro", "show"},
 		// An example is listed; a section inside a guide follows the guide.
 		{"user", "example", "show"},
 		{"user", "inner", "show"},
-		// An inner mark narrows: user and developer above, developer below.
+		// An inner mark narrows: user and contributor above, contributor below.
 		{"user", "narrowed", "hide"},
-		{"developer", "narrowed", "show"},
+		{"contributor", "narrowed", "show"},
 		{"user", "kept", "show"},
 	} {
 		if got := modes[byName[c.lens].Mode(res.Checker, nodes[c.node])]; got != c.want {
 			t.Errorf("%s in %s: %s, want %s", c.node, c.lens, got, c.want)
 		}
 	}
+	// By the kind alone: user leaves parts out, contributor keeps them.
+	part := res.Checker.KindOf(nodes["part"])
+	if byName["user"].KindMode(res.Checker, part) != lens.Hide || byName["contributor"].KindMode(res.Checker, part) != lens.Show || byName["agent"].KindMode(res.Checker, part) != lens.Hide {
+		t.Error("KindMode of part")
+	}
 	if !lens.IsAuthored(res.Checker, nodes["guide"]) || lens.IsAuthored(res.Checker, nodes["intro"]) {
 		t.Error("IsAuthored")
 	}
 	// The prose block keeps to the user lens.
 	r := lens.ProseRestriction(res.Checker, intro.Prose[1])
-	if len(r) != 1 || r[0].Name != "user" || byName["developer"].Allows(r) || !byName["user"].Allows(r) || !byName["explore"].Allows(r) {
+	if len(r) != 1 || r[0].Name != "user" || byName["contributor"].Allows(r) || !byName["user"].Allows(r) || !byName["explore"].Allows(r) {
 		t.Errorf("prose restriction = %v", r)
 	}
 }
@@ -303,9 +314,9 @@ user: lens {
 	}
 }
 
-// Without an override, user, developer and explore are std/docs's.
+// Without an override, user, contributor and explore are std/docs's.
 func TestStandardLensesInStd(t *testing.T) {
-	res := checkSrc(t, withLenses("lenses = [user, developer, explore]"))
+	res := checkSrc(t, withLenses("lenses = [user, contributor, explore]"))
 	for _, l := range lens.SiteOf(res.Tree, res.Checker).Lenses {
 		if !l.Node.Decl.File.ID.IsStd() || l.Node.Parent == nil || l.Node.Parent.Name != "docs" {
 			t.Errorf("%s is declared at %s", l.Name, l.Node.Decl.File.ID)
@@ -313,7 +324,7 @@ func TestStandardLensesInStd(t *testing.T) {
 	}
 	// @lens is std/doc's annotation.
 	intro := res.Tree.Root.Child("intro")
-	if r := lens.Restriction(res.Checker, intro.Child("devnote")); len(r) != 1 || r[0].Name != "developer" {
+	if r := lens.Restriction(res.Checker, intro.Child("devnote")); len(r) != 1 || r[0].Name != "contributor" {
 		t.Errorf("restriction %v", r)
 	}
 }
@@ -326,7 +337,7 @@ refunds: section {
   @lens(user)
   | Open the payment and press Refund.
 
-  @lens(developer, explore)
+  @lens(contributor, explore)
   | A refund moves the payment to refunded.
   | The ledger records it.
 }
@@ -340,7 +351,7 @@ refunds: section {
 		t.Fatalf("%d runs", len(n.Prose))
 	}
 	a, b := lens.ProseRestriction(res.Checker, n.Prose[0]), lens.ProseRestriction(res.Checker, n.Prose[1])
-	if len(a) != 1 || a[0].Name != "user" || len(b) != 2 || b[0].Name != "developer" {
+	if len(a) != 1 || a[0].Name != "user" || len(b) != 2 || b[0].Name != "contributor" {
 		t.Errorf("marks %v, %v", a, b)
 	}
 }
@@ -425,7 +436,7 @@ func mdSrc(lenses, site string) string {
 // of the site may take the agent lens's prefix, and a budget is at least
 // 500 tokens.
 func TestMarkdownLens(t *testing.T) {
-	res := checkSrc(t, mdSrc("", "lenses = [user, developer, explore]"))
+	res := checkSrc(t, mdSrc("", "lenses = [user, contributor, explore]"))
 	if res.Diags.HasErrors() {
 		t.Fatal(messages(res))
 	}
@@ -438,8 +449,8 @@ func TestMarkdownLens(t *testing.T) {
 		t.Error("the agent lens leaves out a node @lens(user) marks")
 	}
 	for _, l := range lens.SiteOf(res.Tree, res.Checker).Lenses {
-		if l.Name == "developer" && l.Mode(res.Checker, rule) != lens.Hide {
-			t.Error("developer shows a node @lens(user) marks")
+		if l.Name == "contributor" && l.Mode(res.Checker, rule) != lens.Hide {
+			t.Error("contributor shows a node @lens(user) marks")
 		}
 	}
 	for _, c := range []struct{ lenses, site, want string }{

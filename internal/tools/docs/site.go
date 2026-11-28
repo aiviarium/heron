@@ -127,8 +127,12 @@ type Site struct {
 	// sitePages are the pages of the whole site, as the features, errors,
 	// glossary and gaps pages, listed at the bottom of every sidebar.
 	sitePages []*Page
-	// gaps is the gap report's groups the lens shows, once built.
+	// gaps is the intent gaps by feature, in a lens that shows them.
 	gaps []gapGroup
+	// partKind holds std/spec's kind part, or nil, once looked up;
+	// carried is what a contract entry carries out, once read.
+	partKind []*resolve.Node
+	carried  map[*resolve.Node]bool
 
 	pageOf    map[*resolve.Node]*Page
 	anchorOf  map[*resolve.Node]*Page // the page a node is shown on
@@ -312,9 +316,6 @@ var pageKinds = map[string]bool{
 // isPageNode reports whether a node gets a page of its own.
 func (s *Site) isPageNode(n *resolve.Node, sectionDepth int) bool {
 	if !own(n) || n.Name == "" || s.hidden(n) {
-		return false
-	}
-	if s.gatheredDiagnostic(n) {
 		return false
 	}
 	switch k := s.kindPath(n); {
@@ -554,12 +555,6 @@ func (s *Site) buildPages() {
 		p := &Page{File: "_diagnostics.html", Title: label("docs.page.errors"), Layout: "diagnostics"}
 		s.Pages = append(s.Pages, p)
 		s.sitePages = append(s.sitePages, p)
-		if s.errorsGathered() {
-			// Each diagnostic's anchor is its entry on this page.
-			for _, d := range s.diagnostics {
-				s.anchorOf[d] = p
-			}
-		}
 	}
 	if len(s.terms) > 0 {
 		p := &Page{File: "_glossary.html", Title: label("docs.page.glossary"), Layout: "glossary"}

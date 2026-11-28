@@ -7,9 +7,9 @@
 [![Pages](https://github.com/aiviarium/heron/actions/workflows/pages.yml/badge.svg)](https://github.com/aiviarium/heron/actions/workflows/pages.yml)
 
 **Docs:** [aiviarium.github.io/heron](https://aiviarium.github.io/heron/), the spec it
-implements in its three lenses (for users at the root,
-[/dev/](https://aiviarium.github.io/heron/dev/) for spec writers and
-[/explore/](https://aiviarium.github.io/heron/explore/) for the whole tree), its
+implements in its three lenses (for the developers who use Heron at the root,
+[/contributor/](https://aiviarium.github.io/heron/contributor/) for the people who work on
+Heron and [/explore/](https://aiviarium.github.io/heron/explore/) for the whole tree), its
 agent export for agents at [/agents/](https://aiviarium.github.io/heron/agents/INDEX.md)
 (with [/llms.txt](https://aiviarium.github.io/heron/llms.txt)).
 
@@ -194,7 +194,7 @@ and `docs/STATUS.md` where it stands.
 `.github/workflows/pages.yml` publishes, on every push to `main`, the spec
 package's own site with every lens its docs block builds, the user lens at
 [aiviarium.github.io/heron](https://aiviarium.github.io/heron/) and the others under
-[`/dev/`](https://aiviarium.github.io/heron/dev/) and
+[`/contributor/`](https://aiviarium.github.io/heron/contributor/) and
 [`/explore/`](https://aiviarium.github.io/heron/explore/), with its agent export under
 [`/agents/`](https://aiviarium.github.io/heron/agents/INDEX.md). `scripts/pages.sh <dir>`
 builds the same site locally. The repository's **Settings > Pages > Source**

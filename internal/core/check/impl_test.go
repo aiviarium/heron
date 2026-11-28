@@ -98,9 +98,9 @@ p: project(path = "p") {
 	wantDiagContaining(t, res, "unknown name nobody")
 }
 
-// The gap report lists the behaviour no contract entry carries out and no
-// error links, among the rules whose subject is a part or the system.
-func TestGapReportUnrealized(t *testing.T) {
+// Contract coverage counts the rules whose subject is a part or the
+// system, and those a contract entry implements or an error links.
+func TestContractCoverage(t *testing.T) {
 	src := `import = ["std/doc@1", "std/types@1"]
 
 payments: part {{ Takes the buyer's money. }}
@@ -129,7 +129,11 @@ no_receipt: error(422, id = "shop.NO_RECEIPT") {
 	if ds := diagStrings(res); len(ds) > 0 {
 		t.Fatal(ds)
 	}
-	if got := strings.Join(project.Unrealized(res.Tree, res.Checker), ","); got != "pay_once" {
-		t.Errorf("unrealized: %v", got)
+	var rules []*resolve.Node
+	for _, name := range []string{"pay_once", "receipt", "look"} {
+		rules = append(rules, res.Tree.Root.Child(name))
+	}
+	if done, all := project.ContractCoverage(res.Checker, rules, project.CarriedOut(res.Tree, res.Checker)); done != 1 || all != 2 {
+		t.Errorf("contract coverage: %d of %d, want 1 of 2", done, all)
 	}
 }

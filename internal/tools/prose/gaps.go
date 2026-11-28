@@ -12,6 +12,7 @@ import (
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/core/specmodel"
+	"github.com/aiviarium/heron/internal/core/types"
 	"github.com/aiviarium/heron/internal/core/usecase"
 )
 
@@ -136,12 +137,98 @@ func (f *specFacts) layerWords(i int, r *registry.ProseRegion, chain []*resolve.
 	return out
 }
 
-// reportGaps reports the spec's own gaps: goals and qualities nothing
-// serves, requirements that serve no goal, entries and errors that realize
-// nothing, failing extensions no error links, qualities with no
-// measure, and long scenarios.
+// The intent gaps' lint codes: the gaps the spec's own links leave, which
+// the docs gather on their gaps page.
+const (
+	CodeUnservedGoal     = SpecName + ".UnservedGoal"
+	CodeUnmotivated      = SpecName + ".Unmotivated"
+	CodeOrphanEntry      = SpecName + ".OrphanEntry"
+	CodeUnhandledFailure = SpecName + ".UnhandledFailure"
+)
+
+// Gap is one intent gap: a goal or quality nothing serves, a requirement
+// that serves no goal, an entry or error that realizes nothing, or a
+// failing extension no error links. Node is what it's about; File, Start
+// and End are where it's reported.
+type Gap struct {
+	Code    string
+	Node    *resolve.Node
+	File    *resolve.File
+	Start   int
+	End     int
+	Message string
+}
+
+// IntentGaps is the tree's intent gaps, in the order `heron lint` reports
+// them, leaving out those a node allows with @lint(allow); none when the
+// tree imports no std/lint, as `heron lint` reports none then.
+func IntentGaps(t *resolve.Tree, c *types.Checker) []Gap {
+	if !importsLint(t) {
+		return nil
+	}
+	var out []Gap
+	for _, g := range intentGaps(t, c) {
+		if !lint.Allowed(c, g.Node, g.Code) {
+			out = append(out, g)
+		}
+	}
+	return out
+}
+
+// reportGaps reports the spec's own gaps, the intent gaps, then the
+// qualities with no measure and the long scenarios.
 func reportGaps(li *lint.Input) {
 	t, c := li.Tree, li.Checker
+	for _, g := range intentGaps(t, c) {
+		li.As(g.Code).ReportAt(g.Node, g.File, g.Start, g.End, diag.Warning, g.Message)
+	}
+	is := func(n *resolve.Node, kinds ...string) bool { return specmodel.Is(c, n, kinds...) }
+	var qualities, scenarios []*resolve.Node
+	project.Own(t, func(n *resolve.Node) bool {
+		switch {
+		case is(n, "spec.quality"):
+			qualities = append(qualities, n)
+		case is(n, "spec.scenario"):
+			scenarios = append(scenarios, n)
+		}
+		return true
+	})
+	for _, q := range qualities {
+		measured := project.NamedArg(project.KindArgs(q), "measure") != nil
+		for _, sc := range scenarios {
+			for _, g := range project.ReferenceTargets(c, sc, "spec.quality") {
+				measured = measured || g == q
+			}
+		}
+		if !measured {
+			li.As(SpecName+".MeasureMissing").Report(q, q.Decl, diag.Warning, fmt.Sprintf("quality %s has no measure and no quality scenario", q.Name))
+		}
+	}
+	for _, sc := range scenarios {
+		n := 0
+		for _, ch := range sc.Children {
+			if is(ch, "spec.given", "spec.when", "spec.then") {
+				n++
+			}
+		}
+		if n > 5 {
+			li.As(SpecName+".LongScenario").Report(sc, sc.Decl, diag.Warning, fmt.Sprintf("scenario %s has %d clauses; keep it to about five, or split the rule", sc.Name, n))
+		}
+	}
+}
+
+// intentGaps finds the intent gaps: goals and qualities nothing serves,
+// requirements that serve no goal, entries and errors that realize
+// nothing, and failing extensions no error links.
+func intentGaps(t *resolve.Tree, c *types.Checker) []Gap {
+	var out []Gap
+	at := func(code string, n *resolve.Node, msg string) {
+		if n.Decl.File == nil {
+			return
+		}
+		st, en := n.Decl.Span()
+		out = append(out, Gap{Code: code, Node: n, File: n.Decl.File, Start: st, End: en, Message: msg})
+	}
 	is := func(n *resolve.Node, kinds ...string) bool { return specmodel.Is(c, n, kinds...) }
 	refs := func(n *resolve.Node, name string) []*resolve.Node { return project.AnnotationRefs(c, n, name) }
 	// The goals and qualities a requirement serves through its features,
@@ -184,14 +271,13 @@ func reportGaps(li *lint.Input) {
 	served := map[*resolve.Node]bool{}
 	realized := map[*resolve.Node]bool{}
 	linked := map[*resolve.Node]bool{}
-	var goals, reqs, entries, usecases, qualities, scenarios []*resolve.Node
+	var goals, reqs, entries, usecases, scenarios []*resolve.Node
 	project.Own(t, func(n *resolve.Node) bool {
 		switch {
 		case is(n, "spec.goal"):
 			goals = append(goals, n)
 		case is(n, "spec.quality"):
 			goals = append(goals, n)
-			qualities = append(qualities, n)
 		case is(n, "spec.rule", "spec.usecase"):
 			reqs = append(reqs, n)
 			if is(n, "spec.usecase") {
@@ -247,18 +333,18 @@ func reportGaps(li *lint.Input) {
 	}
 	for _, g := range goals {
 		if !served[g] {
-			li.As(SpecName+".UnservedGoal").Report(g, g.Decl, diag.Warning, fmt.Sprintf("nothing serves %s; serve it from a rule, a use case or a scenario, or drop it", g.Name))
+			at(CodeUnservedGoal, g, fmt.Sprintf("nothing serves %s; serve it from a rule, a use case or a scenario, or drop it", g.Name))
 		}
 	}
 	for _, r := range reqs {
 		if !motivated[r] {
-			li.As(SpecName+".Unmotivated").Report(r, r.Decl, diag.Warning, fmt.Sprintf("%s serves no goal; reference a goal or a quality, or give it a rationale", r.Name))
+			at(CodeUnmotivated, r, fmt.Sprintf("%s serves no goal; reference a goal or a quality, or give it a rationale", r.Name))
 		}
 	}
 	for _, e := range entries {
 		if is(e, "types.error") {
 			if !linked[e] {
-				li.As(SpecName+".OrphanEntry").Report(e, e.Decl, diag.Warning, orphanMessage(e.Name))
+				at(CodeOrphanEntry, e, orphanMessage(e.Name))
 			}
 			continue
 		}
@@ -286,7 +372,7 @@ func reportGaps(li *lint.Input) {
 			surfaceRealizes = surfaceRealizes || realized[ch]
 		}
 		if !surfaceRealizes {
-			li.As(SpecName+".OrphanEntry").Report(e, e.Decl, diag.Warning, orphanMessage(e.Name))
+			at(CodeOrphanEntry, e, orphanMessage(e.Name))
 		}
 	}
 	for _, u := range usecases {
@@ -301,31 +387,12 @@ func reportGaps(li *lint.Input) {
 			if st := u.Child(x.Num); (st != nil && (realized[st] || linked[st])) || realized[u] || linked[u] {
 				continue
 			}
-			li.As(SpecName+".UnhandledFailure").ReportAt(u, p.Site.File, x.Start, x.End, diag.Warning, fmt.Sprintf("extension %s fails, and no error links it", x.Num))
-		}
-	}
-	for _, q := range qualities {
-		measured := project.NamedArg(project.KindArgs(q), "measure") != nil
-		for _, sc := range scenarios {
-			for _, g := range project.ReferenceTargets(c, sc, "spec.quality") {
-				measured = measured || g == q
+			if p.Site.File != nil {
+				out = append(out, Gap{Code: CodeUnhandledFailure, Node: u, File: p.Site.File, Start: x.Start, End: x.End, Message: fmt.Sprintf("extension %s fails, and no error links it", x.Num)})
 			}
 		}
-		if !measured {
-			li.As(SpecName+".MeasureMissing").Report(q, q.Decl, diag.Warning, fmt.Sprintf("quality %s has no measure and no quality scenario", q.Name))
-		}
 	}
-	for _, sc := range scenarios {
-		n := 0
-		for _, ch := range sc.Children {
-			if is(ch, "spec.given", "spec.when", "spec.then") {
-				n++
-			}
-		}
-		if n > 5 {
-			li.As(SpecName+".LongScenario").Report(sc, sc.Decl, diag.Warning, fmt.Sprintf("scenario %s has %d clauses; keep it to about five, or split the rule", sc.Name, n))
-		}
-	}
+	return out
 }
 
 // orphanMessage is Spec.OrphanEntry's message, for an entry and an error.

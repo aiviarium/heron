@@ -7,7 +7,7 @@ kite: package(version = "1.4.0") {
   | Kite syncs a folder of notes to a remote store. It runs as one command, `kite`, and
   | keeps a log of every sync it makes.
 
-  @lens(developer, explore)
+  @lens(contributor, explore)
   | The spec of Kite 1.4: what a sync copies, its errors and its command line.
 
   system: section {
@@ -122,7 +122,7 @@ kite: package(version = "1.4.0") {
       example {{ removing `ideas.md` locally moves it to `trash/ideas.md` }}
     }
 
-    @lens(developer)
+    @lens(contributor)
     | Spec writers: every rule here names the syncer, whose behaviour it states.
 
     unreadable: error(422) {
@@ -240,5 +240,5 @@ kite: package(version = "1.4.0") {
 
 docs {
   depth = 3
-  lenses = [user, developer, explore]
+  lenses = [user, contributor, explore]
 }

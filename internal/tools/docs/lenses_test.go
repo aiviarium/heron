@@ -67,19 +67,19 @@ func mustNotHave(t *testing.T, what, h string, parts ...string) {
 // the same file name and anchor in every lens that keeps it.
 func TestLensSiteFiles(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	for _, p := range []string{"index.html", "data.js", "_assets/docs.css", "dev/index.html", "dev/data.js", "explore/index.html", "explore/data.js",
-		"kite.cli.sync.html", "dev/kite.cli.sync.html", "explore/kite.cli.sync.html", "kite.start.html", "dev/kite.start.html"} {
+	for _, p := range []string{"index.html", "data.js", "_assets/docs.css", "contributor/index.html", "contributor/data.js", "explore/index.html", "explore/data.js",
+		"kite.cli.sync.html", "contributor/kite.cli.sync.html", "explore/kite.cli.sync.html", "kite.start.html", "contributor/kite.start.html"} {
 		if _, ok := f[p]; !ok {
 			t.Errorf("no %s", p)
 		}
 	}
 	for p := range f {
-		if strings.HasPrefix(p, "dev/_assets/") || strings.HasPrefix(p, "explore/_assets/") {
+		if strings.HasPrefix(p, "contributor/_assets/") || strings.HasPrefix(p, "explore/_assets/") {
 			t.Errorf("assets written twice: %s", p)
 		}
 	}
 	v := "?v=" + assetVersion("docs.css")
-	mustHave(t, "dev page", f["dev/kite.cli.sync.html"], `href="../_assets/docs.css`+v+`"`, `src="data.js"`, `id="kite.cli.sync.dry_run"`)
+	mustHave(t, "dev page", f["contributor/kite.cli.sync.html"], `href="../_assets/docs.css`+v+`"`, `src="data.js"`, `id="kite.cli.sync.dry_run"`)
 	mustHave(t, "user page", f["kite.cli.sync.html"], `href="_assets/docs.css`+v+`"`, `id="kite.cli.sync.dry_run"`)
 	// The frame every page has, for moving between pages without a flash:
 	// the canvas's scheme, background and the reader's theme before the
@@ -100,9 +100,11 @@ func TestLensSiteFiles(t *testing.T) {
 	if strings.Index(page, `heron-nav:`) < strings.Index(page, `<nav class="sidebar"`) || strings.Index(page, `heron-nav:`) > strings.Index(page, `<main`) {
 		t.Error("the navigation's scroll isn't put back right after the navigation, before the page")
 	}
-	// Each lens's search index holds what it keeps: the user lens has no rule.
-	mustNotHave(t, "user data.js", f["data.js"], `"p":"kite.sync.copies_changed"`)
-	mustHave(t, "explore data.js", f["explore/data.js"], `"p":"kite.sync.copies_changed"`)
+	// Each lens's search index holds what it keeps: the user lens has no
+	// part.
+	mustNotHave(t, "user data.js", f["data.js"], `"p":"kite.system.syncer"`)
+	mustHave(t, "user data.js", f["data.js"], `"p":"kite.sync.copies_changed"`)
+	mustHave(t, "explore data.js", f["explore/data.js"], `"p":"kite.system.syncer"`)
 }
 
 // Without lenses the site is explore alone at the root, with no switcher.
@@ -133,23 +135,22 @@ func TestLensSwitcher(t *testing.T) {
 	mustHave(t, "user switcher caption", sw.FindString(page), `<span class="caption">View</span><span class="v">User</span>`)
 	got := sw.FindString(f["kite.cli.sync.html"])
 	mustHave(t, "user switcher", got, `href="kite.cli.sync.html" data-lens="user" aria-current="true">User</a>`,
-		`href="dev/kite.cli.sync.html" data-lens="developer">Developer</a>`, `href="explore/kite.cli.sync.html" data-lens="explore">Explore</a>`)
-	if strings.Index(got, ">User<") > strings.Index(got, ">Developer<") || strings.Index(got, ">Developer<") > strings.Index(got, ">Explore<") {
+		`href="contributor/kite.cli.sync.html" data-lens="contributor">Contributor</a>`, `href="explore/kite.cli.sync.html" data-lens="explore">Explore</a>`)
+	if strings.Index(got, ">User<") > strings.Index(got, ">Contributor<") || strings.Index(got, ">Contributor<") > strings.Index(got, ">Explore<") {
 		t.Errorf("order: %s", got)
 	}
 	got = sw.FindString(f["explore/kite.system.html"])
-	mustHave(t, "explore switcher", got, `href="../index.html" data-lens="user">User</a>`, `href="../dev/kite.system.html"`)
-	mustHave(t, "dev glossary switcher", sw.FindString(f["dev/_glossary.html"]), `href="../_glossary.html"`)
+	mustHave(t, "explore switcher", got, `href="../index.html" data-lens="user">User</a>`, `href="../contributor/kite.system.html"`)
+	mustHave(t, "dev glossary switcher", sw.FindString(f["contributor/_glossary.html"]), `href="../_glossary.html"`)
 }
 
 // The user lens opens on the pages written for its readers: the root's
 // prose marked for it, its first authored page as the primary link and a
 // card per other top-level entry of its navigation, which lists the pages
 // it keeps as the tree nests them, in the tree's order, and the errors and
-// the glossary at the bottom; it shows commands, terms, examples and
-// diagnostics as errors with their fixes, and leaves out rules and the
-// tree's section prose, keeping a section's heading where it holds what it
-// shows.
+// the glossary at the bottom; it shows the full reference, each rule as
+// its sentence that opens in place and each diagnostic in full, and leaves
+// out the actors and the parts.
 func TestUserLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	home := f["index.html"]
@@ -170,32 +171,27 @@ func TestUserLens(t *testing.T) {
 		}
 		rest = rest[i:]
 	}
-	// The user lens shows no rule, and so has no gaps page.
-	if _, ok := f["_gaps.html"]; ok {
-		t.Error("the user lens has a gaps page")
-	}
 	sync := f["kite.sync.html"]
-	mustHave(t, "user sync", sync, "conflict")
-	// Its errors are on its Errors page alone, each at its anchor there.
-	mustNotHave(t, "user sync", sync, `id="kite.sync.unreadable"`, "diag-code", "copy every note", "sev-error", "Reported by", "How a sync decides what to copy", "Spec writers:")
+	mustHave(t, "user sync", sync, "conflict", "How a sync decides what to copy",
+		`<div class="rule rule-summary" id="kite.sync.no_deletes"><p class="sentence">`, "copy every note",
+		`id="kite.sync.unreadable"`, "diag-code", "sev-error", "A note Kite can&#39;t read, such as one without read permission.")
+	mustNotHave(t, "user sync", sync, "Spec writers:")
+	// The actors and the parts are about building the product.
 	if _, ok := f["kite.system.html"]; ok {
 		t.Error("the actors' section has a page in the user lens")
 	}
-	mustHave(t, "user command", f["kite.cli.sync.html"], "--dry-run", "Lists what a sync would copy")
-	mustNotHave(t, "user command", f["kite.cli.sync.html"], "exit with status 1 when any note")
+	mustNotHave(t, "user nav", nav, `href="kite.system.html"`)
+	mustHave(t, "user sync", sync, `href="contributor/kite.system.html#kite.system.syncer" title="Opens in the Contributor docs"`)
+	mustHave(t, "user command", f["kite.cli.sync.html"], "--dry-run", "Lists what a sync would copy", "exit with status 1 when any note")
 	// A term's heading is its display name, in sentence case; inside a
 	// sentence it keeps its case.
 	mustHave(t, "user sync", sync, `<dfn class="term-name">Conflict</dfn>`)
 	mustHave(t, "user glossary", f["_glossary.html"], `>Conflict</a>`, `>Wait</a>`)
-	// The user lens's depth, 2, folds a third level onto its parent's page,
-	// which the docs block's depth, 3, gives a page in the other lenses.
-	if _, ok := f["kite.sync.retries.backoff.html"]; ok {
-		t.Error("a third-level section has a page in the user lens")
-	}
-	mustHave(t, "user retries", f["kite.sync.retries.html"], `id="kite.sync.retries.backoff"`, "The time a sync waits")
-	mustHave(t, "dev backoff", f["dev/kite.sync.retries.backoff.html"], "double the wait")
+	// The user lens takes the docs block's depth, 3, as the others do.
+	mustHave(t, "user backoff", f["kite.sync.retries.backoff.html"], "double the wait", "The time a sync waits")
+	mustHave(t, "contributor backoff", f["contributor/kite.sync.retries.backoff.html"], "double the wait")
 	// Every authored page has a page in every lens that keeps it.
-	for _, p := range []string{"kite.start.html", "dev/kite.start.html", "explore/kite.start.html"} {
+	for _, p := range []string{"kite.start.html", "contributor/kite.start.html", "explore/kite.start.html"} {
 		mustHave(t, p, f[p], `class="authored"`)
 	}
 }
@@ -205,12 +201,12 @@ func TestUserLens(t *testing.T) {
 func TestLensMarksRender(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	mustHave(t, "user guide", f["kite.start.html"], "When the sync finishes")
-	mustNotHave(t, "dev guide", f["dev/kite.start.html"], "When the sync finishes")
-	mustHave(t, "dev sync", f["dev/kite.sync.html"], "Spec writers:")
-	mustHave(t, "explore sync", f["explore/kite.sync.html"], "Spec writers:", `<span class="lens-mark">Developer</span>`)
+	mustNotHave(t, "dev guide", f["contributor/kite.start.html"], "When the sync finishes")
+	mustHave(t, "dev sync", f["contributor/kite.sync.html"], "Spec writers:")
+	mustHave(t, "explore sync", f["explore/kite.sync.html"], "Spec writers:", `<span class="lens-mark">Contributor</span>`)
 	mustHave(t, "explore guide", f["explore/kite.start.html"], `<span class="lens-mark">User</span>`)
-	mustHave(t, "dev home", f["dev/index.html"], "The spec of Kite 1.4")
-	mustNotHave(t, "dev home", f["dev/index.html"], "Kite syncs a folder")
+	mustHave(t, "dev home", f["contributor/index.html"], "The spec of Kite 1.4")
+	mustNotHave(t, "dev home", f["contributor/index.html"], "Kite syncs a folder")
 }
 
 // `@lens` on an element that declares no node marks its content as a
@@ -229,7 +225,7 @@ func TestElementLensMarks(t *testing.T) {
 include = ["./guide.heron.md"]
 
 docs {
-  lenses = [user, developer, explore]
+  lenses = [user, contributor, explore]
 }
 `)
 	write("guide.heron.md", `# Refunds {#refunds}
@@ -238,33 +234,35 @@ Everyone reads this.
 
 <p @lens="user">Open the payment and press **Refund**.</p>
 
-<p @lens="developer, explore">A refund moves the payment to `+"`refunded`"+`.</p>
+<p @lens="contributor, explore">A refund moves the payment to `+"`refunded`"+`.</p>
 
 Inline <em @lens="user">user-only words</em> in a sentence.
 
-<term id="window" @lens="developer">The days a refund can be asked for.</term>
+<term id="window" @lens="contributor">The days a refund can be asked for.</term>
 `)
 	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
-	dev := f["dev/refunds.html"]
+	dev := f["contributor/refunds.html"]
 	mustHave(t, "dev", dev, "A refund moves the payment", "Inline", "in a sentence")
 	mustNotHave(t, "dev", dev, "Open the payment", "user-only words")
 	ex := f["explore/refunds.html"]
 	mustHave(t, "explore", ex, "Open the payment", "A refund moves the payment", "user-only words",
 		`<div class="marked"> <span class="lens-mark">User</span>`, `<span class="marked"> <span class="lens-mark">User</span>`)
 	// A named element's `@lens` is its node's mark, not a mark on its text.
-	if strings.Contains(ex, `<span class="lens-mark">Developer</span><p>The days`) {
+	if strings.Contains(ex, `<span class="lens-mark">Contributor</span><p>The days`) {
 		t.Error("a named element's mark marks its text too")
 	}
 }
 
-// The developer lens lists sections as topics and sums each rule up as
-// its sentence, which opens in place; a page reads as its prose, its
+// The contributor lens lists sections as topics and shows each rule in
+// full, with the actors and the parts; a page reads as its prose, its
 // rules, its terms, its sections and its diagnostics last, while explore
 // keeps the tree's order. Its home lists each topic's pages.
-func TestDeveloperLens(t *testing.T) {
+func TestContributorLens(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	sync := f["dev/kite.sync.html"]
-	mustHave(t, "dev sync", sync, `<div class="rule rule-summary" id="kite.sync.no_deletes"><p class="sentence">`)
+	sync := f["contributor/kite.sync.html"]
+	mustHave(t, "contributor sync", sync, `<div class="rule" id="kite.sync.no_deletes">`, `href="kite.system.html#kite.system.syncer"`)
+	mustNotHave(t, "contributor sync", sync, "rule-summary")
+	mustHave(t, "contributor system", f["contributor/kite.system.html"], `id="kite.system.syncer"`, `id="kite.system.writer"`)
 	main := sync[strings.Index(sync, `id="main"`):]
 	// The words first, then the rules that use them.
 	order := []string{`id="kite.sync.conflict"`, `id="kite.sync.copies_changed"`, `id="kite.sync.no_deletes"`, `href="kite.sync.retries.html"`, `id="kite.sync.unreadable"`}
@@ -279,13 +277,13 @@ func TestDeveloperLens(t *testing.T) {
 	}
 	// The commands are in the Reference area; the section that holds them
 	// stays a topic of the docs, linking them.
-	mustHave(t, "dev home", f["dev/index.html"], `<a href="kite.cli.html"><span class="home-link-title">`)
-	mustHave(t, "dev cli", f["dev/kite.cli.html"], `<a href="kite.cli.sync.html"><span class="home-link-title">`, `kite sync</span><span class="home-link-text">Syncs a folder with its store, once.</span>`)
-	cmdNav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["dev/kite.cli.sync.html"])
+	mustHave(t, "dev home", f["contributor/index.html"], `<a href="kite.cli.html"><span class="home-link-title">`)
+	mustHave(t, "dev cli", f["contributor/kite.cli.html"], `<a href="kite.cli.sync.html"><span class="home-link-title">`, `kite sync</span><span class="home-link-text">Syncs a folder with its store, once.</span>`)
+	cmdNav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(f["contributor/kite.cli.sync.html"])
 	mustHave(t, "dev command nav", cmdNav, `<a href="kite.cli.sync.html" aria-current="page">`)
 	// A section whose only prose and pages are for users has no page here.
-	if _, ok := f["dev/kite.more.html"]; ok {
-		t.Error("an empty section has a page in the developer lens")
+	if _, ok := f["contributor/kite.more.html"]; ok {
+		t.Error("an empty section has a page in the contributor lens")
 	}
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
 	mustHave(t, "dev nav", nav, `href="kite.cli.html"`)
@@ -297,7 +295,7 @@ func TestDeveloperLens(t *testing.T) {
 // writes them in; explore keeps the tree's order.
 func TestIntentFirst(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	sync := f["dev/kite.sync.html"]
+	sync := f["contributor/kite.sync.html"]
 	main := sync[strings.Index(sync, `id="main"`):]
 	order := []string{`<div class="goal-block" id="kite.sync.same_everywhere">`, `id="kite.sync.copies_changed"`, `id="kite.sync.unreadable"`}
 	for i := 1; i < len(order); i++ {
@@ -309,7 +307,7 @@ func TestIntentFirst(t *testing.T) {
 	// icon.
 	mustHave(t, "goal block", main, `<div class="goal-head"><svg class="icon kind-mark"`, `aria-label="goal"><title>goal</title>`)
 	// A goal has no page and no place in the navigation.
-	if _, ok := f["dev/kite.sync.same_everywhere.html"]; ok {
+	if _, ok := f["contributor/kite.sync.same_everywhere.html"]; ok {
 		t.Error("a goal has a page")
 	}
 	nav := regexp.MustCompile(`(?s)<nav class="sidebar".*?</nav>`).FindString(sync)
@@ -382,9 +380,22 @@ format: section {
   }
 }
 
+brief: lens {
+  title = "Brief"
+  default = true
+  hide = [spec.rule]
+  prefix = ""
+}
+
+user: lens {
+  title = "User"
+  summarize = [spec.rule]
+  prefix = "user"
+}
+
 docs {
   depth = 2
-  lenses = [user, developer, explore]
+  lenses = [brief, user, contributor, explore]
 }
 `
 
@@ -399,17 +410,19 @@ func TestOutlineHeadings(t *testing.T) {
 	}
 	_, f := lensFiles(t, filepath.Join(dir, "index.heron"))
 	outline := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`)
-	for _, p := range []string{"dev/format.core.html", "explore/format.core.html"} {
+	for _, p := range []string{"contributor/format.core.html", "explore/format.core.html"} {
 		ol := outline.FindString(f[p])
 		mustHave(t, p+" outline", ol, `<li class="l2"><a href="#format.core.naming">`, `<li class="l2"><a href="#format.core.values">`)
 		mustNotHave(t, p+" outline", ol, `#format.core.naming.path"`, `#format.core.naming.link_lookup"`, `#format.core.values.set_one_field"`)
 	}
-	user := f["format.core.html"]
-	mustHave(t, "user format", user, `id="format.core.naming.a_link"`)
-	mustNotHave(t, "user format", user, "Link lookup", "Set one field", "finds the format", "sets one field", `id="format.core.values"`)
+	brief := f["format.core.html"]
+	mustHave(t, "brief format", brief, `id="format.core.naming.a_link"`)
+	mustNotHave(t, "brief format", brief, "Link lookup", "Set one field", "finds the format", "sets one field")
+	// A lens that sums a rule up keeps its examples in the rule's line.
+	mustHave(t, "user format", f["user/format.core.html"], `id="format.core.naming.link_lookup"`, "finds the format")
 	mustHave(t, "explore format", f["explore/format.core.html"], "Link lookup", "finds the format")
 	// An outline of one heading says nothing the title doesn't.
-	if ol := outline.FindString(user); strings.Count(ol, "<li") < 2 && ol != "" {
+	if ol := outline.FindString(brief); strings.Count(ol, "<li") < 2 && ol != "" {
 		t.Errorf("an outline of one entry: %s", ol)
 	}
 }
@@ -418,11 +431,13 @@ func TestOutlineHeadings(t *testing.T) {
 // renders it, that lens named in its tooltip alone.
 func TestLinksAcrossLenses(t *testing.T) {
 	_, f := lensFiles(t, kite)
-	mustHave(t, "user concept", f["kite.conflicts.html"], `href="dev/kite.sync.html#kite.sync.keeps_both" title="Opens in the Developer docs">the conflict rule`)
+	mustHave(t, "user concept", f["kite.conflicts.html"], `href="kite.sync.html#kite.sync.keeps_both">the conflict rule`)
+	mustHave(t, "user sync", f["kite.sync.html"], `href="contributor/kite.system.html#kite.system.syncer" title="Opens in the Contributor docs"`)
 	mustNotHave(t, "user concept", f["kite.conflicts.html"], "lens-tag")
-	mustNotHave(t, "dev concept", f["dev/kite.conflicts.html"], "lens-tag")
-	// A link the generator builds, as a rule's subject, carries no title.
-	mustHave(t, "dev sync", f["dev/kite.sync.html"], `<a class="ref subject" href="kite.system.html#kite.system.syncer">syncer</a>`)
+	mustNotHave(t, "dev concept", f["contributor/kite.conflicts.html"], "lens-tag")
+	// A link the generator builds, as a rule's subject, carries no title
+	// in a lens that shows its target.
+	mustHave(t, "dev sync", f["contributor/kite.sync.html"], `<a class="ref subject" href="kite.system.html#kite.system.syncer">syncer</a>`)
 }
 
 // A rule reads as one paragraph: conditions, subject, strength, behaviour,
@@ -439,7 +454,7 @@ func TestRuleAsProse(t *testing.T) {
 		`<strong class="strength">must not</strong> delete a note from the store, and must instead move it`,
 		`<span class="rule-example">For example, removing <code>ideas.md</code> locally moves it to <code>trash/ideas.md</code>.</span>`)
 	mustNotHave(t, "rules", sync, `class="rule-more"`, `class="rule-head"`, `<dt>`)
-	dev := f["dev/kite.sync.html"]
+	dev := f["contributor/kite.sync.html"]
 	// A clause that holds the connective it would be joined with is the
 	// next sentence.
 	mustHave(t, "dev rules", dev, `for every note it copies. The log grows with each sync, so it&#39;s rotated once it reaches 1 MB.`)
@@ -453,7 +468,7 @@ func TestRuleAsProse(t *testing.T) {
 		}
 	}
 	// A rule the op realizes is listed on the op's page.
-	mustHave(t, "dev op", f["dev/kite.store_api.get_note.html"], `When the store answers 404`)
+	mustHave(t, "dev op", f["contributor/kite.store_api.get_note.html"], `When the store answers 404`)
 	// The formal parts are in the markup for the hover card.
 	mustHave(t, "dev rules", dev, `class="rule-meta"`)
 }
@@ -485,7 +500,7 @@ func TestSmallTablesAsLines(t *testing.T) {
 // its code and message on one line with its fix under it, a code with two
 // or more as the code once with each message and fix under it. A
 // placeholder inside literal angle brackets reads without its own marks.
-// In the user lens each entry is the diagnostic's anchor.
+// In every lens a diagnostic's anchor is on the page of its section.
 func TestDiagnosticsCompact(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	h := f["explore/_diagnostics.html"]
@@ -498,7 +513,7 @@ func TestDiagnosticsCompact(t *testing.T) {
 		t.Error("a code listed more than once")
 	}
 	u := f["_diagnostics.html"]
-	mustHave(t, "user errors", u, `<h1 class="page-title">Errors</h1>`, `<li id="kite.sync.unreadable"><p class="diag-line"><span class="diag-message">can&#39;t read`)
+	mustHave(t, "user errors", u, `<h1 class="page-title">Errors</h1>`, `<li id="code-unreadable">`, `href="kite.sync.html#kite.sync.unreadable"`)
 	mustHave(t, "user search", f["data.js"], `kite.sync.unreadable`)
 }
 
@@ -585,7 +600,7 @@ func TestElementsRender(t *testing.T) {
 	h := f["asking.do_it.html"]
 	mustHave(t, "how-to", h, `<h1 class="page-title">Ask for a refund</h1>`, `<li class="step" id="asking.do_it.look"><h2 class="h">`,
 		`id="asking.do_it.call"`, `<aside class="callout callout-warning"><div class="prose"><p>A refund can&#39;t be undone.</p></div></aside></li>`)
-	if _, ok := f["dev/asking.do_it.html"]; ok {
+	if _, ok := f["contributor/asking.do_it.html"]; ok {
 		t.Error("@lens=\"user\" doesn't keep the how-to to the user lens")
 	}
 	ex := f["explore/refunds.html"]
@@ -596,15 +611,15 @@ func TestElementsRender(t *testing.T) {
 	mustNotHave(t, "refunds", ex, "&amp;amp;", `tag-ref`)
 }
 
-// A use case with two extensions or more gets a flow diagram in the
-// developer and explore lenses, never in the user lens.
+// A use case with two extensions or more gets a flow diagram in every lens
+// of the site.
 func TestUseCaseFlowDiagram(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	var dev, user string
 	for path, h := range f {
 		if strings.Contains(h, `id="kite.sync_notes"`) {
 			switch {
-			case strings.HasPrefix(path, "dev/"):
+			case strings.HasPrefix(path, "contributor/"):
 				dev = h
 			case !strings.HasPrefix(path, "explore/"):
 				user = h
@@ -612,15 +627,13 @@ func TestUseCaseFlowDiagram(t *testing.T) {
 		}
 	}
 	mustHave(t, "dev use case", dev, `<figure class="uc-flow">`, `<span class="uc-num">2b</span>`)
+	mustHave(t, "user use case", user, `<figure class="uc-flow">`)
 	// The outline names the main path and each extension, never bare step
 	// numbers.
 	ol := regexp.MustCompile(`(?s)<nav class="outline".*?</nav>`).FindString(dev)
 	mustHave(t, "use case outline", ol, `>Main path<`, `>Extensions<`, `2b `)
 	if regexp.MustCompile(`>\d+<`).MatchString(ol) {
 		t.Errorf("bare step numbers in the outline:\n%s", ol)
-	}
-	if strings.Contains(user, `uc-flow`) {
-		t.Error("a flow diagram in the user lens")
 	}
 }
 
@@ -629,7 +642,7 @@ func TestUseCaseFlowDiagram(t *testing.T) {
 func TestKindLabels(t *testing.T) {
 	_, f := lensFiles(t, kite)
 	used := regexp.MustCompile(`<svg class="icon kind-mark"[^>]*role="img" aria-label="([a-z]+)"><title>([a-z]+)</title>`)
-	for _, lens := range []string{"dev/", "explore/"} {
+	for _, lens := range []string{"contributor/", "explore/"} {
 		found := false
 		for p, h := range f {
 			if strings.HasPrefix(p, lens) && used.MatchString(h) {

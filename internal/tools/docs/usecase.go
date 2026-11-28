@@ -120,7 +120,7 @@ func renderUsecase(c *Ctx) error {
 				c.W(`</ol></dd></div>`)
 			}
 			c.W(`</dl>`)
-			if len(p.Exts) >= 2 && s.Opts.Lens != nil && s.Opts.Lens.Name != "user" && s.Opts.Lens.Name != "agent" {
+			if len(p.Exts) >= 2 && s.Opts.Lens != nil && s.Opts.Lens.Name != "agent" {
 				c.W(flowSVG(p.UseCase))
 			}
 		}

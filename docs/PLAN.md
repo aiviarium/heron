@@ -32,7 +32,7 @@ internal/core/             unit 1
   ast/                     typed views over the CST, generated from grammar/
   ast/internal/astgen/     the generator (go generate)
   project/                 the spec model the tools share: kinds, arguments,
-                           annotations, references, features, the gap report
+                           annotations, references, features, contract coverage
   format/                  heron fmt, from the CST
   diag/                    the diagnostics every stage reports
   resolve/                 entry points, include/import, scopes, amends, the

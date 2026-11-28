@@ -87,12 +87,12 @@ if want spec; then
 fi
 
 # A tree with every lens and the authored kinds: the user lens at the
-# root, dev/ and explore/ beside it.
+# root, contributor/ and explore/ beside it.
 if want lenses; then
   cp -r internal/tools/docs/testdata/lenses "$tmp/lenses"
   rm -rf "$tmp/lenses/.heron"
   (cd "$tmp/lenses" && "$tmp/heron" generate docs >/dev/null)
-  test -f "$tmp/lenses/.heron/docs/dev/kite.store_api.get_note.html"
+  test -f "$tmp/lenses/.heron/docs/contributor/kite.store_api.get_note.html"
   test -f "$tmp/lenses/.heron/docs/explore/data.js"
   checks+=("e2e.cjs $tmp/lenses/.heron/docs")
 fi
