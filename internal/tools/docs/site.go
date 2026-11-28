@@ -1,9 +1,8 @@
 // Package docs renders a checked Heron tree as documentation: the static
 // site `heron generate docs` writes, and the pages, nodes and fragments the
-// spec browser, the server's preview and the language server's
-// heron/preview show. Every kind renders through the renderer registered
-// for it (registry.SetRenderer); a kind without one falls back to its
-// fields and children.
+// spec browser and the language server's heron/preview show. Every kind
+// renders through the renderer registered for it (registry.SetRenderer); a
+// kind without one falls back to its fields and children.
 package docs
 
 import (
@@ -44,7 +43,7 @@ type Options struct {
 	// explore lens does.
 	Lens *lens.Lens
 	// ServedOps are the ops of the API the serving server publishes, as
-	// spec_server.preview, when `heron serve` serves the site; their pages
+	// spec_server.agent_export, when `heron serve` serves the site; their pages
 	// offer Try it against the page's own origin.
 	ServedOps map[string]bool
 }

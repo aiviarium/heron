@@ -29,7 +29,7 @@ type agentExport struct {
 // current returns the export of the workspace's tree as it stands.
 func (x *agentExport) current() ([]docs.AgentFile, error) {
 	var files []docs.AgentFile
-	err := x.ws.Analyze(nil, func(a *Analysis) error {
+	err := x.ws.Analyze(func(a *Analysis) error {
 		x.mu.Lock()
 		defer x.mu.Unlock()
 		if x.res != a.Res {

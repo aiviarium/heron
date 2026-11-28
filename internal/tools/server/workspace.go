@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,7 +23,6 @@ type Workspace struct {
 	mu   sync.Mutex
 	sess *check.Session
 	last *check.Result
-	key  string    // the overlays of last
 	at   time.Time // when last was checked
 }
 
@@ -54,17 +51,7 @@ func (w *Workspace) Rel(id resolve.FileID) string {
 	return filepath.ToSlash(rel)
 }
 
-// Abs returns the identity of a workspace-relative path, refusing paths
-// that leave the workspace.
-func (w *Workspace) Abs(rel string) (resolve.FileID, error) {
-	clean := filepath.Clean(filepath.FromSlash(rel))
-	if rel == "" || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("%q is not a path in the workspace", rel)
-	}
-	return resolve.Canonical(filepath.Join(w.Root, clean))
-}
-
-// Analysis is a check of the tree with a set of unsaved texts.
+// Analysis is a check of the tree as it stands on disk.
 type Analysis struct {
 	W   *Workspace
 	Res *check.Result
@@ -72,30 +59,15 @@ type Analysis struct {
 	Pos func(file string, off int) (int, int)
 }
 
-// Analyze checks the tree with the given unsaved texts, by relative path,
-// and calls f with the result while holding the session. Unchanged files
-// and nodes are served from the session's memo.
-func (w *Workspace) Analyze(overlays map[string]string, f func(a *Analysis) error) error {
+// Analyze checks the tree and calls f with the result while holding the
+// session. Unchanged files and nodes are served from the session's memo.
+func (w *Workspace) Analyze(f func(a *Analysis) error) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	ov := map[resolve.FileID]string{}
-	keys := make([]string, 0, len(overlays))
-	for rel, text := range overlays {
-		id, err := w.Abs(rel)
-		if err != nil {
-			return err
-		}
-		ov[id] = text
-		keys = append(keys, rel+"\x00"+text)
-	}
-	sort.Strings(keys)
-	key := strings.Join(keys, "\x01")
 	// The disk can change under the server, so a result is reused only
-	// briefly, for the requests one edit makes.
-	if w.last == nil || key != w.key || time.Since(w.at) > time.Second {
-		w.sess.Loader.Overlay = ov
+	// briefly, for the requests one page load makes.
+	if w.last == nil || time.Since(w.at) > time.Second {
 		w.last = w.sess.Check(w.Entry)
-		w.key = key
 		w.at = time.Now()
 	}
 	return f(&Analysis{W: w, Res: w.last, Pos: w.sess.Pos})

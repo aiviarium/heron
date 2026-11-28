@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -23,7 +22,7 @@ func petstore(t *testing.T) (*httptest.Server, *server.Shell) {
 	r := registry.New()
 	cli.Register(r)
 	docs.Register(r)
-	s := &server.Shell{Renderer: server.DocsRenderer{Registry: r}}
+	s := &server.Shell{}
 	w, err := server.OpenWorkspace("../../../examples/petstore", r)
 	if err != nil {
 		t.Fatal(err)
@@ -68,43 +67,6 @@ func TestRootRedirects(t *testing.T) {
 	}
 	if code, body := get(t, ts.URL+"/api/v1/nothing"); code != 404 || !strings.Contains(body, `"error"`) {
 		t.Errorf("unknown op: %d %q", code, body)
-	}
-}
-
-// preview renders the node at the cursor from the unsaved texts, and
-// refuses a path that leaves the workspace.
-func TestPreview(t *testing.T) {
-	ts, _ := petstore(t)
-	if len(api.Routes(nil)) == 0 {
-		t.Fatal("no routes generated")
-	}
-	post := func(path string, v any, out any) int {
-		b, _ := json.Marshal(v)
-		res, err := http.Post(ts.URL+path, "application/json", strings.NewReader(string(b)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer res.Body.Close()
-		if err := json.NewDecoder(res.Body).Decode(out); err != nil {
-			t.Fatal(path, err)
-		}
-		return res.StatusCode
-	}
-	src, _ := os.ReadFile("../../../examples/petstore/services/store/tasks.heron")
-	off := int64(strings.Index(string(src), "test: task"))
-	var pv api.Preview
-	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: &off, Overlays: map[string]string{}}, &pv)
-	if pv.Path != "store_svc.test" || pv.Kind != "task" || !strings.Contains(pv.HTML, "test") {
-		t.Errorf("preview: %+v", pv)
-	}
-	edited := strings.Replace(string(src), "test: task", "check_all: task", 1)
-	post("/api/v1/preview", api.PreviewRequest{File: "services/store/tasks.heron", Offset: &off, Overlays: map[string]string{"services/store/tasks.heron": edited}}, &pv)
-	if pv.Path != "store_svc.check_all" {
-		t.Errorf("preview of the unsaved text: %+v", pv)
-	}
-	var e map[string]string
-	if st := post("/api/v1/preview", api.PreviewRequest{File: "../outside.heron", Overlays: map[string]string{}}, &e); st != 400 || e["code"] != "server.NOT_IN_WORKSPACE" {
-		t.Errorf("a path out of the workspace: %d %v", st, e)
 	}
 }
 
@@ -200,7 +162,6 @@ func TestSpecBrowserCaching(t *testing.T) {
 
 func TestGeneratedRoutesMatchTheHeron(t *testing.T) {
 	want := map[string]string{
-		"spec_server.preview":      "POST /api/v1/preview",
 		"spec_server.agent_export": "GET /api/v1/agents",
 	}
 	for _, r := range api.Routes(nil) {

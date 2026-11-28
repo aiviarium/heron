@@ -14,7 +14,7 @@ import (
 
 // Route is one op mounted on the server.
 type Route struct {
-	Op      string // the op's path in the API tree, such as spec_server.preview
+	Op      string // the op's path in the API tree, such as spec_server.agent_export
 	Method  string // GET, POST, …; empty for a WebSocket
 	Path    string // the full path with :params, such as /api/v1/records/:id
 	Stream  bool   // the op returns a stream, sent as server-sent events

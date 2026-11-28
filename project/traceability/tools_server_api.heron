@@ -5,7 +5,6 @@ tools_server_api: section {
 
   proves(heron.tools.server.serving.json_wire) {
     verify("internal/tools/server/api_test.go", test = "TestNoOp")
-    verify("internal/tools/server/server_test.go", test = "TestPreview")
   }
 
   proves(heron.tools.server.serving.compressed_assets) {
@@ -25,21 +24,8 @@ tools_server_api: section {
     verify("internal/tools/server/api_test.go", test = "TestOrigins")
   }
 
-  proves(heron.tools.server.ops.preview_position) {
-    verify("internal/tools/server/api_test.go", test = "TestPreviewPosition")
-  }
-
-  proves(heron.tools.server.ops.preview_styling) {
-    verify("internal/tools/server/server_test.go", test = "TestPreview")
-    verify("internal/tools/server/api_test.go", test = "TestCompressedAssets")
-  }
-
   proves(heron.tools.lsp.extensions.workspace_uris) {
     verify("internal/tools/lsp/features_test.go", test = "TestHoverShowsDocs")
-  }
-
-  proves(heron.tools.server_api.not_in_workspace) {
-    verify("internal/tools/server/codes_test.go", test = "TestErrorCodes")
   }
 
   proves(heron.tools.server_api.no_such_file) {

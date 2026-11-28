@@ -10,12 +10,10 @@ import (
 
 	"github.com/aiviarium/heron/internal/core/check"
 	"github.com/aiviarium/heron/internal/core/registry"
-	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/tools/docs"
 )
 
-// DocsPrefix is where the spec browser is served; the preview's links and
-// assets point into it.
+// DocsPrefix is where the spec browser is served.
 const DocsPrefix = "/docs/"
 
 func docsSite(res *check.Result, r *registry.Registry, served map[string]bool) *docs.Site {
@@ -25,35 +23,6 @@ func docsSite(res *check.Result, r *registry.Registry, served map[string]bool) *
 		Assets:    DocsPrefix + "_assets/",
 		ServedOps: served,
 	})
-}
-
-// DocsRenderer renders the preview through the docs renderer, so a node
-// looks as it does in the generated docs.
-type DocsRenderer struct{ Registry *registry.Registry }
-
-func fragment(f *docs.Fragment) string {
-	if f.Aside == "" {
-		return f.HTML
-	}
-	return f.HTML + `<aside class="h-preview-aside">` + f.Aside + `</aside>`
-}
-
-// RenderNode renders one node as its docs page or section.
-func (d DocsRenderer) RenderNode(res *check.Result, n *resolve.Node) (string, error) {
-	f, err := docsSite(res, d.Registry, nil).RenderNode(n)
-	if err != nil {
-		return "", err
-	}
-	return fragment(f), nil
-}
-
-// RenderFile renders every top-level node of a file.
-func (d DocsRenderer) RenderFile(res *check.Result, file resolve.FileID) (string, error) {
-	f, err := docsSite(res, d.Registry, nil).RenderFile(file)
-	if err != nil {
-		return "", err
-	}
-	return fragment(f), nil
 }
 
 // specBrowser serves the docs of the tree on disk, rendered live: the same
@@ -81,7 +50,7 @@ func (b *specBrowser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	var body []byte
 	var ctype string
-	err := b.ws.Analyze(nil, func(a *Analysis) error {
+	err := b.ws.Analyze(func(a *Analysis) error {
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		if b.res != a.Res {

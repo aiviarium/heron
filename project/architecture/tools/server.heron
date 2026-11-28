@@ -6,12 +6,10 @@ server: component("internal/tools/server", heron.system.server, lang = "go") {
 
   shell: responsibility {{ Route each request to the API, the spec browser or the agent export, and `/` to the spec browser. }}
   workspace: responsibility {{ One check session over the served tree, shared by every request, so analysis stays incremental across edits. }}
-  base_ops: responsibility {{ Implement the API's ops: the preview and the agent export. }}
+  base_ops: responsibility {{ Implement the API's one op, the agent export. }}
 
   exports(title = "server.go") {{
-    type Shell struct {
-      Renderer Renderer
-    }
+    type Shell struct{}
     func Register(r *registry.Registry) *Shell
     func (s *Shell) Handler(w *Workspace) (http.Handler, error)
     func OpenWorkspace(entry string, r *registry.Registry) (*Workspace, error)
@@ -84,6 +82,6 @@ server_route: component("internal/tools/server/route", heron.system.server, lang
 
   errors_as_json: property {
     must {{ write an error as `{"error": "‹message›"}` with its status, 500 when it carries none, and a body that isn't JSON as 400 "invalid body: ‹reason›" }}
-    verify("internal/tools/server/server_test.go", test = "TestPreview")
+    verify("internal/tools/server/api_test.go", test = "TestNoOp")
   }
 }

@@ -12,32 +12,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aiviarium/heron/internal/core/check"
 	"github.com/aiviarium/heron/internal/core/registry"
-	"github.com/aiviarium/heron/internal/core/resolve"
 	"github.com/aiviarium/heron/internal/tools/server/api"
 	"github.com/aiviarium/heron/internal/tools/server/route"
 )
 
-// Renderer renders a node, or a file's top-level nodes, of a checked tree
-// as the docs render them.
-type Renderer interface {
-	RenderNode(res *check.Result, n *resolve.Node) (string, error)
-	RenderFile(res *check.Result, file resolve.FileID) (string, error)
-}
-
 // Shell is the server shell.
-type Shell struct {
-	// Renderer renders the preview; nil uses the generic node view.
-	Renderer Renderer
-}
+type Shell struct{}
 
 // Register adds `heron serve` to the registry and returns its shell.
 func Register(r *registry.Registry) *Shell {
-	s := &Shell{Renderer: DocsRenderer{Registry: r}}
+	s := &Shell{}
 	r.MustAddCommand(registry.Command{
 		Name:    "serve",
-		Summary: "Serve the spec browser, rendered live, and the preview",
+		Summary: "Serve the spec browser and the agent export, rendered live",
 		Usage:   "[--addr host:port] [entry point]",
 		Run: func(env *registry.Env, args []string) int {
 			return s.command(env, args, r)
@@ -91,7 +79,7 @@ func (s *Shell) command(env *registry.Env, args []string, r *registry.Registry) 
 // browser and the agent export, with / redirecting to the spec browser.
 func (s *Shell) Handler(w *Workspace) (http.Handler, error) {
 	mux := http.NewServeMux()
-	svc := &service{shell: s, ws: w, agents: &agentExport{ws: w}}
+	svc := &service{ws: w, agents: &agentExport{ws: w}}
 	routes := api.Routes(svc)
 	for _, rt := range routes {
 		mux.HandleFunc(rt.Pattern(), rt.Handler)

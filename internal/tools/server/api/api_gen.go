@@ -14,37 +14,6 @@ var (
 	_ = http.MethodGet
 )
 
-// What the preview renders: the files being edited, as typed, and where the cursor is, as a position or as an offset.
-type PreviewRequest struct {
-	// The file the cursor is in, relative to the workspace.
-	File string `json:"file"`
-	// The cursor as the language server protocol counts: a 0-based line and a 0-based character offset in UTF-16 code units. It wins over `offset`.
-	Position *Position `json:"position,omitempty"`
-	// The cursor as a 0-based offset in bytes of the file's UTF-8 text.
-	Offset *int64 `json:"offset,omitempty"`
-	// Unsaved text of open files, by path relative to the workspace.
-	Overlays map[string]string `json:"overlays"`
-}
-
-// A place in a text as the language server protocol counts it.
-type Position struct {
-	// 0-based.
-	Line int64 `json:"line"`
-	// 0-based, in UTF-16 code units.
-	Character int64 `json:"character"`
-}
-
-// The current node as the docs render it.
-type Preview struct {
-	// The node's path in the tree; empty for the file itself.
-	Path string `json:"path"`
-	// Its kind, which picks the renderer.
-	Kind string `json:"kind"`
-	HTML string `json:"html"`
-	// The error that stopped the render, shown in place.
-	Error *string `json:"error,omitempty"`
-}
-
 // A generated file as it would be written.
 type GeneratedFile struct {
 	Path string `json:"path"`
@@ -58,8 +27,6 @@ type GeneratedFiles struct {
 
 // Service implements the ops.
 type Service interface {
-	// The node at a position of a file rendered as the docs render it, with the files being edited as typed.
-	Preview(ctx context.Context, request *PreviewRequest) (*Preview, error)
 	// The tree's [agent export](#tools.docs.agents.agent_export) as `heron generate agents` writes it: every file, or the one at `path`, as `INDEX.md`.
 	AgentExport(ctx context.Context, path string) (*GeneratedFiles, error)
 }
@@ -67,19 +34,6 @@ type Service interface {
 // Routes binds each op to its handler on s.
 func Routes(s Service) []route.Route {
 	return []route.Route{
-		{Op: "spec_server.preview", Method: "POST", Path: "/api/v1/preview", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
-			p_request := &PreviewRequest{}
-			if err := route.DecodeBody(r, p_request); err != nil {
-				route.WriteError(w, err)
-				return
-			}
-			out, err := s.Preview(r.Context(), p_request)
-			if err != nil {
-				route.WriteError(w, err)
-				return
-			}
-			route.WriteJSON(w, out)
-		}},
 		{Op: "spec_server.agent_export", Method: "GET", Path: "/api/v1/agents", Stream: false, Socket: false, Handler: func(w http.ResponseWriter, r *http.Request) {
 			p_path := r.URL.Query().Get("path")
 			out, err := s.AgentExport(r.Context(), p_path)

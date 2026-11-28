@@ -28,12 +28,4 @@ tools_server: section {
   proves(heron.tools.server.serving.spec_browser) {
     verify("internal/tools/server/server_test.go", test = "TestSpecBrowser")
   }
-
-  proves(heron.tools.server.ops.path_in_workspace) {
-    verify("internal/tools/server/server_test.go", test = "TestPreview")
-  }
-
-  proves(heron.tools.server.ops.unsaved_texts) {
-    verify("internal/tools/server/server_test.go", test = "TestPreview")
-  }
 }

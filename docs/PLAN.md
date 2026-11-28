@@ -513,7 +513,7 @@ neither the spec nor the catalogue.
   `/docs/`, and the API; `cmd/heron` holds the shell `server.Register`
   returns.
 - **The API** is the spec package's `tools/server_api/` (`spec_server`, its
-  types and its errors), read from the spec package: `preview` and
+  types and its errors), read from the spec package: one op,
   `agent_export`. `apigen` writes `api_gen.go` (types, `Service`,
   `Routes`); ci.sh checks it current.
 - **The VS Code extension** (`editors/vscode`): TypeScript bundled by

@@ -14,7 +14,6 @@ import (
 	"github.com/aiviarium/heron/internal/core/registry"
 	"github.com/aiviarium/heron/internal/tools/docs"
 	"github.com/aiviarium/heron/internal/tools/server"
-	"github.com/aiviarium/heron/internal/tools/server/api"
 )
 
 // scratch serves a workspace in a fresh folder.
@@ -34,7 +33,7 @@ func scratch(t *testing.T) (*httptest.Server, string) {
 	r := registry.New()
 	cli.Register(r)
 	docs.Register(r)
-	s := &server.Shell{Renderer: server.DocsRenderer{Registry: r}}
+	s := &server.Shell{}
 	w, err := server.OpenWorkspace(dir, r)
 	if err != nil {
 		t.Fatal(err)
@@ -66,17 +65,6 @@ func do(t *testing.T, ts *httptest.Server, method, path string, body, out any) i
 		_ = json.NewDecoder(res.Body).Decode(out)
 	}
 	return res.StatusCode
-}
-
-// A preview's position counts UTF-16 columns, as the protocol does.
-func TestPreviewPosition(t *testing.T) {
-	ts, _ := scratch(t)
-	text := "import = [\"std/doc@1\"]\n\n// é😀\nintro: section {\n  | Hi.\n}\n"
-	var pv api.Preview
-	do(t, ts, "POST", "/api/v1/preview", api.PreviewRequest{File: "index.heron", Position: &api.Position{Line: 3, Character: 2}, Overlays: map[string]string{"index.heron": text}}, &pv)
-	if pv.Path != "intro" {
-		t.Errorf("preview at 3:2: %+v", pv)
-	}
 }
 
 // A page of another origin may not call the API; the server's own may.
